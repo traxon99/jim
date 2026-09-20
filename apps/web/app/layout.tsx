@@ -1,3 +1,7 @@
+import { InstallGate } from "@/components/install-gate";
+import { RegisterServiceWorker } from "@/components/register-service-worker";
+import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
+import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -15,21 +19,32 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Jim",
   description: "A personal strength-training PWA.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Jim",
+    statusBarStyle: "black-translucent",
+    startupImage: SPLASH_DEVICES.map((device) => ({
+      url: `/splash/${device.id}`,
+      media: splashMediaQuery(device),
+    })),
+  },
 };
 
-// Safe-area handling, the manifest, and the full PWA shell land in S2
-// (see docs/STORIES.md). viewport-fit is set now since it costs nothing
-// to have in place early and nothing here depends on the rest of S2.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: ICON_BACKGROUND,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-dvh flex-col">
+        <RegisterServiceWorker />
+        <InstallGate>{children}</InstallGate>
+      </body>
     </html>
   );
 }
