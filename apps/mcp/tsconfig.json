@@ -1,0 +1,18 @@
+{
+  // Deliberately inherits "Bundler" moduleResolution from tsconfig.base
+  // rather than "NodeNext". packages/core and packages/db ship raw .ts
+  // source (no build step), and this app runs via tsx (an esbuild-based
+  // loader, not tsc-compiled Node ESM). NodeNext's stricter relative-import
+  // extension rules would apply to packages/core's internals too, since
+  // TS resolution mode is program-wide rather than per-file, and Turbopack
+  // (which apps/web uses to consume the same source) requires the opposite
+  // convention. Revisit only if packages/core/db gain a real build step.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["src"]
+}
