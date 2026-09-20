@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# generated at build time by scripts/generate-sw.mjs (postbuild) — see public/sw.template.js
+/public/sw.js
+
 # production
 /build
 
@@ -32,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
