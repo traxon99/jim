@@ -1,0 +1,31 @@
+# @jim/db
+
+Drizzle schema, migrations, RLS policies, and the exercise catalog seed. See
+[docs/ARCHITECTURE.md §4](../../docs/ARCHITECTURE.md) for the data model and
+[docs/DECISIONS.md](../../docs/DECISIONS.md) for the RLS (ADR-005), sets-immutability
+(ADR-003), and copy-on-write catalog (ADR-008) decisions this package enforces.
+
+## Setup
+
+Copy `.env.example` to `.env` and point `DATABASE_URL` at a Supabase Postgres
+connection string (or any Postgres instance for local work — RLS policies
+reference `auth.uid()` and `auth.users`, which Supabase provides; see
+`test/bootstrap-supabase-stubs.sql` for a minimal local stand-in).
+
+```
+pnpm db:generate   # regenerate drizzle/ SQL from src/schema.ts after a schema change
+pnpm db:migrate     # apply drizzle/ migrations to DATABASE_URL
+pnpm db:seed        # fetch free-exercise-db and upsert the global exercise catalog
+```
+
+A hand-authored migration (`drizzle/0001_sets_reject_update.sql`) adds a trigger
+that rejects any `UPDATE` on `sets` — `drizzle-kit generate` won't reproduce
+this from the schema DSL, so don't regenerate over it.
+
+## Tests
+
+Pure logic (muscle normalization, tracking-type classification) runs under
+`pnpm test` with no setup. Integration tests (RLS isolation, the sets trigger,
+the seed script) are skipped unless `TEST_DATABASE_URL` is set, and then drop
+and recreate that database's schemas on every run — point it at a disposable
+scratch database, never one with real data.
