@@ -8,10 +8,15 @@ export class UnauthenticatedError extends Error {
   }
 }
 
+/**
+ * `DATABASE_URL` for local dev (see .env.example); `POSTGRES_PRISMA_URL` is
+ * what Vercel's Supabase marketplace integration names the pooled
+ * connection string in deployed environments.
+ */
 function databaseUrl(): string {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_PRISMA_URL;
   if (!url) {
-    throw new Error("DATABASE_URL is required (see .env.example)");
+    throw new Error("DATABASE_URL or POSTGRES_PRISMA_URL is required (see .env.example)");
   }
   return url;
 }
