@@ -1,0 +1,40 @@
+/** Local preference, not an account setting — Notification permission is per-browser anyway. */
+export const PUSH_NOTIFICATIONS_STORAGE_KEY = "jim:push-notifications-enabled";
+
+export function isNotificationSupported(): boolean {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+export function readPushNotificationsEnabled(): boolean {
+  try {
+    return window.localStorage.getItem(PUSH_NOTIFICATIONS_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function writePushNotificationsEnabled(enabled: boolean): void {
+  try {
+    window.localStorage.setItem(PUSH_NOTIFICATIONS_STORAGE_KEY, String(enabled));
+  } catch {
+    // Safari private mode etc. — the toggle still reflects for this page life.
+  }
+}
+
+/**
+ * Whether a freshly-installed service worker should raise an "app updated"
+ * notification. `hadController` is false on the very first install (there's
+ * no prior version to update *from* — see register-service-worker.tsx), so
+ * only a second-or-later install ever counts as an update.
+ */
+export function shouldNotifyOfUpdate({
+  enabled,
+  permission,
+  hadController,
+}: {
+  enabled: boolean;
+  permission: NotificationPermission;
+  hadController: boolean;
+}): boolean {
+  return enabled && permission === "granted" && hadController;
+}
