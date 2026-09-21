@@ -8,10 +8,15 @@ export class UnauthenticatedError extends Error {
   }
 }
 
+/**
+ * `DATABASE_URL` for local dev (see .env.example); `JIM_DB_POSTGRES_URL` is
+ * what Vercel's Supabase marketplace integration (the "JIM_DB" storage
+ * resource) names the pooled connection string in deployed environments.
+ */
 function databaseUrl(): string {
-  const url = process.env.DATABASE_URL;
+  const url = process.env.DATABASE_URL ?? process.env.JIM_DB_POSTGRES_URL;
   if (!url) {
-    throw new Error("DATABASE_URL is required (see .env.example)");
+    throw new Error("DATABASE_URL or JIM_DB_POSTGRES_URL is required (see .env.example)");
   }
   return url;
 }
