@@ -1,27 +1,53 @@
 "use client";
 
+import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { db } from "@/lib/db/schema";
-import { resolveCurrentRows } from "@jim/core";
+import { estimatedOneRepMaxSeries, resolveCurrentRows } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
+import { useMemo } from "react";
 
 export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
 
-  // "Your history": every current (non-superseded, non-deleted) set logged
-  // against this exercise, most recent first. Empty until S6 ships actual
-  // logging — the query is correct and ready for when it does.
-  const history = useLiveQuery(async () => {
+  // Every current (non-superseded, non-deleted) set logged against this
+  // exercise, most recent first, paired with which session it belongs to
+  // (estimatedOneRepMaxSeries needs that to plot one point per session).
+  const resolvedSets = useLiveQuery(async () => {
     const sessionExercises = await db.sessionExercises.where("exerciseId").equals(id).toArray();
-    const sessionExerciseIds = sessionExercises.map((se) => se.id);
-    if (sessionExerciseIds.length === 0) return [];
+    if (sessionExercises.length === 0) return [];
 
-    const allSets = await db.sets.where("sessionExerciseId").anyOf(sessionExerciseIds).toArray();
+    const sessionIdBySessionExerciseId = new Map(
+      sessionExercises.map((se) => [se.id, se.sessionId]),
+    );
+    const allSets = await db.sets
+      .where("sessionExerciseId")
+      .anyOf(sessionExercises.map((se) => se.id))
+      .toArray();
+
     return resolveCurrentRows(allSets)
       .filter((set) => !set.deletedAt)
-      .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime())
-      .slice(0, 10);
+      .map((set) => ({
+        ...set,
+        sessionId: sessionIdBySessionExerciseId.get(set.sessionExerciseId) ?? set.sessionExerciseId,
+      }))
+      .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
   }, [id]);
+
+  const history = useMemo(() => resolvedSets?.slice(0, 10), [resolvedSets]);
+
+  const oneRepMaxPoints = useMemo(
+    () =>
+      estimatedOneRepMaxSeries(
+        (resolvedSets ?? []).map((set) => ({
+          sessionId: set.sessionId,
+          completedAt: set.completedAt,
+          weight: set.weight == null ? null : Number(set.weight),
+          reps: set.reps,
+        })),
+      ),
+    [resolvedSets],
+  );
 
   if (exercise === undefined) {
     return (
@@ -102,6 +128,15 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
               <li key={step}>{step}</li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {oneRepMaxPoints.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
+          <div className="mt-2">
+            <OneRepMaxChart points={oneRepMaxPoints} />
+          </div>
         </section>
       )}
 
