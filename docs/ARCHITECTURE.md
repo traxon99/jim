@@ -183,7 +183,12 @@ so layout must be fluid rather than pinned to one width.
 - `viewport-fit=cover` plus `env(safe-area-inset-*)` padding; the bottom tab bar clears the home indicator.
 - **Minimum 16px font on every input** — anything smaller triggers focus-zoom on iOS.
 - `touch-action: manipulation` globally, killing double-tap zoom and the 300ms delay.
-- `overscroll-behavior: none` to stop rubber-banding inside the standalone shell.
+- `overscroll-behavior: none` **on the root element** (it never propagates from `<body>`) to
+  stop pull-to-refresh and rubber-banding inside the standalone shell.
+- `-webkit-tap-highlight-color: transparent` on every control — the grey tap flash reads as browser.
+- Long-press context menu and text selection suppressed **only when installed** (`body.pwa`, set by
+  `components/pwa-chrome.tsx`), with links, media, text entry, and `.allow-pwa-select` regions
+  (errors, logged numbers) opted back in. Outside the installed app both stay untouched.
 - Minimum 44 × 44pt tap targets; primary logging controls sit in the bottom third (thumb zone).
 - `inputmode="decimal"` on weight, `inputmode="numeric"` on reps.
 - **Screen Wake Lock API** (Safari 16.4+) held for the duration of an active session.

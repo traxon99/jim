@@ -102,7 +102,7 @@ export function SettingsForm() {
         />
       </label>
 
-      {error && <p className="text-xs text-red-600 dark:text-red-500">{error}</p>}
+      {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
 
       <button
         type="button"

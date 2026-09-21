@@ -130,7 +130,7 @@ export function SessionDetail({ id }: { id: string }) {
             {group.notes && (
               <p className="text-xs text-zinc-500 dark:text-zinc-500">{group.notes}</p>
             )}
-            <ul className="flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+            <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
               {group.sets.map((set) => (
                 <li key={set.id} className="flex items-center justify-between gap-2 py-2">
                   <span className="flex items-center gap-2">

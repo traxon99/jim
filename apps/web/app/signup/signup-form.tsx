@@ -91,7 +91,7 @@ export function SignupForm({ next }: { next: string }) {
         {status === "submitting" ? "Creating account…" : "Sign up"}
       </button>
       {status === "error" && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+        <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-400">
           {errorMessage}
         </p>
       )}

@@ -19,11 +19,16 @@
   }
 }
 
+:root {
+  /* Kills pull-to-refresh and rubber-banding. Has to sit on the root element:
+     overscroll-behavior on <body> never propagates to the viewport. */
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  overscroll-behavior: none;
   /* Bottom clearance is each screen's own job (the tab bar pads itself;
      centered auth screens don't reach the edge), so only top is global. */
   padding-top: env(safe-area-inset-top);
@@ -39,4 +44,53 @@ select,
 textarea {
   /* Anything smaller triggers Safari's focus-zoom on iOS. */
   font-size: 16px;
+}
+
+button,
+a,
+label,
+input,
+select,
+textarea,
+summary {
+  /* The grey flash on tap is the most browser-looking thing there is.
+     Tailwind's preflight also sets this on <html> and it inherits, but the
+     controls that actually get tapped are worth pinning down explicitly. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Installed-app-only chrome. The `pwa` class comes from
+ * components/pwa-chrome.tsx; in a browser tab none of this applies, because
+ * a page that can't be selected or long-pressed just feels broken there.
+ */
+body.pwa {
+  -webkit-user-select: none;
+  user-select: none;
+  /* iOS raises its own long-press callout ahead of the contextmenu event. */
+  -webkit-touch-callout: none;
+}
+
+/* Opt back in wherever there is something worth selecting: what the user
+ * typed, and anything tagged .allow-pwa-select (errors, logged numbers). */
+body.pwa input,
+body.pwa textarea,
+body.pwa [contenteditable="true"],
+body.pwa .allow-pwa-select,
+body.pwa .allow-pwa-select * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Mirrors CONTEXT_MENU_ALLOWED_SELECTOR in lib/pwa/context-menu.ts — where
+ * the real context menu survives, the iOS callout should too. */
+body.pwa a[href],
+body.pwa img,
+body.pwa video,
+body.pwa audio,
+body.pwa input,
+body.pwa textarea,
+body.pwa [contenteditable="true"],
+body.pwa .allow-pwa-select {
+  -webkit-touch-callout: default;
 }

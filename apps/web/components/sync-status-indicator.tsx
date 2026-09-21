@@ -28,7 +28,7 @@ export function SyncStatusIndicator() {
   }
 
   return (
-    <output className="flex items-center justify-center gap-2 px-4 py-1 text-xs text-red-600 dark:text-red-400">
+    <output className="allow-pwa-select flex items-center justify-center gap-2 px-4 py-1 text-xs text-red-600 dark:text-red-400">
       <span>Sync error · {status.count} pending</span>
       <button
         type="button"

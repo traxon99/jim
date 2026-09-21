@@ -79,7 +79,7 @@ export function PrList() {
               >
                 {group.name}
               </Link>
-              <ul className="flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+              <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                 {group.records.map((record) => (
                   <li key={record.id} className="flex items-center justify-between py-2">
                     <span>{PR_KIND_LABELS[record.kind]}</span>

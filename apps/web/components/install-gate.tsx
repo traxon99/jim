@@ -1,17 +1,9 @@
 "use client";
 
+import { STANDALONE_MEDIA_QUERY, isStandalone } from "@/lib/pwa/standalone";
 import { useEffect, useState } from "react";
 
 type InstallState = "checking" | "installed" | "not-installed";
-
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    // iOS Safari's legacy signal — matchMedia alone isn't fully reliable there.
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
 
 /**
  * Hard-gates the app on home-screen install (ADR-010): iOS evicts storage
@@ -25,7 +17,7 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
     const update = () => setState(isStandalone() ? "installed" : "not-installed");
     update();
 
-    const query = window.matchMedia("(display-mode: standalone)");
+    const query = window.matchMedia(STANDALONE_MEDIA_QUERY);
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
