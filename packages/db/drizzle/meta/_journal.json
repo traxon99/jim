@@ -22,6 +22,13 @@
       "when": 1789948356288,
       "tag": "0002_amazing_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789958680131,
+      "tag": "0003_young_blue_marvel",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { MUSCLES } from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
   type PgColumn,
@@ -36,25 +37,10 @@ export const unitsEnum = pgEnum("units", ["lb", "kg"]);
 
 // The controlled vocabulary this seed data ships with (see ADR-008). Sourced
 // from free-exercise-db, which already uses a small, consistent muscle list.
-export const muscleEnum = pgEnum("muscle", [
-  "abdominals",
-  "abductors",
-  "adductors",
-  "biceps",
-  "calves",
-  "chest",
-  "forearms",
-  "glutes",
-  "hamstrings",
-  "lats",
-  "lower back",
-  "middle back",
-  "neck",
-  "quadriceps",
-  "shoulders",
-  "traps",
-  "triceps",
-]);
+// Lives in @jim/core (see its exercises/muscles.ts) so client-side UI can
+// import the same list without pulling this package's Postgres client code
+// into a browser bundle.
+export const muscleEnum = pgEnum("muscle", [...MUSCLES]);
 
 export const mechanicEnum = pgEnum("mechanic", ["compound", "isolation"]);
 export const forceEnum = pgEnum("force", ["push", "pull", "static"]);
@@ -141,7 +127,12 @@ export const exercises = pgTable(
     imageUrls: text("image_urls").array().notNull().default(sql`ARRAY[]::text[]`),
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Sync bookkeeping (S4): user-owned rows (custom or cloned, ADR-008) are
+    // LWW like every other table. Global seed rows never round-trip through
+    // push, so device_id is meaningless for them — only ever read/written
+    // for owner_id IS NOT NULL rows.
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
     serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
   (table) => [

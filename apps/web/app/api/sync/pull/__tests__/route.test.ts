@@ -166,4 +166,54 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
     expect(body.changes.routines).toEqual([]);
     expect(body.changes.exercises).toHaveLength(1);
   });
+
+  it("a custom exercise survives a full push/pull sync round trip", async () => {
+    const { cursor: cursorBefore } = await (await pull(0)).json();
+
+    const exerciseId = uuidv7();
+    const now = new Date().toISOString();
+    const pushResponse = await push([
+      {
+        id: uuidv7(),
+        table: "exercises",
+        entity: {
+          id: exerciseId,
+          slug: "my-custom-curl",
+          name: "My Custom Curl",
+          aliases: ["custom curl"],
+          primaryMuscles: ["biceps"],
+          secondaryMuscles: [],
+          equipment: "dumbbell",
+          mechanic: "isolation",
+          force: "pull",
+          level: "beginner",
+          trackingType: "weight_reps",
+          instructions: ["Curl it."],
+          imageUrls: [],
+          isArchived: false,
+          createdAt: now,
+          updatedAt: now,
+          deviceId: "device-a",
+        },
+      },
+    ]);
+    expect((await pushResponse.json()).results[0].status).toBe("applied");
+
+    const body = await (await pull(cursorBefore)).json();
+    const custom = body.changes.exercises.find((e: { id: string }) => e.id === exerciseId);
+    expect(custom).toBeDefined();
+    expect(custom).toMatchObject({
+      name: "My Custom Curl",
+      slug: "my-custom-curl",
+      primaryMuscles: ["biceps"],
+      isArchived: false,
+    });
+
+    // Owned by the pushing user, RLS-invisible to anyone else.
+    claimsSub = USER_B;
+    const otherUsersView = await (await pull(cursorBefore)).json();
+    expect(otherUsersView.changes.exercises.some((e: { id: string }) => e.id === exerciseId)).toBe(
+      false,
+    );
+  });
 });

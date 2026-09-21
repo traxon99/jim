@@ -1,6 +1,8 @@
 // Every table the sync engine moves between Dexie and Postgres (see
-// docs/ARCHITECTURE.md §3-4). `exercises` is deliberately excluded: it's
-// pulled read-only (the seed catalog) and never pushed via the outbox.
+// docs/ARCHITECTURE.md §3-4). `exercises` pushes too as of S4 (custom and
+// cloned rows, ADR-008) — RLS's owner_id = auth.uid() check on insert/update
+// means a push can never touch a global seed row (owner_id IS NULL) no
+// matter what a client sends.
 export const SYNC_TABLES = [
   "routines",
   "routineExercises",
@@ -9,6 +11,7 @@ export const SYNC_TABLES = [
   "sets",
   "personalRecords",
   "bodyMeasurements",
+  "exercises",
 ] as const;
 
 export type SyncTable = (typeof SYNC_TABLES)[number];
