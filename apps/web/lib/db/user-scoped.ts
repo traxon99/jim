@@ -38,17 +38,22 @@ function getDb(): Db {
  * before this ever runs, so the id being impersonated here is not
  * client-supplied — only the already-authenticated request's own id.
  */
-export async function withUserDb<T>(fn: (tx: DbOrTx, userId: string) => Promise<T>): Promise<T> {
+export async function withUserDb<T>(
+  fn: (tx: DbOrTx, userId: string, email: string) => Promise<T>,
+): Promise<T> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims.sub;
   if (!userId) {
     throw new UnauthenticatedError();
   }
+  // Only settings' ensureUserRow actually needs this; sync's push/pull
+  // never touch it, so its absence (as in their test mocks) can't regress them.
+  const email = data?.claims.email ?? "";
 
   return getDb().transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL ROLE authenticated`);
     await tx.execute(sql`SELECT set_config('request.jwt.claim.sub', ${userId}, true)`);
-    return fn(tx, userId);
+    return fn(tx, userId, email);
   });
 }
