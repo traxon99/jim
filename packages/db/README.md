@@ -18,11 +18,11 @@ pnpm db:migrate     # apply drizzle/ migrations to MIGRATE_DATABASE_URL (falls b
 pnpm db:seed        # fetch free-exercise-db and upsert the global exercise catalog
 ```
 
-`apps/web`'s `prebuild` script runs `db:migrate` automatically before every `next build`, so
-Vercel deploys apply pending migrations on their own. Point `MIGRATE_DATABASE_URL` at the
-Supabase session pooler (not the transaction pooler `DATABASE_URL` the app queries at runtime
-with) — drizzle's migrator takes a session-scoped advisory lock that transaction-mode pooling
-doesn't support.
+`apps/web`'s `prebuild` script runs `db:migrate` and `db:seed` automatically before every
+`next build`, so Vercel deploys apply pending migrations and keep the global exercise catalog
+current on their own. Point `MIGRATE_DATABASE_URL` at the Supabase session pooler (not the
+transaction pooler `DATABASE_URL` the app queries at runtime with) — drizzle's migrator takes
+a session-scoped advisory lock that transaction-mode pooling doesn't support.
 
 A hand-authored migration (`drizzle/0001_sets_reject_update.sql`) adds a trigger
 that rejects any `UPDATE` on `sets` — `drizzle-kit generate` won't reproduce
