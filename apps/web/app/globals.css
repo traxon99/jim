@@ -71,6 +71,23 @@ body.pwa {
   -webkit-touch-callout: none;
 }
 
+/* A very brief fade on tab switches (components/page-fade.tsx). */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.page-fade {
+  animation: page-fade-in 120ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade {
+    animation: none;
+  }
+}
+
 /* Opt back in wherever there is something worth selecting: what the user
  * typed, and anything tagged .allow-pwa-select (errors, logged numbers). */
 body.pwa input,
