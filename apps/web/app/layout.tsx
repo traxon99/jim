@@ -1,4 +1,5 @@
 import { InstallGate } from "@/components/install-gate";
+import { PwaChrome } from "@/components/pwa-chrome";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-dvh flex-col">
         <RegisterServiceWorker />
+        <PwaChrome />
         <InstallGate>{children}</InstallGate>
       </body>
     </html>

@@ -123,7 +123,7 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
       {exercise.instructions.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold">Instructions</h2>
-          <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+          <ol className="allow-pwa-select mt-1 list-decimal space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
             {exercise.instructions.map((step) => (
               <li key={step}>{step}</li>
             ))}
@@ -145,7 +145,7 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
         {!history || history.length === 0 ? (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">No sets logged yet.</p>
         ) : (
-          <ul className="mt-1 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+          <ul className="allow-pwa-select mt-1 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
             {history.map((set) => (
               <li key={set.id} className="flex justify-between py-2">
                 <span>

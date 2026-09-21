@@ -66,7 +66,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         )}
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-10 gap-y-4 text-left">
+      <dl className="allow-pwa-select grid grid-cols-2 gap-x-10 gap-y-4 text-left">
         <div>
           <dt className="text-xs text-zinc-500 dark:text-zinc-500">Duration</dt>
           <dd className="text-2xl font-semibold">{minutes} min</dd>
