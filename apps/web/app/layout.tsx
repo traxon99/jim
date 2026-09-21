@@ -49,7 +49,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-lvh flex-col">
         <RegisterServiceWorker />
         <PwaChrome />
         <InstallGate>{children}</InstallGate>
