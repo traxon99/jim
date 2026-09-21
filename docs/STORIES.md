@@ -65,7 +65,7 @@ Every table from `ARCHITECTURE.md` §4, with tenancy enforced from the first mig
 
 The app becomes something you can put on a phone.
 
-- Supabase magic-link auth; session persisted across cold starts
+- Supabase email/password auth; session persisted across cold starts
 - Web app manifest, full icon set, `apple-touch-icon`, splash screens
 - Service worker precaching the app shell
 - Safe-area layout (`viewport-fit=cover`, `env(safe-area-inset-*)`), bottom tab bar clearing the home indicator
@@ -75,7 +75,7 @@ The app becomes something you can put on a phone.
 **Acceptance criteria**
 - [ ] Installs to the iPhone 16 home screen from Safari and launches standalone with no browser chrome
 - [ ] The shell loads cold in airplane mode
-- [ ] Magic-link sign-in completes and survives an app restart
+- [ ] Email/password sign-in completes and survives an app restart
 - [ ] No content is obscured by the Dynamic Island or the home indicator
 - [ ] Focusing a weight input does not zoom the viewport
 - [ ] Opened in a browser tab rather than installed, the install gate appears

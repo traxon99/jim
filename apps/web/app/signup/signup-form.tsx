@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type Status = "idle" | "submitting" | "error";
+type Status = "idle" | "submitting" | "sent" | "error";
 
-export function LoginForm({ next }: { next: string }) {
+export function SignupForm({ next }: { next: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +19,14 @@ export function LoginForm({ next }: { next: string }) {
     setStatus("submitting");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const redirectUrl = new URL("/auth/confirm", window.location.origin);
+    redirectUrl.searchParams.set("next", next);
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectUrl.toString() },
+    });
 
     if (error) {
       setStatus("error");
@@ -27,8 +34,21 @@ export function LoginForm({ next }: { next: string }) {
       return;
     }
 
-    router.replace(next);
-    router.refresh();
+    if (data.session) {
+      router.replace(next);
+      router.refresh();
+      return;
+    }
+
+    setStatus("sent");
+  }
+
+  if (status === "sent") {
+    return (
+      <p className="max-w-xs text-sm text-zinc-600 dark:text-zinc-400">
+        Check <strong>{email}</strong> for a link to confirm your account.
+      </p>
+    );
   }
 
   return (
@@ -55,8 +75,9 @@ export function LoginForm({ next }: { next: string }) {
         id="password"
         name="password"
         type="password"
-        autoComplete="current-password"
+        autoComplete="new-password"
         required
+        minLength={6}
         placeholder="Password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
@@ -67,7 +88,7 @@ export function LoginForm({ next }: { next: string }) {
         disabled={status === "submitting"}
         className="rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
       >
-        {status === "submitting" ? "Signing in…" : "Sign in"}
+        {status === "submitting" ? "Creating account…" : "Sign up"}
       </button>
       {status === "error" && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
@@ -75,12 +96,12 @@ export function LoginForm({ next }: { next: string }) {
         </p>
       )}
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        No account?{" "}
+        Already have an account?{" "}
         <Link
-          href={`/signup?next=${encodeURIComponent(next)}`}
+          href={`/login?next=${encodeURIComponent(next)}`}
           className="font-medium underline underline-offset-4"
         >
-          Sign up
+          Sign in
         </Link>
       </p>
     </form>
