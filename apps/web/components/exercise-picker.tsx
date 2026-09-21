@@ -26,7 +26,10 @@ export function ExercisePicker({ userId, excludeExerciseIds, onPick, onClose }: 
   }, [allExercises, userId, query, excludeExerciseIds]);
 
   return (
-    <div className="fixed inset-0 z-10 flex flex-col bg-white dark:bg-zinc-950">
+    <div
+      className="fixed inset-0 z-10 flex flex-col bg-white dark:bg-zinc-950"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="flex items-center justify-between gap-2 border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
         <h2 className="text-lg font-semibold">Add exercise</h2>
         <button
