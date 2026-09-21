@@ -2,11 +2,12 @@ import { SYNC_DATE_FIELDS, isNewerWrite, normalizeDates } from "@jim/core";
 import type { EntityTable } from "dexie";
 import type { JimDatabase } from "../db/schema";
 
-// "sets" is append-only (no local conflict possible) and "exercises" is a
-// server-authoritative read-only mirror — both are safe to just overwrite.
-// Everything else is last-write-wins: only replace what's local if the
-// pulled row is actually newer (ADR-003).
-const OVERWRITE_TABLES = new Set(["sets", "exercises"]);
+// "sets" is append-only (no local conflict possible), so a pulled row can
+// always just be written straight in. Everything else — "exercises"
+// included, since S4 lets a user edit or clone a row (ADR-008) — is
+// last-write-wins: only replace what's local if the pulled row is actually
+// newer.
+const OVERWRITE_TABLES = new Set(["sets"]);
 
 interface LwwLike {
   id: string;

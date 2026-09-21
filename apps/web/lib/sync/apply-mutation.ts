@@ -2,6 +2,7 @@ import { type Mutation, SYNC_DATE_FIELDS, normalizeDates } from "@jim/core";
 import {
   type DbOrTx,
   bodyMeasurements,
+  exercises,
   personalRecords,
   routineExercises,
   routines,
@@ -235,6 +236,45 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(bodyMeasurements.updatedAt, bodyMeasurements.deviceId),
+        });
+      return;
+    }
+
+    case "exercises": {
+      // ownerId is forced to the verified user below regardless of what the
+      // payload carries — RLS's owner_id = auth.uid() check would reject an
+      // insert/update against anyone else's row (or a global one) anyway,
+      // but this keeps a mismatched payload from ever reaching that check
+      // as a no-op-looking failure instead of applying as the right owner.
+      const dated = normalizeDates(
+        entity as typeof exercises.$inferInsert,
+        SYNC_DATE_FIELDS.exercises,
+      );
+      const { serverSeq: _serverSeq, ownerId: _ownerId, ...row } = dated;
+      await tx
+        .insert(exercises)
+        .values({ ...row, ownerId: userId })
+        .onConflictDoUpdate({
+          target: exercises.id,
+          set: {
+            slug: excluded(exercises.slug),
+            name: excluded(exercises.name),
+            aliases: excluded(exercises.aliases),
+            primaryMuscles: excluded(exercises.primaryMuscles),
+            secondaryMuscles: excluded(exercises.secondaryMuscles),
+            equipment: excluded(exercises.equipment),
+            mechanic: excluded(exercises.mechanic),
+            force: excluded(exercises.force),
+            level: excluded(exercises.level),
+            trackingType: excluded(exercises.trackingType),
+            instructions: excluded(exercises.instructions),
+            imageUrls: excluded(exercises.imageUrls),
+            isArchived: excluded(exercises.isArchived),
+            updatedAt: excluded(exercises.updatedAt),
+            deviceId: excluded(exercises.deviceId),
+            serverSeq: sql`nextval('sync_seq')`,
+          },
+          setWhere: lwwGuard(exercises.updatedAt, exercises.deviceId),
         });
       return;
     }

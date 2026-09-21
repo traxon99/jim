@@ -6,7 +6,7 @@ import type { SyncTable } from "./types";
  * Postgres) and the client's pull application (same rehydration, before
  * writing to Dexie). Keeping one list means the two can't drift apart.
  */
-export const SYNC_DATE_FIELDS: Record<SyncTable | "exercises", readonly string[]> = {
+export const SYNC_DATE_FIELDS: Record<SyncTable, readonly string[]> = {
   routines: ["createdAt", "updatedAt", "deletedAt"],
   routineExercises: ["updatedAt", "deletedAt"],
   sessions: ["startedAt", "endedAt", "updatedAt", "deletedAt"],

@@ -31,6 +31,7 @@ export interface SyncTableRowMap {
   sets: SetRow;
   personalRecords: PersonalRecordRow;
   bodyMeasurements: BodyMeasurementRow;
+  exercises: ExerciseRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -59,9 +60,9 @@ export class JimDatabase extends Dexie {
     super(name);
     this.version(1).stores({
       routines: "id, updatedAt, deletedAt",
-      routineExercises: "id, routineId",
+      routineExercises: "id, routineId, exerciseId",
       sessions: "id, updatedAt, deletedAt",
-      sessionExercises: "id, sessionId",
+      sessionExercises: "id, sessionId, exerciseId",
       sets: "id, sessionExerciseId, supersedesId",
       personalRecords: "id, exerciseId",
       bodyMeasurements: "id",

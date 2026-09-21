@@ -1,0 +1,1 @@
+ALTER TABLE "exercises" ADD COLUMN "device_id" text DEFAULT '' NOT NULL;

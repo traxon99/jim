@@ -1,4 +1,6 @@
+import { slugify } from "@jim/core";
 import type { exercises } from "../schema";
+import { EXERCISE_ALIASES } from "./aliases";
 import { normalizeMuscles } from "./muscles";
 import { classifyTrackingType } from "./tracking-type";
 
@@ -22,16 +24,13 @@ interface RawExercise {
 
 export type SeedExercise = typeof exercises.$inferInsert;
 
-function slugify(id: string): string {
-  return id.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-}
-
 function normalizeExercise(raw: RawExercise): SeedExercise {
+  const slug = slugify(raw.id);
   return {
     ownerId: null,
-    slug: slugify(raw.id),
+    slug,
     name: raw.name,
-    aliases: [],
+    aliases: [...(EXERCISE_ALIASES[slug] ?? [])],
     primaryMuscles: normalizeMuscles(raw.primaryMuscles),
     secondaryMuscles: normalizeMuscles(raw.secondaryMuscles),
     equipment: raw.equipment,
