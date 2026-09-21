@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { supabaseEnv } from "./env";
 
-const PUBLIC_PATHS = ["/login", "/auth/confirm", "/auth/auth-code-error"];
+const PUBLIC_PATHS = ["/login", "/signup", "/auth/confirm", "/auth/auth-code-error"];
 
 /**
  * Refreshes the Supabase session cookie on every request and redirects
@@ -45,7 +45,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (claims?.data?.claims && request.nextUrl.pathname === "/login") {
+  if (
+    claims?.data?.claims &&
+    (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")
+  ) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
