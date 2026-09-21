@@ -35,6 +35,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // No pinch-zoom: a zoomed-out-and-stuck layout is the most browser-like
+  // failure there is, and `touch-action: manipulation` doesn't cover it — it
+  // kills double-tap zoom but explicitly still permits continuous zooming.
+  // iOS honors this in a standalone app (it ignores it in a Safari tab, which
+  // here only ever shows the install gate).
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: ICON_BACKGROUND,
 };
