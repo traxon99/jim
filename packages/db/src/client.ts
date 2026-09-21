@@ -10,7 +10,13 @@ export function createDb(connectionString: string) {
   // functions should use (direct connections are IPv6-only and don't
   // pool well across short-lived invocations). Harmless against a direct
   // connection too.
-  const client = postgres(connectionString, { prepare: false });
+  //
+  // `ssl: "prefer"` — Supabase's pooler and direct connections both
+  // require SSL and reject plaintext connections with ESSLREQUIRED; local
+  // dev Postgres typically has no SSL configured at all, so "prefer"
+  // negotiates SSL when the server offers it and falls back to plaintext
+  // otherwise, working against both without per-environment config.
+  const client = postgres(connectionString, { prepare: false, ssl: "prefer" });
   return drizzle(client, { schema });
 }
 

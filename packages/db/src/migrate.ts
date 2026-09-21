@@ -13,7 +13,8 @@ if (!databaseUrl) {
   );
 }
 
-const client = postgres(databaseUrl, { max: 1 });
+// See client.ts for why `ssl: "prefer"` is needed against Supabase.
+const client = postgres(databaseUrl, { max: 1, ssl: "prefer" });
 const db = drizzle(client);
 
 await migrate(db, { migrationsFolder: new URL("../drizzle", import.meta.url).pathname });
