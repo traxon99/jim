@@ -183,6 +183,9 @@ so layout must be fluid rather than pinned to one width.
 - `viewport-fit=cover` plus `env(safe-area-inset-*)` padding; the bottom tab bar clears the home indicator.
 - **Minimum 16px font on every input** — anything smaller triggers focus-zoom on iOS.
 - `touch-action: manipulation` globally, killing double-tap zoom and the 300ms delay.
+- `maximum-scale=1, user-scalable=no` to kill pinch-zoom — `touch-action: manipulation`
+  deliberately still permits it. Honored in the standalone app; a Safari tab ignores it and
+  only ever shows the install gate anyway. System zoom and Dynamic Type are unaffected.
 - `overscroll-behavior: none` **on the root element** (it never propagates from `<body>`) to
   stop pull-to-refresh and rubber-banding inside the standalone shell.
 - `-webkit-tap-highlight-color: transparent` on every control — the grey tap flash reads as browser.
