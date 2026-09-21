@@ -1,12 +1,15 @@
 import { sql } from "drizzle-orm";
 import {
   type PgColumn,
+  bigint,
   boolean,
   foreignKey,
+  index,
   integer,
   numeric,
   pgEnum,
   pgPolicy,
+  pgSequence,
   pgTable,
   smallint,
   text,
@@ -15,6 +18,15 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { authUid, authUsers, authenticatedRole } from "drizzle-orm/supabase";
+
+// ---------------------------------------------------------------------------
+// Sync sequence — one shared, strictly increasing cursor across every
+// syncable table, so GET /api/sync/pull?since=<server_seq> can take a single
+// scalar cursor rather than a per-table one (see docs/ARCHITECTURE.md §3).
+// ---------------------------------------------------------------------------
+
+export const syncSeq = pgSequence("sync_seq");
+const nextSyncSeq = sql`nextval('sync_seq')`;
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -130,6 +142,7 @@ export const exercises = pgTable(
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
   (table) => [
     // Global rows are reseeded by slug; a user may separately own a row with
@@ -138,6 +151,7 @@ export const exercises = pgTable(
     uniqueIndex("exercises_global_slug")
       .on(table.slug)
       .where(sql`${table.ownerId} IS NULL`),
+    index("exercises_server_seq").on(table.serverSeq),
     pgPolicy("exercises_select_own_or_global", {
       for: "select",
       to: authenticatedRole,
@@ -178,9 +192,20 @@ export const routines = pgTable(
     position: integer("position").notNull().default(0),
     folder: text("folder"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Sync bookkeeping (S3): last-write-wins tie-broken on (updatedAt, deviceId)
+    // per ADR-003; deletedAt is a tombstone rather than a real DELETE, so a
+    // deletion is itself a row pull picks up instead of silently disappearing.
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    // Default only exists so ALTER TABLE ADD COLUMN is safe against a
+    // non-empty table; every real write always supplies its own device_id.
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
-  (table) => ownRowPolicies("routines", table.userId),
+  (table) => [
+    ...ownRowPolicies("routines", table.userId),
+    index("routines_server_seq").on(table.serverSeq),
+  ],
 ).enableRLS();
 
 export const routineExercises = pgTable(
@@ -203,8 +228,15 @@ export const routineExercises = pgTable(
     targetRepsHigh: integer("target_reps_high"),
     targetRestSeconds: integer("target_rest_seconds"),
     notes: text("notes"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
-  (table) => ownRowPolicies("routine_exercises", table.userId),
+  (table) => [
+    ...ownRowPolicies("routine_exercises", table.userId),
+    index("routine_exercises_server_seq").on(table.serverSeq),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
@@ -226,8 +258,13 @@ export const sessions = pgTable(
     bodyweight: numeric("bodyweight", { precision: 6, scale: 2 }),
     deviceId: text("device_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
-  (table) => ownRowPolicies("sessions", table.userId),
+  (table) => [
+    ...ownRowPolicies("sessions", table.userId),
+    index("sessions_server_seq").on(table.serverSeq),
+  ],
 ).enableRLS();
 
 export const sessionExercises = pgTable(
@@ -246,8 +283,15 @@ export const sessionExercises = pgTable(
     position: integer("position").notNull().default(0),
     supersetGroup: integer("superset_group"),
     notes: text("notes"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
-  (table) => ownRowPolicies("session_exercises", table.userId),
+  (table) => [
+    ...ownRowPolicies("session_exercises", table.userId),
+    index("session_exercises_server_seq").on(table.serverSeq),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
@@ -276,6 +320,7 @@ export const sets = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
     supersedesId: uuid("supersedes_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
   (table) => [
     foreignKey({
@@ -283,6 +328,7 @@ export const sets = pgTable(
       foreignColumns: [table.id],
       name: "sets_supersedes_id_fkey",
     }),
+    index("sets_server_seq").on(table.serverSeq),
     pgPolicy("sets_select_own", {
       for: "select",
       to: authenticatedRole,
@@ -317,8 +363,15 @@ export const personalRecords = pgTable(
     value: numeric("value", { precision: 10, scale: 2 }).notNull(),
     setId: uuid("set_id").references(() => sets.id, { onDelete: "set null" }),
     achievedAt: timestamp("achieved_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
-  (table) => ownRowPolicies("personal_records", table.userId),
+  (table) => [
+    ...ownRowPolicies("personal_records", table.userId),
+    index("personal_records_server_seq").on(table.serverSeq),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
@@ -336,8 +389,15 @@ export const bodyMeasurements = pgTable(
     value: numeric("value", { precision: 7, scale: 2 }).notNull(),
     unit: unitsEnum("unit").notNull(),
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
   },
-  (table) => ownRowPolicies("body_measurements", table.userId),
+  (table) => [
+    ...ownRowPolicies("body_measurements", table.userId),
+    index("body_measurements_server_seq").on(table.serverSeq),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
