@@ -1,5 +1,6 @@
 "use client";
 
+import { readPushNotificationsEnabled, shouldNotifyOfUpdate } from "@/lib/pwa/notifications";
 import { useEffect } from "react";
 
 /**
@@ -11,9 +12,41 @@ export function RegisterServiceWorker() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
-      console.error("Service worker registration failed:", error);
-    });
+
+    // Captured before register() resolves — a controller already present
+    // means this is a *repeat* visit, so an install found from here on is a
+    // genuine update rather than the app's very first install.
+    const hadController = navigator.serviceWorker.controller !== null;
+
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        registration.addEventListener("updatefound", () => {
+          const installing = registration.installing;
+          if (!installing) return;
+          installing.addEventListener("statechange", () => {
+            if (installing.state !== "installed") return;
+            const permission: NotificationPermission =
+              "Notification" in window ? Notification.permission : "denied";
+            if (
+              !shouldNotifyOfUpdate({
+                enabled: readPushNotificationsEnabled(),
+                permission,
+                hadController,
+              })
+            ) {
+              return;
+            }
+            void registration.showNotification("Jim updated", {
+              body: "A new version is ready — reload to update.",
+              icon: "/icons/192",
+            });
+          });
+        });
+      })
+      .catch((error) => {
+        console.error("Service worker registration failed:", error);
+      });
   }, []);
 
   return null;

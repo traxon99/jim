@@ -1,3 +1,4 @@
+import { PushNotificationsSection } from "@/components/settings/push-notifications-section";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "./sign-out-button";
@@ -15,6 +16,7 @@ export default async function SettingsPage() {
         )}
       </div>
       <SettingsForm />
+      <PushNotificationsSection />
       <SignOutButton />
     </main>
   );
