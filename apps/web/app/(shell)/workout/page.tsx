@@ -1,5 +1,12 @@
-import { StubPage } from "@/components/stub-page";
+import { WorkoutHome } from "@/components/workout/workout-home";
+import { createClient } from "@/lib/supabase/server";
 
-export default function WorkoutPage() {
-  return <StubPage title="Workout" story="S6" />;
+export default async function WorkoutPage() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims.sub;
+
+  if (!userId) return null; // proxy.ts already redirects unauthenticated requests to /login
+
+  return <WorkoutHome userId={userId} />;
 }

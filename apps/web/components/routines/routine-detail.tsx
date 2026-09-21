@@ -1,5 +1,6 @@
 "use client";
 
+import { ExercisePicker } from "@/components/exercise-picker";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -10,7 +11,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ExercisePicker } from "./exercise-picker";
 import { RoutineExerciseRow as RoutineExerciseRowItem } from "./routine-exercise-row";
 
 export function RoutineDetail({ id, userId }: { id: string; userId: string }) {

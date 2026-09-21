@@ -8,6 +8,7 @@ import type {
   sessionExercises,
   sessions,
   sets,
+  users,
 } from "@jim/db";
 import Dexie, { type EntityTable } from "dexie";
 
@@ -44,6 +45,19 @@ export interface SyncMetaRow {
   deviceId: string;
 }
 
+/**
+ * A local cache of the user's settings row (units, bar weight, available
+ * plates, rest timer default) — read by S6's plate math and rest timer.
+ * Deliberately not an outbox/sync table: there's exactly one row, editing
+ * it is a rare, low-stakes action (unlike logging a set), and going through
+ * `/api/settings` directly keeps push/pull/apply-mutation untouched. The
+ * cached copy is what makes logging itself still work with no network.
+ */
+export type SettingsRow = Pick<
+  typeof users.$inferSelect,
+  "units" | "defaultBarWeight" | "availablePlates" | "defaultRestSeconds" | "weekStart"
+> & { id: "me" };
+
 export class JimDatabase extends Dexie {
   routines!: EntityTable<RoutineRow, "id">;
   routineExercises!: EntityTable<RoutineExerciseRow, "id">;
@@ -55,6 +69,7 @@ export class JimDatabase extends Dexie {
   exercises!: EntityTable<ExerciseRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
+  settings!: EntityTable<SettingsRow, "id">;
 
   constructor(name = "jim") {
     super(name);
@@ -69,6 +84,7 @@ export class JimDatabase extends Dexie {
       exercises: "id, slug, ownerId",
       outbox: "id",
       syncMeta: "id",
+      settings: "id",
     });
   }
 }
