@@ -392,6 +392,38 @@ export const bodyMeasurements = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// scheduled_workouts — planned sessions written by the MCP server (S8's
+// `schedule_workout`). Deliberately its own table rather than a `sessions`
+// row with a future `startedAt`: the phone treats any `sessions` row with
+// `endedAt IS NULL` as the in-progress workout to resume (see
+// workout-home.tsx), so a "planned" session in that table would surface as
+// a phantom active workout. Pull-only from the phone's perspective — it
+// never round-trips through push.
+// ---------------------------------------------------------------------------
+
+export const scheduledWorkouts = pgTable(
+  "scheduled_workouts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    routineId: uuid("routine_id").references(() => routines.id, { onDelete: "cascade" }),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("scheduled_workouts", table.userId),
+    index("scheduled_workouts_server_seq").on(table.serverSeq),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // sync_mutations — idempotency ledger for POST /api/sync/push
 // ---------------------------------------------------------------------------
 
