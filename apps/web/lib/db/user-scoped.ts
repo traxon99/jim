@@ -1,6 +1,5 @@
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server";
-import { type Db, type DbOrTx, createDb } from "@jim/db";
-import { sql } from "drizzle-orm";
+import { type Db, type DbOrTx, createDb, runAsUser } from "@jim/db";
 
 export class UnauthenticatedError extends Error {
   constructor() {
@@ -51,9 +50,5 @@ export async function withUserDb<T>(
   // never touch it, so its absence (as in their test mocks) can't regress them.
   const email = data?.claims.email ?? "";
 
-  return getDb().transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL ROLE authenticated`);
-    await tx.execute(sql`SELECT set_config('request.jwt.claim.sub', ${userId}, true)`);
-    return fn(tx, userId, email);
-  });
+  return runAsUser(getDb(), userId, (tx) => fn(tx, userId, email));
 }

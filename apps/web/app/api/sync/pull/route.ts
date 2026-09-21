@@ -6,6 +6,7 @@ import {
   personalRecords,
   routineExercises,
   routines,
+  scheduledWorkouts,
   sessionExercises,
   sessions,
   sets,
@@ -14,8 +15,9 @@ import { gt } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
 
-// `exercises` is pull-only (the read-only seed catalog; see @jim/core's
-// SYNC_TABLES, which push uses and deliberately excludes it).
+// `exercises` and `scheduledWorkouts` are pull-only (the read-only seed
+// catalog, and rows the MCP server writes — see @jim/core's SYNC_TABLES,
+// which push uses and deliberately excludes both).
 const PULL_TABLES = [
   ["routines", routines, routines.serverSeq],
   ["routineExercises", routineExercises, routineExercises.serverSeq],
@@ -25,6 +27,7 @@ const PULL_TABLES = [
   ["personalRecords", personalRecords, personalRecords.serverSeq],
   ["bodyMeasurements", bodyMeasurements, bodyMeasurements.serverSeq],
   ["exercises", exercises, exercises.serverSeq],
+  ["scheduledWorkouts", scheduledWorkouts, scheduledWorkouts.serverSeq],
 ] as const;
 
 async function pullTable(tx: DbOrTx, table: PgTable, serverSeq: PgColumn, since: number) {
