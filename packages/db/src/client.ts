@@ -5,7 +5,12 @@ import postgres from "postgres";
 import * as schema from "./schema";
 
 export function createDb(connectionString: string) {
-  const client = postgres(connectionString);
+  // `prepare: false` — required against Supabase's Supavisor pooler in
+  // transaction mode (port 6543), which is what Vercel's serverless
+  // functions should use (direct connections are IPv6-only and don't
+  // pool well across short-lived invocations). Harmless against a direct
+  // connection too.
+  const client = postgres(connectionString, { prepare: false });
   return drizzle(client, { schema });
 }
 
