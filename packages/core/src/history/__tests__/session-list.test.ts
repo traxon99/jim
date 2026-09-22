@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type SessionListEntry, groupSessionsByWeek } from "../session-list";
+import { type SessionListEntry, groupSessionsByMonth, groupSessionsByWeek } from "../session-list";
 
 function entry(overrides: Partial<SessionListEntry> = {}): SessionListEntry {
   return {
@@ -40,5 +40,28 @@ describe("groupSessionsByWeek", () => {
 
   it("returns an empty array for no sessions", () => {
     expect(groupSessionsByWeek([], 0)).toEqual([]);
+  });
+});
+
+describe("groupSessionsByMonth", () => {
+  it("groups sessions in the same calendar month together", () => {
+    const groups = groupSessionsByMonth([
+      entry({ id: "a", startedAt: new Date(2026, 0, 4, 9, 0) }),
+      entry({ id: "b", startedAt: new Date(2026, 0, 28, 9, 0) }),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.items.map((s) => s.id)).toEqual(["b", "a"]);
+  });
+
+  it("separates sessions into different months", () => {
+    const groups = groupSessionsByMonth([
+      entry({ id: "a", startedAt: new Date(2026, 0, 31, 9, 0) }),
+      entry({ id: "b", startedAt: new Date(2026, 1, 1, 9, 0) }),
+    ]);
+    expect(groups).toHaveLength(2);
+  });
+
+  it("returns an empty array for no sessions", () => {
+    expect(groupSessionsByMonth([])).toEqual([]);
   });
 });
