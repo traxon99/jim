@@ -4,19 +4,11 @@ import { runSyncCycle } from "@/lib/sync/engine";
 import { getSyncStatus, subscribeSyncStatus } from "@/lib/sync/status";
 import { useSyncExternalStore } from "react";
 
-/**
- * Persistent sync status — never silent (ADR-002): the user always knows
- * whether a workout is actually safe on the server yet.
- */
 export function SyncStatusIndicator() {
   const status = useSyncExternalStore(subscribeSyncStatus, getSyncStatus, getSyncStatus);
 
   if (status.kind === "synced") {
-    return (
-      <output className="block px-4 py-1 text-center text-xs text-zinc-500 dark:text-zinc-500">
-        Synced
-      </output>
-    );
+    return null;
   }
 
   if (status.kind === "pending") {
