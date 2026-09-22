@@ -1,4 +1,5 @@
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
+import { FeedbackSection } from "@/components/profile/feedback-section";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +20,7 @@ export default async function ProfilePage() {
       <ProfileForm />
       <ColorSchemeSection />
       <PushNotificationsSection />
+      <FeedbackSection />
       <SignOutButton />
     </main>
   );
