@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 
-export function SettingsForm() {
+export function ProfileForm() {
   const cached = useLiveQuery(() => db.settings.get("me"), []);
   const settings = cached ?? DEFAULT_SETTINGS;
 

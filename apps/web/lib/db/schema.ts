@@ -61,7 +61,12 @@ export interface SyncMetaRow {
  */
 export type SettingsRow = Pick<
   typeof users.$inferSelect,
-  "units" | "defaultBarWeight" | "availablePlates" | "defaultRestSeconds" | "weekStart"
+  | "units"
+  | "defaultBarWeight"
+  | "availablePlates"
+  | "defaultRestSeconds"
+  | "weekStart"
+  | "colorScheme"
 > & { id: "me" };
 
 export class JimDatabase extends Dexie {

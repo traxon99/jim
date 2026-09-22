@@ -29,6 +29,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
   beforeAll(async () => {
     process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
     admin = await resetTestDb();
+    // public.users.id FKs to auth.users.id (a real Supabase project populates
+    // this via its own signup trigger) — the stub schema doesn't, so tests
+    // driving the route as an already-authenticated user seed it themselves.
+    await admin`INSERT INTO auth.users (id, email) VALUES (${USER_A}, 'a@example.com')`;
   }, 30_000);
 
   afterAll(async () => {
@@ -45,6 +49,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       availablePlates: ["45.00", "35.00", "25.00", "10.00", "5.00", "2.50"],
       defaultRestSeconds: 90,
       weekStart: 0,
+      colorScheme: "system",
     });
 
     const rows = await admin`SELECT id, email FROM public.users WHERE id = ${USER_A}`;
@@ -57,18 +62,26 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("rejects an invalid color scheme", async () => {
+    const response = await patch({ colorScheme: "sepia" });
+    expect(response.status).toBe(400);
+  });
+
   it("persists a valid patch and reflects it on the next read", async () => {
     const response = await patch({
       defaultBarWeight: 20,
       availablePlates: [20, 15, 10, 5, 2.5, 1.25],
       defaultRestSeconds: 120,
+      colorScheme: "dark",
     });
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.defaultBarWeight).toBe("20.00");
     expect(body.defaultRestSeconds).toBe(120);
+    expect(body.colorScheme).toBe("dark");
 
     const again = await (await GET()).json();
     expect(again.defaultRestSeconds).toBe(120);
+    expect(again.colorScheme).toBe("dark");
   });
 });
