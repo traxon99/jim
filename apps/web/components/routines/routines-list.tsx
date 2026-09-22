@@ -11,6 +11,16 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
   // with no network on the read path (docs/ARCHITECTURE.md §1).
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const allPrograms = useLiveQuery(() => db.programs.toArray(), []);
+  const allRoutineExercises = useLiveQuery(() => db.routineExercises.toArray(), []);
+
+  const exerciseCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of allRoutineExercises ?? []) {
+      if (item.deletedAt) continue;
+      counts.set(item.routineId, (counts.get(item.routineId) ?? 0) + 1);
+    }
+    return counts;
+  }, [allRoutineExercises]);
 
   const groups = useMemo(() => {
     // deletedAt is a tombstone, not a real DELETE (ADR-003's LWW cousin for
@@ -104,18 +114,31 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
                 </h2>
               )}
               <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                {group.routines.map((routine) => (
-                  <li key={routine.id}>
-                    <Link href={`/routines/${routine.id}`} className="flex flex-col gap-0.5 py-3">
-                      <span className="text-base font-medium">{routine.name}</span>
-                      {routine.notes && (
-                        <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                          {routine.notes}
+                {group.routines.map((routine) => {
+                  const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
+                  return (
+                    <li key={routine.id}>
+                      <Link
+                        href={`/routines/${routine.id}`}
+                        className="flex items-center justify-between gap-2 py-3"
+                      >
+                        <span className="flex flex-col gap-0.5">
+                          <span className="text-base font-medium">{routine.name}</span>
+                          {routine.notes && (
+                            <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                              {routine.notes}
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
+                        {exerciseCount > 0 && (
+                          <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+                            {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}
