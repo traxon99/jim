@@ -1,6 +1,6 @@
 ---
 name: auto-ship
-description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR linked to the issue, babysit that PR until CI and review checks are green, merge it, confirm the change actually deployed, and only then close the issue. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
+description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR linked to the issue, babysit that PR until CI and review checks are green, merge it, and close the issue once it's merged cleanly to main. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
 ---
 
 # Auto-ship
@@ -12,13 +12,11 @@ trust as real but scoped — it covers the feature branch and PR this run create
 branches, other PRs, or repo settings.
 
 Every run of this skill is tracked through exactly one GitHub issue in `traxon99/jim`, from before
-the first line of code to after the deploy is confirmed. The issue is the record of what was
-asked for, what happened, and whether it's actually live — don't treat it as paperwork bolted on
-after the fact.
+the first line of code to after it's merged. The issue is the record of what was asked for and
+what happened — don't treat it as paperwork bolted on after the fact.
 
-The loop has eight stages. Don't skip the verification, documentation, or deploy-confirmation
-stages to get to green faster — a fast merge of something broken, undocumented, or not actually
-live isn't a win.
+The loop has eight stages. Don't skip the verification or documentation stages to get to green
+faster — a fast merge of something broken or undocumented isn't a win.
 
 ## 1. Find or create the tracking issue
 
@@ -59,8 +57,8 @@ In Review / Done is the common shape):
   is actually called). Move it at each stage below instead of narrating the same thing in a
   comment.
 - **No fields returned** — there's no project associated. Track progress in the issue's own
-  comments instead: one comment per meaningful stage transition (started, PR opened, merged,
-  deploy confirmed), not a play-by-play of every command run.
+  comments instead: one comment per meaningful stage transition (started, PR opened, merged and
+  closed), not a play-by-play of every command run.
 
 Re-check this at the start of each run rather than assuming last time's answer still holds — a
 project may get wired up later.
@@ -116,12 +114,12 @@ is also where the documentation from step 6 lands — embed the written verifica
 screenshot, if one was taken) in the body, don't leave it only in chat.
 
 Reference the tracking issue with a non-closing keyword — **`Refs #NN`** or **`Part of #NN`**, not
-`Fixes`/`Closes`/`Resolves`. Those closing keywords would auto-close the issue the moment the PR
-merges, before deployment is confirmed, which is exactly the premature close step 9 exists to
-prevent. Comment on the issue with the PR link, and move it to "in review" (project field or
-comment, per step 2).
+`Fixes`/`Closes`/`Resolves`. Closing it explicitly in step 8, rather than leaving it to GitHub's
+auto-close, is what gets a real final comment (the merged PR link, not just GitHub's generic
+"closed via #NN") onto the issue. Comment on the issue with the PR link, and move it to "in
+review" (project field or comment, per step 2).
 
-## 8. Babysit to green, then merge — don't stop at "opened"
+## 8. Babysit to green, merge, then close — don't stop at "opened"
 
 Subscribe to the PR's activity. From here, the harness's own PR-driving rules (merge conflicts,
 CI red, review-bot findings) already cover *how* to get a PR green — follow those as given, don't
@@ -144,41 +142,17 @@ Concretely:
   weakening an assertion, force-pushing past a conflict) — a merge bought that way isn't done, it's
   hidden.
 
-Once merged, comment on the issue that it's merged (with the PR link) and move it to whatever the
-project's "merged/deploying" state is, if one exists — **do not close it yet.** This repo has no
-GitHub Actions CI; the merge itself proves nothing about production. Deployment (step 9) is a
-separate, required condition for closing.
-
-## 9. Confirm the deploy — merged is not the same as shipped
-
-This repo deploys to Vercel on push to `main` (`docs/DECISIONS.md` ADR-004). Before closing the
-issue, confirm the merge commit actually deployed *successfully*, not just that it merged:
-
-- Look for a deployment signal on the merge commit — a check run or a bot comment from Vercel
-  reporting the production deployment's outcome. If one arrives (via the PR/webhook subscription
-  or by checking the commit directly) and it's green, that's your confirmation.
-- If it's red, this is CI-red-equivalent work, not a stopping point: diagnose the production build
-  failure, fix it on a new branch/PR off `main` (the previous PR is already merged and closed),
-  and repeat steps 7–9 for the fix. Comment on the issue explaining what broke and that a fix is
-  in flight.
-- If no deployment signal is observable through the tools available in this session (no check run
-  arrives, commit-status reads are blocked), don't guess or assume success. Say so plainly in an
-  issue comment — code is merged, deployment status could not be automatically confirmed — and
-  either verify by another means available to you (e.g. checking the production app directly if
-  you have a way to reach it) or ask the user to confirm the deploy before you close the issue.
-  Closing on an unconfirmed assumption defeats the entire point of this stage.
-
-## 10. Close the issue
-
-Only once the code is merged **and** the deploy is confirmed successful: move the issue to its
-project's "done" state (if a project is linked) and close it (`issue_write`, `state: closed`,
-`state_reason: completed`), with a final comment linking the merged PR and stating the deploy was
-confirmed. If the issue was reused from an existing report (feedback-filed or otherwise), that
-comment is also the natural place to note it shipped.
+Once merged cleanly to `main`, close the loop right there: move the issue to its project's "done"
+state (if a project is linked) and close it (`issue_write`, `state: closed`,
+`state_reason: completed`), with a final comment linking the merged PR. If the issue was reused
+from an existing report (feedback-filed or otherwise), that comment is also the natural place to
+note it shipped. This repo deploys to Vercel automatically on push to `main`
+(`docs/DECISIONS.md` ADR-004) — a clean merge is the condition for closing, not a separately
+confirmed production deploy; there's no need to chase down a deployment signal first.
 
 ## When you're done
 
 Tell the user, in one short message: what shipped and the issue and PR it went through (numbers +
 links). If something blocked the loop (a required review, a failure you couldn't safely resolve,
-an unconfirmed deploy, an ambiguous product decision the code itself can't settle), say exactly
-what's blocking and where things — and the issue — were left, rather than declaring victory.
+an ambiguous product decision the code itself can't settle), say exactly what's blocking and where
+things — and the issue — were left, rather than declaring victory.
