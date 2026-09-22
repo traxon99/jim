@@ -35,6 +35,8 @@ const nextSyncSeq = sql`nextval('sync_seq')`;
 
 export const unitsEnum = pgEnum("units", ["lb", "kg"]);
 
+export const colorSchemeEnum = pgEnum("color_scheme", ["system", "light", "dark"]);
+
 // The controlled vocabulary this seed data ships with (see ADR-008). Sourced
 // from free-exercise-db, which already uses a small, consistent muscle list.
 // Lives in @jim/core (see its exercises/muscles.ts) so client-side UI can
@@ -83,6 +85,8 @@ export const users = pgTable(
     defaultRestSeconds: integer("default_rest_seconds").notNull().default(90),
     // 0 = Sunday .. 6 = Saturday
     weekStart: smallint("week_start").notNull().default(0),
+    // "system" follows the OS/browser's prefers-color-scheme; "light"/"dark" override it.
+    colorScheme: colorSchemeEnum("color_scheme").notNull().default("system"),
   },
   (table) => [
     pgPolicy("users_select_own", {

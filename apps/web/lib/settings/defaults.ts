@@ -8,4 +8,5 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   availablePlates: ["45", "35", "25", "10", "5", "2.5"],
   defaultRestSeconds: 90,
   weekStart: 0,
+  colorScheme: "system",
 };

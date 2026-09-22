@@ -2,7 +2,7 @@ import { estimateOneRepMax } from "@jim/core";
 
 // Placeholder home page for S0 (monorepo scaffold). Confirms the Next.js
 // app boots and that @jim/core resolves across the workspace boundary.
-// Real routes (/workout, /routines, /history, /exercises, /settings) land
+// Real routes (/workout, /routines, /history, /exercises, /profile) land
 // in later stories — see docs/STORIES.md.
 export default function Home() {
   const sample = estimateOneRepMax(225, 5);

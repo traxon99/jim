@@ -4,7 +4,7 @@ import { registerBootTask } from "@/lib/boot/ready";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-// The four tabs someone actually bounces between during a session — Settings
+// The four tabs someone actually bounces between during a session — Profile
 // is left out since it's rarely the first thing opened after boot.
 const BASE_ROUTES = ["/workout", "/routines", "/history", "/exercises"] as const;
 

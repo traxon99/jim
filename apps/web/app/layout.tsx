@@ -1,4 +1,5 @@
 import { AppReveal } from "@/components/app-reveal";
+import { ColorSchemeEffect } from "@/components/color-scheme-effect";
 import { InstallGate } from "@/components/install-gate";
 import { LoadingScreen } from "@/components/loading-screen";
 import { PwaChrome } from "@/components/pwa-chrome";
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <RegisterServiceWorker />
         <PwaChrome />
         <RippleEffect />
+        <ColorSchemeEffect />
         <AppReveal>
           <InstallGate>{children}</InstallGate>
         </AppReveal>

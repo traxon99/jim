@@ -43,6 +43,13 @@
       "when": 1790029774508,
       "tag": "0005_wealthy_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790108132955,
+      "tag": "0006_next_maestro",
+      "breakpoints": true
     }
   ]
 }

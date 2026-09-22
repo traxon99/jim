@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Switches `dark:` from Tailwind's default prefers-color-scheme media query to
+   the `.dark` class components/color-scheme-effect.tsx applies to <html> —
+   that's what makes the color scheme setting able to override the OS/browser
+   preference instead of just following it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -12,11 +18,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 :root {
