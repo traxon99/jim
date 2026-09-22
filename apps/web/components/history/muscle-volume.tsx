@@ -10,7 +10,7 @@ import { useMemo } from "react";
 
 const WEEKS_SHOWN = 6;
 
-function WeekVolumeBars({ week }: { week: WeeklyMuscleVolume }) {
+function WeekVolumeBars({ week, units }: { week: WeeklyMuscleVolume; units: string }) {
   const entries = Object.entries(week.volumeByMuscle).sort((a, b) => b[1] - a[1]);
   const max = entries[0]?.[1] ?? 0;
 
@@ -32,7 +32,7 @@ function WeekVolumeBars({ week }: { week: WeeklyMuscleVolume }) {
             />
           </div>
           <span className="w-14 shrink-0 text-right text-xs text-zinc-500 dark:text-zinc-500">
-            {Math.round(volume).toLocaleString()}
+            {Math.round(volume).toLocaleString()} {units}
           </span>
         </li>
       ))}
@@ -87,7 +87,7 @@ export function MuscleVolume() {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
                 Week of {week.weekStart.toLocaleDateString()}
               </h2>
-              <WeekVolumeBars week={week} />
+              <WeekVolumeBars week={week} units={settings.units} />
             </section>
           ))}
         </div>
