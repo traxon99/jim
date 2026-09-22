@@ -88,6 +88,54 @@ body.pwa {
   }
 }
 
+/* Initial-load splash (components/loading-screen.tsx). Sits above everything
+   until the window "load" event fires, then fades out. */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 200ms ease-out;
+}
+
+.loading-screen[data-loaded="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-screen-mark {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: 4rem;
+  line-height: 1;
+  animation: loading-screen-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes loading-screen-breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-screen {
+    transition: none;
+  }
+
+  .loading-screen-mark {
+    animation: none;
+  }
+}
+
 /* Opt back in wherever there is something worth selecting: what the user
  * typed, and anything tagged .allow-pwa-select (errors, logged numbers). */
 body.pwa input,
