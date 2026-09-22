@@ -14,6 +14,7 @@ export function HistoryHome() {
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
+  const rawExercises = useLiveQuery(() => db.exercises.toArray(), []);
   const rawSets = useLiveQuery(() => db.sets.toArray(), []);
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
 
@@ -22,10 +23,11 @@ export function HistoryHome() {
       buildSessionListEntries(
         rawSessions ?? [],
         rawSessionExercises ?? [],
+        rawExercises ?? [],
         rawSets ?? [],
         rawPersonalRecords ?? [],
       ),
-    [rawSessions, rawSessionExercises, rawSets, rawPersonalRecords],
+    [rawSessions, rawSessionExercises, rawExercises, rawSets, rawPersonalRecords],
   );
 
   const weekGroups = useMemo(
@@ -38,6 +40,7 @@ export function HistoryHome() {
   const loading =
     rawSessions === undefined ||
     rawSessionExercises === undefined ||
+    rawExercises === undefined ||
     rawSets === undefined ||
     rawPersonalRecords === undefined;
 
@@ -85,9 +88,7 @@ export function HistoryHome() {
                       className="flex items-center justify-between gap-2 py-3"
                     >
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-base font-medium">
-                          {session.name ?? "Untitled workout"}
-                        </span>
+                        <span className="text-base font-medium">{session.name}</span>
                         <span className="text-xs text-zinc-500 dark:text-zinc-500">
                           {session.startedAt.toLocaleDateString()} · {session.setCount} sets
                           {session.prCount > 0

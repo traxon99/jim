@@ -114,6 +114,7 @@ describe("history read pipeline (against Dexie)", () => {
     const entries = buildSessionListEntries(
       await testDb.sessions.toArray(),
       await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
       await testDb.sets.toArray(),
       await testDb.personalRecords.toArray(),
     );
@@ -137,6 +138,7 @@ describe("history read pipeline (against Dexie)", () => {
     const entries = buildSessionListEntries(
       await testDb.sessions.toArray(),
       await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
       await testDb.sets.toArray(),
       await testDb.personalRecords.toArray(),
     );
@@ -217,6 +219,7 @@ describe("history read pipeline (against Dexie)", () => {
     const entries = buildSessionListEntries(
       await testDb.sessions.toArray(),
       await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
       await testDb.sets.toArray(),
       await testDb.personalRecords.toArray(),
     );
