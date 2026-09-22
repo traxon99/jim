@@ -1,4 +1,5 @@
 export * from "./week-grouping";
+export * from "./month-grouping";
 export * from "./session-list";
 export * from "./session-display-name";
 export * from "./estimated-one-rep-max-series";
