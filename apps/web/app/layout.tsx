@@ -1,3 +1,4 @@
+import { AppReveal } from "@/components/app-reveal";
 import { InstallGate } from "@/components/install-gate";
 import { LoadingScreen } from "@/components/loading-screen";
 import { PwaChrome } from "@/components/pwa-chrome";
@@ -54,7 +55,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <LoadingScreen />
         <RegisterServiceWorker />
         <PwaChrome />
-        <InstallGate>{children}</InstallGate>
+        <AppReveal>
+          <InstallGate>{children}</InstallGate>
+        </AppReveal>
       </body>
     </html>
   );
