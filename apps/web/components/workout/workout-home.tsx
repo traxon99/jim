@@ -61,6 +61,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
         </p>
         <Link
           href={`/workout/${activeSession.id}`}
+          data-ripple
           className="min-h-11 rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
         >
           Continue workout
