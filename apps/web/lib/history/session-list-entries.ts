@@ -1,5 +1,16 @@
-import type { PersonalRecordRow, SessionExerciseRow, SessionRow, SetRow } from "@/lib/db/schema";
-import { type SessionListEntry, resolveCurrentRows, summarizeSession } from "@jim/core";
+import type {
+  ExerciseRow,
+  PersonalRecordRow,
+  SessionExerciseRow,
+  SessionRow,
+  SetRow,
+} from "@/lib/db/schema";
+import {
+  type SessionListEntry,
+  deriveUntitledSessionName,
+  resolveCurrentRows,
+  summarizeSession,
+} from "@jim/core";
 
 /**
  * Builds one `SessionListEntry` per finished session from Dexie's raw
@@ -10,10 +21,16 @@ import { type SessionListEntry, resolveCurrentRows, summarizeSession } from "@ji
 export function buildSessionListEntries(
   sessions: readonly SessionRow[],
   sessionExercises: readonly SessionExerciseRow[],
+  exercises: readonly Pick<ExerciseRow, "id" | "primaryMuscles">[],
   sets: readonly SetRow[],
   personalRecords: readonly PersonalRecordRow[],
 ): SessionListEntry[] {
+  const primaryMusclesByExerciseId = new Map(
+    exercises.map((exercise) => [exercise.id, exercise.primaryMuscles]),
+  );
+
   const sessionExerciseIdsBySession = new Map<string, string[]>();
+  const primaryMusclesBySessionExerciseId = new Map<string, ExerciseRow["primaryMuscles"]>();
   for (const sessionExercise of sessionExercises) {
     if (sessionExercise.deletedAt) continue;
     const list = sessionExerciseIdsBySession.get(sessionExercise.sessionId);
@@ -22,6 +39,10 @@ export function buildSessionListEntries(
     } else {
       sessionExerciseIdsBySession.set(sessionExercise.sessionId, [sessionExercise.id]);
     }
+    primaryMusclesBySessionExerciseId.set(
+      sessionExercise.id,
+      primaryMusclesByExerciseId.get(sessionExercise.exerciseId) ?? [],
+    );
   }
 
   const resolvedSets = resolveCurrentRows(sets).filter((set) => !set.deletedAt);
@@ -62,9 +83,18 @@ export function buildSessionListEntries(
         prCount,
       );
 
+      const name =
+        session.name ??
+        deriveUntitledSessionName(
+          session.startedAt,
+          sessionSets.map((set) => ({
+            primaryMuscles: primaryMusclesBySessionExerciseId.get(set.sessionExerciseId) ?? [],
+          })),
+        );
+
       return {
         id: session.id,
-        name: session.name,
+        name,
         startedAt: session.startedAt,
         endedAt: session.endedAt,
         totalVolume: summary.totalVolume,

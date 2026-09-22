@@ -1,8 +1,9 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
+import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
-import { resolveCurrentRows, summarizeSession } from "@jim/core";
+import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -63,6 +64,17 @@ export function SessionDetail({ id }: { id: string }) {
     );
   }, [session, rawSets, groups]);
 
+  const displayName = useMemo(() => {
+    if (!session) return null;
+    if (session.name) return session.name;
+    const muscleVolumeSets = buildMuscleVolumeSets(
+      rawSessionExercises ?? [],
+      exercises ?? [],
+      rawSets ?? [],
+    );
+    return deriveUntitledSessionName(session.startedAt, muscleVolumeSets);
+  }, [session, rawSessionExercises, exercises, rawSets]);
+
   if (session === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
@@ -85,7 +97,7 @@ export function SessionDetail({ id }: { id: string }) {
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div>
-        <h1 className="text-xl font-semibold">{session.name ?? "Untitled workout"}</h1>
+        <h1 className="text-xl font-semibold">{displayName}</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-500">
           {session.startedAt.toLocaleString()}
         </p>
