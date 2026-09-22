@@ -10,6 +10,7 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
   // Dexie live query: re-renders whenever the local set of routines changes,
   // with no network on the read path (docs/ARCHITECTURE.md §1).
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
+  const allPrograms = useLiveQuery(() => db.programs.toArray(), []);
 
   const groups = useMemo(() => {
     // deletedAt is a tombstone, not a real DELETE (ADR-003's LWW cousin for
@@ -18,6 +19,14 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
     const live = (allRoutines ?? []).filter((routine) => !routine.deletedAt);
     return groupRoutinesByFolder(live);
   }, [allRoutines]);
+
+  const programs = useMemo(
+    () =>
+      (allPrograms ?? [])
+        .filter((program) => !program.deletedAt)
+        .sort((a, b) => a.position - b.position),
+    [allPrograms],
+  );
 
   if (allRoutines === undefined) {
     return (
@@ -38,6 +47,48 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
           New
         </Link>
       </div>
+
+      <section className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+            Programs
+          </h2>
+          <Link
+            href="/routines/programs/new"
+            className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+          >
+            New program
+          </Link>
+        </div>
+        {programs.length === 0 ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
+            Group routines into a program to get your next workout suggested on launch.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+            {programs.map((program) => (
+              <li key={program.id}>
+                <Link
+                  href={`/routines/programs/${program.id}`}
+                  className="flex items-center justify-between gap-2 py-3"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-base font-medium">{program.name}</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                      {program.mode === "weekly" ? "Weekly schedule" : "Sequence"}
+                    </span>
+                  </span>
+                  {program.isActive && (
+                    <span className="rounded-full bg-zinc-950 px-2 py-0.5 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950">
+                      Active
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {groups.length === 0 ? (
         <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">

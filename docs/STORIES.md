@@ -17,6 +17,7 @@ listed where they are real; where they are not, stories can be reordered freely.
 | S6 | **Active session logging** | S4, S5 |
 | S7 | History & analytics | S6 |
 | S8 | MCP server | S1, S6 |
+| S9 | Programs & up-next suggestion | S5, S6 |
 
 S6 is the story the project exists for. S0–S5 are the scaffolding it stands on, and S3 is where
 the risk lives.
@@ -204,6 +205,24 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - [ ] Estimated 1RM reported over MCP matches the phone's figure exactly for the same lift
 - [ ] No tool can mutate an in-progress session (ADR-007)
 - [ ] `merge_exercises` repoints historical sets without orphaning any
+
+---
+
+## S9 — Programs & up-next suggestion
+
+- A program is an ordered set of routines, run as a **sequence** (rotate; next = the one after the
+  last completed) or a **weekly schedule** (each routine pinned to a weekday)
+- At most one program is active; the app launches onto the Workout tab, which leads with the
+  active program's suggested workout and a one-tap Start
+- Suggestion logic lives in `packages/core` (`suggestNextWorkout`) so any future MCP surface
+  agrees with the phone
+- `programs` / `program_routines` sync like routines (LWW, tombstones)
+
+**Acceptance criteria**
+- [ ] Finishing the suggested routine in a sequence advances the card to the next one, wrapping
+- [ ] A weekly program shows today's routine, then "Done for today · Next: <day>" once finished
+- [ ] A program built offline syncs on reconnect
+- [ ] Deleting a routine drops it from any program without breaking the suggestion
 
 ---
 

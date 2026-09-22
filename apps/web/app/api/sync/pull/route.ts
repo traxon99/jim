@@ -4,6 +4,8 @@ import {
   bodyMeasurements,
   exercises,
   personalRecords,
+  programRoutines,
+  programs,
   routineExercises,
   routines,
   scheduledWorkouts,
@@ -27,6 +29,8 @@ const PULL_TABLES = [
   ["personalRecords", personalRecords, personalRecords.serverSeq],
   ["bodyMeasurements", bodyMeasurements, bodyMeasurements.serverSeq],
   ["exercises", exercises, exercises.serverSeq],
+  ["programs", programs, programs.serverSeq],
+  ["programRoutines", programRoutines, programRoutines.serverSeq],
   ["scheduledWorkouts", scheduledWorkouts, scheduledWorkouts.serverSeq],
 ] as const;
 

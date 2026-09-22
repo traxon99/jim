@@ -4,6 +4,8 @@ import {
   bodyMeasurements,
   exercises,
   personalRecords,
+  programRoutines,
+  programs,
   routineExercises,
   routines,
   sessionExercises,
@@ -275,6 +277,60 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(exercises.updatedAt, exercises.deviceId),
+        });
+      return;
+    }
+
+    case "programs": {
+      // createdAt kept on insert, absent from the update set (as routines).
+      const dated = normalizeDates(
+        entity as typeof programs.$inferInsert,
+        SYNC_DATE_FIELDS.programs,
+      );
+      const { serverSeq: _serverSeq, ...row } = dated;
+      await tx
+        .insert(programs)
+        .values({ ...row, userId })
+        .onConflictDoUpdate({
+          target: programs.id,
+          set: {
+            name: excluded(programs.name),
+            mode: excluded(programs.mode),
+            isActive: excluded(programs.isActive),
+            notes: excluded(programs.notes),
+            position: excluded(programs.position),
+            updatedAt: excluded(programs.updatedAt),
+            deviceId: excluded(programs.deviceId),
+            deletedAt: excluded(programs.deletedAt),
+            serverSeq: sql`nextval('sync_seq')`,
+          },
+          setWhere: lwwGuard(programs.updatedAt, programs.deviceId),
+        });
+      return;
+    }
+
+    case "programRoutines": {
+      const dated = normalizeDates(
+        entity as typeof programRoutines.$inferInsert,
+        SYNC_DATE_FIELDS.programRoutines,
+      );
+      const { serverSeq: _serverSeq, ...row } = dated;
+      await tx
+        .insert(programRoutines)
+        .values({ ...row, userId })
+        .onConflictDoUpdate({
+          target: programRoutines.id,
+          set: {
+            programId: excluded(programRoutines.programId),
+            routineId: excluded(programRoutines.routineId),
+            position: excluded(programRoutines.position),
+            weekday: excluded(programRoutines.weekday),
+            updatedAt: excluded(programRoutines.updatedAt),
+            deviceId: excluded(programRoutines.deviceId),
+            deletedAt: excluded(programRoutines.deletedAt),
+            serverSeq: sql`nextval('sync_seq')`,
+          },
+          setWhere: lwwGuard(programRoutines.updatedAt, programRoutines.deviceId),
         });
       return;
     }
