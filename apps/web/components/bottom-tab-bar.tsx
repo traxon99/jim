@@ -27,6 +27,7 @@ export function BottomTabBar() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
+            data-ripple
             className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium leading-none ${
               active ? "text-zinc-950 dark:text-zinc-50" : "text-zinc-500 dark:text-zinc-500"
             }`}

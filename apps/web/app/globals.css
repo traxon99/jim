@@ -61,23 +61,37 @@ summary {
 
 /* `navigator.vibrate` doesn't exist on iOS (docs/ARCHITECTURE.md constraint 3),
    so a button press has no haptic confirmation. This is the visual stand-in:
-   every button dips and dims for the duration of the tap, then springs back. */
-button:not(:disabled) {
-  transition: transform 100ms ease-out, opacity 100ms ease-out;
+   a small Material-style ripple (components/ripple-effect.tsx) splashes out
+   from the touch point, tinted with the element's own text color so it reads
+   correctly on both dark and light controls. Applies to every button and to
+   anything tagged [data-ripple] — the bottom tab bar's links aren't <button>s
+   but should feel like the rest of the app's controls. */
+button:not(:disabled),
+[data-ripple] {
+  position: relative;
+  overflow: hidden;
 }
 
-button:not(:disabled):active {
-  transform: scale(0.96);
-  opacity: 0.7;
+.tap-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.25;
+  transform: scale(0);
+  animation: tap-ripple-expand 450ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes tap-ripple-expand {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  button:not(:disabled) {
-    transition: none;
-  }
-
-  button:not(:disabled):active {
-    transform: none;
+  .tap-ripple {
+    display: none;
   }
 }
 
