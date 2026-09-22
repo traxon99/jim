@@ -1,15 +1,12 @@
 "use client";
 
-import type { SetRow as SetRowEntity, SettingsRow } from "@/lib/db/schema";
+import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import { SET_KINDS } from "@/lib/sessions/set-kinds";
 import { useState } from "react";
-import { PlateBreakdown, isBarbellExercise } from "./plate-breakdown";
 
 interface Props {
   set: SetRowEntity;
   index: number;
-  equipment: string | null;
-  settings: SettingsRow;
   isPr: boolean;
   onEdit: (patch: {
     weight: number | null;
@@ -28,13 +25,11 @@ function toNumberOrNull(value: string): number | null {
 const inputClasses =
   "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
 
-export function SetRow({ set, index, equipment, settings, isPr, onEdit, onDelete }: Props) {
+export function SetRow({ set, index, isPr, onEdit, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [weight, setWeight] = useState(set.weight ?? "");
   const [reps, setReps] = useState(set.reps?.toString() ?? "");
   const [kind, setKind] = useState<SetRowEntity["kind"]>(set.kind);
-
-  const weightNum = set.weight == null ? null : Number(set.weight);
 
   function save() {
     onEdit({ weight: toNumberOrNull(weight), reps: toNumberOrNull(reps), kind });
@@ -108,9 +103,6 @@ export function SetRow({ set, index, equipment, settings, isPr, onEdit, onDelete
           <span className="font-medium">{set.weight ?? "—"}</span>
           {isPr && <span title="Personal record">🎉</span>}
         </div>
-        {weightNum != null && isBarbellExercise(equipment) && (
-          <PlateBreakdown weight={weightNum} settings={settings} />
-        )}
       </td>
       <td className="py-2 pr-2 align-top text-sm">{set.reps ?? "—"}</td>
       <td className="py-2 pr-2 align-top text-xs text-zinc-500 dark:text-zinc-500">
