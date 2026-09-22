@@ -3,6 +3,7 @@
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
@@ -16,6 +17,7 @@ const PR_LABELS: Record<string, string> = {
 };
 
 export function SessionDetail({ id }: { id: string }) {
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const session = useLiveQuery(async () => (await db.sessions.get(id)) ?? null, [id]);
   const rawSessionExercises = useLiveQuery(
     () => db.sessionExercises.where("sessionId").equals(id).toArray(),
@@ -114,7 +116,7 @@ export function SessionDetail({ id }: { id: string }) {
           <div>
             <dt className="text-xs text-zinc-500 dark:text-zinc-500">Volume</dt>
             <dd className="text-lg font-semibold">
-              {Math.round(summary.totalVolume).toLocaleString()}
+              {Math.round(summary.totalVolume).toLocaleString()} {settings.units}
             </dd>
           </div>
           <div>

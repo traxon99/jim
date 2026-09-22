@@ -97,7 +97,7 @@ export function HistoryHome() {
                         </span>
                       </div>
                       <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                        {Math.round(session.totalVolume).toLocaleString()}
+                        {Math.round(session.totalVolume).toLocaleString()} {settings.units}
                       </span>
                     </Link>
                   </li>
