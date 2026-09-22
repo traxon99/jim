@@ -166,8 +166,6 @@ export function SessionExerciseSection({
               key={set.id}
               set={set}
               index={i}
-              equipment={exercise?.equipment ?? null}
-              settings={settings}
               isPr={prsBySetId.has(set.id)}
               onEdit={(patch) => void handleEdit(set, patch)}
               onDelete={() => void deleteSet(set)}
