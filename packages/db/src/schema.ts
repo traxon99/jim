@@ -58,6 +58,8 @@ export const setKindEnum = pgEnum("set_kind", ["warmup", "working", "drop", "fai
 
 export const prKindEnum = pgEnum("pr_kind", ["1rm", "volume", "weight", "reps_at_weight"]);
 
+export const programModeEnum = pgEnum("program_mode", ["sequence", "weekly"]);
+
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
 // ---------------------------------------------------------------------------
@@ -232,6 +234,65 @@ export const routineExercises = pgTable(
   (table) => [
     ...ownRowPolicies("routine_exercises", table.userId),
     index("routine_exercises_server_seq").on(table.serverSeq),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// programs — an ordered set of routines the app suggests from: either a
+// rotating sequence (next = the one after your last completed) or a weekly
+// schedule (each entry pinned to a weekday). At most one is active; that's
+// enforced client-side, not by a constraint, since LWW sync could otherwise
+// reject a legitimate "switch active program" edit made offline.
+// ---------------------------------------------------------------------------
+
+export const programs = pgTable(
+  "programs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    mode: programModeEnum("mode").notNull().default("sequence"),
+    isActive: boolean("is_active").notNull().default(false),
+    notes: text("notes"),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("programs", table.userId),
+    index("programs_server_seq").on(table.serverSeq),
+  ],
+).enableRLS();
+
+export const programRoutines = pgTable(
+  "program_routines",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "cascade" }),
+    routineId: uuid("routine_id")
+      .notNull()
+      .references(() => routines.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
+    // 0 = Sunday .. 6 = Saturday; only meaningful when the program's mode is "weekly".
+    weekday: smallint("weekday"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("program_routines", table.userId),
+    index("program_routines_server_seq").on(table.serverSeq),
   ],
 ).enableRLS();
 

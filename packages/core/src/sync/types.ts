@@ -12,6 +12,8 @@ export const SYNC_TABLES = [
   "personalRecords",
   "bodyMeasurements",
   "exercises",
+  "programs",
+  "programRoutines",
 ] as const;
 
 export type SyncTable = (typeof SYNC_TABLES)[number];

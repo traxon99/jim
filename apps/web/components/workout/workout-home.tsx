@@ -7,6 +7,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { UpNextCard } from "./up-next-card";
 
 export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
@@ -72,11 +73,16 @@ export function WorkoutHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <h1 className="text-xl font-semibold">Workout</h1>
 
+      <UpNextCard
+        starting={starting}
+        onStart={(routineId, routineName) => void handleStartFromRoutine(routineId, routineName)}
+      />
+
       <button
         type="button"
         onClick={() => void handleStartEmpty()}
         disabled={starting}
-        className="min-h-11 rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+        className="min-h-11 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
       >
         Start empty workout
       </button>

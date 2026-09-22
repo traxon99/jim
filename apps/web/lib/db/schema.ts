@@ -3,6 +3,8 @@ import type {
   bodyMeasurements,
   exercises,
   personalRecords,
+  programRoutines,
+  programs,
   routineExercises,
   routines,
   sessionExercises,
@@ -23,6 +25,8 @@ export type SetRow = typeof sets.$inferSelect;
 export type PersonalRecordRow = typeof personalRecords.$inferSelect;
 export type BodyMeasurementRow = typeof bodyMeasurements.$inferSelect;
 export type ExerciseRow = typeof exercises.$inferSelect;
+export type ProgramRow = typeof programs.$inferSelect;
+export type ProgramRoutineRow = typeof programRoutines.$inferSelect;
 
 export interface SyncTableRowMap {
   routines: RoutineRow;
@@ -33,6 +37,8 @@ export interface SyncTableRowMap {
   personalRecords: PersonalRecordRow;
   bodyMeasurements: BodyMeasurementRow;
   exercises: ExerciseRow;
+  programs: ProgramRow;
+  programRoutines: ProgramRoutineRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -67,6 +73,8 @@ export class JimDatabase extends Dexie {
   personalRecords!: EntityTable<PersonalRecordRow, "id">;
   bodyMeasurements!: EntityTable<BodyMeasurementRow, "id">;
   exercises!: EntityTable<ExerciseRow, "id">;
+  programs!: EntityTable<ProgramRow, "id">;
+  programRoutines!: EntityTable<ProgramRoutineRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -85,6 +93,10 @@ export class JimDatabase extends Dexie {
       outbox: "id",
       syncMeta: "id",
       settings: "id",
+    });
+    this.version(2).stores({
+      programs: "id, updatedAt, deletedAt",
+      programRoutines: "id, programId, routineId",
     });
   }
 }

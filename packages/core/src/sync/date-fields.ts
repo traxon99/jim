@@ -15,6 +15,8 @@ export const SYNC_DATE_FIELDS: Record<SyncTable, readonly string[]> = {
   personalRecords: ["achievedAt", "updatedAt", "deletedAt"],
   bodyMeasurements: ["measuredAt", "updatedAt", "deletedAt"],
   exercises: ["createdAt", "updatedAt"],
+  programs: ["createdAt", "updatedAt", "deletedAt"],
+  programRoutines: ["updatedAt", "deletedAt"],
 };
 
 /** Converts a row's known date fields from ISO strings (JSON's wire format) to Date objects. Leaves null/undefined alone. */
