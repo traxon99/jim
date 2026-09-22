@@ -198,6 +198,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
       {routines.length === 0 ? (
         <Link
           href="/routines/new"
+          data-ripple
           className="rounded-lg border border-zinc-300 px-4 py-3 text-center text-base font-medium dark:border-zinc-700"
         >
           Create a routine first

@@ -52,6 +52,7 @@ export function UpNextCard({ starting, onStart }: Props) {
     return (
       <Link
         href="/routines/programs/new"
+        data-ripple
         className="rounded-lg border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
       >
         Set up a program to get your next workout suggested here.
@@ -65,6 +66,7 @@ export function UpNextCard({ starting, onStart }: Props) {
     return (
       <Link
         href={`/routines/programs/${program.id}`}
+        data-ripple
         className="rounded-lg border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
       >
         {program.mode === "weekly"

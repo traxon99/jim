@@ -52,6 +52,7 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
         <h1 className="text-xl font-semibold">Routines</h1>
         <Link
           href="/routines/new"
+          data-ripple
           className="rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
         >
           New
@@ -80,6 +81,7 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
               <li key={program.id}>
                 <Link
                   href={`/routines/programs/${program.id}`}
+                  data-ripple
                   className="flex items-center justify-between gap-2 py-3"
                 >
                   <span className="flex flex-col gap-0.5">
@@ -120,6 +122,7 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
                     <li key={routine.id}>
                       <Link
                         href={`/routines/${routine.id}`}
+                        data-ripple
                         className="flex items-center justify-between gap-2 py-3"
                       >
                         <span className="flex flex-col gap-0.5">

@@ -52,6 +52,7 @@ export function ExercisesList({ userId }: { userId: string }) {
         <h1 className="text-xl font-semibold">Exercises</h1>
         <Link
           href="/exercises/new"
+          data-ripple
           className="rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
         >
           New
@@ -102,7 +103,11 @@ export function ExercisesList({ userId }: { userId: string }) {
         <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
           {results.map((exercise) => (
             <li key={exercise.id}>
-              <Link href={`/exercises/${exercise.id}`} className="flex flex-col gap-0.5 py-3">
+              <Link
+                href={`/exercises/${exercise.id}`}
+                data-ripple
+                className="flex flex-col gap-0.5 py-3"
+              >
                 <span className="text-base font-medium">{exercise.name}</span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-500">
                   {[exercise.equipment, ...exercise.primaryMuscles].filter(Boolean).join(" · ")}

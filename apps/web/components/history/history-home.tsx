@@ -85,6 +85,7 @@ export function HistoryHome() {
                   <li key={session.id}>
                     <Link
                       href={`/history/${session.id}`}
+                      data-ripple
                       className="flex items-center justify-between gap-2 py-3"
                     >
                       <div className="flex flex-col gap-0.5">
