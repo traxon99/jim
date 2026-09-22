@@ -1,6 +1,6 @@
 ---
 name: auto-ship
-description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result (a screenshot for anything UI-facing, a short written summary otherwise), open a PR linked to the issue, babysit that PR until CI and review checks are green, merge it, confirm the change actually deployed, and only then close the issue. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
+description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR linked to the issue, babysit that PR until CI and review checks are green, merge it, confirm the change actually deployed, and only then close the issue. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
 ---
 
 # Auto-ship
@@ -100,27 +100,20 @@ fix, a CI red run costs a round trip.
 ## 6. Document the result
 
 This is what makes the PR readable to someone (including future-you) who wasn't watching this
-session:
-
-- **UI-facing change** (anything under `app/`, `components/`, visible styling, a new screen or
-  interaction): use the `run` skill to launch the dev server and actually exercise the feature in
-  a browser — this repo targets iPhone 16, so drive it at that viewport (~393×852) rather than
-  desktop width. Capture a screenshot of the new/changed state. Send it to the user directly (it's
-  the fastest way for them to see what shipped without leaving the conversation), and also commit
-  it into the branch under `docs/pr-screenshots/<slug>/` so it can be embedded in the PR body via
-  `https://github.com/<owner>/<repo>/blob/<branch>/<path>?raw=true` — that's what makes it render
-  inline on GitHub, not just in this session.
-- **Non-UI change** (API routes, sync engine, schema, pure logic, MCP server): skip the
-  screenshot — there's nothing to look at — and instead write a few sentences for the PR body
-  covering what changed, why, and how it was verified (which commands ran, what they confirmed).
-  Terse and factual beats padded; this is a changelog entry, not marketing copy.
+session. Write a few sentences for the PR body covering what changed, why, and how it was
+verified (which commands ran, what they confirmed; for a UI-facing change, note which components/
+screens are affected). Terse and factual beats padded; this is a changelog entry, not marketing
+copy. A screenshot is not required — this repo's auth-gated backend and lack of a disposable test
+environment usually make a real browser run impractical from here — but if the `run` skill can
+actually exercise the feature (iPhone 16 viewport, ~393×852) without touching real user data, feel
+free to capture one and send it to the user directly.
 
 ## 7. Open the PR
 
 Commit, push, and open the PR. Check for a PR template first (per the harness's standing PR
-instructions) and populate it; if there's none, structure the body as Summary / Verification /
-Screenshot (when there is one). This is also where the documentation from step 6 lands — embed
-the screenshot or the written verification summary in the body, don't leave it only in chat.
+instructions) and populate it; if there's none, structure the body as Summary / Verification. This
+is also where the documentation from step 6 lands — embed the written verification summary (and a
+screenshot, if one was taken) in the body, don't leave it only in chat.
 
 Reference the tracking issue with a non-closing keyword — **`Refs #NN`** or **`Part of #NN`**, not
 `Fixes`/`Closes`/`Resolves`. Those closing keywords would auto-close the issue the moment the PR
@@ -185,8 +178,7 @@ comment is also the natural place to note it shipped.
 
 ## When you're done
 
-Tell the user, in one short message: what shipped, the issue and PR it went through (numbers +
-links), and — for a UI change — that the screenshot is attached above. If something blocked the
-loop (a required review, a failure you couldn't safely resolve, an unconfirmed deploy, an
-ambiguous product decision the code itself can't settle), say exactly what's blocking and where
-things — and the issue — were left, rather than declaring victory.
+Tell the user, in one short message: what shipped and the issue and PR it went through (numbers +
+links). If something blocked the loop (a required review, a failure you couldn't safely resolve,
+an unconfirmed deploy, an ambiguous product decision the code itself can't settle), say exactly
+what's blocking and where things — and the issue — were left, rather than declaring victory.
