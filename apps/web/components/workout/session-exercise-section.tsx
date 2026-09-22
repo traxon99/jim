@@ -138,23 +138,6 @@ export function SessionExerciseSection({
         </button>
       </div>
 
-      {sets.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {sets.map((set, i) => (
-            <SetRow
-              key={set.id}
-              set={set}
-              index={i}
-              equipment={exercise?.equipment ?? null}
-              settings={settings}
-              isPr={prsBySetId.has(set.id)}
-              onEdit={(patch) => void handleEdit(set, patch)}
-              onDelete={() => void deleteSet(set)}
-            />
-          ))}
-        </ul>
-      )}
-
       {previous && (
         <p className="text-xs text-zinc-500 dark:text-zinc-500">
           Last time: {previous.weight ?? "—"} × {previous.reps ?? "—"} — the number to beat
@@ -167,60 +150,87 @@ export function SessionExerciseSection({
         </p>
       )}
 
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Weight
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder={previous?.weight?.toString() ?? ""}
-            value={weight}
-            onChange={(event) => setWeight(event.target.value)}
-            className="w-20 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Reps
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
-            value={reps}
-            onChange={(event) => setReps(event.target.value)}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Kind
-          <select
-            value={kind}
-            onChange={(event) => setKind(event.target.value as SetKind)}
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          >
-            {SET_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={() => void logDraft()}
-          className="min-h-11 rounded-lg bg-zinc-950 px-4 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-        >
-          Log set
-        </button>
-        {lastSet && (
-          <button
-            type="button"
-            onClick={() => void repeatLast()}
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
-          >
-            Repeat last
-          </button>
-        )}
-      </div>
+      <table className="w-full border-collapse text-left">
+        <thead>
+          <tr className="border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
+            <th className="w-8 py-1 pr-2 font-medium">Set</th>
+            <th className="py-1 pr-2 font-medium">Weight</th>
+            <th className="py-1 pr-2 font-medium">Reps</th>
+            <th className="py-1 pr-2 font-medium">Kind</th>
+            <th className="py-1 pl-1 font-medium" />
+          </tr>
+        </thead>
+        <tbody>
+          {sets.map((set, i) => (
+            <SetRow
+              key={set.id}
+              set={set}
+              index={i}
+              equipment={exercise?.equipment ?? null}
+              settings={settings}
+              isPr={prsBySetId.has(set.id)}
+              onEdit={(patch) => void handleEdit(set, patch)}
+              onDelete={() => void deleteSet(set)}
+            />
+          ))}
+          <tr>
+            <td className="py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500">
+              {nextIndex + 1}
+            </td>
+            <td className="py-2 pr-2 align-middle">
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder={previous?.weight?.toString() ?? ""}
+                value={weight}
+                onChange={(event) => setWeight(event.target.value)}
+                className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </td>
+            <td className="py-2 pr-2 align-middle">
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
+                value={reps}
+                onChange={(event) => setReps(event.target.value)}
+                className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </td>
+            <td className="py-2 pr-2 align-middle">
+              <select
+                value={kind}
+                onChange={(event) => setKind(event.target.value as SetKind)}
+                className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              >
+                {SET_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
+              </select>
+            </td>
+            <td className="py-2 pl-1 align-middle text-right whitespace-nowrap">
+              <button
+                type="button"
+                onClick={() => void logDraft()}
+                className="min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+              >
+                Log
+              </button>
+              {lastSet && (
+                <button
+                  type="button"
+                  onClick={() => void repeatLast()}
+                  className="min-h-11 px-1.5 text-xs font-medium underline underline-offset-4"
+                >
+                  Repeat
+                </button>
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <label className="flex flex-col gap-1 text-xs font-medium">
         Exercise notes

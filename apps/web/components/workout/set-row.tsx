@@ -25,6 +25,9 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const inputClasses =
+  "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+
 export function SetRow({ set, index, equipment, settings, isPr, onEdit, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [weight, setWeight] = useState(set.weight ?? "");
@@ -40,33 +43,33 @@ export function SetRow({ set, index, equipment, settings, isPr, onEdit, onDelete
 
   if (editing) {
     return (
-      <li className="flex flex-wrap items-end gap-2 rounded-lg border border-zinc-300 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Weight
+      <tr className="border-b border-zinc-100 bg-zinc-50 last:border-0 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <td className="py-1.5 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500">
+          {index + 1}
+        </td>
+        <td className="py-1.5 pr-2 align-middle">
           <input
             type="number"
             inputMode="decimal"
             value={weight}
             onChange={(event) => setWeight(event.target.value)}
-            className="w-20 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className={inputClasses}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Reps
+        </td>
+        <td className="py-1.5 pr-2 align-middle">
           <input
             type="number"
             inputMode="numeric"
             value={reps}
             onChange={(event) => setReps(event.target.value)}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className={inputClasses}
           />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Kind
+        </td>
+        <td className="py-1.5 pr-2 align-middle">
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value as SetRowEntity["kind"])}
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className={inputClasses}
           >
             {SET_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -74,60 +77,61 @@ export function SetRow({ set, index, equipment, settings, isPr, onEdit, onDelete
               </option>
             ))}
           </select>
-        </label>
-        <button
-          type="button"
-          onClick={save}
-          className="min-h-11 rounded-lg bg-zinc-950 px-3 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-        >
-          Save
-        </button>
-        <button type="button" onClick={() => setEditing(false)} className="min-h-11 px-2 text-sm">
-          Cancel
-        </button>
-      </li>
+        </td>
+        <td className="py-1.5 pl-1 align-middle text-right whitespace-nowrap">
+          <button
+            type="button"
+            onClick={save}
+            className="min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="min-h-11 px-1.5 text-xs"
+          >
+            Cancel
+          </button>
+        </td>
+      </tr>
     );
   }
 
   return (
-    <li className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-500">#{index + 1}</span>
-          <span className="text-base font-medium">
-            {set.weight != null && set.reps != null ? `${set.weight} × ${set.reps}` : "—"}
-          </span>
-          {set.kind !== "working" && (
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-              {set.kind}
-            </span>
-          )}
-          {isPr && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-              🎉 PR
-            </span>
-          )}
+    <tr className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+      <td className="py-2 pr-2 align-top text-xs font-medium text-zinc-500 dark:text-zinc-500">
+        {index + 1}
+      </td>
+      <td className="py-2 pr-2 align-top text-sm">
+        <div className="flex items-center gap-1">
+          <span className="font-medium">{set.weight ?? "—"}</span>
+          {isPr && <span title="Personal record">🎉</span>}
         </div>
         {weightNum != null && isBarbellExercise(equipment) && (
           <PlateBreakdown weight={weightNum} settings={settings} />
         )}
-      </div>
-      <div className="flex shrink-0 gap-1">
+      </td>
+      <td className="py-2 pr-2 align-top text-sm">{set.reps ?? "—"}</td>
+      <td className="py-2 pr-2 align-top text-xs text-zinc-500 dark:text-zinc-500">
+        {set.kind !== "working" ? set.kind : "—"}
+      </td>
+      <td className="py-2 pl-1 align-top text-right whitespace-nowrap">
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="min-h-11 px-2 text-sm font-medium underline underline-offset-4"
+          className="min-h-11 px-1.5 text-xs font-medium underline underline-offset-4"
         >
           Edit
         </button>
         <button
           type="button"
           onClick={onDelete}
-          className="min-h-11 px-2 text-sm font-medium text-red-600 dark:text-red-500"
+          className="min-h-11 px-1.5 text-xs font-medium text-red-600 dark:text-red-500"
         >
           Remove
         </button>
-      </div>
-    </li>
+      </td>
+    </tr>
   );
 }
