@@ -88,6 +88,25 @@ body.pwa {
   }
 }
 
+/* App content (components/app-reveal.tsx). Stays invisible — but still
+   mounted and doing real work underneath — until boot is ready, then fades
+   in on the same 200ms timing as .loading-screen fading out, so the two
+   crossfade instead of the splash dissolving onto already-static content. */
+.app-reveal {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.app-reveal[data-ready="true"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-reveal {
+    transition: none;
+  }
+}
+
 /* Initial-load splash (components/loading-screen.tsx). Sits above everything
    until the window "load" event fires, then fades out. */
 .loading-screen {
