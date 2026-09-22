@@ -1,6 +1,7 @@
 "use client";
 
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
@@ -17,6 +18,7 @@ interface Props {
  * no network round trip (docs/ARCHITECTURE.md §1).
  */
 export function SessionSummary({ session, sessionExercises }: Props) {
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
 
   const rawSets = useLiveQuery(
@@ -74,7 +76,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         <div>
           <dt className="text-xs text-zinc-500 dark:text-zinc-500">Volume</dt>
           <dd className="text-2xl font-semibold">
-            {Math.round(summary.totalVolume).toLocaleString()}
+            {Math.round(summary.totalVolume).toLocaleString()} {settings.units}
           </dd>
         </div>
         <div>
