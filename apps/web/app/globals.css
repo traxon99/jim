@@ -59,6 +59,28 @@ summary {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* `navigator.vibrate` doesn't exist on iOS (docs/ARCHITECTURE.md constraint 3),
+   so a button press has no haptic confirmation. This is the visual stand-in:
+   every button dips and dims for the duration of the tap, then springs back. */
+button:not(:disabled) {
+  transition: transform 100ms ease-out, opacity 100ms ease-out;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.96);
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled) {
+    transition: none;
+  }
+
+  button:not(:disabled):active {
+    transform: none;
+  }
+}
+
 /*
  * Installed-app-only chrome. The `pwa` class comes from
  * components/pwa-chrome.tsx; in a browser tab none of this applies, because
