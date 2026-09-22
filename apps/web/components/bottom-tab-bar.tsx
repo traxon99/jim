@@ -1,6 +1,6 @@
 "use client";
 
-import { BicepsFlexed, ClipboardList, Dumbbell, History, Settings } from "lucide-react";
+import { BicepsFlexed, CircleUserRound, ClipboardList, Dumbbell, History } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -9,7 +9,7 @@ const TABS = [
   { href: "/routines", label: "Routines", Icon: ClipboardList },
   { href: "/history", label: "History", Icon: History },
   { href: "/exercises", label: "Exercises", Icon: BicepsFlexed },
-  { href: "/settings", label: "Settings", Icon: Settings },
+  { href: "/profile", label: "Profile", Icon: CircleUserRound },
 ] as const;
 
 export function BottomTabBar() {

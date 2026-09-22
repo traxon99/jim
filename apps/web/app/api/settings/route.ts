@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 const UNITS = new Set(["lb", "kg"]);
+const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
 
 interface SettingsPayload {
   units: "lb" | "kg";
@@ -11,6 +12,7 @@ interface SettingsPayload {
   availablePlates: string[];
   defaultRestSeconds: number;
   weekStart: number;
+  colorScheme: "system" | "light" | "dark";
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -20,6 +22,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     availablePlates: row.availablePlates,
     defaultRestSeconds: row.defaultRestSeconds,
     weekStart: row.weekStart,
+    colorScheme: row.colorScheme,
   };
 }
 
@@ -75,6 +78,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     const n = candidate.weekStart;
     if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > 6) return false;
   }
+  if ("colorScheme" in candidate && !COLOR_SCHEMES.has(candidate.colorScheme as string)) {
+    return false;
+  }
   return true;
 }
 
@@ -104,6 +110,7 @@ export async function PATCH(request: Request) {
       }
       if (body.defaultRestSeconds !== undefined) patch.defaultRestSeconds = body.defaultRestSeconds;
       if (body.weekStart !== undefined) patch.weekStart = body.weekStart;
+      if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
 
       const [row] = await tx.update(users).set(patch).where(eq(users.id, userId)).returning();
       if (!row) throw new Error("Settings row disappeared mid-update");
