@@ -8,7 +8,7 @@ import type { SyncTable } from "./types";
  */
 export const SYNC_DATE_FIELDS: Record<SyncTable, readonly string[]> = {
   routines: ["createdAt", "updatedAt", "deletedAt"],
-  routineExercises: ["updatedAt", "deletedAt"],
+  routineExercises: ["progressionStartedAt", "updatedAt", "deletedAt"],
   sessions: ["startedAt", "endedAt", "updatedAt", "deletedAt"],
   sessionExercises: ["updatedAt", "deletedAt"],
   sets: ["completedAt", "deletedAt"],

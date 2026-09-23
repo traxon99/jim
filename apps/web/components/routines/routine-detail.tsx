@@ -3,6 +3,7 @@
 import { ExercisePicker } from "@/components/exercise-picker";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -24,6 +25,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     [id],
   );
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
 
   const items = useMemo(() => {
     return (rawItems ?? [])
@@ -31,9 +33,11 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       .sort((a, b) => a.position - b.position);
   }, [rawItems]);
 
-  const exerciseNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const exercise of exercises ?? []) map.set(exercise.id, exercise.name);
+  const exercisesById = useMemo(() => {
+    const map = new Map<string, { name: string; mechanic: "compound" | "isolation" | null }>();
+    for (const exercise of exercises ?? []) {
+      map.set(exercise.id, { name: exercise.name, mechanic: exercise.mechanic });
+    }
     return map;
   }, [exercises]);
 
@@ -73,6 +77,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       targetRepsLow: null,
       targetRepsHigh: null,
       targetRestSeconds: null,
+      targetWeight: null,
+      progressionIncrement: null,
+      progressionStartedAt: null,
       notes: null,
       updatedAt: now,
       deviceId,
@@ -181,7 +188,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
               <RoutineExerciseRowItem
                 key={item.id}
                 item={item}
-                exerciseName={exerciseNames.get(item.exerciseId) ?? "Unknown exercise"}
+                exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
+                exerciseMechanic={exercisesById.get(item.exerciseId)?.mechanic ?? null}
+                units={settings.units}
                 onUpdate={(patch) => handleUpdateItem(item, patch)}
                 onRemove={() => handleRemoveItem(item)}
               />

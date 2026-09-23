@@ -78,6 +78,13 @@
       "when": 1790195977599,
       "tag": "0010_add_profile_strength_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790203250519,
+      "tag": "0011_add_progressive_overload",
+      "breakpoints": true
     }
   ]
 }

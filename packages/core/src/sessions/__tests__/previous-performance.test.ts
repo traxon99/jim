@@ -61,4 +61,16 @@ describe("prefillWeightForFirstSet", () => {
   it("leaves the first set empty when the prior set's weight is bodyweight (null)", () => {
     expect(prefillWeightForFirstSet(0, { ...previous, weight: null })).toBe("");
   });
+
+  it("falls back to a progressive-overload target when there's no prior set at all", () => {
+    expect(prefillWeightForFirstSet(0, undefined, 145)).toBe("145");
+  });
+
+  it("prefers last time's weight over the fallback when both are available", () => {
+    expect(prefillWeightForFirstSet(0, previous, 145)).toBe("135");
+  });
+
+  it("ignores the fallback for sets after the first", () => {
+    expect(prefillWeightForFirstSet(1, undefined, 145)).toBe("");
+  });
 });

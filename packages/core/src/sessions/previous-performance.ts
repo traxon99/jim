@@ -27,14 +27,18 @@ export function mapPreviousSetsByIndex(sets: readonly PreviousSet[]): Map<number
  * An exercise's first set in a workout starts with last time's weight
  * already filled in, rather than an empty field the lifter has to retype
  * (issue #63) — every set after the first already has the one-tap "Repeat"
- * button for that.
+ * button for that. With no prior set to fall back on (the exercise's first
+ * time ever being logged), `fallbackWeight` — a routine's progressive-overload
+ * target, when configured — fills the same role.
  */
 export function prefillWeightForFirstSet(
   nextIndex: number,
   previous: PreviousSet | undefined,
+  fallbackWeight?: number | null,
 ): string {
-  if (nextIndex !== 0 || previous?.weight == null) return "";
-  return String(previous.weight);
+  if (nextIndex !== 0) return "";
+  if (previous?.weight != null) return String(previous.weight);
+  return fallbackWeight != null ? String(fallbackWeight) : "";
 }
 
 /**

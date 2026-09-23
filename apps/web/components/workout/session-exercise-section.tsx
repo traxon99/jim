@@ -19,6 +19,7 @@ import {
   type PrCandidate,
   type PreviousSet,
   STRENGTH_STANDARD_TIERS,
+  currentProgressedWeight,
   prefillWeightForFirstSet,
   resolveCurrentRows,
   standardLiftForSlug,
@@ -133,6 +134,22 @@ export function SessionExerciseSection({
   const lastSet = sets[sets.length - 1];
   const restSeconds = target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
 
+  // Progressive overload (issue #98): a routine exercise configured with a
+  // weekly increment keeps climbing on its own — this is what it calls for
+  // this week, independent of whatever was actually logged last time.
+  const progressedWeight = useMemo(() => {
+    if (target?.targetWeight == null) return null;
+    return currentProgressedWeight(
+      {
+        targetWeight: Number(target.targetWeight),
+        progressionIncrement:
+          target.progressionIncrement == null ? null : Number(target.progressionIncrement),
+        progressionStartedAt: target.progressionStartedAt,
+      },
+      new Date(),
+    );
+  }, [target?.targetWeight, target?.progressionIncrement, target?.progressionStartedAt]);
+
   // Strength-standard weight suggestions (#94): only for the four lifts
   // packages/core has published standards for, and only once sex + bodyweight
   // are on the profile (age is optional — see strengthProfileFromSettings).
@@ -146,9 +163,9 @@ export function SessionExerciseSection({
 
   useEffect(() => {
     setWeight((current) =>
-      current === "" ? prefillWeightForFirstSet(nextIndex, previous) : current,
+      current === "" ? prefillWeightForFirstSet(nextIndex, previous, progressedWeight) : current,
     );
-  }, [nextIndex, previous]);
+  }, [nextIndex, previous, progressedWeight]);
 
   async function logDraft() {
     const { set, prs } = await completeSet({
@@ -302,6 +319,19 @@ export function SessionExerciseSection({
           Target: {target.targetSets ?? "—"} × {target.targetRepsLow ?? "—"}–
           {target.targetRepsHigh ?? "—"}
         </p>
+      )}
+
+      {progressedWeight != null && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className={sizes.meta}>This week's target:</p>
+          <button
+            type="button"
+            onClick={() => setWeight(String(progressedWeight))}
+            className="min-h-8 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+          >
+            {progressedWeight}
+          </button>
+        </div>
       )}
 
       {suggestedWeights && (
