@@ -262,12 +262,8 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
 });
 
 describe("finalizing a session (against Dexie)", () => {
-  it("stamps endedAt and pushes immediately", async () => {
-    const sessionId = await startEmptySession(USER_ID, testDb);
-    const session = await testDb.sessions.get(sessionId);
-    if (!session) throw new Error("session missing");
-
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
+  function makeFetchMock() {
+    return vi.fn().mockImplementation((url: string) => {
       if (url.includes("/push")) {
         return Promise.resolve(
           new Response(JSON.stringify({ results: [{ id: "x", status: "applied" }] })),
@@ -275,12 +271,98 @@ describe("finalizing a session (against Dexie)", () => {
       }
       return Promise.resolve(new Response(JSON.stringify({ cursor: 0, changes: {} })));
     });
+  }
 
-    await finalizeSession(session, testDb, fetchMock as unknown as typeof fetch);
+  it("stamps endedAt and pushes immediately once a set has been logged", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise: SessionExerciseRow = {
+      id: uuidv7(),
+      userId: USER_ID,
+      sessionId,
+      exerciseId: BENCH_ID,
+      position: 0,
+      supersetGroup: null,
+      notes: null,
+      updatedAt: new Date(),
+      deviceId: "device-a",
+      deletedAt: null,
+      serverSeq: 0,
+    };
+    await testDb.sessionExercises.put(sessionExercise);
+    await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 135,
+        reps: 5,
+      },
+      testDb,
+    );
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
 
+    const fetchMock = makeFetchMock();
+    const { cancelled } = await finalizeSession(
+      session,
+      testDb,
+      fetchMock as unknown as typeof fetch,
+    );
+
+    expect(cancelled).toBe(false);
     const ended = await testDb.sessions.get(sessionId);
     expect(ended?.endedAt).not.toBeNull();
+    expect(ended?.deletedAt).toBeNull();
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("cancels (soft-deletes) a session with no exercises added, rather than tracking it", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
+
+    const fetchMock = makeFetchMock();
+    const { cancelled } = await finalizeSession(
+      session,
+      testDb,
+      fetchMock as unknown as typeof fetch,
+    );
+
+    expect(cancelled).toBe(true);
+    const ended = await testDb.sessions.get(sessionId);
+    expect(ended?.endedAt).toBeNull();
+    expect(ended?.deletedAt).not.toBeNull();
+  });
+
+  it("cancels a session that has exercises added but no sets logged", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    await testDb.sessionExercises.put({
+      id: uuidv7(),
+      userId: USER_ID,
+      sessionId,
+      exerciseId: BENCH_ID,
+      position: 0,
+      supersetGroup: null,
+      notes: null,
+      updatedAt: new Date(),
+      deviceId: "device-a",
+      deletedAt: null,
+      serverSeq: 0,
+    });
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
+
+    const { cancelled } = await finalizeSession(
+      session,
+      testDb,
+      makeFetchMock() as unknown as typeof fetch,
+    );
+
+    expect(cancelled).toBe(true);
+    const ended = await testDb.sessions.get(sessionId);
+    expect(ended?.deletedAt).not.toBeNull();
   });
 
   it("summarizes volume and duration entirely from local sets, with no network", async () => {
