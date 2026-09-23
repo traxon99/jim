@@ -3,6 +3,19 @@ import { NextResponse } from "next/server";
 
 const MAX_MESSAGE_LENGTH = 4000;
 
+/** Feedback types the UI offers, and the GitHub label each files under alongside "feedback". */
+const FEEDBACK_TYPE_LABELS = {
+  bug: "bug",
+  feature: "enhancement",
+  question: "question",
+} as const;
+
+type FeedbackType = keyof typeof FEEDBACK_TYPE_LABELS;
+
+function isFeedbackType(value: unknown): value is FeedbackType {
+  return typeof value === "string" && value in FEEDBACK_TYPE_LABELS;
+}
+
 /**
  * "owner/repo" for the GitHub issue tracker feedback gets filed against
  * (see .env.example) — not necessarily this app's own repo.
@@ -34,12 +47,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const message = (body as { message?: unknown } | null)?.message;
+  const { message, type } = (body ?? {}) as { message?: unknown; type?: unknown };
   if (typeof message !== "string" || message.trim().length === 0) {
     return NextResponse.json({ error: "message is required" }, { status: 400 });
   }
   if (message.length > MAX_MESSAGE_LENGTH) {
     return NextResponse.json({ error: "message is too long" }, { status: 400 });
+  }
+  if (!isFeedbackType(type)) {
+    return NextResponse.json({ error: "type is required" }, { status: 400 });
   }
 
   let repo: string;
@@ -66,7 +82,7 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       title,
       body: `${message.trim()}\n\n---\nSubmitted from Jim by ${email}.`,
-      labels: ["feedback"],
+      labels: ["feedback", FEEDBACK_TYPE_LABELS[type]],
     }),
   });
 

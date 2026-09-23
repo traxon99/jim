@@ -1,12 +1,15 @@
+export type FeedbackType = "bug" | "feature" | "question";
+
 export async function submitFeedback(
   message: string,
+  type: FeedbackType,
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ ok: true; url?: string } | { ok: false; error: string }> {
   try {
     const response = await fetchImpl("/api/feedback", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, type }),
     });
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
