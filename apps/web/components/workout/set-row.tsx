@@ -8,6 +8,7 @@ interface Props {
   set: SetRowEntity;
   index: number;
   isPr: boolean;
+  large?: boolean;
   onEdit: (patch: {
     weight: number | null;
     reps: number | null;
@@ -22,10 +23,36 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const inputClasses =
-  "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+function sizesFor(large: boolean) {
+  return {
+    input: large
+      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+      : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+    indexCell: large
+      ? "py-3 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
+      : "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    cell: large ? "py-3 pr-3 align-top text-lg" : "py-2 pr-2 align-top text-sm",
+    metaCell: large
+      ? "py-3 pr-3 align-top text-base text-zinc-500 dark:text-zinc-500"
+      : "py-2 pr-2 align-top text-xs text-zinc-500 dark:text-zinc-500",
+    actionCell: large
+      ? "py-3 pl-1 align-top text-right whitespace-nowrap"
+      : "py-2 pl-1 align-top text-right whitespace-nowrap",
+    saveButton: large
+      ? "min-h-12 rounded-md bg-zinc-950 px-4 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+      : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
+    textButton: large ? "min-h-12 px-2 text-base font-medium" : "min-h-11 px-1.5 text-xs",
+    editButton: large
+      ? "min-h-12 px-2 text-base font-medium underline underline-offset-4"
+      : "min-h-11 px-1.5 text-xs font-medium underline underline-offset-4",
+    deleteButton: large
+      ? "min-h-12 px-2 text-base font-medium text-red-600 dark:text-red-500"
+      : "min-h-11 px-1.5 text-xs font-medium text-red-600 dark:text-red-500",
+  };
+}
 
-export function SetRow({ set, index, isPr, onEdit, onDelete }: Props) {
+export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Props) {
+  const sizes = sizesFor(large);
   const [editing, setEditing] = useState(false);
   const [weight, setWeight] = useState(set.weight ?? "");
   const [reps, setReps] = useState(set.reps?.toString() ?? "");
@@ -39,32 +66,30 @@ export function SetRow({ set, index, isPr, onEdit, onDelete }: Props) {
   if (editing) {
     return (
       <tr className="border-b border-zinc-100 bg-zinc-50 last:border-0 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <td className="py-1.5 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500">
-          {index + 1}
-        </td>
-        <td className="py-1.5 pr-2 align-middle">
+        <td className={sizes.indexCell}>{index + 1}</td>
+        <td className={sizes.cell}>
           <input
             type="number"
             inputMode="decimal"
             value={weight}
             onChange={(event) => setWeight(event.target.value)}
-            className={inputClasses}
+            className={sizes.input}
           />
         </td>
-        <td className="py-1.5 pr-2 align-middle">
+        <td className={sizes.cell}>
           <input
             type="number"
             inputMode="numeric"
             value={reps}
             onChange={(event) => setReps(event.target.value)}
-            className={inputClasses}
+            className={sizes.input}
           />
         </td>
-        <td className="py-1.5 pr-2 align-middle">
+        <td className={sizes.cell}>
           <select
             value={kind}
             onChange={(event) => setKind(event.target.value as SetRowEntity["kind"])}
-            className={inputClasses}
+            className={sizes.input}
           >
             {SET_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -73,19 +98,11 @@ export function SetRow({ set, index, isPr, onEdit, onDelete }: Props) {
             ))}
           </select>
         </td>
-        <td className="py-1.5 pl-1 align-middle text-right whitespace-nowrap">
-          <button
-            type="button"
-            onClick={save}
-            className="min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-          >
+        <td className={sizes.actionCell}>
+          <button type="button" onClick={save} className={sizes.saveButton}>
             Save
           </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="min-h-11 px-1.5 text-xs"
-          >
+          <button type="button" onClick={() => setEditing(false)} className={sizes.textButton}>
             Cancel
           </button>
         </td>
@@ -95,32 +112,20 @@ export function SetRow({ set, index, isPr, onEdit, onDelete }: Props) {
 
   return (
     <tr className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-      <td className="py-2 pr-2 align-top text-xs font-medium text-zinc-500 dark:text-zinc-500">
-        {index + 1}
-      </td>
-      <td className="py-2 pr-2 align-top text-sm">
+      <td className={sizes.indexCell}>{index + 1}</td>
+      <td className={sizes.cell}>
         <div className="flex items-center gap-1">
           <span className="font-medium">{set.weight ?? "—"}</span>
           {isPr && <span title="Personal record">🎉</span>}
         </div>
       </td>
-      <td className="py-2 pr-2 align-top text-sm">{set.reps ?? "—"}</td>
-      <td className="py-2 pr-2 align-top text-xs text-zinc-500 dark:text-zinc-500">
-        {set.kind !== "working" ? set.kind : "—"}
-      </td>
-      <td className="py-2 pl-1 align-top text-right whitespace-nowrap">
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="min-h-11 px-1.5 text-xs font-medium underline underline-offset-4"
-        >
+      <td className={sizes.cell}>{set.reps ?? "—"}</td>
+      <td className={sizes.metaCell}>{set.kind !== "working" ? set.kind : "—"}</td>
+      <td className={sizes.actionCell}>
+        <button type="button" onClick={() => setEditing(true)} className={sizes.editButton}>
           Edit
         </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="min-h-11 px-1.5 text-xs font-medium text-red-600 dark:text-red-500"
-        >
+        <button type="button" onClick={onDelete} className={sizes.deleteButton}>
           Remove
         </button>
       </td>
