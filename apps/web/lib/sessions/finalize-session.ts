@@ -60,3 +60,18 @@ export async function cancelSession(
   await mutate("sessions", { ...session, deletedAt: now, updatedAt: now, deviceId }, database);
   await runSyncCycle(database, fetchImpl);
 }
+
+/**
+ * Deletes an already-finished session from history — the same tombstone as
+ * `cancelSession`, but for a session the user is done with rather than one
+ * still in progress, so it relies on the normal foreground sync triggers
+ * (ADR-002) instead of forcing an immediate one.
+ */
+export async function deleteSession(
+  session: SessionRow,
+  database: JimDatabase = db,
+): Promise<void> {
+  const deviceId = await getDeviceId(database);
+  const now = new Date();
+  await mutate("sessions", { ...session, deletedAt: now, updatedAt: now, deviceId }, database);
+}

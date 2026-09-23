@@ -1,4 +1,4 @@
-import { finalizeSession } from "@/lib/sessions/finalize-session";
+import { deleteSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { completeSet } from "@/lib/sessions/set-actions";
 import { startEmptySession } from "@/lib/sessions/start-session";
 import {
@@ -139,6 +139,31 @@ describe("history read pipeline (against Dexie)", () => {
       await testDb.personalRecords.toArray(),
     );
     expect(entries).toEqual([]);
+  });
+
+  it("deleting a finished session soft-deletes it and excludes it from the list, leaving its sets untouched", async () => {
+    await testDb.exercises.put(bench());
+    const sessionId = await loggedAndFinishedSession(135, 5);
+
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
+    await deleteSession(session, testDb);
+
+    const stillThere = await testDb.sessions.get(sessionId);
+    expect(stillThere).toBeDefined();
+    expect(stillThere?.deletedAt).not.toBeNull();
+
+    const entries = buildSessionListEntries(
+      await testDb.sessions.toArray(),
+      await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
+      await testDb.sets.toArray(),
+      await testDb.personalRecords.toArray(),
+    );
+    expect(entries).toEqual([]);
+
+    const sets = await testDb.sets.toArray();
+    expect(sets.every((set) => !set.deletedAt)).toBe(true);
   });
 
   it("tags a completed set with the PR kinds it achieved in the session detail view", async () => {

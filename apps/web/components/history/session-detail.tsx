@@ -3,11 +3,13 @@
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
+import { deleteSession } from "@/lib/sessions/finalize-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 const PR_LABELS: Record<string, string> = {
   "1rm": "1RM",
@@ -17,6 +19,8 @@ const PR_LABELS: Record<string, string> = {
 };
 
 export function SessionDetail({ id }: { id: string }) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const session = useLiveQuery(async () => (await db.sessions.get(id)) ?? null, [id]);
   const rawSessionExercises = useLiveQuery(
@@ -85,7 +89,7 @@ export function SessionDetail({ id }: { id: string }) {
     );
   }
 
-  if (session === null) {
+  if (session === null || session.deletedAt) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
         <h1 className="text-xl font-semibold">Workout not found</h1>
@@ -94,6 +98,18 @@ export function SessionDetail({ id }: { id: string }) {
         </Link>
       </main>
     );
+  }
+
+  async function handleDelete() {
+    if (!session) return;
+    if (!confirm("Delete this workout? This can't be undone.")) return;
+    setDeleting(true);
+    try {
+      await deleteSession(session);
+      router.push("/history");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -181,6 +197,17 @@ export function SessionDetail({ id }: { id: string }) {
             </ul>
           </section>
         ))}
+      </div>
+
+      <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="min-h-11 w-full rounded-lg border border-red-300 px-4 py-3 text-base font-medium text-red-600 disabled:opacity-50 dark:border-red-900 dark:text-red-500"
+        >
+          {deleting ? "Deleting…" : "Delete workout"}
+        </button>
       </div>
     </main>
   );
