@@ -1,13 +1,22 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
-import { groupRoutinesByFolder } from "@jim/core";
+import { addWarmupTemplate } from "@/lib/routines/warmup-templates";
+import {
+  WARMUP_TEMPLATES,
+  type WarmupTemplate,
+  groupRoutinesByFolder,
+  isWarmupRoutine,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardList, Layers, Plus } from "lucide-react";
+import { ClipboardList, Flame, Layers, Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
-export function RoutinesList({ userId: _userId }: { userId: string }) {
+export function RoutinesList({ userId }: { userId: string }) {
+  const router = useRouter();
+  const [addingTemplate, setAddingTemplate] = useState<string | null>(null);
   // Dexie live query: re-renders whenever the local set of routines changes,
   // with no network on the read path (docs/ARCHITECTURE.md §1).
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
@@ -27,9 +36,40 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
     // deletedAt is a tombstone, not a real DELETE (ADR-003's LWW cousin for
     // routines/routine_exercises) — a pulled deletion stays in Dexie with
     // the field set, so every read path must filter it out itself.
-    const live = (allRoutines ?? []).filter((routine) => !routine.deletedAt);
+    const live = (allRoutines ?? []).filter(
+      (routine) => !routine.deletedAt && !isWarmupRoutine(routine),
+    );
     return groupRoutinesByFolder(live);
   }, [allRoutines]);
+
+  const warmupRoutines = useMemo(
+    () =>
+      (allRoutines ?? [])
+        .filter((routine) => !routine.deletedAt && isWarmupRoutine(routine))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [allRoutines],
+  );
+
+  // A template already added (matched by name) isn't offered again.
+  const availableTemplates = useMemo(() => {
+    const names = new Set(warmupRoutines.map((routine) => routine.name));
+    return WARMUP_TEMPLATES.filter((template) => !names.has(template.name));
+  }, [warmupRoutines]);
+
+  async function handleAddTemplate(template: WarmupTemplate) {
+    setAddingTemplate(template.key);
+    try {
+      const { routineId, missingSlugs } = await addWarmupTemplate(userId, template);
+      if (missingSlugs.length > 0) {
+        alert(
+          `Added without ${missingSlugs.length} exercise(s) that haven't synced to this device yet.`,
+        );
+      }
+      router.push(`/routines/${routineId}`);
+    } finally {
+      setAddingTemplate(null);
+    }
+  }
 
   const programs = useMemo(
     () =>
@@ -105,6 +145,78 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
                     </span>
                   )}
                 </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          Warm-ups
+        </h2>
+        {warmupRoutines.length === 0 && (
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
+            Attach a warm-up to any routine and it runs as a timed block at the start of the
+            workout. Start from a template:
+          </p>
+        )}
+        {warmupRoutines.length > 0 && (
+          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+            {warmupRoutines.map((routine) => {
+              const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
+              return (
+                <li key={routine.id}>
+                  <Link
+                    href={`/routines/${routine.id}`}
+                    data-ripple
+                    className="flex items-center justify-between gap-2 py-3"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Flame
+                        className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
+                        strokeWidth={1.75}
+                        aria-hidden="true"
+                      />
+                      <span className="truncate text-base font-medium">{routine.name}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+                      {[
+                        routine.warmupMinutes != null ? `${routine.warmupMinutes} min` : null,
+                        exerciseCount > 0
+                          ? `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {availableTemplates.length > 0 && (
+          <ul className="flex flex-col gap-2 pt-1">
+            {availableTemplates.map((template) => (
+              <li
+                key={template.key}
+                className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-zinc-300 px-3 py-2 dark:border-zinc-700"
+              >
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm font-medium">{template.name}</span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                    Template · {template.minutes} min · {template.items.length} exercises
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void handleAddTemplate(template)}
+                  disabled={addingTemplate != null}
+                  className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-3 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
+                >
+                  {addingTemplate === template.key ? "Adding…" : "Add"}
+                </button>
               </li>
             ))}
           </ul>

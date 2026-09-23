@@ -5,6 +5,25 @@ import { fetchCatalogSeed } from "./free-exercise-db";
 
 const BATCH_SIZE = 100;
 
+const SEEDED_COLUMNS = [
+  "name",
+  "aliases",
+  "primary_muscles",
+  "secondary_muscles",
+  "equipment",
+  "mechanic",
+  "force",
+  "level",
+  "tracking_type",
+  "category",
+  "instructions",
+  "image_urls",
+] as const;
+
+const changedColumns = sql.raw(
+  `(${SEEDED_COLUMNS.map((c) => `"exercises"."${c}"`).join(", ")}) IS DISTINCT FROM (${SEEDED_COLUMNS.map((c) => `excluded."${c}"`).join(", ")})`,
+);
+
 export async function seedCatalog(databaseUrl: string): Promise<{ count: number }> {
   const db = createDb(databaseUrl);
   try {
@@ -28,9 +47,16 @@ export async function seedCatalog(databaseUrl: string): Promise<{ count: number 
             force: sql`excluded.force`,
             level: sql`excluded.level`,
             trackingType: sql`excluded.tracking_type`,
+            category: sql`excluded.category`,
             instructions: sql`excluded.instructions`,
             imageUrls: sql`excluded.image_urls`,
             updatedAt: sql`now()`,
+            // Clients pull by server_seq, so a reseed that actually changes a
+            // global row (e.g. reclassifying stretches as warm-ups, issue #59)
+            // has to bump it or devices that already pulled the row never see
+            // the change. Unchanged rows keep theirs, so a routine deploy
+            // doesn't make every device re-pull the whole catalog.
+            serverSeq: sql`CASE WHEN ${changedColumns} THEN nextval('sync_seq') ELSE ${exercises.serverSeq} END`,
           },
         });
     }

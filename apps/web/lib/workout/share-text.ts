@@ -19,11 +19,13 @@ function formatSet(set: SessionDetailSet): string {
   const value =
     set.weight != null && set.reps != null
       ? `${set.weight}×${set.reps}`
-      : set.durationSeconds != null
-        ? `${set.durationSeconds}s`
-        : set.distance != null
-          ? `${set.distance}`
-          : "—";
+      : set.reps != null
+        ? `${set.reps} reps`
+        : set.durationSeconds != null
+          ? `${set.durationSeconds}s`
+          : set.distance != null
+            ? `${set.distance}`
+            : "—";
 
   const tags = [
     set.kind === "working" ? null : set.kind,

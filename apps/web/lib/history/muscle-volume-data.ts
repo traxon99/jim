@@ -1,10 +1,15 @@
 import type { ExerciseRow, SessionExerciseRow, SetRow } from "@/lib/db/schema";
-import { type MuscleVolumeSet, resolveCurrentRows } from "@jim/core";
+import { type MuscleVolumeSet, isWarmupExercise, resolveCurrentRows } from "@jim/core";
 
-/** Joins each current, non-deleted set to its exercise's muscle groups, for `weeklyVolumeByMuscle`. */
+/**
+ * Joins each current, non-deleted set to its exercise's muscle groups, for
+ * `weeklyVolumeByMuscle`. Warm-ups are left out: they're tracked for how
+ * often they're done, not as training volume (issue #59).
+ */
 export function buildMuscleVolumeSets(
   sessionExercises: readonly SessionExerciseRow[],
-  exercises: readonly Pick<ExerciseRow, "id" | "primaryMuscles" | "secondaryMuscles">[],
+  exercises: readonly (Pick<ExerciseRow, "id" | "primaryMuscles" | "secondaryMuscles"> &
+    Partial<Pick<ExerciseRow, "category">>)[],
   sets: readonly SetRow[],
 ): MuscleVolumeSet[] {
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
@@ -16,7 +21,7 @@ export function buildMuscleVolumeSets(
     const sessionExercise = sessionExerciseById.get(set.sessionExerciseId);
     if (!sessionExercise || sessionExercise.deletedAt) continue;
     const exercise = exerciseById.get(sessionExercise.exerciseId);
-    if (!exercise) continue;
+    if (!exercise || isWarmupExercise(exercise)) continue;
 
     result.push({
       completedAt: set.completedAt,

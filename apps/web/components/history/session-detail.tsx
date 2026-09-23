@@ -168,11 +168,13 @@ export function SessionDetail({ id }: { id: string }) {
                     <span>
                       {set.weight != null && set.reps != null
                         ? `${set.weight} × ${set.reps}`
-                        : set.durationSeconds != null
-                          ? `${set.durationSeconds}s`
-                          : set.distance != null
-                            ? `${set.distance}`
-                            : "—"}
+                        : set.reps != null
+                          ? `${set.reps} reps`
+                          : set.durationSeconds != null
+                            ? `${set.durationSeconds}s`
+                            : set.distance != null
+                              ? `${set.distance}`
+                              : "—"}
                     </span>
                     {set.kind !== "working" && (
                       <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs capitalize text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">

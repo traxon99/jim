@@ -45,6 +45,42 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("seedCatalog", () => {
     expect(Number(row.total)).toBe(firstRun.count);
   }, 30_000);
 
+  it("seeds warm-ups (curated + free-exercise-db stretching) into the warmup category", async () => {
+    await seedCatalog(url);
+    const row = first(
+      await admin<{ curated: string; warmups: string }[]>`
+      SELECT
+        count(*) FILTER (WHERE slug LIKE 'warmup-%' AND category = 'warmup') AS curated,
+        count(*) FILTER (WHERE category = 'warmup') AS warmups
+      FROM exercises WHERE owner_id IS NULL
+    `,
+    );
+    expect(Number(row.curated)).toBeGreaterThan(30);
+    expect(Number(row.warmups)).toBeGreaterThan(Number(row.curated));
+  }, 30_000);
+
+  it("bumps server_seq only for global rows a reseed actually changed", async () => {
+    await seedCatalog(url);
+    const slug = "warmup-pigeon-stretch";
+    const other = "warmup-cat-cow";
+    await admin`UPDATE exercises SET category = 'strength' WHERE slug = ${slug} AND owner_id IS NULL`;
+    const before = await admin<{ slug: string; server_seq: string }[]>`
+      SELECT slug, server_seq FROM exercises WHERE slug IN (${slug}, ${other}) AND owner_id IS NULL
+    `;
+
+    await seedCatalog(url);
+
+    const after = await admin<{ slug: string; server_seq: string; category: string }[]>`
+      SELECT slug, server_seq, category FROM exercises WHERE slug IN (${slug}, ${other}) AND owner_id IS NULL
+    `;
+    const seqBefore = new Map(before.map((r) => [r.slug, Number(r.server_seq)]));
+    const changed = after.find((r) => r.slug === slug);
+    const unchanged = after.find((r) => r.slug === other);
+    expect(changed?.category).toBe("warmup");
+    expect(Number(changed?.server_seq)).toBeGreaterThan(seqBefore.get(slug) ?? 0);
+    expect(Number(unchanged?.server_seq)).toBe(seqBefore.get(other));
+  }, 30_000);
+
   it("does not clobber a user-owned row sharing a global row's slug", async () => {
     await seedCatalog(url);
 

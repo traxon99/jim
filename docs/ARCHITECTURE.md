@@ -104,12 +104,15 @@ exercises          id, owner_id (NULL = global seed), name, aliases[]
                    primary_muscles[], secondary_muscles[], equipment,
                    mechanic(compound|isolation), force(push|pull|static), level,
                    tracking_type(weight_reps|time|distance|bodyweight|weighted_bodyweight),
+                   category(strength|warmup),
                    instructions[], image_urls[], is_archived
                    -- editing a seed row clones it into a user-owned row (copy-on-write)
 
-routines           id, user_id, name, notes, position, folder
+routines           id, user_id, name, notes, position, folder,
+                   kind(strength|warmup), warmup_routine_id?, warmup_minutes?
 routine_exercises  id, routine_id, exercise_id, position, superset_group,
-                   target_sets, target_reps_low/high, target_rest_seconds, notes
+                   target_sets, target_reps_low/high, target_rest_seconds,
+                   target_duration_seconds, notes
 
 sessions           id, user_id, routine_id?, name, started_at, ended_at,
                    notes, bodyweight?, device_id, updated_at
@@ -128,6 +131,14 @@ body_measurements  id, user_id, kind, value, unit, measured_at   (v1: bodyweight
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 ```
+
+**Warm-ups** (`exercises.category = 'warmup'`) are ordinary exercises logged for reps or time.
+They never produce `personal_records` and are left out of muscle volume — they're tracked by how
+often they're done. A `warmup`-kind routine is a reusable warm-up block; a strength routine links
+one via `warmup_routine_id`, and starting a session prepends its exercises, grouped (with any
+warm-ups in the routine itself) under a timer at the start of the workout. Curated warm-ups are
+seeded as global rows (`warmup-*` slugs); warm-up templates are code-defined in `packages/core`
+and copied into the user's own routines, since routines are strictly user-owned.
 
 `personal_records` is a derived cache, recomputable from `sets` alone. If it ever disagrees with
 `sets`, `sets` wins and the cache is rebuilt.

@@ -9,4 +9,9 @@ export interface CatalogExercise {
   primaryMuscles: readonly string[];
   secondaryMuscles: readonly string[];
   equipment: string | null;
+  /**
+   * Optional because rows cached locally before the column existed (issue
+   * #59) don't carry it — absent reads as "strength" (see exerciseCategoryOf).
+   */
+  category?: "strength" | "warmup" | null;
 }

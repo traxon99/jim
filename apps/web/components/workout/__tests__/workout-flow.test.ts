@@ -38,6 +38,7 @@ function routineExercise(overrides: Partial<RoutineExerciseRow> = {}): RoutineEx
     targetRepsLow: 5,
     targetRepsHigh: 5,
     targetRestSeconds: 120,
+    targetDurationSeconds: null,
     targetWeight: null,
     progressionIncrement: null,
     progressionStartedAt: null,

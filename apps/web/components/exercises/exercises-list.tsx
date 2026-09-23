@@ -2,9 +2,11 @@
 
 import { db } from "@/lib/db/schema";
 import {
+  type ExerciseCategory,
   type ExerciseSortKey,
   buildExerciseUsage,
   filterExercises,
+  isWarmupExercise,
   preferOwnedExercises,
   searchExercises,
   sortExercisesByUsage,
@@ -45,6 +47,7 @@ export function ExercisesList({ userId }: { userId: string }) {
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState("");
+  const [category, setCategory] = useState<ExerciseCategory | "">("");
   const [sortKey, setSortKey] = useState<ExerciseSortKey>("name");
 
   const { results, muscleOptions, equipmentOptions, usage } = useMemo(() => {
@@ -53,6 +56,7 @@ export function ExercisesList({ userId }: { userId: string }) {
     const filtered = filterExercises(owned, {
       muscle: muscle || undefined,
       equipment: equipment || undefined,
+      category: category || undefined,
     });
     const usageByExerciseId = buildExerciseUsage(usageRows ?? []);
     const sorted = sortExercisesByUsage(filtered, usageByExerciseId, sortKey);
@@ -72,7 +76,7 @@ export function ExercisesList({ userId }: { userId: string }) {
       equipmentOptions: [...equipmentSet].sort(),
       usage: usageByExerciseId,
     };
-  }, [allExercises, usageRows, userId, query, muscle, equipment, sortKey]);
+  }, [allExercises, usageRows, userId, query, muscle, equipment, category, sortKey]);
 
   if (allExercises === undefined) {
     return (
@@ -103,6 +107,33 @@ export function ExercisesList({ userId }: { userId: string }) {
         onChange={(event) => setQuery(event.target.value)}
         className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
       />
+
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+        {(
+          [
+            { value: "", label: "All" },
+            { value: "strength", label: "Strength" },
+            { value: "warmup", label: "Warm-ups" },
+          ] as const
+        ).map((tab) => {
+          const selected = category === tab.value;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setCategory(tab.value)}
+              className={`min-h-11 rounded-lg px-2 text-sm font-medium ${
+                selected
+                  ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                  : "text-zinc-500 dark:text-zinc-400"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex gap-2">
         <select
@@ -164,7 +195,13 @@ export function ExercisesList({ userId }: { userId: string }) {
                   <span className="flex flex-col gap-0.5">
                     <span className="text-base font-medium">{exercise.name}</span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                      {[exercise.equipment, ...exercise.primaryMuscles].filter(Boolean).join(" · ")}
+                      {[
+                        isWarmupExercise(exercise) ? "warm-up" : null,
+                        exercise.equipment,
+                        ...exercise.primaryMuscles,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   </span>
                   <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">

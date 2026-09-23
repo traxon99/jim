@@ -2,7 +2,12 @@
 
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { db } from "@/lib/db/schema";
-import { estimatedOneRepMaxSeries, resolveCurrentRows } from "@jim/core";
+import {
+  estimatedOneRepMaxSeries,
+  isWarmupExercise,
+  resolveCurrentRows,
+  warmupFrequency,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
@@ -50,6 +55,8 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
     [resolvedSets],
   );
 
+  const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
+
   if (exercise === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
@@ -70,7 +77,9 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
   }
 
   const canEdit = exercise.ownerId === null || exercise.ownerId === userId;
+  const isWarmup = isWarmupExercise(exercise);
   const tags = [
+    isWarmup ? "warm-up" : null,
     exercise.equipment,
     ...exercise.primaryMuscles,
     ...exercise.secondaryMuscles,
@@ -133,7 +142,31 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
         </section>
       )}
 
-      {oneRepMaxPoints.length > 0 && (
+      {isWarmup && (
+        <section>
+          <h2 className="text-sm font-semibold">How often</h2>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+            Warm-ups are tracked by how often you do them, not for PRs.
+          </p>
+          <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
+            {[
+              { label: "Last 30 days", value: String(frequency.recentSessionCount) },
+              { label: "All time", value: String(frequency.sessionCount) },
+              {
+                label: "Last done",
+                value: frequency.lastDoneAt ? frequency.lastDoneAt.toLocaleDateString() : "—",
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-lg bg-zinc-100 px-2 py-2 dark:bg-zinc-900">
+                <dt className="text-xs text-zinc-500 dark:text-zinc-500">{stat.label}</dt>
+                <dd className="text-base font-semibold tabular-nums">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      {!isWarmup && oneRepMaxPoints.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
           <div className="mt-2">
@@ -153,11 +186,13 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
                 <span>
                   {set.weight != null && set.reps != null
                     ? `${set.weight} × ${set.reps}`
-                    : set.durationSeconds != null
-                      ? `${set.durationSeconds}s`
-                      : set.distance != null
-                        ? `${set.distance}`
-                        : "—"}
+                    : set.reps != null
+                      ? `${set.reps} reps`
+                      : set.durationSeconds != null
+                        ? `${set.durationSeconds}s`
+                        : set.distance != null
+                          ? `${set.distance}`
+                          : "—"}
                 </span>
                 <span className="text-zinc-500 dark:text-zinc-500">
                   {set.completedAt.toLocaleDateString()}

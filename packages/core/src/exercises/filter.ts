@@ -1,8 +1,11 @@
+import { type ExerciseCategory, exerciseCategoryOf } from "../warmups/category";
 import type { CatalogExercise } from "./types";
 
 export interface ExerciseFilters {
   muscle?: string;
   equipment?: string;
+  /** "warmup" narrows to warm-ups/stretches only; "strength" to everything else. */
+  category?: ExerciseCategory;
   /** Default false: archived exercises are hidden unless explicitly asked for. */
   includeArchived?: boolean;
 }
@@ -19,6 +22,7 @@ export function filterExercises<T extends CatalogExercise>(
       if (!inPrimary && !inSecondary) return false;
     }
     if (filters.equipment && exercise.equipment !== filters.equipment) return false;
+    if (filters.category && exerciseCategoryOf(exercise) !== filters.category) return false;
     return true;
   });
 }

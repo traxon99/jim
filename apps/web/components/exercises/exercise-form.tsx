@@ -3,7 +3,15 @@
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
-import { MUSCLES, type Muscle, applyExerciseEdit, slugify, uuidv7 } from "@jim/core";
+import {
+  type ExerciseCategory,
+  MUSCLES,
+  type Muscle,
+  applyExerciseEdit,
+  exerciseCategoryOf,
+  slugify,
+  uuidv7,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +23,9 @@ const TRACKING_TYPES = [
   "bodyweight",
   "weighted_bodyweight",
 ] as const;
+
+// Warm-ups/stretches are only ever logged for reps or for time (issue #59).
+const WARMUP_TRACKING_TYPES = ["bodyweight", "time"] as const;
 
 interface Props {
   userId: string;
@@ -31,6 +42,7 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
 
   const [name, setName] = useState("");
   const [equipment, setEquipment] = useState("");
+  const [category, setCategory] = useState<ExerciseCategory>("strength");
   const [trackingType, setTrackingType] = useState<(typeof TRACKING_TYPES)[number]>("weight_reps");
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
@@ -41,10 +53,20 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
     if (!existing) return;
     setName(existing.name);
     setEquipment(existing.equipment ?? "");
+    setCategory(exerciseCategoryOf(existing));
     setTrackingType(existing.trackingType);
     setPrimaryMuscles([...existing.primaryMuscles]);
     setInstructionsText(existing.instructions.join("\n"));
   }, [existing]);
+
+  function handleCategoryChange(next: ExerciseCategory) {
+    setCategory(next);
+    if (next === "warmup" && !(WARMUP_TRACKING_TYPES as readonly string[]).includes(trackingType)) {
+      setTrackingType("bodyweight");
+    }
+  }
+
+  const trackingOptions = category === "warmup" ? WARMUP_TRACKING_TYPES : TRACKING_TYPES;
 
   function toggleMuscle(muscle: Muscle) {
     setPrimaryMuscles((current) =>
@@ -80,6 +102,7 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
         force: null,
         level: null,
         trackingType,
+        category,
         instructions,
         imageUrls: [],
         isArchived: false,
@@ -91,7 +114,14 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
     } else {
       const { entity: applied } = applyExerciseEdit(
         existing,
-        { name, equipment: equipment.trim() || null, trackingType, primaryMuscles, instructions },
+        {
+          name,
+          equipment: equipment.trim() || null,
+          trackingType,
+          category,
+          primaryMuscles,
+          instructions,
+        },
         userId,
         uuidv7,
       );
@@ -153,15 +183,32 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
         </label>
 
         <label className="flex flex-col gap-1 text-sm font-medium">
+          Type
+          <select
+            value={category}
+            onChange={(event) => handleCategoryChange(event.target.value as ExerciseCategory)}
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          >
+            <option value="strength">Strength</option>
+            <option value="warmup">Warm-up / stretch</option>
+          </select>
+          {category === "warmup" && (
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              Logged for reps or time, and tracked by how often you do it rather than for PRs.
+            </span>
+          )}
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium">
           Tracking
           <select
             value={trackingType}
             onChange={(event) => setTrackingType(event.target.value as typeof trackingType)}
             className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
-            {TRACKING_TYPES.map((t) => (
+            {trackingOptions.map((t) => (
               <option key={t} value={t}>
-                {t.replace(/_/g, " ")}
+                {category === "warmup" ? (t === "time" ? "time" : "reps") : t.replace(/_/g, " ")}
               </option>
             ))}
           </select>
