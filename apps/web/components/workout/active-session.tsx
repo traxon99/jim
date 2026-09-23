@@ -17,9 +17,8 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Focus, LayoutList } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FocusView, type FocusViewExercise } from "./focus-view";
 import { PaceTracker } from "./pace-tracker";
 import { RestTimerBar } from "./rest-timer-bar";
@@ -131,6 +130,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   const currentNotes = notes ?? session?.notes ?? "";
 
+  const notFound = session === null || session?.deletedAt != null;
+  useEffect(() => {
+    if (notFound) router.replace("/workout");
+  }, [notFound, router]);
+
   async function handleAddExercise(exerciseId: string) {
     const deviceId = await getDeviceId();
     const now = new Date();
@@ -202,21 +206,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
   }
 
-  if (session === undefined || rawSessionExercises === undefined) {
+  if (session === undefined || rawSessionExercises === undefined || notFound) {
     return (
       <main className="flex flex-1 items-center justify-center">
         <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
-      </main>
-    );
-  }
-
-  if (session === null || session.deletedAt) {
-    return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <h1 className="text-xl font-semibold">Workout not found</h1>
-        <Link href="/workout" className="text-sm font-medium underline underline-offset-4">
-          Back to workout
-        </Link>
       </main>
     );
   }
