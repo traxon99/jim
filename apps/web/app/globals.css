@@ -195,6 +195,32 @@ body.pwa {
   }
 }
 
+/* Active-workout dot on the bottom tab bar's Workout icon
+   (components/bottom-tab-bar.tsx) — the same "state is always visible,
+   never silent" idea behind the sync status indicator, but for an
+   in-progress session. */
+.workout-indicator-dot {
+  animation: workout-indicator-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes workout-indicator-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout-indicator-dot {
+    animation: none;
+  }
+}
+
 /* Opt back in wherever there is something worth selecting: what the user
  * typed, and anything tagged .allow-pwa-select (errors, logged numbers). */
 body.pwa input,
