@@ -1,5 +1,6 @@
 "use client";
 
+import { useHasActiveSession } from "@/lib/sessions/use-active-session";
 import { BicepsFlexed, CircleUserRound, ClipboardList, Dumbbell, History } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +15,7 @@ const TABS = [
 
 export function BottomTabBar() {
   const pathname = usePathname();
+  const hasActiveSession = useHasActiveSession();
 
   return (
     <nav
@@ -22,6 +24,7 @@ export function BottomTabBar() {
     >
       {TABS.map(({ href, label, Icon }) => {
         const active = pathname.startsWith(href);
+        const showActiveSessionDot = href === "/workout" && hasActiveSession;
         return (
           <Link
             key={href}
@@ -32,8 +35,17 @@ export function BottomTabBar() {
               active ? "text-zinc-950 dark:text-zinc-50" : "text-zinc-500 dark:text-zinc-500"
             }`}
           >
-            <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            <span className="relative">
+              <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+              {showActiveSessionDot && (
+                <span
+                  className="workout-indicator-dot absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400"
+                  aria-hidden="true"
+                />
+              )}
+            </span>
             {label}
+            {showActiveSessionDot && <span className="sr-only"> (workout in progress)</span>}
           </Link>
         );
       })}
