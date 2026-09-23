@@ -51,6 +51,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       weekStart: 0,
       colorScheme: "system",
       accentColor: "zinc",
+      fontFamily: "sans",
     });
 
     const rows = await admin`SELECT id, email FROM public.users WHERE id = ${USER_A}`;
@@ -73,6 +74,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("rejects an invalid font family", async () => {
+    const response = await patch({ fontFamily: "comic-sans" });
+    expect(response.status).toBe(400);
+  });
+
   it("persists a valid patch and reflects it on the next read", async () => {
     const response = await patch({
       defaultBarWeight: 20,
@@ -80,6 +86,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       defaultRestSeconds: 120,
       colorScheme: "dark",
       accentColor: "blue",
+      fontFamily: "serif",
     });
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -87,10 +94,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(body.defaultRestSeconds).toBe(120);
     expect(body.colorScheme).toBe("dark");
     expect(body.accentColor).toBe("blue");
+    expect(body.fontFamily).toBe("serif");
 
     const again = await (await GET()).json();
     expect(again.defaultRestSeconds).toBe(120);
     expect(again.colorScheme).toBe("dark");
     expect(again.accentColor).toBe("blue");
+    expect(again.fontFamily).toBe("serif");
   });
 });

@@ -46,6 +46,8 @@ export const accentColorEnum = pgEnum("accent_color", [
   "rose",
 ]);
 
+export const fontFamilyEnum = pgEnum("font_family", ["sans", "serif", "mono"]);
+
 // The controlled vocabulary this seed data ships with (see ADR-008). Sourced
 // from free-exercise-db, which already uses a small, consistent muscle list.
 // Lives in @jim/core (see its exercises/muscles.ts) so client-side UI can
@@ -101,6 +103,8 @@ export const users = pgTable(
     // The app's primary/interactive accent color, independent of light/dark. "zinc" keeps
     // the original monochrome look (accent tracks the foreground/background pair).
     accentColor: accentColorEnum("accent_color").notNull().default("zinc"),
+    // The app's body typeface. "sans" keeps the original system sans-serif look.
+    fontFamily: fontFamilyEnum("font_family").notNull().default("sans"),
   },
   (table) => [
     pgPolicy("users_select_own", {

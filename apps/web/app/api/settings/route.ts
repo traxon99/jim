@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 const UNITS = new Set(["lb", "kg"]);
 const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
 const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose"]);
+const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 
 interface SettingsPayload {
   units: "lb" | "kg";
@@ -15,6 +16,7 @@ interface SettingsPayload {
   weekStart: number;
   colorScheme: "system" | "light" | "dark";
   accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose";
+  fontFamily: "sans" | "serif" | "mono";
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -26,6 +28,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     weekStart: row.weekStart,
     colorScheme: row.colorScheme,
     accentColor: row.accentColor,
+    fontFamily: row.fontFamily,
   };
 }
 
@@ -87,6 +90,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("accentColor" in candidate && !ACCENT_COLORS.has(candidate.accentColor as string)) {
     return false;
   }
+  if ("fontFamily" in candidate && !FONT_FAMILIES.has(candidate.fontFamily as string)) {
+    return false;
+  }
   return true;
 }
 
@@ -118,6 +124,7 @@ export async function PATCH(request: Request) {
       if (body.weekStart !== undefined) patch.weekStart = body.weekStart;
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
       if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
+      if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;
 
       const [row] = await tx.update(users).set(patch).where(eq(users.id, userId)).returning();
       if (!row) throw new Error("Settings row disappeared mid-update");

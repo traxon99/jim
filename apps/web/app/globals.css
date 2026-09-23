@@ -24,6 +24,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-playfair-display);
 }
 
 :root.dark {
@@ -58,6 +59,17 @@
 :root[data-accent="rose"] {
   --accent: #e11d48;
   --accent-foreground: #ffffff;
+}
+
+/* Font choices (Profile > Appearance > Font, apps/web/components/profile/font-family-section.tsx).
+   Applied via `data-font` on <html> (components/color-scheme-effect.tsx). "sans" (the default)
+   needs no rule here — it's the plain `body` font-family below. */
+:root[data-font="serif"] body {
+  font-family: var(--font-serif), Georgia, serif;
+}
+
+:root[data-font="mono"] body {
+  font-family: var(--font-mono), monospace;
 }
 
 :root {
