@@ -3,6 +3,7 @@
 import { db } from "@/lib/db/schema";
 import { groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { ClipboardList, Layers } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -76,22 +77,29 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
             Group routines into a program to get your next workout suggested on launch.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/40">
             {programs.map((program) => (
               <li key={program.id}>
                 <Link
                   href={`/routines/programs/${program.id}`}
                   data-ripple
-                  className="flex items-center justify-between gap-2 py-3"
+                  className="-mx-3 flex items-center justify-between gap-2 px-3 py-3"
                 >
-                  <span className="flex flex-col gap-0.5">
-                    <span className="text-base font-medium">{program.name}</span>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                      {program.mode === "weekly" ? "Weekly schedule" : "Sequence"}
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Layers
+                      className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500"
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="truncate text-base font-medium">{program.name}</span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                        {program.mode === "weekly" ? "Weekly schedule" : "Sequence"}
+                      </span>
                     </span>
                   </span>
                   {program.isActive && (
-                    <span className="rounded-full bg-zinc-950 px-2 py-0.5 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950">
+                    <span className="shrink-0 rounded-full bg-zinc-950 px-2 py-0.5 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950">
                       Active
                     </span>
                   )}
@@ -125,13 +133,20 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
                         data-ripple
                         className="flex items-center justify-between gap-2 py-3"
                       >
-                        <span className="flex flex-col gap-0.5">
-                          <span className="text-base font-medium">{routine.name}</span>
-                          {routine.notes && (
-                            <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                              {routine.notes}
-                            </span>
-                          )}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <ClipboardList
+                            className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-600"
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            <span className="truncate text-base font-medium">{routine.name}</span>
+                            {routine.notes && (
+                              <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                                {routine.notes}
+                              </span>
+                            )}
+                          </span>
                         </span>
                         {exerciseCount > 0 && (
                           <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">

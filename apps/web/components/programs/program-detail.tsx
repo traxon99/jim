@@ -11,6 +11,7 @@ import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } f
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { reorderRoutineExercises, uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Layers } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -143,7 +144,14 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{program.name}</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <Layers
+              className="h-5 w-5 shrink-0 text-zinc-500 dark:text-zinc-500"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            {program.name}
+          </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
             {weekly ? "Weekly schedule" : "Sequence"}
             {program.isActive && " · Active"}
