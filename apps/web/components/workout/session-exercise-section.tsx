@@ -103,6 +103,7 @@ export function SessionExerciseSection({
   const [kind, setKind] = useState<SetKind>("working");
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
+  const [rpe, setRpe] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -140,10 +141,12 @@ export function SessionExerciseSection({
       kind,
       weight: toNumberOrNull(weight),
       reps: toNumberOrNull(reps),
+      rpe: toNumberOrNull(rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
     setWeight("");
     setReps("");
+    setRpe("");
     onSetLogged(restSeconds);
   }
 
@@ -157,6 +160,7 @@ export function SessionExerciseSection({
       kind: lastSet.kind,
       weight: lastSet.weight == null ? null : Number(lastSet.weight),
       reps: lastSet.reps,
+      rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
     onSetLogged(restSeconds);
@@ -164,7 +168,12 @@ export function SessionExerciseSection({
 
   async function handleEdit(
     original: SetRowEntity,
-    patch: { weight: number | null; reps: number | null; kind: SetRowEntity["kind"] },
+    patch: {
+      weight: number | null;
+      reps: number | null;
+      kind: SetRowEntity["kind"];
+      rpe: number | null;
+    },
   ) {
     await editSet({ original, ...patch });
   }
@@ -211,6 +220,7 @@ export function SessionExerciseSection({
             <th className={`w-8 ${sizes.headerCell}`}>Set</th>
             <th className={sizes.headerCell}>Weight</th>
             <th className={sizes.headerCell}>Reps</th>
+            <th className={sizes.headerCell}>RPE</th>
             <th className={sizes.headerCell}>Kind</th>
             <th className={sizes.headerCell} />
           </tr>
@@ -246,6 +256,19 @@ export function SessionExerciseSection({
                 placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
                 value={reps}
                 onChange={(event) => setReps(event.target.value)}
+                className={sizes.input}
+              />
+            </td>
+            <td className={sizes.cell}>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={1}
+                max={10}
+                step={0.5}
+                placeholder="—"
+                value={rpe}
+                onChange={(event) => setRpe(event.target.value)}
                 className={sizes.input}
               />
             </td>

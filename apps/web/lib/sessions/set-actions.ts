@@ -71,6 +71,7 @@ export interface CompleteSetInput {
   kind: SetRow["kind"];
   weight: number | null;
   reps: number | null;
+  rpe?: number | null;
 }
 
 export interface CompleteSetResult {
@@ -96,7 +97,7 @@ export async function completeSet(
     reps: input.reps,
     durationSeconds: null,
     distance: null,
-    rpe: null,
+    rpe: input.rpe == null ? null : String(input.rpe),
     rir: null,
     completedAt: now,
     supersedesId: null,
@@ -121,6 +122,7 @@ export interface EditSetInput {
   weight: number | null;
   reps: number | null;
   kind: SetRow["kind"];
+  rpe?: number | null;
 }
 
 /** ADR-003: sets are append-only — an edit inserts a new row carrying `supersedesId` rather than UPDATEing. */
@@ -131,6 +133,7 @@ export async function editSet(input: EditSetInput, database: JimDatabase = db): 
     weight: input.weight == null ? null : String(input.weight),
     reps: input.reps,
     kind: input.kind,
+    rpe: input.rpe == null ? null : String(input.rpe),
     supersedesId: input.original.id,
     deletedAt: null,
   };

@@ -230,6 +230,51 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
     expect(current[0]?.weight).toBe("145");
   });
 
+  it("stores RPE on a logged set and lets an edit change it", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId, BENCH_ID);
+    const { set } = await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 135,
+        reps: 5,
+        rpe: 8,
+      },
+      testDb,
+    );
+
+    expect(set.rpe).toBe("8");
+
+    const edited = await editSet(
+      { original: set, weight: 135, reps: 5, kind: "working", rpe: 8.5 },
+      testDb,
+    );
+    expect(edited.rpe).toBe("8.5");
+  });
+
+  it("leaves RPE null when not given, same as weight and reps", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId, BENCH_ID);
+    const { set } = await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 135,
+        reps: 5,
+      },
+      testDb,
+    );
+
+    expect(set.rpe).toBeNull();
+  });
+
   it("deleting a set writes a tombstone via a superseding row rather than removing it", async () => {
     const sessionId = await startEmptySession(USER_ID, testDb);
     const sessionExercise = await makeSessionExercise(sessionId, BENCH_ID);
