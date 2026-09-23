@@ -1,4 +1,4 @@
-import { shouldNotifyOfUpdate } from "@/lib/pwa/notifications";
+import { shouldNotifyOfUpdate, updateNotificationBody } from "@/lib/pwa/notifications";
 import { describe, expect, it } from "vitest";
 
 describe("shouldNotifyOfUpdate", () => {
@@ -27,5 +27,19 @@ describe("shouldNotifyOfUpdate", () => {
     expect(
       shouldNotifyOfUpdate({ enabled: true, permission: "default", hadController: true }),
     ).toBe(false);
+  });
+});
+
+describe("updateNotificationBody", () => {
+  it("leads with the release note by default", () => {
+    expect(updateNotificationBody()).toMatch(/^What's new: /);
+  });
+
+  it("wraps a given release note", () => {
+    expect(updateNotificationBody("Faster sync.")).toBe("What's new: Faster sync.");
+  });
+
+  it("falls back to a generic message when there's no note", () => {
+    expect(updateNotificationBody("")).toBe("A new version is ready — reload to update.");
   });
 });

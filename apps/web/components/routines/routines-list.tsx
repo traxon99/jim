@@ -3,7 +3,7 @@
 import { db } from "@/lib/db/schema";
 import { groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardList, Layers } from "lucide-react";
+import { ClipboardList, Layers, Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -53,10 +53,11 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
         <h1 className="text-xl font-semibold">Routines</h1>
         <Link
           href="/routines/new"
+          aria-label="New routine"
           data-ripple
-          className="rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
         >
-          New
+          <Plus className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
 

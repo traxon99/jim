@@ -36,7 +36,7 @@ export function BottomTabBar() {
             }`}
           >
             <span className="relative">
-              <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+              <Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden="true" />
               {showActiveSessionDot && (
                 <span
                   className="workout-indicator-dot absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400"
