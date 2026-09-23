@@ -1,9 +1,51 @@
 "use client";
 
+import { type InstallPlatform, detectInstallPlatform } from "@/lib/pwa/platform";
 import { STANDALONE_MEDIA_QUERY, isStandalone } from "@/lib/pwa/standalone";
 import { useEffect, useState } from "react";
 
 type InstallState = "checking" | "installed" | "not-installed";
+
+/** Platform-specific steps for getting the app onto the home screen. */
+function InstallSteps({ platform }: { platform: InstallPlatform }) {
+  if (platform === "ios") {
+    return (
+      <>
+        <li>
+          Tap the <strong>Share</strong> button in Safari's toolbar
+        </li>
+        <li>
+          Choose <strong>Add to Home Screen</strong>
+        </li>
+        <li>Open Jim from your home screen</li>
+      </>
+    );
+  }
+
+  if (platform === "android") {
+    return (
+      <>
+        <li>
+          Tap the <strong>⋮ menu</strong> in Chrome's toolbar
+        </li>
+        <li>
+          Choose <strong>Install app</strong> (or <strong>Add to Home screen</strong>)
+        </li>
+        <li>Open Jim from your home screen</li>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <li>
+        Open this page in <strong>Safari</strong> (iPhone/iPad) or <strong>Chrome</strong> (Android)
+      </li>
+      <li>Use that browser's menu to add Jim to your home screen</li>
+      <li>Open Jim from your home screen</li>
+    </>
+  );
+}
 
 /**
  * Hard-gates the app on home-screen install (ADR-010): iOS evicts storage
@@ -12,10 +54,12 @@ type InstallState = "checking" | "installed" | "not-installed";
  */
 export function InstallGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<InstallState>("checking");
+  const [platform, setPlatform] = useState<InstallPlatform>("other");
 
   useEffect(() => {
     const update = () => setState(isStandalone() ? "installed" : "not-installed");
     update();
+    setPlatform(detectInstallPlatform(window.navigator.userAgent));
 
     const query = window.matchMedia(STANDALONE_MEDIA_QUERY);
     query.addEventListener("change", update);
@@ -33,13 +77,7 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
           being cleared after a week away.
         </p>
         <ol className="max-w-xs list-decimal space-y-1 pl-5 text-left text-sm text-zinc-600 dark:text-zinc-400">
-          <li>
-            Tap the <strong>Share</strong> button in Safari's toolbar
-          </li>
-          <li>
-            Choose <strong>Add to Home Screen</strong>
-          </li>
-          <li>Open Jim from your home screen</li>
+          <InstallSteps platform={platform} />
         </ol>
       </div>
     );
