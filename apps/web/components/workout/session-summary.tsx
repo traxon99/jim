@@ -1,11 +1,13 @@
 "use client";
 
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
+import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface Props {
   session: SessionRow;
@@ -19,6 +21,7 @@ interface Props {
  */
 export function SessionSummary({ session, sessionExercises }: Props) {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const [shareState, setShareState] = useState<"idle" | "copied">("idle");
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
 
   const rawSets = useLiveQuery(
@@ -29,6 +32,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [sessionExerciseIds],
   );
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
+  const rawExercises = useLiveQuery(() => db.exercises.toArray(), []);
 
   const sets = useMemo(
     () => resolveCurrentRows(rawSets ?? []).filter((set) => !set.deletedAt),
@@ -56,6 +60,47 @@ export function SessionSummary({ session, sessionExercises }: Props) {
       ),
     [sets, session.startedAt, session.endedAt, prCount],
   );
+
+  const exerciseGroups = useMemo(
+    () =>
+      buildSessionDetailExercises(
+        session.id,
+        sessionExercises,
+        rawExercises ?? [],
+        rawSets ?? [],
+        rawPersonalRecords ?? [],
+      ),
+    [session.id, sessionExercises, rawExercises, rawSets, rawPersonalRecords],
+  );
+
+  const shareText = useMemo(
+    () =>
+      buildWorkoutShareText({
+        name: session.name,
+        startedAt: session.startedAt,
+        units: settings.units,
+        summary,
+        exercises: exerciseGroups,
+      }),
+    [session.name, session.startedAt, settings.units, summary, exerciseGroups],
+  );
+
+  async function handleShare() {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: session.name ?? "Workout", text: shareText });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        // fall through to the clipboard fallback below
+      }
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareText);
+      setShareState("copied");
+      setTimeout(() => setShareState("idle"), 2000);
+    }
+  }
 
   const minutes = Math.round(summary.durationSeconds / 60);
 
@@ -89,13 +134,23 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         </div>
       </dl>
 
-      <Link
-        href="/workout"
-        data-ripple
-        className="min-h-11 rounded-lg bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-      >
-        Back to workout
-      </Link>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={handleShare}
+          data-ripple
+          className="min-h-11 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+        >
+          {shareState === "copied" ? "Copied!" : "Share"}
+        </button>
+        <Link
+          href="/workout"
+          data-ripple
+          className="min-h-11 rounded-lg bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+        >
+          Back to workout
+        </Link>
+      </div>
     </main>
   );
 }
