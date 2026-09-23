@@ -6,11 +6,10 @@ import { useEffect, useState } from "react";
 
 /**
  * Covers the app until `useBootReady` reports everything's actually there —
- * the window "load" event plus every base tab prefetched
- * (components/prefetch-base-routes.tsx) — then crossfades into the app
- * (components/app-reveal.tsx uses the same signal). Server-rendered, so it's
- * already on screen for the very first paint rather than popping in after
- * hydration.
+ * the window "load" event plus any other registered boot tasks — then
+ * crossfades into the app (components/app-reveal.tsx uses the same signal).
+ * Server-rendered, so it's already on screen for the very first paint rather
+ * than popping in after hydration.
  */
 export function LoadingScreen() {
   const ready = useBootReady();

@@ -1,12 +1,6 @@
-import { WorkoutHome } from "@/components/workout/workout-home";
-import { createClient } from "@/lib/supabase/server";
-
-export default async function WorkoutPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims.sub;
-
-  if (!userId) return null; // proxy.ts already redirects unauthenticated requests to /login
-
-  return <WorkoutHome userId={userId} />;
+// Content lives in the layout (app/(shell)/layout.tsx) via TabbedShell, so
+// all five tabs mount once and stay alive across tab switches. This route
+// still needs a page.tsx to exist for Next.js to match /workout at all.
+export default function WorkoutPage() {
+  return null;
 }
