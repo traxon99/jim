@@ -13,7 +13,12 @@ import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
 import { SET_KINDS, type SetKind } from "@/lib/sessions/set-kinds";
 import { getDeviceId } from "@/lib/sync/engine";
-import { type PrCandidate, type PreviousSet, resolveCurrentRows } from "@jim/core";
+import {
+  type PrCandidate,
+  type PreviousSet,
+  prefillWeightForFirstSet,
+  resolveCurrentRows,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState } from "react";
 import { SetRow } from "./set-row";
@@ -117,6 +122,12 @@ export function SessionExerciseSection({
   const previous = previousByIndex.get(nextIndex);
   const lastSet = sets[sets.length - 1];
   const restSeconds = target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
+
+  useEffect(() => {
+    setWeight((current) =>
+      current === "" ? prefillWeightForFirstSet(nextIndex, previous) : current,
+    );
+  }, [nextIndex, previous]);
 
   async function logDraft() {
     const { set, prs } = await completeSet({
