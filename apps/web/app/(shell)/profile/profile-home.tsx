@@ -5,6 +5,7 @@ import { FeedbackSection } from "@/components/profile/feedback-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
+import { APP_VERSION } from "@/lib/version";
 import { SignOutButton } from "./sign-out-button";
 
 export function ProfileHome({ email }: { email?: string }) {
@@ -22,6 +23,7 @@ export function ProfileHome({ email }: { email?: string }) {
       <PushNotificationsSection />
       <FeedbackSection />
       <SignOutButton />
+      <p className="text-xs text-zinc-500 dark:text-zinc-500">Jim v{APP_VERSION}</p>
     </main>
   );
 }
