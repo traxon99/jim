@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Pick a font for the app in Profile > Appearance — Default, Serif, or Mono.";
+  "See how your PRs stack up against strength standards, plus suggested weights when logging a set — add your sex, birthdate and bodyweight in Profile to turn it on.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

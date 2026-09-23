@@ -2,7 +2,18 @@
 
 import { db } from "@/lib/db/schema";
 import { toPersonalRecordEntries } from "@/lib/history/pr-data";
-import { type PrKind, currentPersonalRecords } from "@jim/core";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
+import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
+import {
+  type PrKind,
+  type StrengthStandardTier,
+  currentPersonalRecords,
+  liftStandardThresholds,
+  nextTier,
+  standardLiftForSlug,
+  tierForOneRepMax,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -15,18 +26,32 @@ const PR_KIND_LABELS: Record<PrKind, string> = {
   reps_at_weight: "Most reps at a weight",
 };
 
+function nextTierHint(standard: {
+  tier: StrengthStandardTier | null;
+  thresholds: Record<StrengthStandardTier, number>;
+}): string {
+  const upcoming = nextTier(standard.tier);
+  if (!upcoming) return "Elite — the top published standard";
+  return `${STRENGTH_TIER_LABELS[upcoming]} standard: ${standard.thresholds[upcoming]}`;
+}
+
 export function PrList() {
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+
+  const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
   const current = useMemo(
     () => currentPersonalRecords(toPersonalRecordEntries(rawPersonalRecords ?? [])),
     [rawPersonalRecords],
   );
 
-  const exerciseNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const exercise of exercises ?? []) map.set(exercise.id, exercise.name);
+  const exerciseById = useMemo(() => {
+    const map = new Map<string, { name: string; slug: string }>();
+    for (const exercise of exercises ?? []) {
+      map.set(exercise.id, { name: exercise.name, slug: exercise.slug });
+    }
     return map;
   }, [exercises]);
 
@@ -41,13 +66,28 @@ export function PrList() {
       }
     }
     return [...groups.entries()]
-      .map(([exerciseId, records]) => ({
-        exerciseId,
-        name: exerciseNames.get(exerciseId) ?? "Unknown exercise",
-        records: records.sort((a, b) => a.kind.localeCompare(b.kind)),
-      }))
+      .map(([exerciseId, records]) => {
+        const exercise = exerciseById.get(exerciseId);
+        const standardLift = standardLiftForSlug(exercise?.slug);
+        const oneRepMax = records.find((r) => r.kind === "1rm")?.value ?? null;
+
+        const standard =
+          standardLift && strengthProfile && oneRepMax
+            ? {
+                tier: tierForOneRepMax(standardLift, oneRepMax, strengthProfile),
+                thresholds: liftStandardThresholds(standardLift, strengthProfile),
+              }
+            : null;
+
+        return {
+          exerciseId,
+          name: exercise?.name ?? "Unknown exercise",
+          records: records.sort((a, b) => a.kind.localeCompare(b.kind)),
+          standard,
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [current, exerciseNames]);
+  }, [current, exerciseById, strengthProfile]);
 
   if (rawPersonalRecords === undefined || exercises === undefined) {
     return (
@@ -78,12 +118,26 @@ export function PrList() {
         <div className="flex flex-col gap-5">
           {byExercise.map((group) => (
             <section key={group.exerciseId} className="flex flex-col gap-1">
-              <Link
-                href={`/exercises/${group.exerciseId}`}
-                className="text-base font-semibold underline-offset-4 hover:underline"
-              >
-                {group.name}
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/exercises/${group.exerciseId}`}
+                  className="text-base font-semibold underline-offset-4 hover:underline"
+                >
+                  {group.name}
+                </Link>
+                {group.standard?.tier && (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                    {STRENGTH_TIER_LABELS[group.standard.tier]}
+                  </span>
+                )}
+              </div>
+              {group.standard && (
+                <p className="allow-pwa-select text-xs text-zinc-500 dark:text-zinc-500">
+                  {group.standard.tier
+                    ? nextTierHint(group.standard)
+                    : `Beginner standard: ${group.standard.thresholds.beginner}`}
+                </p>
+              )}
               <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                 {group.records.map((record) => (
                   <li key={record.id} className="flex items-center justify-between py-2">

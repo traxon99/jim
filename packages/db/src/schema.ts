@@ -4,6 +4,7 @@ import {
   type PgColumn,
   bigint,
   boolean,
+  date,
   foreignKey,
   index,
   integer,
@@ -47,6 +48,10 @@ export const accentColorEnum = pgEnum("accent_color", [
 ]);
 
 export const fontFamilyEnum = pgEnum("font_family", ["sans", "serif", "mono"]);
+
+// Biological sex, used to select the correct strength-standards table (see
+// packages/core's strength-standards module) — not a broader identity field.
+export const sexEnum = pgEnum("sex", ["male", "female"]);
 
 // The controlled vocabulary this seed data ships with (see ADR-008). Sourced
 // from free-exercise-db, which already uses a small, consistent muscle list.
@@ -105,6 +110,17 @@ export const users = pgTable(
     accentColor: accentColorEnum("accent_color").notNull().default("zinc"),
     // The app's body typeface. "sans" keeps the original system sans-serif look.
     fontFamily: fontFamilyEnum("font_family").notNull().default("sans"),
+
+    // Profile fields feeding the strength-standards lookup (packages/core):
+    // sex and bodyweight select the standards table, age adjusts it. All
+    // nullable — the feature degrades to "no standard shown" without them,
+    // rather than forcing profile completion. `bodyweight` is a single
+    // current value in the user's `units`, distinct from the `body_measurements`
+    // time series (which nothing in the app reads or writes yet).
+    sex: sexEnum("sex"),
+    birthdate: date("birthdate"),
+    heightCm: numeric("height_cm", { precision: 5, scale: 1 }),
+    bodyweight: numeric("bodyweight", { precision: 6, scale: 2 }),
   },
   (table) => [
     pgPolicy("users_select_own", {

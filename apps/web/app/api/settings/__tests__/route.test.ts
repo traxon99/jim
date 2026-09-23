@@ -52,6 +52,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "system",
       accentColor: "zinc",
       fontFamily: "sans",
+      sex: null,
+      birthdate: null,
+      heightCm: null,
+      bodyweight: null,
     });
 
     const rows = await admin`SELECT id, email FROM public.users WHERE id = ${USER_A}`;
@@ -79,6 +83,21 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("rejects an invalid sex", async () => {
+    const response = await patch({ sex: "other" });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects a malformed birthdate", async () => {
+    const response = await patch({ birthdate: "not-a-date" });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects a non-positive height or bodyweight", async () => {
+    expect((await patch({ heightCm: -5 })).status).toBe(400);
+    expect((await patch({ bodyweight: 0 })).status).toBe(400);
+  });
+
   it("persists a valid patch and reflects it on the next read", async () => {
     const response = await patch({
       defaultBarWeight: 20,
@@ -87,6 +106,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "dark",
       accentColor: "blue",
       fontFamily: "serif",
+      sex: "female",
+      birthdate: "1990-06-15",
+      heightCm: 170,
+      bodyweight: 145,
     });
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -95,11 +118,31 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(body.colorScheme).toBe("dark");
     expect(body.accentColor).toBe("blue");
     expect(body.fontFamily).toBe("serif");
+    expect(body.sex).toBe("female");
+    expect(body.birthdate).toBe("1990-06-15");
+    expect(body.heightCm).toBe("170.0");
+    expect(body.bodyweight).toBe("145.00");
 
     const again = await (await GET()).json();
     expect(again.defaultRestSeconds).toBe(120);
     expect(again.colorScheme).toBe("dark");
     expect(again.accentColor).toBe("blue");
     expect(again.fontFamily).toBe("serif");
+    expect(again.sex).toBe("female");
+    expect(again.birthdate).toBe("1990-06-15");
+    expect(again.heightCm).toBe("170.0");
+    expect(again.bodyweight).toBe("145.00");
+  });
+
+  it("clears sex, birthdate, height and bodyweight when patched with null", async () => {
+    await patch({ sex: "female", birthdate: "1990-06-15", heightCm: 170, bodyweight: 145 });
+
+    const response = await patch({ sex: null, birthdate: null, heightCm: null, bodyweight: null });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.sex).toBeNull();
+    expect(body.birthdate).toBeNull();
+    expect(body.heightCm).toBeNull();
+    expect(body.bodyweight).toBeNull();
   });
 });

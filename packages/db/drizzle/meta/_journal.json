@@ -71,6 +71,13 @@
       "when": 1790194044586,
       "tag": "0009_add_font_family",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790195977599,
+      "tag": "0010_add_profile_strength_fields",
+      "breakpoints": true
     }
   ]
 }
