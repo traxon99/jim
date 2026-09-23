@@ -172,12 +172,11 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 
 ## S7 — History & analytics
 
-- Session list with summary stats, grouped by week
+- Calendar view of training history: browse by month, tap a day to see its sessions
 - Session detail: every exercise, every set, PRs achieved
 - Per-exercise history with an estimated-1RM-over-time chart
 - PR list across all movements
 - Weekly volume by muscle group
-- Calendar heatmap of training frequency
 
 **Acceptance criteria**
 - [ ] Every view and chart renders from IndexedDB with no network

@@ -5,4 +5,5 @@ export * from "./session-display-name";
 export * from "./estimated-one-rep-max-series";
 export * from "./volume-by-muscle";
 export * from "./training-calendar";
+export * from "./calendar-month";
 export * from "./personal-records-list";
