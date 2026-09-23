@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Personal Records now shows a strength-standard badge on every qualifying lift, even below Beginner.";
+  "The workout pace chart now starts collapsed — tap it to expand the full chart.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

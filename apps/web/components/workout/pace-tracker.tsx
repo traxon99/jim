@@ -1,6 +1,7 @@
 "use client";
 
 import { type PaceExercise, type PacePoint, type PaceStatus, computePace } from "@jim/core";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
 const WIDTH = 320;
@@ -110,6 +111,7 @@ export function PaceTracker({
 }) {
   const now = useNow(TICK_MS);
   const gradientId = useId();
+  const [expanded, setExpanded] = useState(false);
   const pace = computePace({ startedAt, now, exercises });
   if (!pace || pace.setsPlanned === 0) return null;
 
@@ -163,12 +165,20 @@ export function PaceTracker({
   const finishAt = new Date(startedAt.getTime() + projectedTotalSeconds * 1000);
   const finishLabel = finishAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
+  const summaryId = `${gradientId}-summary`;
+
   return (
     <section
       aria-label="Workout pace"
       className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800"
     >
-      <div className="flex items-start justify-between gap-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls={summaryId}
+        className="flex items-start justify-between gap-2 text-left"
+      >
         <div className="flex flex-col gap-1">
           <span
             className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${style.pill}`}
@@ -184,16 +194,28 @@ export function PaceTracker({
           <p className="text-xs text-zinc-600 dark:text-zinc-400">
             {paceMessage(pace.status, pace.overdue, pace.deltaSeconds)}
           </p>
+          {!expanded && (
+            <p className="tabular-nums text-xs text-zinc-500 dark:text-zinc-500">
+              {pace.setsDone}/{pace.setsPlanned} sets · {formatMinutes(elapsedSeconds)} in
+            </p>
+          )}
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            {pace.status === "done" ? "Wrapped at" : "Est. finish"}
-          </p>
-          <p className="font-mono text-sm font-semibold tabular-nums">{finishLabel}</p>
+        <div className="flex shrink-0 items-start gap-1.5">
+          <div className="text-right">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+              {pace.status === "done" ? "Wrapped at" : "Est. finish"}
+            </p>
+            <p className="font-mono text-sm font-semibold tabular-nums">{finishLabel}</p>
+          </div>
+          <ChevronDown
+            className={`mt-0.5 h-4 w-4 shrink-0 text-zinc-400 transition-transform dark:text-zinc-500 ${expanded ? "rotate-180" : ""}`}
+            strokeWidth={1.75}
+            aria-hidden="true"
+          />
         </div>
-      </div>
+      </button>
 
-      <div className={style.tone}>
+      <div id={summaryId} hidden={!expanded} className={style.tone}>
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="w-full"
