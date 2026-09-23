@@ -9,11 +9,17 @@ import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
-import { resolveCurrentRows, resolveFocusedExerciseIndex, uuidv7 } from "@jim/core";
+import {
+  type PaceExercise,
+  resolveCurrentRows,
+  resolveFocusedExerciseIndex,
+  uuidv7,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { PaceTracker } from "./pace-tracker";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
 import { SessionSummary } from "./session-summary";
@@ -77,10 +83,12 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     [idsKey],
   );
 
-  const loggedSetCountBySessionExerciseId = useMemo(() => {
-    const map = new Map<string, number>();
+  const setCompletedAtBySessionExerciseId = useMemo(() => {
+    const map = new Map<string, Date[]>();
     for (const set of resolveCurrentRows(rawSets ?? []).filter((s) => !s.deletedAt)) {
-      map.set(set.sessionExerciseId, (map.get(set.sessionExerciseId) ?? 0) + 1);
+      const times = map.get(set.sessionExerciseId) ?? [];
+      times.push(set.completedAt);
+      map.set(set.sessionExerciseId, times);
     }
     return map;
   }, [rawSets]);
@@ -88,10 +96,24 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const focusCandidates = useMemo(
     () =>
       sessionExercises.map((se) => ({
-        loggedSetCount: loggedSetCountBySessionExerciseId.get(se.id) ?? 0,
+        loggedSetCount: setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0,
         targetSetCount: targetByExerciseId.get(se.exerciseId)?.targetSets ?? null,
       })),
-    [sessionExercises, loggedSetCountBySessionExerciseId, targetByExerciseId],
+    [sessionExercises, setCompletedAtBySessionExerciseId, targetByExerciseId],
+  );
+
+  const defaultRestSeconds = Number(settings.defaultRestSeconds) || 90;
+  const paceExercises = useMemo<PaceExercise[]>(
+    () =>
+      sessionExercises.map((se) => {
+        const target = targetByExerciseId.get(se.exerciseId);
+        return {
+          targetSetCount: target?.targetSets ?? null,
+          restSeconds: target?.targetRestSeconds ?? defaultRestSeconds,
+          setCompletedAt: setCompletedAtBySessionExerciseId.get(se.id) ?? [],
+        };
+      }),
+    [sessionExercises, targetByExerciseId, setCompletedAtBySessionExerciseId, defaultRestSeconds],
   );
 
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
@@ -204,6 +226,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           Finish
         </button>
       </div>
+
+      <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
 
       {sessionExercises.length > 0 && (
         <div className="flex justify-end">

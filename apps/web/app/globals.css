@@ -221,6 +221,33 @@ body.pwa {
   }
 }
 
+/* The "you are here" marker on the workout pace chart
+   (components/workout/pace-tracker.tsx): a ring that ripples out from the
+   current-progress dot so the live end of the line reads at a glance. */
+.pace-now-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pace-now-ripple 2.4s ease-out infinite;
+}
+
+@keyframes pace-now-ripple {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pace-now-ring {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 /* Opt back in wherever there is something worth selecting: what the user
  * typed, and anything tagged .allow-pwa-select (errors, logged numbers). */
 body.pwa input,
