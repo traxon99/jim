@@ -22,6 +22,19 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
 }
 
 /**
+ * What the current deployed version's "app updated" notification says
+ * changed. Update this string alongside whatever shipped — it's the only
+ * place the notification's content lives.
+ */
+export const LATEST_RELEASE_NOTE =
+  "A plus-button for new routines, bigger tab bar icons, and a tidier notes field.";
+
+/** Builds the body text for the "app updated" notification. */
+export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
+  return releaseNote ? `What's new: ${releaseNote}` : "A new version is ready — reload to update.";
+}
+
+/**
  * Whether a freshly-installed service worker should raise an "app updated"
  * notification. `hadController` is false on the very first install (there's
  * no prior version to update *from* — see register-service-worker.tsx), so

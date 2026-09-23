@@ -1,6 +1,10 @@
 "use client";
 
-import { readPushNotificationsEnabled, shouldNotifyOfUpdate } from "@/lib/pwa/notifications";
+import {
+  readPushNotificationsEnabled,
+  shouldNotifyOfUpdate,
+  updateNotificationBody,
+} from "@/lib/pwa/notifications";
 import { useEffect } from "react";
 
 /**
@@ -38,7 +42,7 @@ export function RegisterServiceWorker() {
               return;
             }
             void registration.showNotification("Jim updated", {
-              body: "A new version is ready — reload to update.",
+              body: updateNotificationBody(),
               icon: "/icons/192",
             });
           });

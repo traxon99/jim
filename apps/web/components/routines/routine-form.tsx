@@ -24,6 +24,7 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
   const [name, setName] = useState("");
   const [folder, setFolder] = useState("");
   const [notes, setNotes] = useState("");
+  const [notesOpen, setNotesOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Populate the form once the existing row loads (edit mode).
@@ -32,6 +33,7 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
     setName(existing.name);
     setFolder(existing.folder ?? "");
     setNotes(existing.notes ?? "");
+    setNotesOpen(Boolean(existing.notes));
   }, [existing]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -109,15 +111,26 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Notes
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            rows={3}
-            className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
+        {notesOpen ? (
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Notes
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={3}
+              className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            />
+          </label>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setNotesOpen(true)}
+            data-ripple
+            className="self-start rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+          >
+            Add notes
+          </button>
+        )}
 
         <button
           type="submit"
