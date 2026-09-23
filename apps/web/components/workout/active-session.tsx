@@ -16,9 +16,11 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Focus, LayoutList } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { FocusView, type FocusViewExercise } from "./focus-view";
 import { PaceTracker } from "./pace-tracker";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
@@ -94,13 +96,15 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     return map;
   }, [rawSets]);
 
-  const focusCandidates = useMemo(
+  const focusCandidates = useMemo<FocusViewExercise[]>(
     () =>
       sessionExercises.map((se) => ({
+        id: se.id,
+        name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
         loggedSetCount: setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0,
         targetSetCount: targetByExerciseId.get(se.exerciseId)?.targetSets ?? null,
       })),
-    [sessionExercises, setCompletedAtBySessionExerciseId, targetByExerciseId],
+    [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
   );
 
   const defaultRestSeconds = Number(settings.defaultRestSeconds) || 90;
@@ -120,9 +124,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
   const focusedItem = sessionExercises[clampedFocusedIndex];
 
-  function handleToggleFocusMode() {
-    if (!focusMode) setFocusedIndex(resolveFocusedExerciseIndex(focusCandidates));
-    setFocusMode((prev) => !prev);
+  function handleSetFocusMode(next: boolean) {
+    if (next && !focusMode) setFocusedIndex(resolveFocusedExerciseIndex(focusCandidates));
+    setFocusMode(next);
   }
 
   const currentNotes = notes ?? session?.notes ?? "";
@@ -259,40 +263,42 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
 
       {sessionExercises.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleToggleFocusMode}
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium dark:border-zinc-700"
-          >
-            {focusMode ? "Show all exercises" : "Focus on current exercise"}
-          </button>
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+          {(
+            [
+              { value: false, label: "All exercises", Icon: LayoutList },
+              { value: true, label: "Focus", Icon: Focus },
+            ] as const
+          ).map(({ value, label, Icon }) => {
+            const selected = focusMode === value;
+            return (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => handleSetFocusMode(value)}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
+                  selected
+                    ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
+                    : "text-zinc-500 dark:text-zinc-400"
+                }`}
+              >
+                <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                {label}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {focusMode && focusedItem ? (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setFocusedIndex((i) => Math.max(0, i - 1))}
-              disabled={clampedFocusedIndex === 0}
-              className="min-h-12 rounded-lg border border-zinc-300 px-4 text-base font-medium disabled:opacity-40 dark:border-zinc-700"
-            >
-              ← Previous
-            </button>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-500">
-              Exercise {clampedFocusedIndex + 1} of {sessionExercises.length}
-            </p>
-            <button
-              type="button"
-              onClick={() => setFocusedIndex((i) => Math.min(sessionExercises.length - 1, i + 1))}
-              disabled={clampedFocusedIndex === sessionExercises.length - 1}
-              className="min-h-12 rounded-lg bg-zinc-950 px-4 text-base font-medium text-zinc-50 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-950"
-            >
-              Next exercise →
-            </button>
-          </div>
+        <FocusView
+          exercises={focusCandidates}
+          index={clampedFocusedIndex}
+          onIndexChange={(i) =>
+            setFocusedIndex(Math.min(Math.max(0, i), sessionExercises.length - 1))
+          }
+        >
           <SessionExerciseSection
             key={focusedItem.id}
             sessionId={id}
@@ -305,7 +311,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
             onRemove={() => void handleRemoveExercise(focusedItem.id)}
           />
-        </div>
+        </FocusView>
       ) : (
         <div className="flex flex-col gap-3">
           {sessionExercises.map((item) => (

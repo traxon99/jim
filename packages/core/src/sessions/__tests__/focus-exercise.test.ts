@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveFocusedExerciseIndex } from "../focus-exercise";
+import { isFocusExerciseComplete, resolveFocusedExerciseIndex } from "../focus-exercise";
 
 describe("resolveFocusedExerciseIndex", () => {
   it("lands on 0 when there are no exercises", () => {
@@ -30,5 +30,18 @@ describe("resolveFocusedExerciseIndex", () => {
       { loggedSetCount: 6, targetSetCount: 5 },
     ];
     expect(resolveFocusedExerciseIndex(candidates)).toBe(1);
+  });
+});
+
+describe("isFocusExerciseComplete", () => {
+  it("needs one logged set when there's no target", () => {
+    expect(isFocusExerciseComplete({ loggedSetCount: 0, targetSetCount: null })).toBe(false);
+    expect(isFocusExerciseComplete({ loggedSetCount: 1, targetSetCount: null })).toBe(true);
+  });
+
+  it("needs the target set count when one is set", () => {
+    expect(isFocusExerciseComplete({ loggedSetCount: 2, targetSetCount: 3 })).toBe(false);
+    expect(isFocusExerciseComplete({ loggedSetCount: 3, targetSetCount: 3 })).toBe(true);
+    expect(isFocusExerciseComplete({ loggedSetCount: 4, targetSetCount: 3 })).toBe(true);
   });
 });
