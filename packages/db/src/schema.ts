@@ -1,6 +1,7 @@
 import { MUSCLES } from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   type PgColumn,
   bigint,
   boolean,
@@ -71,6 +72,16 @@ export const trackingTypeEnum = pgEnum("tracking_type", [
   "bodyweight",
   "weighted_bodyweight",
 ]);
+
+// Warm-ups/stretches (issue #59) are exercises like any other, but live in
+// their own category: they're logged for reps or time, tracked for how often
+// they're done rather than for PRs/volume, and grouped at the start of a
+// workout.
+export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "warmup"]);
+
+// A "warmup" routine is a reusable warm-up block (e.g. "Leg warm-up") that a
+// strength routine can link to as its warm-up (routines.warmup_routine_id).
+export const routineKindEnum = pgEnum("routine_kind", ["strength", "warmup"]);
 
 export const setKindEnum = pgEnum("set_kind", ["warmup", "working", "drop", "failure"]);
 
@@ -166,6 +177,7 @@ export const exercises = pgTable(
     force: forceEnum("force"),
     level: levelEnum("level"),
     trackingType: trackingTypeEnum("tracking_type").notNull(),
+    category: exerciseCategoryEnum("category").notNull().default("strength"),
     instructions: text("instructions").array().notNull().default(sql`ARRAY[]::text[]`),
     imageUrls: text("image_urls").array().notNull().default(sql`ARRAY[]::text[]`),
     isArchived: boolean("is_archived").notNull().default(false),
@@ -225,6 +237,14 @@ export const routines = pgTable(
     notes: text("notes"),
     position: integer("position").notNull().default(0),
     folder: text("folder"),
+    kind: routineKindEnum("kind").notNull().default("strength"),
+    // A strength routine's linked warm-up routine, whose exercises are
+    // prepended (grouped as the warm-up) when a session starts from it.
+    warmupRoutineId: uuid("warmup_routine_id").references((): AnyPgColumn => routines.id, {
+      onDelete: "set null",
+    }),
+    // Target length of the timed warm-up block at the start of a workout.
+    warmupMinutes: integer("warmup_minutes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S3): last-write-wins tie-broken on (updatedAt, deviceId)
     // per ADR-003; deletedAt is a tombstone rather than a real DELETE, so a
@@ -261,6 +281,8 @@ export const routineExercises = pgTable(
     targetRepsLow: integer("target_reps_low"),
     targetRepsHigh: integer("target_reps_high"),
     targetRestSeconds: integer("target_rest_seconds"),
+    // Hold/duration target for time-tracked exercises (e.g. a 30s stretch).
+    targetDurationSeconds: integer("target_duration_seconds"),
     // Progressive overload (S9): targetWeight is the baseline working weight;
     // progressionIncrement, when set, is added once per full week elapsed
     // since progressionStartedAt (packages/core's progression module does the

@@ -59,4 +59,19 @@ describe("filterExercises", () => {
     ];
     expect(filterExercises(catalog, { muscle: "chest", equipment: "barbell" })).toHaveLength(1);
   });
+
+  it("filters by category, treating rows with no category as strength", () => {
+    const catalog = [
+      exercise({ name: "Squat" }),
+      exercise({ name: "Pigeon Stretch", category: "warmup" }),
+      exercise({ name: "Deadlift", category: "strength" }),
+    ];
+    expect(filterExercises(catalog, { category: "warmup" }).map((e) => e.name)).toEqual([
+      "Pigeon Stretch",
+    ]);
+    expect(filterExercises(catalog, { category: "strength" }).map((e) => e.name)).toEqual([
+      "Squat",
+      "Deadlift",
+    ]);
+  });
 });

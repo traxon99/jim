@@ -48,6 +48,7 @@ function bench(overrides: Partial<ExerciseRow> = {}): ExerciseRow {
     force: "push",
     level: "intermediate",
     trackingType: "weight_reps",
+    category: "strength",
     instructions: [],
     imageUrls: [],
     isArchived: false,

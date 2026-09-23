@@ -53,9 +53,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
     setStarting(true);
     const items = await db.routineExercises.where("routineId").equals(routineId).toArray();
     const live = items.filter((item) => !item.deletedAt);
+    const routine = await db.routines.get(routineId);
     const sessionId = await startSessionFromRoutine(
       userId,
-      { id: routineId, name: routineName },
+      { id: routineId, name: routineName, warmupRoutineId: routine?.warmupRoutineId },
       live,
     );
     router.push(`/workout/${sessionId}`);

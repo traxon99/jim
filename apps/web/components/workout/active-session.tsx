@@ -11,6 +11,8 @@ import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
 import {
   type PaceExercise,
+  isWarmupExercise,
+  partitionWarmups,
   resolveCurrentRows,
   resolveFocusedExerciseIndex,
   uuidv7,
@@ -24,6 +26,8 @@ import { PaceTracker } from "./pace-tracker";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
 import { SessionSummary } from "./session-summary";
+import { WarmupBlock } from "./warmup-block";
+import { WarmupExerciseSection } from "./warmup-exercise-section";
 
 export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
@@ -40,32 +44,51 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     [id],
   );
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
-  const rawRoutineExercises = useLiveQuery(
-    () =>
-      session?.routineId
-        ? db.routineExercises.where("routineId").equals(session.routineId).toArray()
-        : Promise.resolve<RoutineExerciseRow[]>([]),
+  const routine = useLiveQuery(
+    async () => (session?.routineId ? await db.routines.get(session.routineId) : undefined),
     [session?.routineId],
   );
+  const warmupRoutineId = routine?.warmupRoutineId ?? null;
+  const warmupRoutine = useLiveQuery(
+    async () => (warmupRoutineId ? await db.routines.get(warmupRoutineId) : undefined),
+    [warmupRoutineId],
+  );
+  // The linked warm-up routine's items come first so the session routine's
+  // own entry for the same exercise (if any) wins as the target below.
+  const rawRoutineExercises = useLiveQuery(async () => {
+    const routineIds = [warmupRoutineId, session?.routineId].filter(
+      (routineId): routineId is string => Boolean(routineId),
+    );
+    if (routineIds.length === 0) return [] as RoutineExerciseRow[];
+    const rows = await db.routineExercises.where("routineId").anyOf(routineIds).toArray();
+    return rows.sort((a, b) => routineIds.indexOf(a.routineId) - routineIds.indexOf(b.routineId));
+  }, [session?.routineId, warmupRoutineId]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
 
   const restTimer = useRestTimer(id);
   const isActive = session != null && !session.endedAt && !session.deletedAt;
   useWakeLock(isActive);
 
-  const sessionExercises = useMemo(
-    () =>
-      (rawSessionExercises ?? [])
-        .filter((se) => !se.deletedAt)
-        .sort((a, b) => a.position - b.position),
-    [rawSessionExercises],
-  );
-
   const exerciseById = useMemo(() => {
     const map = new Map<string, ExerciseRow>();
     for (const exercise of exercises ?? []) map.set(exercise.id, exercise);
     return map;
   }, [exercises]);
+
+  // Warm-ups (issue #59) always display as one block at the top, even one
+  // added mid-workout — so the display order is warm-ups, then the rest.
+  const { warmupItems, mainItems } = useMemo(() => {
+    const live = (rawSessionExercises ?? [])
+      .filter((se) => !se.deletedAt)
+      .sort((a, b) => a.position - b.position);
+    const { warmups, main } = partitionWarmups(live, (exerciseId) => {
+      const exercise = exerciseById.get(exerciseId);
+      return exercise != null && isWarmupExercise(exercise);
+    });
+    return { warmupItems: warmups, mainItems: main };
+  }, [rawSessionExercises, exerciseById]);
+  const sessionExercises = useMemo(() => [...warmupItems, ...mainItems], [warmupItems, mainItems]);
+  const warmupTargetMinutes = routine?.warmupMinutes ?? warmupRoutine?.warmupMinutes ?? null;
 
   const targetByExerciseId = useMemo(() => {
     const map = new Map<string, RoutineExerciseRow>();
@@ -106,10 +129,22 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
   );
 
+  // When the main workout started: its first logged set ends the warm-up timer.
+  const mainStartedAt = useMemo(() => {
+    let earliest: Date | null = null;
+    for (const se of mainItems) {
+      for (const at of setCompletedAtBySessionExerciseId.get(se.id) ?? []) {
+        if (!earliest || at < earliest) earliest = at;
+      }
+    }
+    return earliest;
+  }, [mainItems, setCompletedAtBySessionExerciseId]);
+
   const defaultRestSeconds = Number(settings.defaultRestSeconds) || 90;
+  // Pace is about the lifting — warm-ups have their own timer.
   const paceExercises = useMemo<PaceExercise[]>(
     () =>
-      sessionExercises.map((se) => {
+      mainItems.map((se) => {
         const target = targetByExerciseId.get(se.exerciseId);
         return {
           targetSetCount: target?.targetSets ?? null,
@@ -117,7 +152,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           setCompletedAt: setCompletedAtBySessionExerciseId.get(se.id) ?? [],
         };
       }),
-    [sessionExercises, targetByExerciseId, setCompletedAtBySessionExerciseId, defaultRestSeconds],
+    [mainItems, targetByExerciseId, setCompletedAtBySessionExerciseId, defaultRestSeconds],
   );
 
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
@@ -220,6 +255,38 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   const excludeExerciseIds = new Set(sessionExercises.map((se) => se.exerciseId));
 
+  function renderExercise(item: (typeof sessionExercises)[number], large = false) {
+    const exercise = exerciseById.get(item.exerciseId);
+    const target = targetByExerciseId.get(item.exerciseId);
+    if (exercise && isWarmupExercise(exercise)) {
+      return (
+        <WarmupExerciseSection
+          key={item.id}
+          userId={userId}
+          item={item}
+          exercise={exercise}
+          target={target}
+          large={large}
+          onRemove={() => void handleRemoveExercise(item.id)}
+        />
+      );
+    }
+    return (
+      <SessionExerciseSection
+        key={item.id}
+        sessionId={id}
+        userId={userId}
+        item={item}
+        exercise={exercise}
+        target={target}
+        settings={settings}
+        large={large}
+        onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
+        onRemove={() => void handleRemoveExercise(item.id)}
+      />
+    );
+  }
+
   return (
     <main
       className="flex flex-1 flex-col gap-4 px-4 py-4"
@@ -292,34 +359,20 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             setFocusedIndex(Math.min(Math.max(0, i), sessionExercises.length - 1))
           }
         >
-          <SessionExerciseSection
-            key={focusedItem.id}
-            sessionId={id}
-            userId={userId}
-            item={focusedItem}
-            exercise={exerciseById.get(focusedItem.exerciseId)}
-            target={targetByExerciseId.get(focusedItem.exerciseId)}
-            settings={settings}
-            large
-            onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
-            onRemove={() => void handleRemoveExercise(focusedItem.id)}
-          />
+          {renderExercise(focusedItem, true)}
         </FocusView>
       ) : (
         <div className="flex flex-col gap-3">
-          {sessionExercises.map((item) => (
-            <SessionExerciseSection
-              key={item.id}
-              sessionId={id}
-              userId={userId}
-              item={item}
-              exercise={exerciseById.get(item.exerciseId)}
-              target={targetByExerciseId.get(item.exerciseId)}
-              settings={settings}
-              onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
-              onRemove={() => void handleRemoveExercise(item.id)}
-            />
-          ))}
+          {warmupItems.length > 0 && (
+            <WarmupBlock
+              startedAt={session.startedAt}
+              targetMinutes={warmupTargetMinutes}
+              endedAt={mainStartedAt}
+            >
+              {warmupItems.map((item) => renderExercise(item))}
+            </WarmupBlock>
+          )}
+          {mainItems.map((item) => renderExercise(item))}
         </div>
       )}
 

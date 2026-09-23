@@ -8,3 +8,4 @@ export * from "./sessions";
 export * from "./strength-standards";
 export * from "./sync";
 export * from "./uuid";
+export * from "./warmups";

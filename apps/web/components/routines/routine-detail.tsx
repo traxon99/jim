@@ -7,9 +7,15 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { duplicateRoutine, reorderRoutineExercises, uuidv7 } from "@jim/core";
+import {
+  duplicateRoutine,
+  isWarmupExercise,
+  isWarmupRoutine,
+  reorderRoutineExercises,
+  uuidv7,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil } from "lucide-react";
+import { Flame, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -26,6 +32,17 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   );
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const warmupRoutineId = routine?.warmupRoutineId ?? null;
+  const linkedWarmup = useLiveQuery(async () => {
+    if (!warmupRoutineId) return null;
+    const warmup = await db.routines.get(warmupRoutineId);
+    if (!warmup || warmup.deletedAt) return null;
+    const warmupItems = await db.routineExercises
+      .where("routineId")
+      .equals(warmupRoutineId)
+      .toArray();
+    return { routine: warmup, count: warmupItems.filter((item) => !item.deletedAt).length };
+  }, [warmupRoutineId]);
 
   const items = useMemo(() => {
     return (rawItems ?? [])
@@ -34,9 +51,20 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   }, [rawItems]);
 
   const exercisesById = useMemo(() => {
-    const map = new Map<string, { name: string; mechanic: "compound" | "isolation" | null }>();
+    const map = new Map<
+      string,
+      {
+        name: string;
+        mechanic: "compound" | "isolation" | null;
+        warmup: { timed: boolean } | null;
+      }
+    >();
     for (const exercise of exercises ?? []) {
-      map.set(exercise.id, { name: exercise.name, mechanic: exercise.mechanic });
+      map.set(exercise.id, {
+        name: exercise.name,
+        mechanic: exercise.mechanic,
+        warmup: isWarmupExercise(exercise) ? { timed: exercise.trackingType === "time" } : null,
+      });
     }
     return map;
   }, [exercises]);
@@ -77,6 +105,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       targetRepsLow: null,
       targetRepsHigh: null,
       targetRestSeconds: null,
+      targetDurationSeconds: null,
       targetWeight: null,
       progressionIncrement: null,
       progressionStartedAt: null,
@@ -156,14 +185,24 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   }
 
   const excludeExerciseIds = new Set(items.map((item) => item.exerciseId));
+  const isWarmupKind = isWarmupRoutine(routine);
+  const warmupMinutes = routine.warmupMinutes ?? linkedWarmup?.routine.warmupMinutes ?? null;
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold">{routine.name}</h1>
-          {routine.folder && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-500">{routine.folder}</p>
+          {(isWarmupKind || routine.folder) && (
+            <p className="text-xs text-zinc-500 dark:text-zinc-500">
+              {[
+                isWarmupKind ? "Warm-up routine" : null,
+                isWarmupKind && warmupMinutes != null ? `${warmupMinutes} min` : null,
+                routine.folder,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           )}
           {routine.notes && (
             <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{routine.notes}</p>
@@ -178,6 +217,38 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         </Link>
       </div>
 
+      {!isWarmupKind && (linkedWarmup || warmupMinutes != null) && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-orange-200 bg-orange-50/50 px-3 py-2 dark:border-orange-900/60 dark:bg-orange-950/20">
+          <span className="flex min-w-0 items-center gap-2 text-sm">
+            <Flame
+              className="h-4 w-4 shrink-0 text-orange-600 dark:text-orange-400"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span className="min-w-0">
+              <span className="font-medium">Warm-up</span>
+              {linkedWarmup && (
+                <>
+                  {": "}
+                  <Link
+                    href={`/routines/${linkedWarmup.routine.id}`}
+                    className="underline underline-offset-4"
+                  >
+                    {linkedWarmup.routine.name}
+                  </Link>
+                  {` · ${linkedWarmup.count} exercise${linkedWarmup.count === 1 ? "" : "s"}`}
+                </>
+              )}
+            </span>
+          </span>
+          {warmupMinutes != null && (
+            <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+              {warmupMinutes} min
+            </span>
+          )}
+        </div>
+      )}
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <SortableContext
           items={items.map((item) => item.id)}
@@ -190,6 +261,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                 item={item}
                 exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                 exerciseMechanic={exercisesById.get(item.exerciseId)?.mechanic ?? null}
+                warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                 units={settings.units}
                 onUpdate={(patch) => handleUpdateItem(item, patch)}
                 onRemove={() => handleRemoveItem(item)}
@@ -234,6 +306,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         <ExercisePicker
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
+          initialCategory={isWarmupKind ? "warmup" : "all"}
           onPick={(exerciseId) => handleAddExercise(exerciseId)}
           onClose={() => setPickerOpen(false)}
         />

@@ -154,6 +154,107 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.name).toBe("From device B (newer)");
   });
 
+  it("applies warm-up routines, the link to them, and hold-time targets (issue #59)", async () => {
+    const warmupId = uuidv7();
+    const legDayId = uuidv7();
+    const itemId = uuidv7();
+    const now = new Date("2026-02-01T00:00:00Z").toISOString();
+    const routineEntity = {
+      notes: null,
+      position: 0,
+      folder: null,
+      updatedAt: now,
+      deviceId: "device-a",
+      deletedAt: null,
+    };
+
+    const response = await push([
+      {
+        id: uuidv7(),
+        table: "routines",
+        entity: {
+          ...routineEntity,
+          id: warmupId,
+          name: "Leg warm-up",
+          kind: "warmup",
+          warmupRoutineId: null,
+          warmupMinutes: 10,
+        },
+      },
+      {
+        id: uuidv7(),
+        table: "routineExercises",
+        entity: {
+          id: itemId,
+          routineId: warmupId,
+          exerciseId,
+          position: 0,
+          targetSets: 2,
+          targetDurationSeconds: 30,
+          updatedAt: now,
+          deviceId: "device-a",
+          deletedAt: null,
+        },
+      },
+      {
+        id: uuidv7(),
+        table: "routines",
+        entity: {
+          ...routineEntity,
+          id: legDayId,
+          name: "Leg day",
+          kind: "strength",
+          warmupRoutineId: warmupId,
+          warmupMinutes: null,
+        },
+      },
+    ]);
+    const body = await response.json();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+    ]);
+
+    const rows = await admin<
+      {
+        id: string;
+        kind: string;
+        warmup_routine_id: string | null;
+        warmup_minutes: number | null;
+      }[]
+    >`SELECT id, kind, warmup_routine_id, warmup_minutes FROM routines WHERE id IN (${warmupId}, ${legDayId})`;
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    expect(byId.get(warmupId)).toMatchObject({ kind: "warmup", warmup_minutes: 10 });
+    expect(byId.get(legDayId)).toMatchObject({ kind: "strength", warmup_routine_id: warmupId });
+
+    const [item] = await admin<{ target_duration_seconds: number }[]>`
+      SELECT target_duration_seconds FROM routine_exercises WHERE id = ${itemId}
+    `;
+    expect(item?.target_duration_seconds).toBe(30);
+
+    // Unlinking the warm-up is an ordinary LWW edit.
+    await push([
+      {
+        id: uuidv7(),
+        table: "routines",
+        entity: {
+          ...routineEntity,
+          id: legDayId,
+          name: "Leg day",
+          kind: "strength",
+          warmupRoutineId: null,
+          warmupMinutes: null,
+          updatedAt: new Date("2026-02-02T00:00:00Z").toISOString(),
+        },
+      },
+    ]);
+    const [unlinked] = await admin<{ warmup_routine_id: string | null }[]>`
+      SELECT warmup_routine_id FROM routines WHERE id = ${legDayId}
+    `;
+    expect(unlinked?.warmup_routine_id).toBeNull();
+  });
+
   it("logs a full workout (session + session_exercise + set) in one batch", async () => {
     const sessionId = uuidv7();
     const sessionExerciseId = uuidv7();

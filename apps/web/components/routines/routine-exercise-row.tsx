@@ -11,6 +11,8 @@ interface Props {
   item: RoutineExerciseRowEntity;
   exerciseName: string;
   exerciseMechanic: ProgressionMechanic;
+  /** Warm-ups (issue #59) only take sets plus reps or a hold time. */
+  warmup?: { timed: boolean } | null;
   units: "lb" | "kg";
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
   onRemove: () => void;
@@ -39,6 +41,7 @@ export function RoutineExerciseRow({
   item,
   exerciseName,
   exerciseMechanic,
+  warmup = null,
   units,
   onUpdate,
   onRemove,
@@ -50,6 +53,9 @@ export function RoutineExerciseRow({
   const [targetSets, setTargetSets] = useState(item.targetSets?.toString() ?? "");
   const [repsLow, setRepsLow] = useState(item.targetRepsLow?.toString() ?? "");
   const [repsHigh, setRepsHigh] = useState(item.targetRepsHigh?.toString() ?? "");
+  const [durationSeconds, setDurationSeconds] = useState(
+    item.targetDurationSeconds?.toString() ?? "",
+  );
   const [restSeconds, setRestSeconds] = useState(item.targetRestSeconds?.toString() ?? "");
   const [targetWeight, setTargetWeight] = useState(formatNumericField(item.targetWeight));
   const [progressionEnabled, setProgressionEnabled] = useState(item.progressionIncrement != null);
@@ -107,7 +113,14 @@ export function RoutineExerciseRow({
           >
             ⠿
           </button>
-          <span className="pt-2 text-base font-medium">{exerciseName}</span>
+          <span className="flex flex-col pt-2">
+            <span className="text-base font-medium">{exerciseName}</span>
+            {warmup && (
+              <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
+                Warm-up
+              </span>
+            )}
+          </span>
         </div>
         <button
           type="button"
@@ -132,81 +145,118 @@ export function RoutineExerciseRow({
             className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Reps low
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={repsLow}
-            onChange={(event) => setRepsLow(event.target.value)}
-            onBlur={() => onUpdate({ targetRepsLow: toNumberOrNull(repsLow) })}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Reps high
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={repsHigh}
-            onChange={(event) => setRepsHigh(event.target.value)}
-            onBlur={() => onUpdate({ targetRepsHigh: toNumberOrNull(repsHigh) })}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Rest (s)
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={restSeconds}
-            onChange={(event) => setRestSeconds(event.target.value)}
-            onBlur={() => onUpdate({ targetRestSeconds: toNumberOrNull(restSeconds) })}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Weight ({units})
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            value={targetWeight}
-            onChange={(event) => setTargetWeight(event.target.value)}
-            onBlur={commitTargetWeight}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 pl-10">
-        <label className="flex items-center gap-1.5 text-xs font-medium">
-          <input
-            type="checkbox"
-            checked={progressionEnabled}
-            onChange={(event) => toggleProgression(event.target.checked)}
-            className="h-4 w-4"
-          />
-          Auto-increase weekly
-        </label>
-        {progressionEnabled && (
-          <label className="flex items-center gap-1 text-xs font-medium">
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              value={increment}
-              onChange={(event) => setIncrement(event.target.value)}
-              onBlur={commitIncrement}
-              className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-            />
-            {units}/week
-          </label>
+        {warmup ? (
+          warmup.timed ? (
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Hold (s)
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={durationSeconds}
+                onChange={(event) => setDurationSeconds(event.target.value)}
+                onBlur={() => onUpdate({ targetDurationSeconds: toNumberOrNull(durationSeconds) })}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+          ) : (
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Reps
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={repsLow}
+                onChange={(event) => setRepsLow(event.target.value)}
+                onBlur={() => {
+                  const reps = toNumberOrNull(repsLow);
+                  onUpdate({ targetRepsLow: reps, targetRepsHigh: reps });
+                }}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+          )
+        ) : (
+          <>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Reps low
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={repsLow}
+                onChange={(event) => setRepsLow(event.target.value)}
+                onBlur={() => onUpdate({ targetRepsLow: toNumberOrNull(repsLow) })}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Reps high
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={repsHigh}
+                onChange={(event) => setRepsHigh(event.target.value)}
+                onBlur={() => onUpdate({ targetRepsHigh: toNumberOrNull(repsHigh) })}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Rest (s)
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={restSeconds}
+                onChange={(event) => setRestSeconds(event.target.value)}
+                onBlur={() => onUpdate({ targetRestSeconds: toNumberOrNull(restSeconds) })}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Weight ({units})
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={targetWeight}
+                onChange={(event) => setTargetWeight(event.target.value)}
+                onBlur={commitTargetWeight}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+          </>
         )}
       </div>
+
+      {!warmup && (
+        <div className="flex flex-wrap items-center gap-2 pl-10">
+          <label className="flex items-center gap-1.5 text-xs font-medium">
+            <input
+              type="checkbox"
+              checked={progressionEnabled}
+              onChange={(event) => toggleProgression(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Auto-increase weekly
+          </label>
+          {progressionEnabled && (
+            <label className="flex items-center gap-1 text-xs font-medium">
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={increment}
+                onChange={(event) => setIncrement(event.target.value)}
+                onBlur={commitIncrement}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+              {units}/week
+            </label>
+          )}
+        </div>
+      )}
 
       <label className="flex flex-col gap-1 pl-10 text-xs font-medium">
         Notes

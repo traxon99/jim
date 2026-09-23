@@ -5,6 +5,7 @@ import {
   type PrCandidate,
   computePriorBests,
   detectPersonalRecords,
+  isWarmupExercise,
   resolveCurrentRows,
   uuidv7,
 } from "@jim/core";
@@ -72,6 +73,8 @@ export interface CompleteSetInput {
   weight: number | null;
   reps: number | null;
   rpe?: number | null;
+  /** For time-tracked exercises, e.g. a held stretch (issue #59). */
+  durationSeconds?: number | null;
 }
 
 export interface CompleteSetResult {
@@ -79,7 +82,11 @@ export interface CompleteSetResult {
   prs: PrCandidate[];
 }
 
-/** Logs a brand-new set and checks it against this exercise's history for a PR, live (STORIES.md S6). */
+/**
+ * Logs a brand-new set and checks it against this exercise's history for a
+ * PR, live (STORIES.md S6). Warm-ups are tracked for frequency, not
+ * progress (issue #59), so they never produce PRs.
+ */
 export async function completeSet(
   input: CompleteSetInput,
   database: JimDatabase = db,
@@ -95,7 +102,7 @@ export async function completeSet(
     kind: input.kind,
     weight: input.weight == null ? null : String(input.weight),
     reps: input.reps,
-    durationSeconds: null,
+    durationSeconds: input.durationSeconds ?? null,
     distance: null,
     rpe: input.rpe == null ? null : String(input.rpe),
     rir: null,
@@ -105,6 +112,9 @@ export async function completeSet(
     serverSeq: 0,
   };
   await mutate("sets", set, database);
+
+  const exercise = await database.exercises.get(input.exerciseId);
+  if (exercise && isWarmupExercise(exercise)) return { set, prs: [] };
 
   const prs = await detectAndRecordPrs(
     database,
