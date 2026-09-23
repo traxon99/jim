@@ -3,6 +3,7 @@
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function ProfileForm() {
@@ -108,8 +109,9 @@ export function ProfileForm() {
         type="button"
         onClick={() => void handleSave()}
         disabled={status === "saving"}
-        className="min-h-11 rounded-lg bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+        className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-zinc-950 px-4 py-2 text-sm font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
       >
+        <Check className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
         {status === "saving" ? "Saving…" : "Save"}
       </button>
     </div>
