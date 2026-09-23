@@ -68,4 +68,11 @@ describe("CONTEXT_MENU_ALLOWED_SELECTOR", () => {
     expect(CONTEXT_MENU_ALLOWED_SELECTOR).toContain("textarea:not([disabled])");
     expect(CONTEXT_MENU_ALLOWED_SELECTOR).not.toContain("textarea,");
   });
+
+  it("excludes a [data-ripple] anchor, since that's a button, not a hyperlink", () => {
+    // components/bottom-tab-bar.tsx and other nav styled as a button use
+    // `<a href>` under the hood — [data-ripple] is how they're told apart
+    // from a real hyperlink here, so the callout stays suppressed on them.
+    expect(CONTEXT_MENU_ALLOWED_SELECTOR).toContain("a[href]:not([data-ripple])");
+  });
 });

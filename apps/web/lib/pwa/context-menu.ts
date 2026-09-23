@@ -2,13 +2,15 @@
  * Long-press targets that keep the browser's own context menu inside the
  * installed app: links and media (share, save), text entry (paste, autofill,
  * dictation), and anything explicitly marked selectable. Everything else is
- * app chrome, where "Open in New Tab" only breaks the illusion.
+ * app chrome, where "Open in New Tab" only breaks the illusion — including
+ * an `<a>` tagged `[data-ripple]` (components/ripple-effect.tsx), since that
+ * tag means the anchor is styled and used as a button, not a hyperlink.
  *
  * Matched with `closest()`, not `matches()` — a long press lands on whatever
  * span happens to be under the finger, not on the link wrapping it.
  */
 export const CONTEXT_MENU_ALLOWED_SELECTOR = [
-  "a[href]",
+  "a[href]:not([data-ripple])",
   "img",
   "video",
   "audio",
