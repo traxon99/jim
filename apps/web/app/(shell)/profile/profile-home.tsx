@@ -1,6 +1,7 @@
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
+import { FontFamilySection } from "@/components/profile/font-family-section";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
 import { SignOutButton } from "./sign-out-button";
@@ -15,6 +16,7 @@ export function ProfileHome({ email }: { email?: string }) {
       <ProfileForm />
       <ColorSchemeSection />
       <AccentColorSection />
+      <FontFamilySection />
       <PushNotificationsSection />
       <FeedbackSection />
       <SignOutButton />

@@ -10,4 +10,5 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   weekStart: 0,
   colorScheme: "system",
   accentColor: "zinc",
+  fontFamily: "sans",
 };
