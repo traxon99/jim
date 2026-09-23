@@ -14,7 +14,7 @@ export function ProfileForm() {
   const [barWeight, setBarWeight] = useState(settings.defaultBarWeight);
   const [plates, setPlates] = useState(settings.availablePlates.join(", "));
   const [restSeconds, setRestSeconds] = useState(settings.defaultRestSeconds.toString());
-  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
   // Only sync form state from the cache once it first loads — not on every
@@ -26,6 +26,14 @@ export function ProfileForm() {
     setPlates(cached.availablePlates.join(", "));
     setRestSeconds(cached.defaultRestSeconds.toString());
   }, [cached]);
+
+  // A successful save otherwise leaves no trace — see BodyStatsSection for why
+  // that reads as "did that actually do anything?" on this page.
+  useEffect(() => {
+    if (status !== "saved") return;
+    const id = setTimeout(() => setStatus("idle"), 2000);
+    return () => clearTimeout(id);
+  }, [status]);
 
   async function handleSave() {
     const parsedPlates = plates
@@ -50,7 +58,7 @@ export function ProfileForm() {
       defaultRestSeconds: Math.max(0, Math.round(parsedRestSeconds)),
     });
     if (result.ok) {
-      setStatus("idle");
+      setStatus("saved");
     } else {
       setStatus("error");
       setError(result.error);
@@ -112,7 +120,7 @@ export function ProfileForm() {
         className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
       >
         <Check className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-        {status === "saving" ? "Saving…" : "Save"}
+        {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : "Save"}
       </button>
     </div>
   );

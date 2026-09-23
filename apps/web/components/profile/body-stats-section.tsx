@@ -7,6 +7,18 @@ import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /**
+ * Postgres numeric columns round-trip as fixed-scale strings ("178.0",
+ * "175.00") — displaying that back in the input a user typed "178" or "175"
+ * into reads as "did my value change?" on top of an already-silent save.
+ * Strips the trailing precision back down to what a person actually typed.
+ */
+function formatNumericField(value: string | null | undefined): string {
+  if (value == null) return "";
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : "";
+}
+
+/**
  * Sex, birthdate and bodyweight feed the strength-standards lookup
  * (@jim/core's strength-standards module) so PRs and suggested weights can
  * be placed against a standard. Height is collected too (per the request
@@ -21,9 +33,9 @@ export function BodyStatsSection() {
 
   const [sex, setSex] = useState<"male" | "female" | "">(settings.sex ?? "");
   const [birthdate, setBirthdate] = useState(settings.birthdate ?? "");
-  const [heightCm, setHeightCm] = useState(settings.heightCm ?? "");
-  const [bodyweight, setBodyweight] = useState(settings.bodyweight ?? "");
-  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [heightCm, setHeightCm] = useState(formatNumericField(settings.heightCm));
+  const [bodyweight, setBodyweight] = useState(formatNumericField(settings.bodyweight));
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
   // Same "sync from cache once on load" pattern as ProfileForm — see there
@@ -32,9 +44,19 @@ export function BodyStatsSection() {
     if (!cached) return;
     setSex(cached.sex ?? "");
     setBirthdate(cached.birthdate ?? "");
-    setHeightCm(cached.heightCm ?? "");
-    setBodyweight(cached.bodyweight ?? "");
+    setHeightCm(formatNumericField(cached.heightCm));
+    setBodyweight(formatNumericField(cached.bodyweight));
   }, [cached]);
+
+  // A successful save otherwise leaves no trace — the button just goes back
+  // to reading "Save" — which reads as "did that actually do anything?" when
+  // there's a second, near-identical Save button (ProfileForm's) right above
+  // this one. Show a confirmation for a couple seconds instead of silence.
+  useEffect(() => {
+    if (status !== "saved") return;
+    const id = setTimeout(() => setStatus("idle"), 2000);
+    return () => clearTimeout(id);
+  }, [status]);
 
   async function handleSave() {
     if (heightCm.trim() !== "" && (!Number.isFinite(Number(heightCm)) || Number(heightCm) <= 0)) {
@@ -60,7 +82,7 @@ export function BodyStatsSection() {
       bodyweight: bodyweight.trim() === "" ? null : String(Number(bodyweight)),
     });
     if (result.ok) {
-      setStatus("idle");
+      setStatus("saved");
     } else {
       setStatus("error");
       setError(result.error);
@@ -132,7 +154,7 @@ export function BodyStatsSection() {
         className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
       >
         <Check className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-        {status === "saving" ? "Saving…" : "Save"}
+        {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : "Save"}
       </button>
     </div>
   );
