@@ -24,6 +24,7 @@ export function OneRepMaxChart({ points }: { points: OneRepMaxPoint[] }) {
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   const valueSpan = maxValue - minValue || 1;
+  const current = points[points.length - 1]?.estimatedOneRepMax ?? 0;
 
   const times = points.map((point) => point.date.getTime());
   const minTime = Math.min(...times);
@@ -35,36 +36,59 @@ export function OneRepMaxChart({ points }: { points: OneRepMaxPoint[] }) {
     return PADDING + ((point.date.getTime() - minTime) / timeSpan) * (WIDTH - PADDING * 2);
   }
 
-  function y(point: OneRepMaxPoint): number {
-    return (
-      HEIGHT -
-      PADDING -
-      ((point.estimatedOneRepMax - minValue) / valueSpan) * (HEIGHT - PADDING * 2)
-    );
+  function y(value: number): number {
+    return HEIGHT - PADDING - ((value - minValue) / valueSpan) * (HEIGHT - PADDING * 2);
   }
 
   const path = points
     .map(
-      (point, index) => `${index === 0 ? "M" : "L"}${x(point).toFixed(1)},${y(point).toFixed(1)}`,
+      (point, index) =>
+        `${index === 0 ? "M" : "L"}${x(point).toFixed(1)},${y(point.estimatedOneRepMax).toFixed(1)}`,
     )
     .join(" ");
 
   return (
     <div className="text-zinc-900 dark:text-zinc-50">
+      <div className="mb-1 flex items-baseline gap-1.5">
+        <span className="text-2xl font-semibold tabular-nums">
+          {Math.round(current).toLocaleString()}
+        </span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-500">Current estimated 1RM</span>
+      </div>
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="w-full"
         role="img"
-        aria-label="Estimated one-rep max over time"
+        aria-label={`Estimated one-rep max over time, currently ${Math.round(current).toLocaleString()}, ranging from ${Math.round(minValue).toLocaleString()} to ${Math.round(maxValue).toLocaleString()}`}
       >
         <line
           x1={PADDING}
-          y1={HEIGHT - PADDING}
+          y1={y(maxValue)}
           x2={WIDTH - PADDING}
-          y2={HEIGHT - PADDING}
+          y2={y(maxValue)}
           stroke="currentColor"
           strokeOpacity={0.15}
+          strokeDasharray="2 3"
         />
+        <text x={PADDING} y={y(maxValue) + 9} fontSize={9} fill="currentColor" opacity={0.55}>
+          {Math.round(maxValue).toLocaleString()}
+        </text>
+        {maxValue !== minValue && (
+          <>
+            <line
+              x1={PADDING}
+              y1={y(minValue)}
+              x2={WIDTH - PADDING}
+              y2={y(minValue)}
+              stroke="currentColor"
+              strokeOpacity={0.15}
+              strokeDasharray="2 3"
+            />
+            <text x={PADDING} y={y(minValue) - 3} fontSize={9} fill="currentColor" opacity={0.55}>
+              {Math.round(minValue).toLocaleString()}
+            </text>
+          </>
+        )}
         <path
           d={path}
           fill="none"
@@ -74,7 +98,13 @@ export function OneRepMaxChart({ points }: { points: OneRepMaxPoint[] }) {
           strokeLinecap="round"
         />
         {points.map((point) => (
-          <circle key={point.sessionId} cx={x(point)} cy={y(point)} r={2.5} fill="currentColor" />
+          <circle
+            key={point.sessionId}
+            cx={x(point)}
+            cy={y(point.estimatedOneRepMax)}
+            r={2.5}
+            fill="currentColor"
+          />
         ))}
       </svg>
       <div className="mt-1 flex justify-between text-xs text-zinc-500 dark:text-zinc-500">
