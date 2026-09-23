@@ -4,7 +4,7 @@ import { ExercisePicker } from "@/components/exercise-picker";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
-import { finalizeSession } from "@/lib/sessions/finalize-session";
+import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -29,6 +29,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notes, setNotes] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
 
@@ -179,6 +180,24 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
   }
 
+  async function handleCancel() {
+    if (!session) return;
+    const hasSets = [...setCompletedAtBySessionExerciseId.values()].some(
+      (times) => times.length > 0,
+    );
+    const message = hasSets
+      ? "Cancel this workout? Logged sets will not be saved."
+      : "Cancel this workout?";
+    if (!confirm(message)) return;
+    setCancelling(true);
+    try {
+      await cancelSession(session);
+      router.push("/workout");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   if (session === undefined || rawSessionExercises === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
@@ -217,14 +236,24 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             {session.startedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void handleFinalize()}
-          disabled={finalizing}
-          className="min-h-11 shrink-0 rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
-        >
-          Finish
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => void handleCancel()}
+            disabled={finalizing || cancelling}
+            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-950 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleFinalize()}
+            disabled={finalizing || cancelling}
+            className="min-h-11 rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+          >
+            Finish
+          </button>
+        </div>
       </div>
 
       <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
