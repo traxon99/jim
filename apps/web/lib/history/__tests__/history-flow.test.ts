@@ -5,7 +5,6 @@ import {
   buildTrainingCalendar,
   currentPersonalRecords,
   estimatedOneRepMaxSeries,
-  groupSessionsByWeek,
   resolveCurrentRows,
   uuidv7,
   weeklyVolumeByMuscle,
@@ -107,7 +106,7 @@ async function loggedAndFinishedSession(weight: number, reps: number): Promise<s
 }
 
 describe("history read pipeline (against Dexie)", () => {
-  it("builds a session list entry with volume, set count and PR count, grouped by week", async () => {
+  it("builds a session list entry with volume, set count and PR count", async () => {
     await testDb.exercises.put(bench());
     const sessionId = await loggedAndFinishedSession(135, 5);
 
@@ -126,9 +125,6 @@ describe("history read pipeline (against Dexie)", () => {
       setCount: 1,
       prCount: 4, // first-ever set: 1rm, weight, volume, reps_at_weight
     });
-
-    const [week] = groupSessionsByWeek(entries, 0);
-    expect(week?.items[0]?.id).toBe(sessionId);
   });
 
   it("excludes an in-progress (not yet finalized) session from the list", async () => {

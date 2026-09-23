@@ -3,24 +3,26 @@
 import { db } from "@/lib/db/schema";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { buildTrainingCalendar, groupSessionsByMonth, groupSessionsByWeek } from "@jim/core";
+import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { TrainingCalendarHeatmap } from "./training-calendar-heatmap";
+import { TrainingCalendarMonth } from "./training-calendar-month";
 
-type HistoryGrouping = "week" | "month";
+const DAY_FORMAT = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+});
 
-const GROUPING_OPTIONS: { value: HistoryGrouping; label: string }[] = [
-  { value: "week", label: "Week" },
-  { value: "month", label: "Month" },
-];
-
-const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
 
 export function HistoryHome() {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
-  const [grouping, setGrouping] = useState<HistoryGrouping>("week");
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
@@ -40,30 +42,14 @@ export function HistoryHome() {
     [rawSessions, rawSessionExercises, rawExercises, rawSets, rawPersonalRecords],
   );
 
-  const weekGroups = useMemo(
-    () => groupSessionsByWeek(entries, settings.weekStart),
-    [entries, settings.weekStart],
-  );
-
-  const monthGroups = useMemo(() => groupSessionsByMonth(entries), [entries]);
-
-  const groups = useMemo(
-    () =>
-      grouping === "week"
-        ? weekGroups.map((group) => ({
-            key: group.weekStart,
-            label: `Week of ${group.weekStart.toLocaleDateString()}`,
-            items: group.items,
-          }))
-        : monthGroups.map((group) => ({
-            key: group.monthStart,
-            label: MONTH_FORMAT.format(group.monthStart),
-            items: group.items,
-          })),
-    [grouping, weekGroups, monthGroups],
-  );
-
   const calendarDays = useMemo(() => buildTrainingCalendar(entries), [entries]);
+
+  const selectedDaySessions = useMemo(() => {
+    const key = dateKey(selectedDate);
+    return entries
+      .filter((session) => dateKey(session.startedAt) === key)
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  }, [entries, selectedDate]);
 
   const loading =
     rawSessions === undefined ||
@@ -80,6 +66,8 @@ export function HistoryHome() {
     );
   }
 
+  const isToday = dateKey(selectedDate) === dateKey(new Date());
+
   return (
     <main className="flex flex-1 flex-col gap-6 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
@@ -91,70 +79,63 @@ export function HistoryHome() {
       </div>
 
       <section>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-          Last 12 weeks
-        </h2>
-        <TrainingCalendarHeatmap days={calendarDays} weekStart={settings.weekStart} />
+        <TrainingCalendarMonth
+          month={visibleMonth}
+          weekStart={settings.weekStart}
+          days={calendarDays}
+          selectedDate={selectedDate}
+          onSelectDate={(date) => {
+            setSelectedDate(date);
+            setVisibleMonth(startOfMonth(date));
+          }}
+          onPrevMonth={() =>
+            setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))
+          }
+          onNextMonth={() =>
+            setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))
+          }
+        />
       </section>
 
-      <div className="flex gap-2" role="tablist" aria-label="Group history by">
-        {GROUPING_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            role="tab"
-            aria-selected={grouping === option.value}
-            onClick={() => setGrouping(option.value)}
-            className={`min-h-11 flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${
-              grouping === option.value
-                ? "border-zinc-950 bg-zinc-950 text-zinc-50 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-                : "border-zinc-300 bg-white text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      {groups.length === 0 ? (
-        <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-          No workouts finished yet.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {groups.map((group) => (
-            <section key={group.key.toISOString()} className="flex flex-col gap-1">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                {group.label}
-              </h2>
-              <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                {group.items.map((session) => (
-                  <li key={session.id}>
-                    <Link
-                      href={`/history/${session.id}`}
-                      data-ripple
-                      className="flex items-center justify-between gap-2 py-3"
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-base font-medium">{session.name}</span>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                          {session.startedAt.toLocaleDateString()} · {session.setCount} sets
-                          {session.prCount > 0
-                            ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
-                            : ""}
-                        </span>
-                      </div>
-                      <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                        {Math.round(session.totalVolume).toLocaleString()} {settings.units}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+      <section className="flex flex-col gap-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          {isToday ? "Today" : DAY_FORMAT.format(selectedDate)}
+        </h2>
+        {selectedDaySessions.length === 0 ? (
+          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+            {entries.length === 0 ? "No workouts finished yet." : "No workouts on this day."}
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+            {selectedDaySessions.map((session) => (
+              <li key={session.id}>
+                <Link
+                  href={`/history/${session.id}`}
+                  data-ripple
+                  className="flex items-center justify-between gap-2 py-3"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-base font-medium">{session.name}</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                      {session.startedAt.toLocaleTimeString(undefined, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}{" "}
+                      · {session.setCount} sets
+                      {session.prCount > 0
+                        ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
+                        : ""}
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    {Math.round(session.totalVolume).toLocaleString()} {settings.units}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }

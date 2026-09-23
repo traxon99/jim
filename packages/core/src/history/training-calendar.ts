@@ -18,9 +18,9 @@ export function dateKey(date: Date): string {
 }
 
 /**
- * "Calendar heatmap of training frequency" (STORIES.md S7) — one entry per
- * day that had at least one session, keyed by `dateKey` so the UI can look
- * up any day in the grid it renders with the same key.
+ * "Calendar view of training history" (STORIES.md S7) — one entry per day
+ * that had at least one session, keyed by `dateKey` so the UI can look up
+ * any day in the grid it renders with the same key.
  */
 export function buildTrainingCalendar(
   sessions: readonly TrainingCalendarSession[],
