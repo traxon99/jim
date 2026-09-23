@@ -3,6 +3,7 @@
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -58,9 +59,10 @@ export function RoutineExerciseRow({ item, exerciseName, onUpdate, onRemove }: P
         <button
           type="button"
           onClick={onRemove}
-          className="shrink-0 px-1 py-2 text-sm font-medium text-red-600 dark:text-red-500"
+          aria-label="Remove exercise"
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-red-600 dark:text-red-500"
         >
-          Remove
+          <Trash2 className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
         </button>
       </div>
 
