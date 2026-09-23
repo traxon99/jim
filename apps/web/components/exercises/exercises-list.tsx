@@ -89,7 +89,7 @@ export function ExercisesList({ userId }: { userId: string }) {
         <Link
           href="/exercises/new"
           data-ripple
-          className="rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+          className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground"
         >
           New
         </Link>

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 
 const UNITS = new Set(["lb", "kg"]);
 const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
+const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose"]);
 
 interface SettingsPayload {
   units: "lb" | "kg";
@@ -13,6 +14,7 @@ interface SettingsPayload {
   defaultRestSeconds: number;
   weekStart: number;
   colorScheme: "system" | "light" | "dark";
+  accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose";
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -23,6 +25,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     defaultRestSeconds: row.defaultRestSeconds,
     weekStart: row.weekStart,
     colorScheme: row.colorScheme,
+    accentColor: row.accentColor,
   };
 }
 
@@ -81,6 +84,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("colorScheme" in candidate && !COLOR_SCHEMES.has(candidate.colorScheme as string)) {
     return false;
   }
+  if ("accentColor" in candidate && !ACCENT_COLORS.has(candidate.accentColor as string)) {
+    return false;
+  }
   return true;
 }
 
@@ -111,6 +117,7 @@ export async function PATCH(request: Request) {
       if (body.defaultRestSeconds !== undefined) patch.defaultRestSeconds = body.defaultRestSeconds;
       if (body.weekStart !== undefined) patch.weekStart = body.weekStart;
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
+      if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
 
       const [row] = await tx.update(users).set(patch).where(eq(users.id, userId)).returning();
       if (!row) throw new Error("Settings row disappeared mid-update");

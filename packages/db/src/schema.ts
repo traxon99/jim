@@ -37,6 +37,15 @@ export const unitsEnum = pgEnum("units", ["lb", "kg"]);
 
 export const colorSchemeEnum = pgEnum("color_scheme", ["system", "light", "dark"]);
 
+export const accentColorEnum = pgEnum("accent_color", [
+  "zinc",
+  "blue",
+  "green",
+  "purple",
+  "orange",
+  "rose",
+]);
+
 // The controlled vocabulary this seed data ships with (see ADR-008). Sourced
 // from free-exercise-db, which already uses a small, consistent muscle list.
 // Lives in @jim/core (see its exercises/muscles.ts) so client-side UI can
@@ -89,6 +98,9 @@ export const users = pgTable(
     weekStart: smallint("week_start").notNull().default(0),
     // "system" follows the OS/browser's prefers-color-scheme; "light"/"dark" override it.
     colorScheme: colorSchemeEnum("color_scheme").notNull().default("system"),
+    // The app's primary/interactive accent color, independent of light/dark. "zinc" keeps
+    // the original monochrome look (accent tracks the foreground/background pair).
+    accentColor: accentColorEnum("accent_color").notNull().default("zinc"),
   },
   (table) => [
     pgPolicy("users_select_own", {

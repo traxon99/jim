@@ -9,4 +9,5 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   defaultRestSeconds: 90,
   weekStart: 0,
   colorScheme: "system",
+  accentColor: "zinc",
 };

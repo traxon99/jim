@@ -28,7 +28,7 @@ function WeekVolumeBars({ week, units }: { week: WeeklyMuscleVolume; units: stri
           </span>
           <div className="h-2 flex-1 rounded-full bg-zinc-100 dark:bg-zinc-800">
             <div
-              className="h-2 rounded-full bg-zinc-950 dark:bg-zinc-50"
+              className="h-2 rounded-full bg-accent"
               style={{ width: `${max > 0 ? (volume / max) * 100 : 0}%` }}
             />
           </div>

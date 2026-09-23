@@ -66,8 +66,8 @@ function sizesFor(large: boolean) {
       ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
       : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
     logButton: large
-      ? "min-h-14 flex-1 rounded-lg bg-zinc-950 px-4 text-lg font-semibold text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-      : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
+      ? "min-h-14 flex-1 rounded-lg bg-accent px-4 text-lg font-semibold text-accent-foreground"
+      : "min-h-11 rounded-md bg-accent px-2 text-xs font-medium text-accent-foreground",
     repeatButton: large
       ? "flex min-h-14 min-w-14 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
       : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",

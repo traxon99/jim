@@ -67,6 +67,7 @@ export type SettingsRow = Pick<
   | "defaultRestSeconds"
   | "weekStart"
   | "colorScheme"
+  | "accentColor"
 > & { id: "me" };
 
 export class JimDatabase extends Dexie {

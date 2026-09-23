@@ -106,7 +106,7 @@ export function TrainingCalendarMonth({
                     inMonth ? "" : "text-zinc-400 dark:text-zinc-600"
                   } ${intensityClass(day?.totalVolume ?? 0, maxVolume)} ${
                     isSelected
-                      ? "ring-2 ring-zinc-950 dark:ring-zinc-50"
+                      ? "ring-2 ring-accent"
                       : isToday
                         ? "ring-1 ring-zinc-400 dark:ring-zinc-500"
                         : ""

@@ -123,7 +123,7 @@ export function ProgramForm({ userId, mode, programId }: Props) {
               key={option.value}
               className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${
                 programMode === option.value
-                  ? "border-zinc-950 dark:border-zinc-50"
+                  ? "border-accent"
                   : "border-zinc-300 dark:border-zinc-700"
               }`}
             >
@@ -168,7 +168,7 @@ export function ProgramForm({ userId, mode, programId }: Props) {
         <button
           type="submit"
           disabled={saving}
-          className="rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+          className="rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
         >
           {saving ? "Saving…" : mode === "new" ? "Next: add routines" : "Save"}
         </button>
