@@ -22,6 +22,23 @@ export function RegisterServiceWorker() {
     // genuine update rather than the app's very first install.
     const hadController = navigator.serviceWorker.controller !== null;
 
+    // A freshly-activated service worker claims this page (self.clients.claim()
+    // in sw.template.js) without the already-running React app ever re-executing
+    // — the tab just keeps running whatever JS it loaded with until something
+    // reloads it. On an installed iOS PWA that gets suspended rather than fully
+    // killed when backgrounded, "restarting" the app can resume that same
+    // in-memory session indefinitely, so an update can otherwise never actually
+    // take effect for the user. Force the one reload a genuine update needs;
+    // gated on hadController so a brand-new install doesn't reload itself.
+    if (hadController) {
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.reload();
+      });
+    }
+
     navigator.serviceWorker
       .register("/sw.js")
       .then((registration) => {
