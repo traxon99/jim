@@ -1,13 +1,20 @@
 "use client";
 
-import { submitFeedback } from "@/lib/feedback/submit";
+import { type FeedbackType, submitFeedback } from "@/lib/feedback/submit";
 import { Send } from "lucide-react";
 import { useState } from "react";
 
 type Status = "idle" | "sending" | "sent" | "error";
 
+const FEEDBACK_TYPE_OPTIONS: { value: FeedbackType; label: string }[] = [
+  { value: "bug", label: "Something's broken" },
+  { value: "feature", label: "Feature idea" },
+  { value: "question", label: "Question" },
+];
+
 export function FeedbackSection() {
   const [message, setMessage] = useState("");
+  const [type, setType] = useState<FeedbackType>("bug");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +22,7 @@ export function FeedbackSection() {
     if (message.trim().length === 0) return;
     setStatus("sending");
     setError(null);
-    const result = await submitFeedback(message.trim());
+    const result = await submitFeedback(message.trim(), type);
     if (result.ok) {
       setStatus("sent");
       setMessage("");
@@ -34,6 +41,18 @@ export function FeedbackSection() {
       <p className="text-xs text-zinc-600 dark:text-zinc-400">
         Spot a bug or have an idea for Jim? Send it straight to the issue tracker.
       </p>
+
+      <select
+        value={type}
+        onChange={(event) => setType(event.target.value as FeedbackType)}
+        className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+      >
+        {FEEDBACK_TYPE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
 
       <textarea
         value={message}

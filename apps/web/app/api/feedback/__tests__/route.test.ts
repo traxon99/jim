@@ -45,8 +45,13 @@ describe("POST /api/feedback", () => {
   });
 
   it("rejects an empty message", async () => {
-    const response = await post({ message: "  " });
+    const response = await post({ message: "  ", type: "bug" });
     expect(response.status).toBe(400);
+  });
+
+  it("rejects a missing or unknown type", async () => {
+    expect((await post({ message: "hello" })).status).toBe(400);
+    expect((await post({ message: "hello", type: "nonsense" })).status).toBe(400);
   });
 
   it("files a GitHub issue and returns its URL", async () => {
@@ -58,7 +63,7 @@ describe("POST /api/feedback", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await post({ message: "Add dark mode toggle" });
+    const response = await post({ message: "Add dark mode toggle", type: "feature" });
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body).toEqual({ url: "https://github.com/acme/jim/issues/1" });
@@ -69,7 +74,24 @@ describe("POST /api/feedback", () => {
     const sentBody = JSON.parse(init?.body as string);
     expect(sentBody.title).toBe("Add dark mode toggle");
     expect(sentBody.body).toContain("a@example.com");
-    expect(sentBody.labels).toEqual(["feedback"]);
+    expect(sentBody.labels).toEqual(["feedback", "enhancement"]);
+  });
+
+  it.each([
+    ["bug", "bug"],
+    ["feature", "enhancement"],
+    ["question", "question"],
+  ] as const)("maps feedback type %s to the %s label", async (type, label) => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => {
+      return new Response(JSON.stringify({}), { status: 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await post({ message: "hello", type });
+
+    const [, init] = fetchMock.mock.calls[0];
+    const sentBody = JSON.parse(init?.body as string);
+    expect(sentBody.labels).toEqual(["feedback", label]);
   });
 
   it("returns 502 when GitHub rejects the request", async () => {
@@ -77,13 +99,13 @@ describe("POST /api/feedback", () => {
       "fetch",
       vi.fn(async () => new Response("nope", { status: 422 })),
     );
-    const response = await post({ message: "hello" });
+    const response = await post({ message: "hello", type: "bug" });
     expect(response.status).toBe(502);
   });
 
   it("returns 500 when feedback isn't configured", async () => {
     process.env.GITHUB_FEEDBACK_REPO = "";
-    const response = await post({ message: "hello" });
+    const response = await post({ message: "hello", type: "bug" });
     expect(response.status).toBe(500);
   });
 });
