@@ -1,4 +1,4 @@
-import { finalizeSession } from "@/lib/sessions/finalize-session";
+import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
@@ -455,6 +455,71 @@ describe("finalizing a session (against Dexie)", () => {
 
     expect(summary.totalVolume).toBe(135 * 5);
     expect(summary.setCount).toBe(1);
+  });
+});
+
+describe("cancelling a session (against Dexie)", () => {
+  function makeFetchMock() {
+    return vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/push")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [{ id: "x", status: "applied" }] })),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ cursor: 0, changes: {} })));
+    });
+  }
+
+  it("soft-deletes a session with no exercises added", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
+
+    await cancelSession(session, testDb, makeFetchMock() as unknown as typeof fetch);
+
+    const cancelled = await testDb.sessions.get(sessionId);
+    expect(cancelled?.endedAt).toBeNull();
+    expect(cancelled?.deletedAt).not.toBeNull();
+  });
+
+  it("discards a session even once sets have been logged, unlike finalize", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise: SessionExerciseRow = {
+      id: uuidv7(),
+      userId: USER_ID,
+      sessionId,
+      exerciseId: BENCH_ID,
+      position: 0,
+      supersetGroup: null,
+      notes: null,
+      updatedAt: new Date(),
+      deviceId: "device-a",
+      deletedAt: null,
+      serverSeq: 0,
+    };
+    await testDb.sessionExercises.put(sessionExercise);
+    await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 135,
+        reps: 5,
+      },
+      testDb,
+    );
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
+
+    const fetchMock = makeFetchMock();
+    await cancelSession(session, testDb, fetchMock as unknown as typeof fetch);
+
+    const cancelled = await testDb.sessions.get(sessionId);
+    expect(cancelled?.endedAt).toBeNull();
+    expect(cancelled?.deletedAt).not.toBeNull();
+    expect(fetchMock).toHaveBeenCalled();
   });
 });
 

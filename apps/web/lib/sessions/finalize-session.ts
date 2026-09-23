@@ -43,3 +43,20 @@ export async function finalizeSession(
   await runSyncCycle(database, fetchImpl);
   return { cancelled };
 }
+
+/**
+ * Discards an in-progress session outright, regardless of whether any sets
+ * were logged — the explicit "Cancel workout" action, distinct from the
+ * implicit cancel `finalizeSession` performs for an empty session on
+ * Finish. Same soft-delete + immediate sync as finalize (ADR-002).
+ */
+export async function cancelSession(
+  session: SessionRow,
+  database: JimDatabase = db,
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const deviceId = await getDeviceId(database);
+  const now = new Date();
+  await mutate("sessions", { ...session, deletedAt: now, updatedAt: now, deviceId }, database);
+  await runSyncCycle(database, fetchImpl);
+}
