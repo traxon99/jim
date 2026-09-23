@@ -2,6 +2,7 @@
 
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import { SET_KINDS } from "@/lib/sessions/set-kinds";
+import { Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -41,13 +42,16 @@ function sizesFor(large: boolean) {
     saveButton: large
       ? "min-h-12 rounded-md bg-zinc-950 px-4 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
       : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
-    textButton: large ? "min-h-12 px-2 text-base font-medium" : "min-h-11 px-1.5 text-xs",
+    textButton: large
+      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
     editButton: large
-      ? "min-h-12 px-2 text-base font-medium underline underline-offset-4"
-      : "min-h-11 px-1.5 text-xs font-medium underline underline-offset-4",
+      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
     deleteButton: large
-      ? "min-h-12 px-2 text-base font-medium text-red-600 dark:text-red-500"
-      : "min-h-11 px-1.5 text-xs font-medium text-red-600 dark:text-red-500",
+      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-red-600 dark:text-red-500"
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-600 dark:text-red-500",
+    icon: large ? "h-5 w-5" : "h-4 w-4",
   };
 }
 
@@ -102,8 +106,13 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
           <button type="button" onClick={save} className={sizes.saveButton}>
             Save
           </button>
-          <button type="button" onClick={() => setEditing(false)} className={sizes.textButton}>
-            Cancel
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            aria-label="Cancel edit"
+            className={sizes.textButton}
+          >
+            <X className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </td>
       </tr>
@@ -122,11 +131,21 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
       <td className={sizes.cell}>{set.reps ?? "—"}</td>
       <td className={sizes.metaCell}>{set.kind !== "working" ? set.kind : "—"}</td>
       <td className={sizes.actionCell}>
-        <button type="button" onClick={() => setEditing(true)} className={sizes.editButton}>
-          Edit
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label="Edit set"
+          className={sizes.editButton}
+        >
+          <Pencil className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
         </button>
-        <button type="button" onClick={onDelete} className={sizes.deleteButton}>
-          Remove
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label="Remove set"
+          className={sizes.deleteButton}
+        >
+          <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </td>
     </tr>

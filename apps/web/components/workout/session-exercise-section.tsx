@@ -20,6 +20,7 @@ import {
   resolveCurrentRows,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SetRow } from "./set-row";
 
@@ -45,8 +46,8 @@ function sizesFor(large: boolean) {
   return {
     title: large ? "text-2xl font-bold" : "text-base font-semibold",
     removeButton: large
-      ? "min-h-12 px-2 text-base font-medium text-red-600 dark:text-red-500"
-      : "min-h-11 px-1 text-xs font-medium text-red-600 dark:text-red-500",
+      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-red-600 dark:text-red-500"
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-600 dark:text-red-500",
     meta: large
       ? "text-base text-zinc-500 dark:text-zinc-500"
       : "text-xs text-zinc-500 dark:text-zinc-500",
@@ -68,8 +69,9 @@ function sizesFor(large: boolean) {
       ? "min-h-12 rounded-md bg-zinc-950 px-4 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
       : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
     repeatButton: large
-      ? "min-h-12 px-2 text-base font-medium underline underline-offset-4"
-      : "min-h-11 px-1.5 text-xs font-medium underline underline-offset-4",
+      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
+    icon: large ? "h-5 w-5" : "h-4 w-4",
     notesLabel: large
       ? "flex flex-col gap-1 text-base font-medium"
       : "flex flex-col gap-1 text-xs font-medium",
@@ -181,8 +183,13 @@ export function SessionExerciseSection({
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
       <div className="flex items-start justify-between gap-2">
         <h2 className={sizes.title}>{exercise?.name ?? "Exercise"}</h2>
-        <button type="button" onClick={onRemove} className={sizes.removeButton}>
-          Remove
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Remove exercise"
+          className={sizes.removeButton}
+        >
+          <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
         </button>
       </div>
 
@@ -263,9 +270,10 @@ export function SessionExerciseSection({
                 <button
                   type="button"
                   onClick={() => void repeatLast()}
+                  aria-label="Repeat last set"
                   className={sizes.repeatButton}
                 >
-                  Repeat
+                  <RotateCcw className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
                 </button>
               )}
             </td>
