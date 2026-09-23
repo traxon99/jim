@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Profile > Body stats now confirms when it's saved your sex, birthdate, height and bodyweight.";
+  "Personal Records now shows a strength-standard badge on every qualifying lift, even below Beginner.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
