@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { APP_VERSION } from "@/lib/version";
 import { NextResponse } from "next/server";
 
 const MAX_MESSAGE_LENGTH = 4000;
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       title,
-      body: `${message.trim()}\n\n---\nSubmitted from Jim by ${email}.`,
+      body: `${message.trim()}\n\n---\nSubmitted from Jim v${APP_VERSION} by ${email}.`,
       labels: ["feedback", FEEDBACK_TYPE_LABELS[type]],
     }),
   });

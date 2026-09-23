@@ -197,3 +197,24 @@ than accepting data.
 it can log three weeks of training in a Safari tab and lose all of it after a week away from the
 gym. Web Push and reliable storage both require install regardless. As of iOS 26 anything added to
 the Home Screen opens as a web app by default, so the gate costs the user one interaction, once.
+
+---
+
+## ADR-011 — App version is counted from commits, major/minor picked by hand
+
+**Status:** Accepted · 2026-09-23
+
+**Context.** Every merge to `main` deploys (ADR-004), and the app had no version number to tell
+one deploy from another.
+
+**Decision.** `apps/web/version.json` holds a hand-picked `major` and `minor`. The patch number is
+computed at build time as the number of commits the deployed commit is ahead of the last commit
+that changed `version.json` (`lib/version/resolve.ts`), then inlined as `NEXT_PUBLIC_APP_VERSION`.
+Bumping the major is a one-line edit to `version.json`, and the patch resets to 0 in that same
+commit. Vercel's clone is shallow, so there the count comes from the GitHub compare API
+(`GITHUB_VERSION_TOKEN`, Contents: read); local builds use `git`. When neither works the build
+still succeeds, as `<major>.<minor>.0-dev`.
+
+**Rejected: a CI job that commits a bumped version on every merge.** Each bump commit would trigger
+another deploy, and it adds bot commits to history. A count derived from existing commits needs no
+extra writes.
