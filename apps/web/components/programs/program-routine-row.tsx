@@ -35,7 +35,7 @@ export function ProgramRoutineRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`flex items-center justify-between gap-2 rounded-lg border bg-white p-2 dark:bg-zinc-900 ${
-        isNext ? "border-zinc-950 dark:border-zinc-50" : "border-zinc-200 dark:border-zinc-800"
+        isNext ? "border-accent" : "border-zinc-200 dark:border-zinc-800"
       } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex min-w-0 items-center gap-2">

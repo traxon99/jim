@@ -246,7 +246,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             type="button"
             onClick={() => void handleFinalize()}
             disabled={finalizing || cancelling}
-            className="min-h-11 rounded-lg bg-zinc-950 px-3 py-2 text-sm font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+            className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
           >
             Finish
           </button>

@@ -60,7 +60,7 @@ export function FocusView({ exercises, index, onIndexChange, children }: Props) 
                   <span
                     className={`block w-full rounded-full transition-colors ${
                       active
-                        ? "h-3 bg-zinc-950 dark:bg-zinc-50"
+                        ? "h-3 bg-accent"
                         : complete
                           ? "h-2 bg-emerald-500 dark:bg-emerald-400"
                           : "h-2 bg-zinc-300 dark:bg-zinc-700"
@@ -116,7 +116,7 @@ export function FocusView({ exercises, index, onIndexChange, children }: Props) 
           type="button"
           onClick={() => onIndexChange(index + 1)}
           disabled={isLast}
-          className="flex min-h-12 flex-1 items-center justify-between gap-2 rounded-lg bg-zinc-950 px-4 text-left text-zinc-50 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-950"
+          className="flex min-h-12 flex-1 items-center justify-between gap-2 rounded-lg bg-accent px-4 text-left text-accent-foreground disabled:opacity-40"
         >
           <span className="flex min-w-0 flex-col">
             <span className="text-xs font-medium uppercase tracking-wide opacity-70">

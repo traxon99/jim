@@ -65,7 +65,7 @@ export function LoginForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+        className="rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
       >
         {status === "submitting" ? "Signing in…" : "Sign in"}
       </button>

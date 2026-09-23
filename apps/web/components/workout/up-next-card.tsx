@@ -80,7 +80,7 @@ export function UpNextCard({ starting, onStart }: Props) {
   return (
     <section
       aria-label="Suggested workout"
-      className="flex flex-col gap-3 rounded-xl border border-zinc-950 p-4 dark:border-zinc-50"
+      className="flex flex-col gap-3 rounded-xl border border-accent p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -106,7 +106,7 @@ export function UpNextCard({ starting, onStart }: Props) {
         type="button"
         onClick={() => onStart(routine.id, routine.name)}
         disabled={starting}
-        className="min-h-11 rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-950"
+        className="min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
       >
         {next.reason === "next-scheduled" ? "Start it now" : `Start ${routine.name}`}
       </button>

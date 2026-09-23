@@ -66,7 +66,7 @@ export function PushNotificationsSection() {
               type="checkbox"
               checked={enabled}
               onChange={(event) => void handleToggle(event.target.checked)}
-              className="h-5 w-5 shrink-0 accent-zinc-950 dark:accent-zinc-50"
+              className="h-5 w-5 shrink-0 accent-accent"
             />
           </label>
 

@@ -41,8 +41,8 @@ function sizesFor(large: boolean) {
       ? "py-3 pl-1 align-top text-right whitespace-nowrap"
       : "py-2 pl-1 align-top text-right whitespace-nowrap",
     saveButton: large
-      ? "min-h-12 rounded-md bg-zinc-950 px-4 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-      : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
+      ? "min-h-12 rounded-md bg-accent px-4 text-base font-medium text-accent-foreground"
+      : "min-h-11 rounded-md bg-accent px-2 text-xs font-medium text-accent-foreground",
     textButton: large
       ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
       : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",

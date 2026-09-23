@@ -55,7 +55,7 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
           href="/routines/new"
           aria-label="New routine"
           data-ripple
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-zinc-950 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground"
         >
           <Plus className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
         </Link>
@@ -100,7 +100,7 @@ export function RoutinesList({ userId: _userId }: { userId: string }) {
                     </span>
                   </span>
                   {program.isActive && (
-                    <span className="shrink-0 rounded-full bg-zinc-950 px-2 py-0.5 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950">
+                    <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
                       Active
                     </span>
                   )}

@@ -43,7 +43,7 @@ export function ColorSchemeSection() {
             aria-pressed={colorScheme === option.value}
             className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium ${
               colorScheme === option.value
-                ? "border-zinc-950 bg-zinc-950 text-zinc-50 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+                ? "border-accent bg-accent text-accent-foreground"
                 : "border-zinc-300 bg-white text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             }`}
           >

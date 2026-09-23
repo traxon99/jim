@@ -1,3 +1,4 @@
+import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { ProfileForm } from "@/components/profile/profile-form";
@@ -13,6 +14,7 @@ export function ProfileHome({ email }: { email?: string }) {
       </div>
       <ProfileForm />
       <ColorSchemeSection />
+      <AccentColorSection />
       <PushNotificationsSection />
       <FeedbackSection />
       <SignOutButton />
