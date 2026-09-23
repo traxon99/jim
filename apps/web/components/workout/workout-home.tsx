@@ -4,9 +4,8 @@ import { db } from "@/lib/db/schema";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { UpNextCard } from "./up-next-card";
 
 export function WorkoutHome({ userId }: { userId: string }) {
@@ -20,6 +19,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
     () => (rawSessions ?? []).find((session) => !session.endedAt && !session.deletedAt) ?? null,
     [rawSessions],
   );
+
+  useEffect(() => {
+    if (activeSession) router.replace(`/workout/${activeSession.id}`);
+  }, [activeSession, router]);
 
   const routineGroups = useMemo(
     () => groupRoutinesByFolder((rawRoutines ?? []).filter((routine) => !routine.deletedAt)),
@@ -44,28 +47,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
     router.push(`/workout/${sessionId}`);
   }
 
-  if (rawSessions === undefined) {
+  if (rawSessions === undefined || activeSession) {
     return (
       <main className="flex flex-1 items-center justify-center">
         <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
-      </main>
-    );
-  }
-
-  if (activeSession) {
-    return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="text-xl font-semibold">Workout in progress</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {activeSession.name ?? "An untitled workout"} is still going.
-        </p>
-        <Link
-          href={`/workout/${activeSession.id}`}
-          data-ripple
-          className="min-h-11 rounded-lg bg-zinc-950 px-4 py-3 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-        >
-          Continue workout
-        </Link>
       </main>
     );
   }
