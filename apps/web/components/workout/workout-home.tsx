@@ -29,6 +29,15 @@ export function WorkoutHome({ userId }: { userId: string }) {
     if (activeSession && pathname === "/workout") router.replace(`/workout/${activeSession.id}`);
   }, [activeSession, pathname, router]);
 
+  // Because this tab stays mounted, `starting` would otherwise survive the
+  // round trip into the session and back (e.g. cancelling the workout),
+  // leaving the Start buttons permanently disabled. Once navigation has
+  // actually left /workout, the flag has done its job of blocking a double
+  // start — clear it so the buttons work again whenever we return here.
+  useEffect(() => {
+    if (pathname !== "/workout") setStarting(false);
+  }, [pathname]);
+
   const routineGroups = useMemo(
     () => groupRoutinesByFolder((rawRoutines ?? []).filter((routine) => !routine.deletedAt)),
     [rawRoutines],
