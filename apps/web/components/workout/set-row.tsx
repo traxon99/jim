@@ -14,6 +14,7 @@ interface Props {
     weight: number | null;
     reps: number | null;
     kind: SetRowEntity["kind"];
+    rpe: number | null;
   }) => void;
   onDelete: () => void;
 }
@@ -60,10 +61,16 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
   const [editing, setEditing] = useState(false);
   const [weight, setWeight] = useState(set.weight ?? "");
   const [reps, setReps] = useState(set.reps?.toString() ?? "");
+  const [rpe, setRpe] = useState(set.rpe ?? "");
   const [kind, setKind] = useState<SetRowEntity["kind"]>(set.kind);
 
   function save() {
-    onEdit({ weight: toNumberOrNull(weight), reps: toNumberOrNull(reps), kind });
+    onEdit({
+      weight: toNumberOrNull(weight),
+      reps: toNumberOrNull(reps),
+      kind,
+      rpe: toNumberOrNull(rpe),
+    });
     setEditing(false);
   }
 
@@ -86,6 +93,18 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
             inputMode="numeric"
             value={reps}
             onChange={(event) => setReps(event.target.value)}
+            className={sizes.input}
+          />
+        </td>
+        <td className={sizes.cell}>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={1}
+            max={10}
+            step={0.5}
+            value={rpe}
+            onChange={(event) => setRpe(event.target.value)}
             className={sizes.input}
           />
         </td>
@@ -129,6 +148,7 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
         </div>
       </td>
       <td className={sizes.cell}>{set.reps ?? "—"}</td>
+      <td className={sizes.metaCell}>{set.rpe ?? "—"}</td>
       <td className={sizes.metaCell}>{set.kind !== "working" ? set.kind : "—"}</td>
       <td className={sizes.actionCell}>
         <button
