@@ -12,12 +12,14 @@ import { useWakeLock } from "@/lib/wake-lock";
 import { uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
 import { SessionSummary } from "./session-summary";
 
 export function ActiveSession({ id, userId }: { id: string; userId: string }) {
+  const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notes, setNotes] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
@@ -111,7 +113,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     if (!session) return;
     setFinalizing(true);
     try {
-      await finalizeSession(session);
+      const { cancelled } = await finalizeSession(session);
+      if (cancelled) router.push("/workout");
     } finally {
       setFinalizing(false);
     }
