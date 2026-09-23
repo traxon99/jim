@@ -4,12 +4,13 @@ import { db } from "@/lib/db/schema";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { UpNextCard } from "./up-next-card";
 
 export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [starting, setStarting] = useState(false);
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
@@ -20,9 +21,13 @@ export function WorkoutHome({ userId }: { userId: string }) {
     [rawSessions],
   );
 
+  // This tab stays mounted (hidden) even when another tab is showing
+  // (components/tabbed-shell.tsx), so gate the redirect on actually being
+  // the visible tab — otherwise landing on /history with a session already
+  // in progress would silently bounce the user to /workout.
   useEffect(() => {
-    if (activeSession) router.replace(`/workout/${activeSession.id}`);
-  }, [activeSession, router]);
+    if (activeSession && pathname === "/workout") router.replace(`/workout/${activeSession.id}`);
+  }, [activeSession, pathname, router]);
 
   const routineGroups = useMemo(
     () => groupRoutinesByFolder((rawRoutines ?? []).filter((routine) => !routine.deletedAt)),
