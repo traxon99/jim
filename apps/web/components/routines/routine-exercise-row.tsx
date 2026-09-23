@@ -3,12 +3,15 @@
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { type ProgressionMechanic, suggestedWeeklyIncrement } from "@jim/core";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
   item: RoutineExerciseRowEntity;
   exerciseName: string;
+  exerciseMechanic: ProgressionMechanic;
+  units: "lb" | "kg";
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
   onRemove: () => void;
 }
@@ -19,7 +22,27 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function RoutineExerciseRow({ item, exerciseName, onUpdate, onRemove }: Props) {
+/** Postgres numeric columns round-trip as fixed-scale strings ("135.00"). */
+function formatNumericField(value: string | null): string {
+  if (value == null) return "";
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : "";
+}
+
+function toNumericStringOrNull(value: string): string | null {
+  if (value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : null;
+}
+
+export function RoutineExerciseRow({
+  item,
+  exerciseName,
+  exerciseMechanic,
+  units,
+  onUpdate,
+  onRemove,
+}: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -28,7 +51,37 @@ export function RoutineExerciseRow({ item, exerciseName, onUpdate, onRemove }: P
   const [repsLow, setRepsLow] = useState(item.targetRepsLow?.toString() ?? "");
   const [repsHigh, setRepsHigh] = useState(item.targetRepsHigh?.toString() ?? "");
   const [restSeconds, setRestSeconds] = useState(item.targetRestSeconds?.toString() ?? "");
+  const [targetWeight, setTargetWeight] = useState(formatNumericField(item.targetWeight));
+  const [progressionEnabled, setProgressionEnabled] = useState(item.progressionIncrement != null);
+  const [increment, setIncrement] = useState(
+    formatNumericField(item.progressionIncrement) ||
+      String(suggestedWeeklyIncrement(exerciseMechanic, units)),
+  );
   const [notes, setNotes] = useState(item.notes ?? "");
+
+  // Editing the baseline weight moves the progression's anchor to now, so
+  // next week's suggestion is one increment past what was just typed rather
+  // than stacking on top of however many weeks had already elapsed.
+  function commitTargetWeight() {
+    const patch: Partial<RoutineExerciseRowEntity> = {
+      targetWeight: toNumericStringOrNull(targetWeight),
+    };
+    if (progressionEnabled) patch.progressionStartedAt = new Date();
+    onUpdate(patch);
+  }
+
+  function toggleProgression(enabled: boolean) {
+    setProgressionEnabled(enabled);
+    onUpdate({
+      progressionIncrement: enabled ? toNumericStringOrNull(increment) : null,
+      progressionStartedAt: enabled ? new Date() : null,
+    });
+  }
+
+  function commitIncrement() {
+    if (!progressionEnabled) return;
+    onUpdate({ progressionIncrement: toNumericStringOrNull(increment) });
+  }
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -115,6 +168,44 @@ export function RoutineExerciseRow({ item, exerciseName, onUpdate, onRemove }: P
             className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
         </label>
+        <label className="flex flex-col gap-1 text-xs font-medium">
+          Weight ({units})
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            value={targetWeight}
+            onChange={(event) => setTargetWeight(event.target.value)}
+            onBlur={commitTargetWeight}
+            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 pl-10">
+        <label className="flex items-center gap-1.5 text-xs font-medium">
+          <input
+            type="checkbox"
+            checked={progressionEnabled}
+            onChange={(event) => toggleProgression(event.target.checked)}
+            className="h-4 w-4"
+          />
+          Auto-increase weekly
+        </label>
+        {progressionEnabled && (
+          <label className="flex items-center gap-1 text-xs font-medium">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              value={increment}
+              onChange={(event) => setIncrement(event.target.value)}
+              onBlur={commitIncrement}
+              className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            />
+            {units}/week
+          </label>
+        )}
       </div>
 
       <label className="flex flex-col gap-1 pl-10 text-xs font-medium">

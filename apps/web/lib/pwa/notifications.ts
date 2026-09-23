@@ -26,7 +26,8 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * changed. Update this string alongside whatever shipped — it's the only
  * place the notification's content lives.
  */
-export const LATEST_RELEASE_NOTE = "You can now delete a workout from its history page.";
+export const LATEST_RELEASE_NOTE =
+  "Routine exercises can now auto-increase their target weight week over week.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
