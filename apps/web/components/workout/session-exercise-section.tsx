@@ -12,12 +12,17 @@ import {
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
 import { SET_KINDS, type SetKind } from "@/lib/sessions/set-kinds";
+import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
+import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
   type PreviousSet,
+  STRENGTH_STANDARD_TIERS,
   prefillWeightForFirstSet,
   resolveCurrentRows,
+  standardLiftForSlug,
+  suggestedWeightsByTier,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { RotateCcw, Trash2 } from "lucide-react";
@@ -127,6 +132,17 @@ export function SessionExerciseSection({
   const previous = previousByIndex.get(nextIndex);
   const lastSet = sets[sets.length - 1];
   const restSeconds = target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
+
+  // Strength-standard weight suggestions (#94): only for the four lifts
+  // packages/core has published standards for, and only once sex + bodyweight
+  // are on the profile (age is optional — see strengthProfileFromSettings).
+  const standardLift = useMemo(() => standardLiftForSlug(exercise?.slug), [exercise?.slug]);
+  const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
+  const suggestionReps = toNumberOrNull(reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
+  const suggestedWeights = useMemo(() => {
+    if (!standardLift || !strengthProfile) return null;
+    return suggestedWeightsByTier(standardLift, strengthProfile, suggestionReps);
+  }, [standardLift, strengthProfile, suggestionReps]);
 
   useEffect(() => {
     setWeight((current) =>
@@ -286,6 +302,24 @@ export function SessionExerciseSection({
           Target: {target.targetSets ?? "—"} × {target.targetRepsLow ?? "—"}–
           {target.targetRepsHigh ?? "—"}
         </p>
+      )}
+
+      {suggestedWeights && (
+        <div className="flex flex-col gap-1.5">
+          <p className={sizes.meta}>Suggested for {suggestionReps} reps, by strength standard:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {STRENGTH_STANDARD_TIERS.map((tier) => (
+              <button
+                key={tier}
+                type="button"
+                onClick={() => setWeight(String(suggestedWeights[tier]))}
+                className="min-h-8 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+              >
+                {STRENGTH_TIER_LABELS[tier]} {suggestedWeights[tier]}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {(!large || sets.length > 0) && (

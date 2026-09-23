@@ -1,4 +1,5 @@
 import { AccentColorSection } from "@/components/profile/accent-color-section";
+import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
@@ -14,6 +15,7 @@ export function ProfileHome({ email }: { email?: string }) {
         {email && <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
       </div>
       <ProfileForm />
+      <BodyStatsSection />
       <ColorSchemeSection />
       <AccentColorSection />
       <FontFamilySection />

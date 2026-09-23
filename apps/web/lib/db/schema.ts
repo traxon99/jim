@@ -69,6 +69,10 @@ export type SettingsRow = Pick<
   | "colorScheme"
   | "accentColor"
   | "fontFamily"
+  | "sex"
+  | "birthdate"
+  | "heightCm"
+  | "bodyweight"
 > & { id: "me" };
 
 export class JimDatabase extends Dexie {

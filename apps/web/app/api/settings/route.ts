@@ -7,6 +7,8 @@ const UNITS = new Set(["lb", "kg"]);
 const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
 const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose"]);
 const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
+const SEXES = new Set(["male", "female"]);
+const BIRTHDATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 interface SettingsPayload {
   units: "lb" | "kg";
@@ -17,6 +19,10 @@ interface SettingsPayload {
   colorScheme: "system" | "light" | "dark";
   accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose";
   fontFamily: "sans" | "serif" | "mono";
+  sex: "male" | "female" | null;
+  birthdate: string | null;
+  heightCm: string | null;
+  bodyweight: string | null;
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -29,6 +35,10 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     colorScheme: row.colorScheme,
     accentColor: row.accentColor,
     fontFamily: row.fontFamily,
+    sex: row.sex,
+    birthdate: row.birthdate,
+    heightCm: row.heightCm,
+    bodyweight: row.bodyweight,
   };
 }
 
@@ -93,6 +103,24 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("fontFamily" in candidate && !FONT_FAMILIES.has(candidate.fontFamily as string)) {
     return false;
   }
+  if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
+    return false;
+  }
+  if (
+    "birthdate" in candidate &&
+    candidate.birthdate !== null &&
+    (typeof candidate.birthdate !== "string" || !BIRTHDATE_PATTERN.test(candidate.birthdate))
+  ) {
+    return false;
+  }
+  if ("heightCm" in candidate && candidate.heightCm !== null) {
+    const n = Number(candidate.heightCm);
+    if (!Number.isFinite(n) || n <= 0) return false;
+  }
+  if ("bodyweight" in candidate && candidate.bodyweight !== null) {
+    const n = Number(candidate.bodyweight);
+    if (!Number.isFinite(n) || n <= 0) return false;
+  }
   return true;
 }
 
@@ -125,6 +153,14 @@ export async function PATCH(request: Request) {
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
       if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
       if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;
+      if (body.sex !== undefined) patch.sex = body.sex;
+      if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
+      if (body.heightCm !== undefined) {
+        patch.heightCm = body.heightCm === null ? null : String(body.heightCm);
+      }
+      if (body.bodyweight !== undefined) {
+        patch.bodyweight = body.bodyweight === null ? null : String(body.bodyweight);
+      }
 
       const [row] = await tx.update(users).set(patch).where(eq(users.id, userId)).returning();
       if (!row) throw new Error("Settings row disappeared mid-update");

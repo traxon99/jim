@@ -11,4 +11,8 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   colorScheme: "system",
   accentColor: "zinc",
   fontFamily: "sans",
+  sex: null,
+  birthdate: null,
+  heightCm: null,
+  bodyweight: null,
 };
