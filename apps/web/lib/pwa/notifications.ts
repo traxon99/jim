@@ -26,8 +26,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * changed. Update this string alongside whatever shipped — it's the only
  * place the notification's content lives.
  */
-export const LATEST_RELEASE_NOTE =
-  "The estimated 1RM chart now shows your current number plus min/max reference values.";
+export const LATEST_RELEASE_NOTE = "You can now delete a workout from its history page.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
