@@ -1,6 +1,6 @@
 ---
 name: auto-ship
-description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR linked to the issue, babysit that PR until CI and review checks are green, merge it, and move the issue to In review once the merge is in and CI is green. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
+description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR that closes the issue with a closing keyword (so GitHub links them in the Development panel), babysit that PR until CI and review checks are green, and merge it — the issue auto-closes with the merge. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
 ---
 
 # Auto-ship
@@ -17,8 +17,8 @@ happened — don't treat it as paperwork bolted on after the fact.
 
 Don't skip the verification or documentation stages to get to green faster — a fast merge of
 something broken or undocumented isn't a win. The run ends with the code merged, CI green, and the
-issue in **In review**; the user checks it live and closes the issue themselves. Don't wait on or
-try to confirm the Vercel deploy.
+issue **auto-closed by the merge** (step 8 explains the tradeoff this means accepting). Don't wait
+on or try to confirm the Vercel deploy.
 
 ## 1. Find or create the tracking issue
 
@@ -129,10 +129,14 @@ instructions) and populate it; if there's none, structure the body as Summary / 
 is also where the documentation from step 6 lands — embed the written verification summary (and a
 screenshot, if one was taken) in the body, don't leave it only in chat.
 
-Reference the tracking issue with a non-closing keyword — **`Refs #NN`** or **`Part of #NN`**, not
-`Fixes`/`Closes`/`Resolves`. Those closing keywords would auto-close the issue the moment the PR
-merges, skipping the In review stage the user closes from. Comment on the issue with the PR link;
-leave it in "In progress" — it moves to "In review" only after the merge (step 9).
+Reference the tracking issue with a closing keyword — **`Fixes #NN`** (`Closes #NN` / `Resolves #NN`
+work the same) — in the PR body. This is a deliberate tradeoff: a closing keyword is what makes
+GitHub add the PR to the issue's **Development** panel (the actual linked-issue box, not just a
+text cross-reference) — but it also means the issue closes automatically the instant the PR merges.
+There's no open "In review" window afterward for the user to check the change live before it closes;
+that check now happens after the fact, and reopening the issue is how they flag it if something's
+wrong. Comment on the issue with the PR link before merging; leave it in "In progress" — closing
+happens automatically with the merge (step 9), not as a separate action here.
 
 ## 9. Babysit to green, then merge — don't stop at "opened"
 
@@ -157,25 +161,29 @@ Concretely:
   weakening an assertion, force-pushing past a conflict) — a merge bought that way isn't done, it's
   hidden.
 
-## 10. Move the issue to In review
+## 10. Confirm the auto-close
 
-Once the PR is merged **and** CI is green on the merged head, comment on the issue that it's merged
-(with the PR link) and move it to **In review** (project `Status` field, or a comment if no project
-is linked, per step 2). That's the end state for this run:
+The closing keyword from step 8 means GitHub closes the tracking issue itself the moment the merge
+lands — there's no separate status move to make here. Once the PR is merged **and** CI is green on
+the merged head, confirm the issue actually closed (`issue_read`) and, if the project has custom
+fields (step 2), set its `Status` to **Done** — GitHub's auto-close doesn't touch project fields, so
+that part is still yours to do. If this repo's `In review`-style label convention is in play instead,
+drop that label on the now-closed issue (closed issues in this repo don't carry it) rather than
+leaving it stuck mid-flow.
 
 - **Don't wait for or try to confirm the deploy.** Vercel deploys `main` on its own
   (`docs/DECISIONS.md` ADR-004); checking that the change is live is the user's review, not this
-  skill's job.
-- **Don't close the issue.** The user closes it (and moves it to Done) after checking the change
-  themselves.
+  skill's job — it now happens after the issue is already closed rather than before.
 - If checks on the merged head come back red, that's still work: fix it on a new branch/PR off
-  `main` (the previous PR is already merged), repeat steps 7–10 for the fix, and only then move the
-  issue to In review.
+  `main` (the previous PR is already merged), repeat steps 7–10 for the fix. The original issue is
+  already closed by then — reopen it for the fix if it's the same bug reappearing, or open a fresh
+  issue if it's better tracked separately.
 
 ## When you're done
 
 Tell the user, in one short message: what merged, the issue and PR it went through (numbers +
-links), and that the issue is now in In review waiting on them. If something blocked the loop (a
+links), and that the issue closed automatically with the merge — so it's on them to flag it (by
+reopening the issue) if checking it live turns up a problem. If something blocked the loop (a
 required review, a failure you couldn't safely resolve, an ambiguous product decision the code
 itself can't settle), say exactly what's blocking and where things — and the issue — were left,
 rather than declaring victory.
