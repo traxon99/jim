@@ -35,6 +35,11 @@ function nextTierHint(standard: {
   return `${STRENGTH_TIER_LABELS[upcoming]} standard: ${standard.thresholds[upcoming]}`;
 }
 
+/** Every PR eligible for classification gets a badge — "Below Beginner" included, rather than none at all. */
+function tierBadgeLabel(tier: StrengthStandardTier | null): string {
+  return tier ? STRENGTH_TIER_LABELS[tier] : "Below Beginner";
+}
+
 export function PrList() {
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
@@ -125,9 +130,15 @@ export function PrList() {
                 >
                   {group.name}
                 </Link>
-                {group.standard?.tier && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                    {STRENGTH_TIER_LABELS[group.standard.tier]}
+                {group.standard && (
+                  <span
+                    className={
+                      group.standard.tier
+                        ? "rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
+                        : "rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                    }
+                  >
+                    {tierBadgeLabel(group.standard.tier)}
                   </span>
                 )}
               </div>
