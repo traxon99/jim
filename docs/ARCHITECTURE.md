@@ -190,8 +190,10 @@ so layout must be fluid rather than pinned to one width.
   stop pull-to-refresh and rubber-banding inside the standalone shell.
 - `-webkit-tap-highlight-color: transparent` on every control — the grey tap flash reads as browser.
 - Long-press context menu and text selection suppressed **only when installed** (`body.pwa`, set by
-  `components/pwa-chrome.tsx`), with links, media, text entry, and `.allow-pwa-select` regions
-  (errors, logged numbers) opted back in. Outside the installed app both stay untouched.
+  `components/pwa-chrome.tsx`), with hyperlinks, media, text entry, and `.allow-pwa-select` regions
+  (errors, logged numbers) opted back in. A button styled as an `<a>` (`[data-ripple]`, e.g. the
+  bottom tab bar) is not a hyperlink and stays suppressed, so long-pressing it doesn't surface
+  "Open in New Tab" and break the native feel. Outside the installed app both stay untouched.
 - Minimum 44 × 44pt tap targets; primary logging controls sit in the bottom third (thumb zone).
 - `inputmode="decimal"` on weight, `inputmode="numeric"` on reps.
 - **Screen Wake Lock API** (Safari 16.4+) held for the duration of an active session.

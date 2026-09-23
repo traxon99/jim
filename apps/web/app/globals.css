@@ -233,8 +233,11 @@ body.pwa .allow-pwa-select * {
 }
 
 /* Mirrors CONTEXT_MENU_ALLOWED_SELECTOR in lib/pwa/context-menu.ts — where
- * the real context menu survives, the iOS callout should too. */
-body.pwa a[href],
+ * the real context menu survives, the iOS callout should too. A
+ * [data-ripple] anchor is a button, not a hyperlink, so it's excluded here
+ * the same way: iOS raises its own callout ahead of the contextmenu event
+ * (see the `body.pwa` rule above), so the JS listener alone can't stop it. */
+body.pwa a[href]:not([data-ripple]),
 body.pwa img,
 body.pwa video,
 body.pwa audio,
