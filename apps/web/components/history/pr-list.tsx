@@ -4,6 +4,7 @@ import { db } from "@/lib/db/schema";
 import { toPersonalRecordEntries } from "@/lib/history/pr-data";
 import { type PrKind, currentPersonalRecords } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -59,8 +60,12 @@ export function PrList() {
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div className="flex items-center gap-2">
-        <Link href="/history" className="text-sm font-medium underline underline-offset-4">
-          ← History
+        <Link
+          href="/history"
+          className="flex min-h-11 items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-500"
+        >
+          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          History
         </Link>
       </div>
       <h1 className="text-xl font-semibold">Personal records</h1>
