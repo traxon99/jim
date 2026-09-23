@@ -21,7 +21,7 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { RotateCcw, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { SetRow } from "./set-row";
 
 interface Props {
@@ -66,11 +66,12 @@ function sizesFor(large: boolean) {
       ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
       : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
     logButton: large
-      ? "min-h-12 rounded-md bg-zinc-950 px-4 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+      ? "min-h-14 flex-1 rounded-lg bg-zinc-950 px-4 text-lg font-semibold text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
       : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
     repeatButton: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+      ? "flex min-h-14 min-w-14 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
       : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
+    fieldLabel: "flex flex-col gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-400",
     icon: large ? "h-5 w-5" : "h-4 w-4",
     notesLabel: large
       ? "flex flex-col gap-1 text-base font-medium"
@@ -93,6 +94,7 @@ export function SessionExerciseSection({
   onRemove,
 }: Props) {
   const sizes = sizesFor(large);
+  const fieldId = useId();
   const rawSets = useLiveQuery(
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
     [item.id],
@@ -188,8 +190,80 @@ export function SessionExerciseSection({
     });
   }
 
+  const weightInput = (
+    <input
+      id={`${fieldId}-weight`}
+      type="number"
+      inputMode="decimal"
+      placeholder={previous?.weight?.toString() ?? ""}
+      value={weight}
+      onChange={(event) => setWeight(event.target.value)}
+      className={sizes.input}
+    />
+  );
+  const repsInput = (
+    <input
+      id={`${fieldId}-reps`}
+      type="number"
+      inputMode="numeric"
+      placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
+      value={reps}
+      onChange={(event) => setReps(event.target.value)}
+      className={sizes.input}
+    />
+  );
+  const rpeInput = (
+    <input
+      id={`${fieldId}-rpe`}
+      type="number"
+      inputMode="decimal"
+      min={1}
+      max={10}
+      step={0.5}
+      placeholder="—"
+      value={rpe}
+      onChange={(event) => setRpe(event.target.value)}
+      className={sizes.input}
+    />
+  );
+  const kindSelect = (
+    <select
+      id={`${fieldId}-kind`}
+      value={kind}
+      onChange={(event) => setKind(event.target.value as SetKind)}
+      className={sizes.input}
+    >
+      {SET_KINDS.map((k) => (
+        <option key={k} value={k}>
+          {k}
+        </option>
+      ))}
+    </select>
+  );
+  const logButton = (
+    <button type="button" onClick={() => void logDraft()} className={sizes.logButton}>
+      {large ? `Log set ${nextIndex + 1}` : "Log"}
+    </button>
+  );
+  const repeatButton = lastSet && (
+    <button
+      type="button"
+      onClick={() => void repeatLast()}
+      aria-label="Repeat last set"
+      className={sizes.repeatButton}
+    >
+      <RotateCcw className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
+    </button>
+  );
+
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+    <section
+      className={
+        large
+          ? "flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+          : "flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+      }
+    >
       <div className="flex items-start justify-between gap-2">
         <h2 className={sizes.title}>{exercise?.name ?? "Exercise"}</h2>
         <button
@@ -214,95 +288,76 @@ export function SessionExerciseSection({
         </p>
       )}
 
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className={sizes.headerRow}>
-            <th className={`w-8 ${sizes.headerCell}`}>Set</th>
-            <th className={sizes.headerCell}>Weight</th>
-            <th className={sizes.headerCell}>Reps</th>
-            <th className={sizes.headerCell}>RPE</th>
-            <th className={sizes.headerCell}>Kind</th>
-            <th className={sizes.headerCell} />
-          </tr>
-        </thead>
-        <tbody>
-          {sets.map((set, i) => (
-            <SetRow
-              key={set.id}
-              set={set}
-              index={i}
-              isPr={prsBySetId.has(set.id)}
-              large={large}
-              onEdit={(patch) => void handleEdit(set, patch)}
-              onDelete={() => void deleteSet(set)}
-            />
-          ))}
-          <tr>
-            <td className={sizes.indexCell}>{nextIndex + 1}</td>
-            <td className={sizes.cell}>
-              <input
-                type="number"
-                inputMode="decimal"
-                placeholder={previous?.weight?.toString() ?? ""}
-                value={weight}
-                onChange={(event) => setWeight(event.target.value)}
-                className={sizes.input}
+      {(!large || sets.length > 0) && (
+        <table className="w-full border-collapse text-left">
+          <thead>
+            <tr className={sizes.headerRow}>
+              <th className={`w-8 ${sizes.headerCell}`}>Set</th>
+              <th className={sizes.headerCell}>Weight</th>
+              <th className={sizes.headerCell}>Reps</th>
+              <th className={sizes.headerCell}>RPE</th>
+              <th className={sizes.headerCell}>Kind</th>
+              <th className={sizes.headerCell} />
+            </tr>
+          </thead>
+          <tbody>
+            {sets.map((set, i) => (
+              <SetRow
+                key={set.id}
+                set={set}
+                index={i}
+                isPr={prsBySetId.has(set.id)}
+                large={large}
+                onEdit={(patch) => void handleEdit(set, patch)}
+                onDelete={() => void deleteSet(set)}
               />
-            </td>
-            <td className={sizes.cell}>
-              <input
-                type="number"
-                inputMode="numeric"
-                placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
-                value={reps}
-                onChange={(event) => setReps(event.target.value)}
-                className={sizes.input}
-              />
-            </td>
-            <td className={sizes.cell}>
-              <input
-                type="number"
-                inputMode="decimal"
-                min={1}
-                max={10}
-                step={0.5}
-                placeholder="—"
-                value={rpe}
-                onChange={(event) => setRpe(event.target.value)}
-                className={sizes.input}
-              />
-            </td>
-            <td className={sizes.cell}>
-              <select
-                value={kind}
-                onChange={(event) => setKind(event.target.value as SetKind)}
-                className={sizes.input}
-              >
-                {SET_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                  </option>
-                ))}
-              </select>
-            </td>
-            <td className={sizes.actionCell}>
-              <button type="button" onClick={() => void logDraft()} className={sizes.logButton}>
-                Log
-              </button>
-              {lastSet && (
-                <button
-                  type="button"
-                  onClick={() => void repeatLast()}
-                  aria-label="Repeat last set"
-                  className={sizes.repeatButton}
-                >
-                  <RotateCcw className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-                </button>
-              )}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            ))}
+            {!large && (
+              <tr>
+                <td className={sizes.indexCell}>{nextIndex + 1}</td>
+                <td className={sizes.cell}>{weightInput}</td>
+                <td className={sizes.cell}>{repsInput}</td>
+                <td className={sizes.cell}>{rpeInput}</td>
+                <td className={sizes.cell}>{kindSelect}</td>
+                <td className={sizes.actionCell}>
+                  {logButton}
+                  {repeatButton}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+
+      {large && (
+        <div className="flex flex-col gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
+          <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Set {nextIndex + 1}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className={sizes.fieldLabel}>
+              <label htmlFor={`${fieldId}-weight`}>Weight</label>
+              {weightInput}
+            </div>
+            <div className={sizes.fieldLabel}>
+              <label htmlFor={`${fieldId}-reps`}>Reps</label>
+              {repsInput}
+            </div>
+            <div className={sizes.fieldLabel}>
+              <label htmlFor={`${fieldId}-rpe`}>RPE</label>
+              {rpeInput}
+            </div>
+            <div className={sizes.fieldLabel}>
+              <label htmlFor={`${fieldId}-kind`}>Kind</label>
+              {kindSelect}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {logButton}
+            {repeatButton}
+          </div>
+        </div>
+      )}
 
       <label className={sizes.notesLabel}>
         Exercise notes
