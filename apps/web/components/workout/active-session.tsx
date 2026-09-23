@@ -3,13 +3,13 @@
 import { ExercisePicker } from "@/components/exercise-picker";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
-import { type ExerciseRow, type RoutineExerciseRow, db } from "@/lib/db/schema";
+import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
 import { finalizeSession } from "@/lib/sessions/finalize-session";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
-import { uuidv7 } from "@jim/core";
+import { resolveCurrentRows, resolveFocusedExerciseIndex, uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notes, setNotes] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
   const session = useLiveQuery(async () => (await db.sessions.get(id)) ?? null, [id]);
   const rawSessionExercises = useLiveQuery(
@@ -64,6 +66,41 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
     return map;
   }, [rawRoutineExercises]);
+
+  const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
+  const idsKey = sessionExerciseIds.join(",");
+  const rawSets = useLiveQuery(
+    () =>
+      sessionExerciseIds.length > 0
+        ? db.sets.where("sessionExerciseId").anyOf(sessionExerciseIds).toArray()
+        : Promise.resolve<SetRow[]>([]),
+    [idsKey],
+  );
+
+  const loggedSetCountBySessionExerciseId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const set of resolveCurrentRows(rawSets ?? []).filter((s) => !s.deletedAt)) {
+      map.set(set.sessionExerciseId, (map.get(set.sessionExerciseId) ?? 0) + 1);
+    }
+    return map;
+  }, [rawSets]);
+
+  const focusCandidates = useMemo(
+    () =>
+      sessionExercises.map((se) => ({
+        loggedSetCount: loggedSetCountBySessionExerciseId.get(se.id) ?? 0,
+        targetSetCount: targetByExerciseId.get(se.exerciseId)?.targetSets ?? null,
+      })),
+    [sessionExercises, loggedSetCountBySessionExerciseId, targetByExerciseId],
+  );
+
+  const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
+  const focusedItem = sessionExercises[clampedFocusedIndex];
+
+  function handleToggleFocusMode() {
+    if (!focusMode) setFocusedIndex(resolveFocusedExerciseIndex(focusCandidates));
+    setFocusMode((prev) => !prev);
+  }
 
   const currentNotes = notes ?? session?.notes ?? "";
 
@@ -168,21 +205,71 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         </button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {sessionExercises.map((item) => (
+      {sessionExercises.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleToggleFocusMode}
+            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium dark:border-zinc-700"
+          >
+            {focusMode ? "Show all exercises" : "Focus on current exercise"}
+          </button>
+        </div>
+      )}
+
+      {focusMode && focusedItem ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setFocusedIndex((i) => Math.max(0, i - 1))}
+              disabled={clampedFocusedIndex === 0}
+              className="min-h-12 rounded-lg border border-zinc-300 px-4 text-base font-medium disabled:opacity-40 dark:border-zinc-700"
+            >
+              ← Previous
+            </button>
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-500">
+              Exercise {clampedFocusedIndex + 1} of {sessionExercises.length}
+            </p>
+            <button
+              type="button"
+              onClick={() => setFocusedIndex((i) => Math.min(sessionExercises.length - 1, i + 1))}
+              disabled={clampedFocusedIndex === sessionExercises.length - 1}
+              className="min-h-12 rounded-lg bg-zinc-950 px-4 text-base font-medium text-zinc-50 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-950"
+            >
+              Next exercise →
+            </button>
+          </div>
           <SessionExerciseSection
-            key={item.id}
+            key={focusedItem.id}
             sessionId={id}
             userId={userId}
-            item={item}
-            exercise={exerciseById.get(item.exerciseId)}
-            target={targetByExerciseId.get(item.exerciseId)}
+            item={focusedItem}
+            exercise={exerciseById.get(focusedItem.exerciseId)}
+            target={targetByExerciseId.get(focusedItem.exerciseId)}
             settings={settings}
+            large
             onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
-            onRemove={() => void handleRemoveExercise(item.id)}
+            onRemove={() => void handleRemoveExercise(focusedItem.id)}
           />
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {sessionExercises.map((item) => (
+            <SessionExerciseSection
+              key={item.id}
+              sessionId={id}
+              userId={userId}
+              item={item}
+              exercise={exerciseById.get(item.exerciseId)}
+              target={targetByExerciseId.get(item.exerciseId)}
+              settings={settings}
+              onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
+              onRemove={() => void handleRemoveExercise(item.id)}
+            />
+          ))}
+        </div>
+      )}
 
       {sessionExercises.length === 0 && (
         <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-500">

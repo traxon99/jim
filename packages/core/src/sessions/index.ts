@@ -3,3 +3,4 @@ export * from "./rest-timer";
 export * from "./personal-records";
 export * from "./session-summary";
 export * from "./previous-performance";
+export * from "./focus-exercise";

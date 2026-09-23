@@ -25,6 +25,7 @@ interface Props {
   exercise: ExerciseRow | undefined;
   target: RoutineExerciseRow | undefined;
   settings: SettingsRow;
+  large?: boolean;
   onSetLogged: (restSeconds: number) => void;
   onRemove: () => void;
 }
@@ -35,6 +36,44 @@ function toNumberOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function sizesFor(large: boolean) {
+  return {
+    title: large ? "text-2xl font-bold" : "text-base font-semibold",
+    removeButton: large
+      ? "min-h-12 px-2 text-base font-medium text-red-600 dark:text-red-500"
+      : "min-h-11 px-1 text-xs font-medium text-red-600 dark:text-red-500",
+    meta: large
+      ? "text-base text-zinc-500 dark:text-zinc-500"
+      : "text-xs text-zinc-500 dark:text-zinc-500",
+    headerRow: large
+      ? "border-b border-zinc-200 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500"
+      : "border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500",
+    headerCell: large ? "py-2 pr-3 font-medium" : "py-1 pr-2 font-medium",
+    indexCell: large
+      ? "py-3 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
+      : "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    cell: large ? "py-3 pr-3 align-middle" : "py-2 pr-2 align-middle",
+    actionCell: large
+      ? "py-3 pl-1 align-middle text-right whitespace-nowrap"
+      : "py-2 pl-1 align-middle text-right whitespace-nowrap",
+    input: large
+      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+      : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+    logButton: large
+      ? "min-h-12 rounded-md bg-zinc-950 px-4 text-base font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+      : "min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950",
+    repeatButton: large
+      ? "min-h-12 px-2 text-base font-medium underline underline-offset-4"
+      : "min-h-11 px-1.5 text-xs font-medium underline underline-offset-4",
+    notesLabel: large
+      ? "flex flex-col gap-1 text-base font-medium"
+      : "flex flex-col gap-1 text-xs font-medium",
+    notesInput: large
+      ? "rounded-lg border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+      : "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+  };
+}
+
 export function SessionExerciseSection({
   sessionId,
   userId,
@@ -42,9 +81,11 @@ export function SessionExerciseSection({
   exercise,
   target,
   settings,
+  large = false,
   onSetLogged,
   onRemove,
 }: Props) {
+  const sizes = sizesFor(large);
   const rawSets = useLiveQuery(
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
     [item.id],
@@ -128,23 +169,19 @@ export function SessionExerciseSection({
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-base font-semibold">{exercise?.name ?? "Exercise"}</h2>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="min-h-11 px-1 text-xs font-medium text-red-600 dark:text-red-500"
-        >
+        <h2 className={sizes.title}>{exercise?.name ?? "Exercise"}</h2>
+        <button type="button" onClick={onRemove} className={sizes.removeButton}>
           Remove
         </button>
       </div>
 
       {previous && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+        <p className={sizes.meta}>
           Last time: {previous.weight ?? "—"} × {previous.reps ?? "—"} — the number to beat
         </p>
       )}
       {!previous && target && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+        <p className={sizes.meta}>
           Target: {target.targetSets ?? "—"} × {target.targetRepsLow ?? "—"}–
           {target.targetRepsHigh ?? "—"}
         </p>
@@ -152,12 +189,12 @@ export function SessionExerciseSection({
 
       <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
-            <th className="w-8 py-1 pr-2 font-medium">Set</th>
-            <th className="py-1 pr-2 font-medium">Weight</th>
-            <th className="py-1 pr-2 font-medium">Reps</th>
-            <th className="py-1 pr-2 font-medium">Kind</th>
-            <th className="py-1 pl-1 font-medium" />
+          <tr className={sizes.headerRow}>
+            <th className={`w-8 ${sizes.headerCell}`}>Set</th>
+            <th className={sizes.headerCell}>Weight</th>
+            <th className={sizes.headerCell}>Reps</th>
+            <th className={sizes.headerCell}>Kind</th>
+            <th className={sizes.headerCell} />
           </tr>
         </thead>
         <tbody>
@@ -167,39 +204,38 @@ export function SessionExerciseSection({
               set={set}
               index={i}
               isPr={prsBySetId.has(set.id)}
+              large={large}
               onEdit={(patch) => void handleEdit(set, patch)}
               onDelete={() => void deleteSet(set)}
             />
           ))}
           <tr>
-            <td className="py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500">
-              {nextIndex + 1}
-            </td>
-            <td className="py-2 pr-2 align-middle">
+            <td className={sizes.indexCell}>{nextIndex + 1}</td>
+            <td className={sizes.cell}>
               <input
                 type="number"
                 inputMode="decimal"
                 placeholder={previous?.weight?.toString() ?? ""}
                 value={weight}
                 onChange={(event) => setWeight(event.target.value)}
-                className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                className={sizes.input}
               />
             </td>
-            <td className="py-2 pr-2 align-middle">
+            <td className={sizes.cell}>
               <input
                 type="number"
                 inputMode="numeric"
                 placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
                 value={reps}
                 onChange={(event) => setReps(event.target.value)}
-                className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                className={sizes.input}
               />
             </td>
-            <td className="py-2 pr-2 align-middle">
+            <td className={sizes.cell}>
               <select
                 value={kind}
                 onChange={(event) => setKind(event.target.value as SetKind)}
-                className="w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                className={sizes.input}
               >
                 {SET_KINDS.map((k) => (
                   <option key={k} value={k}>
@@ -208,19 +244,15 @@ export function SessionExerciseSection({
                 ))}
               </select>
             </td>
-            <td className="py-2 pl-1 align-middle text-right whitespace-nowrap">
-              <button
-                type="button"
-                onClick={() => void logDraft()}
-                className="min-h-11 rounded-md bg-zinc-950 px-2 text-xs font-medium text-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
-              >
+            <td className={sizes.actionCell}>
+              <button type="button" onClick={() => void logDraft()} className={sizes.logButton}>
                 Log
               </button>
               {lastSet && (
                 <button
                   type="button"
                   onClick={() => void repeatLast()}
-                  className="min-h-11 px-1.5 text-xs font-medium underline underline-offset-4"
+                  className={sizes.repeatButton}
                 >
                   Repeat
                 </button>
@@ -230,14 +262,14 @@ export function SessionExerciseSection({
         </tbody>
       </table>
 
-      <label className="flex flex-col gap-1 text-xs font-medium">
+      <label className={sizes.notesLabel}>
         Exercise notes
         <input
           type="text"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           onBlur={() => void handleNotesBlur()}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          className={sizes.notesInput}
         />
       </label>
     </section>
