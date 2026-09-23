@@ -24,6 +24,20 @@ export function mapPreviousSetsByIndex(sets: readonly PreviousSet[]): Map<number
 }
 
 /**
+ * An exercise's first set in a workout starts with last time's weight
+ * already filled in, rather than an empty field the lifter has to retype
+ * (issue #63) — every set after the first already has the one-tap "Repeat"
+ * button for that.
+ */
+export function prefillWeightForFirstSet(
+  nextIndex: number,
+  previous: PreviousSet | undefined,
+): string {
+  if (nextIndex !== 0 || previous?.weight == null) return "";
+  return String(previous.weight);
+}
+
+/**
  * Groups sets by `sessionExerciseId` and, given the exercise's own history
  * ordered newest-first, picks the most recent group that isn't the session
  * currently in progress — the "previous session" for this exercise.

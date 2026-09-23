@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { findPreviousSessionExerciseId, mapPreviousSetsByIndex } from "../previous-performance";
+import {
+  findPreviousSessionExerciseId,
+  mapPreviousSetsByIndex,
+  prefillWeightForFirstSet,
+} from "../previous-performance";
 
 describe("mapPreviousSetsByIndex", () => {
   it("indexes sets by their position in the exercise", () => {
@@ -36,5 +40,25 @@ describe("findPreviousSessionExerciseId", () => {
       "s-current",
     );
     expect(result).toBeNull();
+  });
+});
+
+describe("prefillWeightForFirstSet", () => {
+  const previous = { setIndex: 0, kind: "working", weight: 135, reps: 5, completedAt: new Date() };
+
+  it("fills the exercise's first set with last time's weight", () => {
+    expect(prefillWeightForFirstSet(0, previous)).toBe("135");
+  });
+
+  it("leaves later sets empty since 'Repeat' already covers them", () => {
+    expect(prefillWeightForFirstSet(1, previous)).toBe("");
+  });
+
+  it("leaves the first set empty when there's no history for it", () => {
+    expect(prefillWeightForFirstSet(0, undefined)).toBe("");
+  });
+
+  it("leaves the first set empty when the prior set's weight is bodyweight (null)", () => {
+    expect(prefillWeightForFirstSet(0, { ...previous, weight: null })).toBe("");
   });
 });
