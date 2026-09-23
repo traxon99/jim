@@ -5,6 +5,7 @@ import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import type { NextWorkout } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Layers } from "lucide-react";
 import Link from "next/link";
 
 interface Props {
@@ -95,8 +96,9 @@ export function UpNextCard({ starting, onStart }: Props) {
         </div>
         <Link
           href={`/routines/programs/${program.id}`}
-          className="shrink-0 text-sm font-medium underline underline-offset-4"
+          className="flex shrink-0 items-center gap-1 text-sm font-medium underline underline-offset-4"
         >
+          <Layers className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
           Program
         </Link>
       </div>
