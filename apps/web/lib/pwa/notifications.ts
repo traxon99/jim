@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "The workout pace chart now starts collapsed — tap it to expand the full chart.";
+  "The estimated 1RM chart now shows your current number plus min/max reference values.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
