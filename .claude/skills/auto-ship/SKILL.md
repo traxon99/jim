@@ -108,7 +108,21 @@ environment usually make a real browser run impractical from here — but if the
 actually exercise the feature (iPhone 16 viewport, ~393×852) without touching real user data, feel
 free to capture one and send it to the user directly.
 
-## 7. Open the PR
+## 7. Update the release note
+
+`apps/web/lib/pwa/notifications.ts` exports `LATEST_RELEASE_NOTE`, the body of the "Jim updated"
+push notification the service worker fires on every deploy (`components/register-service-worker.tsx`).
+It's a hand-written constant, not derived from commit history, so it goes stale — and because the
+service worker's precache manifest is rebuilt on every build (`scripts/generate-sw.mjs`), *every*
+merge to `main` re-fires that notification, stale text and all, whether or not this run touched it.
+
+Update `LATEST_RELEASE_NOTE` to describe what this run is shipping, in the same commit as the
+feature change. Keep it one short sentence, user-facing (what changed for them, not implementation
+detail), and phrased the way the rest of the file's notification copy reads. Skip this only for a
+change with nothing a user would notice (an internal refactor, a test-only change, dependency
+bumps) — everything else updates it.
+
+## 8. Open the PR
 
 Commit, push, and open the PR. Check for a PR template first (per the harness's standing PR
 instructions) and populate it; if there's none, structure the body as Summary / Verification. This
@@ -118,9 +132,9 @@ screenshot, if one was taken) in the body, don't leave it only in chat.
 Reference the tracking issue with a non-closing keyword — **`Refs #NN`** or **`Part of #NN`**, not
 `Fixes`/`Closes`/`Resolves`. Those closing keywords would auto-close the issue the moment the PR
 merges, skipping the In review stage the user closes from. Comment on the issue with the PR link;
-leave it in "In progress" — it moves to "In review" only after the merge (step 8).
+leave it in "In progress" — it moves to "In review" only after the merge (step 9).
 
-## 8. Babysit to green, then merge — don't stop at "opened"
+## 9. Babysit to green, then merge — don't stop at "opened"
 
 Subscribe to the PR's activity. From here, the harness's own PR-driving rules (merge conflicts,
 CI red, review-bot findings) already cover *how* to get a PR green — follow those as given, don't
@@ -143,7 +157,7 @@ Concretely:
   weakening an assertion, force-pushing past a conflict) — a merge bought that way isn't done, it's
   hidden.
 
-## 9. Move the issue to In review
+## 10. Move the issue to In review
 
 Once the PR is merged **and** CI is green on the merged head, comment on the issue that it's merged
 (with the PR link) and move it to **In review** (project `Status` field, or a comment if no project
@@ -155,7 +169,7 @@ is linked, per step 2). That's the end state for this run:
 - **Don't close the issue.** The user closes it (and moves it to Done) after checking the change
   themselves.
 - If checks on the merged head come back red, that's still work: fix it on a new branch/PR off
-  `main` (the previous PR is already merged), repeat steps 7–9 for the fix, and only then move the
+  `main` (the previous PR is already merged), repeat steps 7–10 for the fix, and only then move the
   issue to In review.
 
 ## When you're done
