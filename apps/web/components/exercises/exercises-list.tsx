@@ -1,27 +1,62 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
-import { filterExercises, preferOwnedExercises, searchExercises } from "@jim/core";
+import {
+  type ExerciseSortKey,
+  buildExerciseUsage,
+  filterExercises,
+  preferOwnedExercises,
+  searchExercises,
+  sortExercisesByUsage,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+
+const SORT_OPTIONS: { value: ExerciseSortKey; label: string }[] = [
+  { value: "name", label: "Name" },
+  { value: "lastPerformed", label: "Last performed" },
+  { value: "frequency", label: "Frequency" },
+];
 
 export function ExercisesList({ userId }: { userId: string }) {
   // Dexie live query: re-renders whenever the local catalog changes (a pull
   // landing, a new custom exercise), with no network on the read path.
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
+
+  // Every (non-deleted) sessionExercise joined with its (non-deleted)
+  // session's startedAt — the same shape previous-set-lookup.ts builds —
+  // flattened here so buildExerciseUsage can derive last-performed/frequency.
+  const usageRows = useLiveQuery(async () => {
+    const sessionExercises = (await db.sessionExercises.toArray()).filter((se) => !se.deletedAt);
+    if (sessionExercises.length === 0) return [];
+
+    const sessionIds = [...new Set(sessionExercises.map((se) => se.sessionId))];
+    const sessions = await db.sessions.bulkGet(sessionIds);
+    const sessionById = new Map(sessions.filter((s) => s != null).map((s) => [s.id, s]));
+
+    return sessionExercises.flatMap((se) => {
+      const session = sessionById.get(se.sessionId);
+      if (!session || session.deletedAt) return [];
+      return [{ exerciseId: se.exerciseId, sessionId: se.sessionId, startedAt: session.startedAt }];
+    });
+  }, []);
+
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState("");
+  const [sortKey, setSortKey] = useState<ExerciseSortKey>("name");
 
-  const { results, muscleOptions, equipmentOptions } = useMemo(() => {
+  const { results, muscleOptions, equipmentOptions, usage } = useMemo(() => {
     const rows = allExercises ?? [];
     const owned = preferOwnedExercises(rows, userId);
     const filtered = filterExercises(owned, {
       muscle: muscle || undefined,
       equipment: equipment || undefined,
     });
-    const ranked = searchExercises(filtered, query);
+    const usageByExerciseId = buildExerciseUsage(usageRows ?? []);
+    const sorted = sortExercisesByUsage(filtered, usageByExerciseId, sortKey);
+    const ranked = searchExercises(sorted, query);
 
     const muscleSet = new Set<string>();
     const equipmentSet = new Set<string>();
@@ -35,8 +70,9 @@ export function ExercisesList({ userId }: { userId: string }) {
       results: ranked,
       muscleOptions: [...muscleSet].sort(),
       equipmentOptions: [...equipmentSet].sort(),
+      usage: usageByExerciseId,
     };
-  }, [allExercises, userId, query, muscle, equipment]);
+  }, [allExercises, usageRows, userId, query, muscle, equipment, sortKey]);
 
   if (allExercises === undefined) {
     return (
@@ -95,26 +131,49 @@ export function ExercisesList({ userId }: { userId: string }) {
         </select>
       </div>
 
+      <label className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-500">
+        Sort by
+        <select
+          value={sortKey}
+          onChange={(event) => setSortKey(event.target.value as ExerciseSortKey)}
+          className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       {results.length === 0 ? (
         <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
           No exercises match.
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-          {results.map((exercise) => (
-            <li key={exercise.id}>
-              <Link
-                href={`/exercises/${exercise.id}`}
-                data-ripple
-                className="flex flex-col gap-0.5 py-3"
-              >
-                <span className="text-base font-medium">{exercise.name}</span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                  {[exercise.equipment, ...exercise.primaryMuscles].filter(Boolean).join(" · ")}
-                </span>
-              </Link>
-            </li>
-          ))}
+          {results.map((exercise) => {
+            const frequency = usage.get(exercise.id)?.frequency ?? 0;
+            return (
+              <li key={exercise.id}>
+                <Link
+                  href={`/exercises/${exercise.id}`}
+                  data-ripple
+                  className="flex items-center justify-between gap-2 py-3"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-base font-medium">{exercise.name}</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                      {[exercise.equipment, ...exercise.primaryMuscles].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+                    {frequency > 0 ? `${frequency}×` : "—"}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </main>

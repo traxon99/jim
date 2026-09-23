@@ -1,10 +1,12 @@
 import {
   type CatalogExercise,
   applyExerciseEdit,
+  buildExerciseUsage,
   filterExercises,
   preferOwnedExercises,
   resolveCurrentRows,
   searchExercises,
+  sortExercisesByUsage,
   uuidv7,
 } from "@jim/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -12,6 +14,7 @@ import { mutate } from "../../../lib/db/mutate";
 import {
   type ExerciseRow,
   type SessionExerciseRow,
+  type SessionRow,
   type SetRow,
   createTestDb,
 } from "../../../lib/db/schema";
@@ -131,6 +134,89 @@ function sessionExercise(overrides: Partial<SessionExerciseRow> = {}): SessionEx
     ...overrides,
   };
 }
+
+function session(overrides: Partial<SessionRow> = {}): SessionRow {
+  return {
+    id: uuidv7(),
+    userId: USER_ID,
+    routineId: null,
+    name: null,
+    startedAt: new Date(),
+    endedAt: new Date(),
+    notes: null,
+    bodyweight: null,
+    deviceId: "device-a",
+    updatedAt: new Date(),
+    deletedAt: null,
+    serverSeq: 0,
+    ...overrides,
+  };
+}
+
+/** Mirrors exercises-list.tsx's usageRows live query. */
+async function loadUsageRows(db: ReturnType<typeof createTestDb>) {
+  const sessionExercises = (await db.sessionExercises.toArray()).filter((se) => !se.deletedAt);
+  if (sessionExercises.length === 0) return [];
+
+  const sessionIds = [...new Set(sessionExercises.map((se) => se.sessionId))];
+  const sessions = await db.sessions.bulkGet(sessionIds);
+  const sessionById = new Map(sessions.filter((s) => s != null).map((s) => [s.id, s]));
+
+  return sessionExercises.flatMap((se) => {
+    const found = sessionById.get(se.sessionId);
+    if (!found || found.deletedAt) return [];
+    return [{ exerciseId: se.exerciseId, sessionId: se.sessionId, startedAt: found.startedAt }];
+  });
+}
+
+describe("exercises list frequency + ordering (against Dexie)", () => {
+  it("shows how many sessions trained each exercise and orders by frequency", async () => {
+    const bench = exercise({ id: uuidv7(), slug: "bench", name: "Bench Press" });
+    const squat = exercise({ id: uuidv7(), slug: "squat", name: "Squat" });
+    await mutate("exercises", bench, testDb);
+    await mutate("exercises", squat, testDb);
+
+    // Bench trained in two sessions, squat in one.
+    const s1 = session({ startedAt: new Date("2026-01-01") });
+    const s2 = session({ startedAt: new Date("2026-01-08") });
+    await testDb.sessions.bulkAdd([s1, s2]);
+    await testDb.sessionExercises.bulkAdd([
+      sessionExercise({ sessionId: s1.id, exerciseId: bench.id }),
+      sessionExercise({ sessionId: s2.id, exerciseId: bench.id }),
+      sessionExercise({ sessionId: s1.id, exerciseId: squat.id }),
+    ]);
+
+    const rows = await testDb.exercises.toArray();
+    const usageRows = await loadUsageRows(testDb);
+    const usage = buildExerciseUsage(usageRows);
+
+    expect(usage.get(bench.id)).toEqual({ lastPerformedAt: s2.startedAt, frequency: 2 });
+    expect(usage.get(squat.id)).toEqual({ lastPerformedAt: s1.startedAt, frequency: 1 });
+
+    const owned = preferOwnedExercises(rows, USER_ID);
+    const sorted = sortExercisesByUsage(owned, usage, "frequency");
+    expect(sorted.map((e) => e.name)).toEqual(["Bench Press", "Squat"]);
+  });
+
+  it("leaves a never-performed exercise out of usage and last in lastPerformed order", async () => {
+    const bench = exercise({ id: uuidv7(), slug: "bench", name: "Bench Press" });
+    const curl = exercise({ id: uuidv7(), slug: "curl", name: "Curl" });
+    await mutate("exercises", bench, testDb);
+    await mutate("exercises", curl, testDb);
+
+    const s1 = session({ startedAt: new Date("2026-01-01") });
+    await testDb.sessions.add(s1);
+    await testDb.sessionExercises.add(sessionExercise({ sessionId: s1.id, exerciseId: bench.id }));
+
+    const rows = await testDb.exercises.toArray();
+    const usage = buildExerciseUsage(await loadUsageRows(testDb));
+    expect(usage.has(curl.id)).toBe(false);
+
+    const owned = preferOwnedExercises(rows, USER_ID);
+    const sorted = sortExercisesByUsage(owned, usage, "lastPerformed");
+    expect(sorted.map((e) => e.name)).toEqual(["Bench Press", "Curl"]);
+  });
+});
 
 function set(overrides: Partial<SetRow> = {}): SetRow {
   return {

@@ -5,3 +5,4 @@ export * from "./dedupe";
 export * from "./copy-on-write";
 export * from "./muscles";
 export * from "./slugify";
+export * from "./usage";
