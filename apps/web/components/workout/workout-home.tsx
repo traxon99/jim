@@ -1,5 +1,6 @@
 "use client";
 
+import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { groupRoutinesByFolder } from "@jim/core";
@@ -103,7 +104,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
               <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
                 {group.routines.map((routine) => (
                   <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
-                    <span className="text-base font-medium">{routine.name}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                      <span className="truncate text-base font-medium">{routine.name}</span>
+                    </span>
                     <button
                       type="button"
                       onClick={() => void handleStartFromRoutine(routine.id, routine.name)}

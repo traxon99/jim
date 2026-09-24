@@ -1,5 +1,6 @@
 "use client";
 
+import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
@@ -87,7 +88,10 @@ export function UpNextCard({ starting, onStart }: Props) {
           <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
             {heading(next)}
           </span>
-          <span className="truncate text-lg font-semibold">{routine.name}</span>
+          <span className="flex min-w-0 items-center gap-2 text-lg font-semibold">
+            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
+            <span className="truncate">{routine.name}</span>
+          </span>
           <span className="text-xs text-zinc-500 dark:text-zinc-500">
             {program.name}
             {exerciseCount !== undefined &&

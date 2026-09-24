@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
@@ -295,7 +296,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{session.name ?? "Workout"}</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <RoutineIconById routineId={session.routineId} className="h-5 w-5" />
+            {session.name ?? "Workout"}
+          </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
             Started{" "}
             {session.startedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
@@ -355,6 +359,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       {focusMode && focusedItem ? (
         <FocusView
           title={session.name ?? "Workout"}
+          titleIcon={<RoutineIconById routineId={session.routineId} />}
           exercises={focusCandidates}
           index={clampedFocusedIndex}
           onIndexChange={(i) =>

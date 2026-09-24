@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Routine icons now come in more outline shapes, look sharper in dark mode, and new routines get a fresh random icon.";
+  "Routine icons now show up wherever the routine does — the Workout tab, Up next, programs, your active workout and history.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
