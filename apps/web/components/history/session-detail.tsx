@@ -5,6 +5,7 @@ import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { deleteSession } from "@/lib/sessions/finalize-session";
+import { setKindLabel } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -181,8 +182,8 @@ export function SessionDetail({ id }: { id: string }) {
                               : "—"}
                     </span>
                     {set.kind !== "working" && (
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs capitalize text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                        {set.kind}
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        {setKindLabel(set.kind)}
                       </span>
                     )}
                   </span>

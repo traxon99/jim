@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Weight and reps now show as a suggestion instead of filling the field — tap log to use it, or type your own.";
+  "Tap a set's number to quickly mark it warmup, working, or failure — drop sets are gone, and the exercise card is tidier without a separate kind column.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
