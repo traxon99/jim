@@ -20,6 +20,7 @@
     "@jim/db": "workspace:*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
+    "@upstash/qstash": "^2.11.3",
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
     "drizzle-orm": "^0.45.2",

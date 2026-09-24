@@ -48,7 +48,7 @@ them produces silent data loss, which is the worst failure mode a workout logger
 | 1 | **Background Sync API does not exist on iOS.** Safari has never shipped it. | Sync cannot be driven by `sync` events. It is foreground-driven only. |
 | 2 | **Non-installed iOS web apps have storage evicted after 7 days of non-use.** Home-screen-installed PWAs are exempt. | The app hard-gates on install. Not a dismissible banner. |
 | 3 | **`navigator.vibrate` is unsupported on iOS**, and the app isn't installed as a PWA widely enough to rely on tricks that only work from a real user gesture in a standalone window. | No haptic feedback anywhere; `components/ripple-effect.tsx` gives taps a visual confirmation instead, and rest-timer completion uses audio + notification. |
-| 4 | **Background timers are unreliable.** | The rest timer derives from a stored absolute timestamp, recomputed on resume. Never `setInterval` accumulation. |
+| 4 | **Background timers are unreliable.** | The rest timer derives from a stored absolute timestamp, recomputed on resume. Never `setInterval` accumulation. Its completion notification is a server-scheduled Web Push (ADR-014), since the page can't run while backgrounded. |
 | 5 | **Web Push requires home-screen install**, and is unavailable in the EU under the DMA. | Acceptable here; noted so it is not discovered late. |
 
 As of iOS 26, anything added to the Home Screen opens as a web app by default, which makes the

@@ -226,6 +226,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     setFinalizing(true);
     try {
       const { cancelled } = await finalizeSession(session);
+      // A rest still counting down would otherwise push "Time for your
+      // next set" after the workout is over.
+      restTimer.skip();
       if (cancelled) router.replace("/workout");
     } finally {
       setFinalizing(false);
@@ -241,6 +244,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     setCancelling(true);
     try {
       await cancelSession(session);
+      restTimer.skip();
       // Replace, not push: the cancelled session's URL shouldn't stay in
       // history for Back to land on.
       router.replace("/workout");

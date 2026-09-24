@@ -46,13 +46,13 @@ export function releasePushMessage(releaseNote: string = LATEST_RELEASE_NOTE): P
 }
 
 /**
- * Shown when the rest timer finishes (lib/sessions/use-rest-timer.ts). Unlike
- * releasePushMessage, this never travels through the push service — it's
- * handed straight to ServiceWorkerRegistration.showNotification() from the
- * page (lib/pwa/push-client.ts's showLocalNotification), since the rest
- * timer is entirely client-side and foreground-driven (docs/ARCHITECTURE.md
- * §2, constraint 4). Same shape as PushMessage so both paths share one
- * notification-options builder.
+ * Shown when the rest timer finishes. Normally sent as a real Web Push at the
+ * rest's end instant, scheduled through QStash (app/api/push/rest-timer,
+ * docs/DECISIONS.md ADR-014), because iOS suspends a backgrounded page's JS
+ * and a page-side timer can't fire until the user returns. When that
+ * couldn't be scheduled (no push subscription on this device, push not
+ * configured, offline), lib/sessions/use-rest-timer.ts falls back to showing
+ * it from the page via showLocalNotification.
  */
 export function restCompleteMessage(): PushMessage {
   return {

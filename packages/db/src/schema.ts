@@ -645,3 +645,26 @@ export const pushSubscriptions = pgTable(
     ...ownRowPolicies("push_subscriptions", table.userId),
   ],
 ).enableRLS();
+
+// ---------------------------------------------------------------------------
+// rest_timer_pushes — at most one pending "Rest complete" push per user: the
+// rest period currently counting down, and which of the user's devices
+// started it. POST /api/push/rest-timer upserts it and schedules a delayed
+// QStash callback for `ends_at`; that callback (/api/push/rest-timer/fire)
+// only sends if the row still matches, so skipping (DELETE) or restarting
+// (a new upsert) a rest silently invalidates the earlier callback instead of
+// needing to cancel it. See docs/DECISIONS.md ADR-014.
+// ---------------------------------------------------------------------------
+
+export const restTimerPushes = pgTable(
+  "rest_timer_pushes",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [...ownRowPolicies("rest_timer_pushes", table.userId)],
+).enableRLS();

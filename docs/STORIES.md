@@ -150,7 +150,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - **Previous-session values shown inline** on each row as the number to beat
 - One-tap "repeat previous set"
 - Set kinds: warmup, working, drop, failure
-- Rest timer auto-starting on set completion — timestamp-derived (ADR/constraint 4), audio alert via an `AudioContext` primed on first gesture, no reliance on `navigator.vibrate`, plus a system notification via the service worker (ADR-013) so it reaches you even off-tab
+- Rest timer auto-starting on set completion — timestamp-derived (ADR/constraint 4), audio alert via an `AudioContext` primed on first gesture, no reliance on `navigator.vibrate`, plus a server-scheduled Web Push at the rest's end (ADR-014) so it reaches you even with Jim backgrounded
 - Plate-math breakdown from the user's configured bar and available plates
 - Live PR detection with inline celebration
 - Session and per-exercise notes

@@ -30,7 +30,7 @@ self.addEventListener("activate", (event) => {
 // tab or installed-app window is open. The page's own JS isn't running then,
 // so everything a notification needs travels in the push payload
 // (lib/pwa/notifications.ts's PushMessage, sent by
-// scripts/send-release-push.ts).
+// scripts/send-release-push.ts and app/api/push/rest-timer/fire/route.ts).
 // ---------------------------------------------------------------------------
 
 self.addEventListener("push", (event) => {
@@ -58,9 +58,7 @@ self.addEventListener("push", (event) => {
       // now lets the new version download and precache in the background, so
       // it's already there when the user opens Jim. A failure here (offline,
       // deploy not aliased yet) is harmless; the normal on-open check still runs.
-      self.registration
-        .update()
-        .catch(() => {}),
+      message.tag === "jim-release" ? self.registration.update().catch(() => {}) : null,
     ]),
   );
 });
