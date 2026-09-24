@@ -84,7 +84,16 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     if (!Array.isArray(candidate.availablePlates) || candidate.availablePlates.length === 0) {
       return false;
     }
-    if (!candidate.availablePlates.every((p) => typeof p === "number" && p > 0)) return false;
+    // Accepts numeric strings too — that's the shape the client's own cached
+    // settings row uses (Postgres numeric round-trips as a string), and
+    // rejecting it was how the old profile form's Save hit "Invalid settings
+    // payload".
+    const allPositive = candidate.availablePlates.every((p) => {
+      if (typeof p !== "number" && typeof p !== "string") return false;
+      const n = Number(p);
+      return p !== "" && Number.isFinite(n) && n > 0;
+    });
+    if (!allPositive) return false;
   }
   if ("defaultRestSeconds" in candidate) {
     const n = candidate.defaultRestSeconds;

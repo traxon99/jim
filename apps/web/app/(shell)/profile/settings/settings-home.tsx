@@ -2,6 +2,7 @@ import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
+import { WorkoutSection } from "@/components/profile/workout-section";
 import { APP_VERSION } from "@/lib/version";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
@@ -21,6 +22,7 @@ export function SettingsHome({ email }: { email?: string }) {
         <h1 className="text-xl font-semibold">Settings</h1>
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
       </div>
+      <WorkoutSection />
       <ColorSchemeSection />
       <AccentColorSection />
       <FontFamilySection />

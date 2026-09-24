@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
+import { cmToFeetInches, feetInchesToCm } from "@/lib/settings/height";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -18,7 +19,20 @@ function formatNumericField(value: string | null | undefined): string {
   return Number.isFinite(n) ? String(n) : "";
 }
 
+function feetField(heightCm: string | null | undefined): string {
+  const height = cmToFeetInches(heightCm);
+  return height ? String(height.feet) : "";
+}
+
+function inchesField(heightCm: string | null | undefined): string {
+  const height = cmToFeetInches(heightCm);
+  return height ? String(height.inches) : "";
+}
+
 /**
+ * Height is still stored in cm (`users.height_cm`); it's only entered and
+ * shown in feet and inches — see lib/settings/height.ts.
+ *
  * Sex, birthdate and bodyweight feed the strength-standards lookup
  * (@jim/core's strength-standards module) so PRs and suggested weights can
  * be placed against a standard. Height is collected too (per the request
@@ -33,25 +47,26 @@ export function BodyStatsSection() {
 
   const [sex, setSex] = useState<"male" | "female" | "">(settings.sex ?? "");
   const [birthdate, setBirthdate] = useState(settings.birthdate ?? "");
-  const [heightCm, setHeightCm] = useState(formatNumericField(settings.heightCm));
+  const [heightFeet, setHeightFeet] = useState(feetField(settings.heightCm));
+  const [heightInches, setHeightInches] = useState(inchesField(settings.heightCm));
   const [bodyweight, setBodyweight] = useState(formatNumericField(settings.bodyweight));
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // Same "sync from cache once on load" pattern as ProfileForm — see there
-  // for why not on every change.
+  // Only sync form state from the cache once it first loads — not on every
+  // change, or a save-in-flight edit would get clobbered by a stale re-render.
   useEffect(() => {
     if (!cached) return;
     setSex(cached.sex ?? "");
     setBirthdate(cached.birthdate ?? "");
-    setHeightCm(formatNumericField(cached.heightCm));
+    setHeightFeet(feetField(cached.heightCm));
+    setHeightInches(inchesField(cached.heightCm));
     setBodyweight(formatNumericField(cached.bodyweight));
   }, [cached]);
 
   // A successful save otherwise leaves no trace — the button just goes back
-  // to reading "Save" — which reads as "did that actually do anything?" when
-  // there's a second, near-identical Save button (ProfileForm's) right above
-  // this one. Show a confirmation for a couple seconds instead of silence.
+  // to reading "Save" — which reads as "did that actually do anything?". Show
+  // a confirmation for a couple seconds instead of silence.
   useEffect(() => {
     if (status !== "saved") return;
     const id = setTimeout(() => setStatus("idle"), 2000);
@@ -59,9 +74,13 @@ export function BodyStatsSection() {
   }, [status]);
 
   async function handleSave() {
-    if (heightCm.trim() !== "" && (!Number.isFinite(Number(heightCm)) || Number(heightCm) <= 0)) {
+    const heightBlank = heightFeet.trim() === "" && heightInches.trim() === "";
+    const heightCm = heightBlank
+      ? null
+      : feetInchesToCm(Number(heightFeet || 0), Number(heightInches || 0));
+    if (!heightBlank && (heightCm === null || Number(heightInches || 0) >= 12)) {
       setStatus("error");
-      setError("Height must be a positive number");
+      setError("Height must be feet plus 0–11 inches");
       return;
     }
     if (
@@ -78,7 +97,7 @@ export function BodyStatsSection() {
     const result = await patchSettings({
       sex: sex === "" ? null : sex,
       birthdate: birthdate === "" ? null : birthdate,
-      heightCm: heightCm.trim() === "" ? null : String(Number(heightCm)),
+      heightCm: heightCm === null ? null : String(heightCm),
       bodyweight: bodyweight.trim() === "" ? null : String(Number(bodyweight)),
     });
     if (result.ok) {
@@ -123,16 +142,36 @@ export function BodyStatsSection() {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium">
-        Height (cm)
-        <input
-          type="number"
-          inputMode="decimal"
-          value={heightCm}
-          onChange={(event) => setHeightCm(event.target.value)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-        />
-      </label>
+      <fieldset className="flex flex-col gap-1 text-xs font-medium">
+        <legend className="mb-1">Height</legend>
+        <div className="flex gap-2">
+          <label className="flex flex-1 items-center gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={heightFeet}
+              onChange={(event) => setHeightFeet(event.target.value)}
+              aria-label="Height, feet"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            />
+            ft
+          </label>
+          <label className="flex flex-1 items-center gap-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={11}
+              value={heightInches}
+              onChange={(event) => setHeightInches(event.target.value)}
+              aria-label="Height, inches"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            />
+            in
+          </label>
+        </div>
+      </fieldset>
 
       <label className="flex flex-col gap-1 text-xs font-medium">
         Bodyweight ({settings.units})

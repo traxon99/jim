@@ -1,6 +1,5 @@
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
-import { ProfileForm } from "@/components/profile/profile-form";
 import { Settings } from "lucide-react";
 import Link from "next/link";
 
@@ -17,7 +16,6 @@ export function ProfileHome() {
           <Settings className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
         </Link>
       </div>
-      <ProfileForm />
       <BodyStatsSection />
       <FeedbackSection />
     </main>
