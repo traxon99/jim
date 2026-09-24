@@ -106,6 +106,13 @@
       "when": 1790275974278,
       "tag": "0014_expand_routine_icon_shapes",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790282059899,
+      "tag": "0015_add_push_subscriptions",
+      "breakpoints": true
     }
   ]
 }

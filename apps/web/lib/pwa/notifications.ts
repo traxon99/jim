@@ -1,53 +1,83 @@
-/** Local preference, not an account setting — Notification permission is per-browser anyway. */
+/**
+ * Legacy per-browser "on" flag from before notifications moved to Web Push.
+ * Only read now, to carry an existing opt-in over to a real push
+ * subscription (see lib/pwa/push-client.ts), then cleared.
+ */
 export const PUSH_NOTIFICATIONS_STORAGE_KEY = "jim:push-notifications-enabled";
 
-export function isNotificationSupported(): boolean {
-  return typeof window !== "undefined" && "Notification" in window;
-}
-
-export function readPushNotificationsEnabled(): boolean {
-  try {
-    return window.localStorage.getItem(PUSH_NOTIFICATIONS_STORAGE_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-export function writePushNotificationsEnabled(enabled: boolean): void {
-  try {
-    window.localStorage.setItem(PUSH_NOTIFICATIONS_STORAGE_KEY, String(enabled));
-  } catch {
-    // Safari private mode etc. — the toggle still reflects for this page life.
-  }
-}
+/**
+ * The VAPID public key the browser's push service ties a subscription to.
+ * Inlined at build time. When it's unset (local dev, or a deploy that hasn't
+ * had its keys configured), push is simply unavailable, not broken.
+ */
+export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 /**
  * What the current deployed version's "app updated" notification says
- * changed. Update this string alongside whatever shipped — it's the only
- * place the notification's content lives.
+ * changed. Update this string alongside whatever shipped. It's the only
+ * place the notification's content lives, and every production deploy
+ * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Fixed the RPE info popup adding extra scroll room — it now opens centered and fits the screen.";
+  "Update alerts now arrive even when Jim is closed — turn them on in Settings.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
-  return releaseNote ? `What's new: ${releaseNote}` : "A new version is ready — reload to update.";
+  return releaseNote ? `What's new: ${releaseNote}` : "A new version is ready. Open Jim to update.";
 }
 
+/** The JSON a push message carries. public/sw.template.js's `push` handler reads it. */
+export interface PushMessage {
+  title: string;
+  body: string;
+  /** Same-origin path to open when the notification is tapped. */
+  url: string;
+  /** Replaces an earlier, still-showing notification with the same tag. */
+  tag: string;
+}
+
+export function releasePushMessage(releaseNote: string = LATEST_RELEASE_NOTE): PushMessage {
+  return {
+    title: "Jim updated",
+    body: updateNotificationBody(releaseNote),
+    url: "/",
+    tag: "jim-release",
+  };
+}
+
+export type PushSupport =
+  /** Service worker + Push API + Notifications API all present. */
+  | "supported"
+  /** iOS/iPadOS Safari tab: Web Push only exists once Jim is added to the Home Screen. */
+  | "needs-install"
+  | "unsupported";
+
 /**
- * Whether a freshly-installed service worker should raise an "app updated"
- * notification. `hadController` is false on the very first install (there's
- * no prior version to update *from* — see register-service-worker.tsx), so
- * only a second-or-later install ever counts as an update.
+ * Pure so it's testable without a browser. iPadOS reports itself as
+ * "Macintosh", so a touch-capable Mac UA counts as iOS too.
  */
-export function shouldNotifyOfUpdate({
-  enabled,
-  permission,
-  hadController,
-}: {
-  enabled: boolean;
-  permission: NotificationPermission;
-  hadController: boolean;
-}): boolean {
-  return enabled && permission === "granted" && hadController;
+export function detectPushSupport(env: {
+  hasServiceWorker: boolean;
+  hasPushManager: boolean;
+  hasNotification: boolean;
+  userAgent: string;
+  maxTouchPoints: number;
+  standalone: boolean;
+}): PushSupport {
+  if (env.hasServiceWorker && env.hasPushManager && env.hasNotification) return "supported";
+  const isIos =
+    /iPhone|iPad|iPod/.test(env.userAgent) ||
+    (/Macintosh/.test(env.userAgent) && env.maxTouchPoints > 1);
+  if (isIos && !env.standalone) return "needs-install";
+  return "unsupported";
+}
+
+/** The VAPID public key arrives base64url-encoded; `pushManager.subscribe` wants raw bytes. */
+export function urlBase64ToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
+  const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
 }

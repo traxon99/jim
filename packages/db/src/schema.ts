@@ -616,3 +616,32 @@ function ownRowPolicies(name: string, userId: PgColumn) {
     }),
   ];
 }
+
+// ---------------------------------------------------------------------------
+// push_subscriptions — Web Push endpoints, one per (user, browser install).
+// The browser's push service wakes the service worker with these even while
+// Jim is fully closed (see docs/DECISIONS.md ADR on Web Push). Written by
+// POST/DELETE /api/push/subscription under RLS; read across all users only
+// by the production build's release-push step, which connects as the
+// migration role (scripts/send-release-push.ts).
+// ---------------------------------------------------------------------------
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // Per-user rather than global: an upsert across users would need to
+    // update another user's row, which RLS (rightly) refuses.
+    uniqueIndex("push_subscriptions_user_endpoint").on(table.userId, table.endpoint),
+    ...ownRowPolicies("push_subscriptions", table.userId),
+  ],
+).enableRLS();

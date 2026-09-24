@@ -218,3 +218,33 @@ still succeeds, as `<major>.<minor>.0-dev`.
 **Rejected: a CI job that commits a bumped version on every merge.** Each bump commit would trigger
 another deploy, and it adds bot commits to history. A count derived from existing commits needs no
 extra writes.
+
+---
+
+## ADR-012 — Update notifications are Web Push, sent by the production build
+
+**Status:** Accepted · 2026-09-24
+
+**Context.** The "Jim updated" notification used to be raised by the page's own JavaScript when it
+saw a new service worker installing. That only happens while Jim is open, so a closed app never
+heard about an update, which is when the notification is useful.
+
+**Decision.** Real Web Push. Settings → Notifications asks for permission, subscribes via
+`PushManager` with the VAPID public key (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`), and stores the
+subscription in `push_subscriptions` (own-row RLS, ADR-005) through `/api/push/subscription`. Every
+app load re-posts the current subscription so the server's copy doesn't go stale. The service
+worker re-subscribes on `pushsubscriptionchange`. After each production build,
+`scripts/send-release-push.ts` (postbuild) reads every subscription as the migration role, pushes
+`LATEST_RELEASE_NOTE` through each browser's push service, and deletes endpoints that answer 404/410.
+The service worker's `push` handler shows the notification without any page running, and asks for
+an update check so the new version precaches in the background.
+
+The send happens at the end of the build, shortly before Vercel points the domain at the new
+deployment. A tap in that gap can still open the previous version, and the next launch then
+reloads into the new one (register-service-worker.tsx). Sending never fails a build. Without VAPID
+keys it's skipped, and the Settings toggle says push isn't set up.
+
+**Rejected: periodic background sync.** Chromium-only, not on iOS, and the browser picks the
+interval. **Rejected: a deploy webhook calling an API route.** It sends at a better moment, but it
+needs a public, secret-guarded endpoint plus webhook config outside the repo. The build already has
+the database credentials and runs exactly once per production deploy.
