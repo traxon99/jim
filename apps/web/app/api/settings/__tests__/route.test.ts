@@ -93,6 +93,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("accepts plates sent as numeric strings and rejects non-numeric ones", async () => {
+    expect((await patch({ availablePlates: ["45", "2.5"] })).status).toBe(200);
+    expect((await patch({ availablePlates: ["heavy"] })).status).toBe(400);
+  });
+
   it("rejects a non-positive height or bodyweight", async () => {
     expect((await patch({ heightCm: -5 })).status).toBe(400);
     expect((await patch({ bodyweight: 0 })).status).toBe(400);
