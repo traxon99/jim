@@ -150,7 +150,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - **Previous-session values shown inline** on each row as the number to beat
 - One-tap "repeat previous set"
 - Set kinds: warmup, working, drop, failure
-- Rest timer auto-starting on set completion — timestamp-derived (ADR/constraint 4), audio alert via an `AudioContext` primed on first gesture, no reliance on `navigator.vibrate`
+- Rest timer auto-starting on set completion — timestamp-derived (ADR/constraint 4), audio alert via an `AudioContext` primed on first gesture, no reliance on `navigator.vibrate`, plus a system notification via the service worker (ADR-013) so it reaches you even off-tab
 - Plate-math breakdown from the user's configured bar and available plates
 - Live PR detection with inline celebration
 - Session and per-exercise notes
@@ -238,6 +238,5 @@ body measurements beyond bodyweight
 **Programming** — program templates (5/3/1, GZCLP) · progression rules that auto-advance loads ·
 deload detection
 
-**Platform** — Web Push for rest-timer alerts while backgrounded · multi-device live session
-handoff (ADR-007) · friend sharing and routine exchange, for which the RLS groundwork already
-exists (ADR-005)
+**Platform** — multi-device live session handoff (ADR-007) · friend sharing and routine exchange,
+for which the RLS groundwork already exists (ADR-005)
