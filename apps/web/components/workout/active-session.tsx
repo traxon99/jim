@@ -21,7 +21,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Focus, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FocusView, type FocusViewExercise } from "./focus-view";
 import { PaceTracker } from "./pace-tracker";
 import { RestTimerBar } from "./rest-timer-bar";
@@ -163,6 +163,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     if (next && !focusMode) setFocusedIndex(resolveFocusedExerciseIndex(focusCandidates));
     setFocusMode(next);
   }
+  const exitFocusMode = useCallback(() => setFocusMode(false), []);
 
   const currentNotes = notes ?? session?.notes ?? "";
 
@@ -356,11 +357,24 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
       {focusMode && focusedItem ? (
         <FocusView
+          title={session.name ?? "Workout"}
           exercises={focusCandidates}
           index={clampedFocusedIndex}
           onIndexChange={(i) =>
             setFocusedIndex(Math.min(Math.max(0, i), sessionExercises.length - 1))
           }
+          onExit={exitFocusMode}
+          headerAction={
+            <button
+              type="button"
+              onClick={() => void handleFinalize()}
+              disabled={finalizing || cancelling}
+              className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+            >
+              Finish
+            </button>
+          }
+          footer={<RestTimerBar timer={restTimer} />}
         >
           {renderExercise(focusedItem, true)}
         </FocusView>
@@ -413,7 +427,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         />
       )}
 
-      <RestTimerBar timer={restTimer} />
+      {!(focusMode && focusedItem) && <RestTimerBar timer={restTimer} />}
     </main>
   );
 }
