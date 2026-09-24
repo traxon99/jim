@@ -1,6 +1,7 @@
 import { slugify } from "@jim/core";
 import type { exercises } from "../schema";
 import { EXERCISE_ALIASES } from "./aliases";
+import { curatedSeedRows } from "./curated";
 import { normalizeMuscles } from "./muscles";
 import { classifyTrackingType } from "./tracking-type";
 import { classifyCategory, warmupSeedRows } from "./warmups";
@@ -51,5 +52,5 @@ export async function fetchCatalogSeed(): Promise<SeedExercise[]> {
     throw new Error(`Failed to fetch free-exercise-db dataset: ${response.status}`);
   }
   const raw = (await response.json()) as RawExercise[];
-  return [...raw.map(normalizeExercise), ...warmupSeedRows()];
+  return [...raw.map(normalizeExercise), ...warmupSeedRows(), ...curatedSeedRows()];
 }

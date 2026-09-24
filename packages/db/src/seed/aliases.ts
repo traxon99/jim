@@ -17,4 +17,13 @@ export const EXERCISE_ALIASES: Record<string, readonly string[]> = {
   "standing-military-press": ["ohp", "overhead press"],
   "barbell-squat": ["squat"],
   "barbell-deadlift": ["deadlift"],
+  // Gym-speak from Maddy's Workout Split (issue #141).
+  "hyperextensions-back-extensions": ["back extension"],
+  "reverse-flyes": ["rear delt fly"],
+  "lying-leg-curls": ["hamstring curl"],
+  "thigh-abductor": ["abduction", "hip abduction"],
+  "thigh-adductor": ["adduction", "hip adduction"],
+  "wide-grip-lat-pulldown": ["lat pulldown", "lat pull down"],
+  "one-arm-dumbbell-row": ["sa row", "single arm row"],
+  "romanian-deadlift": ["rdl", "bb rdl"],
 };

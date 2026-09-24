@@ -138,7 +138,11 @@ often they're done. A `warmup`-kind routine is a reusable warm-up block; a stren
 one via `warmup_routine_id`, and starting a session prepends its exercises, grouped (with any
 warm-ups in the routine itself) under a timer at the start of the workout. Curated warm-ups are
 seeded as global rows (`warmup-*` slugs); warm-up templates are code-defined in `packages/core`
-and copied into the user's own routines, since routines are strictly user-owned.
+and copied into the user's own routines, since routines are strictly user-owned. The Routines
+tab's Explore view extends the same idea to whole routines and programs (`packages/core`'s
+`explore` module, e.g. Maddy's Workout Split): adding one copies its routines, warm-ups and
+weekly schedule into the user's rows. Strength exercises those templates need that
+free-exercise-db lacks are seeded as global rows with `curated-*` slugs.
 
 `personal_records` is a derived cache, recomputable from `sets` alone. If it ever disagrees with
 `sets`, `sets` wins and the cache is rebuilt.

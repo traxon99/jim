@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Your rest timer can now notify you when it's up, even if Jim isn't the active tab.";
+  "Routines now has an Explore tab — add Maddy's Workout Split and other ready-made routines in one tap.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
