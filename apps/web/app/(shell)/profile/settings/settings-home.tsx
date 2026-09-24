@@ -1,6 +1,7 @@
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
+import { HapticsSection } from "@/components/profile/haptics-section";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
 import { APP_VERSION } from "@/lib/version";
 import { ChevronLeft } from "lucide-react";
@@ -24,6 +25,7 @@ export function SettingsHome({ email }: { email?: string }) {
       <ColorSchemeSection />
       <AccentColorSection />
       <FontFamilySection />
+      <HapticsSection />
       <PushNotificationsSection />
       <SignOutButton />
       <p className="text-xs text-zinc-500 dark:text-zinc-500">Jim v{APP_VERSION}</p>
