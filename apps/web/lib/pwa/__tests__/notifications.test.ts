@@ -1,6 +1,7 @@
 import {
   detectPushSupport,
   releasePushMessage,
+  restCompleteMessage,
   updateNotificationBody,
   urlBase64ToUint8Array,
 } from "@/lib/pwa/notifications";
@@ -27,6 +28,17 @@ describe("releasePushMessage", () => {
       body: "What's new: Faster sync.",
       url: "/",
       tag: "jim-release",
+    });
+  });
+});
+
+describe("restCompleteMessage", () => {
+  it("carries a distinct tag so it doesn't collide with the release notification", () => {
+    expect(restCompleteMessage()).toEqual({
+      title: "Rest complete",
+      body: "Time for your next set.",
+      url: "/",
+      tag: "jim-rest-timer",
     });
   });
 });

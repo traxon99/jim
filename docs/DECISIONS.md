@@ -248,3 +248,32 @@ keys it's skipped, and the Settings toggle says push isn't set up.
 interval. **Rejected: a deploy webhook calling an API route.** It sends at a better moment, but it
 needs a public, secret-guarded endpoint plus webhook config outside the repo. The build already has
 the database credentials and runs exactly once per production deploy.
+
+---
+
+## ADR-013 — Rest timer completion shows a local notification, not a server push
+
+**Status:** Accepted · 2026-09-24
+
+**Context.** The rest timer (`packages/core/src/sessions/rest-timer.ts`) is entirely client-side
+and foreground-driven, per constraint 4 (`docs/ARCHITECTURE.md` §2): it derives remaining time from
+a stored absolute timestamp, recomputed on every render, and there is no reliable background
+execution to hang a `setTimeout` off. Its completion previously only played an audio alert
+(`lib/audio/rest-alert.ts`), which a backgrounded or unfocused tab can't be heard from.
+
+**Decision.** When the timer completes, call `ServiceWorkerRegistration.showNotification()`
+directly from the page (`lib/pwa/push-client.ts`'s `showLocalNotification`), reusing the service
+worker already registered for Web Push (ADR-012) but skipping the push service entirely — no
+network round trip, no VAPID, no `push` event. This still surfaces as a system notification even
+when Jim isn't the focused tab, unlike an in-page toast, because it's the same underlying API the
+`push` handler uses to display a message it received. It's gated on the same
+`Notification.permission === "granted"` the Settings → Notifications toggle already establishes,
+and never itself prompts. `sw.template.js`'s existing `notificationclick` handler needed no changes
+— it opens/focuses by `data.url` regardless of what raised the notification.
+
+**Rejected: a real server-sent Web Push for this too.** It would need the server to know exactly
+when a given rest period ends and to fire a message at that instant — either a delayed job per
+timer start (this repo has no queue/cron infra to schedule one) or a serverless function sleeping
+for the rest duration (wastes function time, unreliable past a few minutes, and still couldn't beat
+the precision of just asking the already-running page). The timer's completion instant is only ever
+known client-side, so showing the notification client-side is the direct path, not a compromise.

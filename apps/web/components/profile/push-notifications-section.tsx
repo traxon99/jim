@@ -114,11 +114,10 @@ export function PushNotificationsSection() {
         <>
           <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
             <span className="flex flex-col">
-              <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
-                App update alerts
-              </span>
+              <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">Alerts</span>
               <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                Get notified when a new version of Jim is ready, even when the app is closed
+                Get notified when your rest timer finishes or a new version of Jim is ready, even
+                when the app isn't the active tab
               </span>
             </span>
             <input

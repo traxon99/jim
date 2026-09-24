@@ -1,5 +1,6 @@
 import {
   PUSH_NOTIFICATIONS_STORAGE_KEY,
+  type PushMessage,
   type PushSupport,
   VAPID_PUBLIC_KEY,
   detectPushSupport,
@@ -60,6 +61,33 @@ export async function unsubscribeFromPush(registration: ServiceWorkerRegistratio
   const { endpoint } = subscription;
   await subscription.unsubscribe();
   await forgetOnServer(endpoint);
+}
+
+/**
+ * Shows a notification straight from the page through the already-registered
+ * service worker — no network round trip, no VAPID, not the `push` event —
+ * for something only the page itself can know the timing of (the rest
+ * timer's end, computed client-side; see lib/sessions/use-rest-timer.ts).
+ * `showNotification` still surfaces as a system notification even when Jim
+ * isn't the focused tab, unlike an in-page toast. Silently no-ops wherever
+ * the release push also would: no service worker (dev — see
+ * register-service-worker.tsx), or notification permission not already
+ * granted. Never prompts — permission is only ever requested from the
+ * Settings toggle.
+ */
+export async function showLocalNotification(message: PushMessage): Promise<void> {
+  if (process.env.NODE_ENV !== "production") return;
+  if (!("serviceWorker" in navigator) || typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+
+  const registration = await navigator.serviceWorker.ready;
+  await registration.showNotification(message.title, {
+    body: message.body,
+    icon: "/icons/192",
+    badge: "/icons/192",
+    tag: message.tag,
+    data: { url: message.url },
+  });
 }
 
 /**

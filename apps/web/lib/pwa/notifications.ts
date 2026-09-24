@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Update alerts now arrive even when Jim is closed — turn them on in Settings.";
+  "Your rest timer can now notify you when it's up, even if Jim isn't the active tab.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
@@ -42,6 +42,24 @@ export function releasePushMessage(releaseNote: string = LATEST_RELEASE_NOTE): P
     body: updateNotificationBody(releaseNote),
     url: "/",
     tag: "jim-release",
+  };
+}
+
+/**
+ * Shown when the rest timer finishes (lib/sessions/use-rest-timer.ts). Unlike
+ * releasePushMessage, this never travels through the push service — it's
+ * handed straight to ServiceWorkerRegistration.showNotification() from the
+ * page (lib/pwa/push-client.ts's showLocalNotification), since the rest
+ * timer is entirely client-side and foreground-driven (docs/ARCHITECTURE.md
+ * §2, constraint 4). Same shape as PushMessage so both paths share one
+ * notification-options builder.
+ */
+export function restCompleteMessage(): PushMessage {
+  return {
+    title: "Rest complete",
+    body: "Time for your next set.",
+    url: "/",
+    tag: "jim-rest-timer",
   };
 }
 

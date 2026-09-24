@@ -1,6 +1,8 @@
 "use client";
 
 import { playRestAlert } from "@/lib/audio/rest-alert";
+import { restCompleteMessage } from "@/lib/pwa/notifications";
+import { showLocalNotification } from "@/lib/pwa/push-client";
 import { isRestComplete, remainingRestSeconds, restEndsAt } from "@jim/core";
 import { useCallback, useEffect, useState } from "react";
 
@@ -75,6 +77,10 @@ export function useRestTimer(sessionId: string) {
   useEffect(() => {
     if (endsAt !== null && complete && !alerted) {
       playRestAlert();
+      // Reaches the user even if Jim isn't the focused tab; audio alone
+      // doesn't. Fire-and-forget: a rest timer that can't show a system
+      // notification still completed, the beep already covers this session.
+      showLocalNotification(restCompleteMessage()).catch(() => {});
       setAlerted(true);
     }
   }, [complete, endsAt, alerted]);
