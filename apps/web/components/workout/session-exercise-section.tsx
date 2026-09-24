@@ -9,6 +9,7 @@ import {
   type SettingsRow,
   db,
 } from "@/lib/db/schema";
+import { triggerHaptic } from "@/lib/haptics";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
 import { SET_KINDS, type SetKind } from "@/lib/sessions/set-kinds";
@@ -20,13 +21,14 @@ import {
   type PreviousSet,
   STRENGTH_STANDARD_TIERS,
   currentProgressedWeight,
-  prefillWeightForFirstSet,
+  plannedSetIndices,
+  prefillWeightForSet,
   resolveCurrentRows,
   standardLiftForSlug,
   suggestedWeightsByTier,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { Check, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { SetRow } from "./set-row";
 
@@ -46,6 +48,13 @@ function toNumberOrNull(value: string): number | null {
   if (value.trim() === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+interface DraftValues {
+  weight: string;
+  reps: string;
+  rpe: string;
+  kind: SetKind;
 }
 
 function sizesFor(large: boolean) {
@@ -73,7 +82,7 @@ function sizesFor(large: boolean) {
       : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
     logButton: large
       ? "min-h-14 flex-1 rounded-lg bg-accent px-4 text-lg font-semibold text-accent-foreground"
-      : "min-h-11 rounded-md bg-accent px-2 text-xs font-medium text-accent-foreground",
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
     repeatButton: large
       ? "flex min-h-14 min-w-14 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
       : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
@@ -108,10 +117,7 @@ export function SessionExerciseSection({
   const [previousByIndex, setPreviousByIndex] = useState<Map<number, PreviousSet>>(new Map());
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
   const [notes, setNotes] = useState(item.notes ?? "");
-  const [kind, setKind] = useState<SetKind>("working");
-  const [weight, setWeight] = useState("");
-  const [reps, setReps] = useState("");
-  const [rpe, setRpe] = useState("");
+  const [draftOverrides, setDraftOverrides] = useState<Map<number, DraftValues>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +140,8 @@ export function SessionExerciseSection({
   const lastSet = sets[sets.length - 1];
   const restSeconds = target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
 
+  const loggedIndices = useMemo(() => new Set(sets.map((set) => set.setIndex)), [sets]);
+
   // Progressive overload (issue #98): a routine exercise configured with a
   // weekly increment keeps climbing on its own — this is what it calls for
   // this week, independent of whatever was actually logged last time.
@@ -155,33 +163,70 @@ export function SessionExerciseSection({
   // are on the profile (age is optional — see strengthProfileFromSettings).
   const standardLift = useMemo(() => standardLiftForSlug(exercise?.slug), [exercise?.slug]);
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
-  const suggestionReps = toNumberOrNull(reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
+
+  // Preloaded sets (issue #121): every not-yet-logged set the routine or last
+  // time's workout calls for gets its own row, prefilled, rather than typing
+  // one set at a time. `draftOverrides` holds only rows the lifter has
+  // actually edited; everything else is computed fresh from the plan/history
+  // on every render, so it stays current as `previousByIndex` loads in.
+  const plannedIndices = useMemo(
+    () => plannedSetIndices(target?.targetSets ?? null, previousByIndex.size, loggedIndices),
+    [target?.targetSets, previousByIndex, loggedIndices],
+  );
+
+  function defaultDraftFor(index: number): DraftValues {
+    const priorAtIndex = previousByIndex.get(index);
+    return {
+      weight: prefillWeightForSet(index, priorAtIndex, progressedWeight),
+      reps:
+        priorAtIndex?.reps != null
+          ? String(priorAtIndex.reps)
+          : (target?.targetRepsLow?.toString() ?? ""),
+      rpe: "",
+      kind: "working",
+    };
+  }
+
+  function draftFor(index: number): DraftValues {
+    return draftOverrides.get(index) ?? defaultDraftFor(index);
+  }
+
+  function updateDraft(index: number, patch: Partial<DraftValues>) {
+    setDraftOverrides((current) => {
+      const next = new Map(current);
+      next.set(index, { ...(current.get(index) ?? defaultDraftFor(index)), ...patch });
+      return next;
+    });
+  }
+
+  const nextDraft = draftFor(nextIndex);
+  const suggestionReps =
+    toNumberOrNull(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
   const suggestedWeights = useMemo(() => {
     if (!standardLift || !strengthProfile) return null;
     return suggestedWeightsByTier(standardLift, strengthProfile, suggestionReps);
   }, [standardLift, strengthProfile, suggestionReps]);
 
-  useEffect(() => {
-    setWeight((current) =>
-      current === "" ? prefillWeightForFirstSet(nextIndex, previous, progressedWeight) : current,
-    );
-  }, [nextIndex, previous, progressedWeight]);
-
-  async function logDraft() {
+  async function logRow(index: number) {
+    const draft = draftFor(index);
     const { set, prs } = await completeSet({
       userId,
       sessionExerciseId: item.id,
       exerciseId: item.exerciseId,
-      setIndex: nextIndex,
-      kind,
-      weight: toNumberOrNull(weight),
-      reps: toNumberOrNull(reps),
-      rpe: toNumberOrNull(rpe),
+      setIndex: index,
+      kind: draft.kind,
+      weight: toNumberOrNull(draft.weight),
+      reps: toNumberOrNull(draft.reps),
+      rpe: toNumberOrNull(draft.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
-    setWeight("");
-    setReps("");
-    setRpe("");
+    setDraftOverrides((current) => {
+      if (!current.has(index)) return current;
+      const next = new Map(current);
+      next.delete(index);
+      return next;
+    });
+    triggerHaptic();
     onSetLogged(restSeconds);
   }
 
@@ -198,6 +243,7 @@ export function SessionExerciseSection({
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    triggerHaptic();
     onSetLogged(restSeconds);
   }
 
@@ -223,61 +269,82 @@ export function SessionExerciseSection({
     });
   }
 
-  const weightInput = (
-    <input
-      id={`${fieldId}-weight`}
-      type="number"
-      inputMode="decimal"
-      placeholder={previous?.weight?.toString() ?? ""}
-      value={weight}
-      onChange={(event) => setWeight(event.target.value)}
-      className={sizes.input}
-    />
-  );
-  const repsInput = (
-    <input
-      id={`${fieldId}-reps`}
-      type="number"
-      inputMode="numeric"
-      placeholder={previous?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""}
-      value={reps}
-      onChange={(event) => setReps(event.target.value)}
-      className={sizes.input}
-    />
-  );
-  const rpeInput = (
-    <input
-      id={`${fieldId}-rpe`}
-      type="number"
-      inputMode="decimal"
-      min={1}
-      max={10}
-      step={0.5}
-      placeholder="—"
-      value={rpe}
-      onChange={(event) => setRpe(event.target.value)}
-      className={sizes.input}
-    />
-  );
-  const kindSelect = (
-    <select
-      id={`${fieldId}-kind`}
-      value={kind}
-      onChange={(event) => setKind(event.target.value as SetKind)}
-      className={sizes.input}
-    >
-      {SET_KINDS.map((k) => (
-        <option key={k} value={k}>
-          {k}
-        </option>
-      ))}
-    </select>
-  );
-  const logButton = (
-    <button type="button" onClick={() => void logDraft()} className={sizes.logButton}>
-      {large ? `Log set ${nextIndex + 1}` : "Log"}
-    </button>
-  );
+  function weightInputFor(index: number, draft: DraftValues) {
+    return (
+      <input
+        id={index === nextIndex ? `${fieldId}-weight` : undefined}
+        type="number"
+        inputMode="decimal"
+        placeholder={previousByIndex.get(index)?.weight?.toString() ?? ""}
+        value={draft.weight}
+        onChange={(event) => updateDraft(index, { weight: event.target.value })}
+        className={sizes.input}
+      />
+    );
+  }
+  function repsInputFor(index: number, draft: DraftValues) {
+    return (
+      <input
+        id={index === nextIndex ? `${fieldId}-reps` : undefined}
+        type="number"
+        inputMode="numeric"
+        placeholder={
+          previousByIndex.get(index)?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""
+        }
+        value={draft.reps}
+        onChange={(event) => updateDraft(index, { reps: event.target.value })}
+        className={sizes.input}
+      />
+    );
+  }
+  function rpeInputFor(index: number, draft: DraftValues) {
+    return (
+      <input
+        id={index === nextIndex ? `${fieldId}-rpe` : undefined}
+        type="number"
+        inputMode="decimal"
+        min={1}
+        max={10}
+        step={0.5}
+        placeholder="—"
+        value={draft.rpe}
+        onChange={(event) => updateDraft(index, { rpe: event.target.value })}
+        className={sizes.input}
+      />
+    );
+  }
+  function kindSelectFor(index: number, draft: DraftValues) {
+    return (
+      <select
+        id={index === nextIndex ? `${fieldId}-kind` : undefined}
+        value={draft.kind}
+        onChange={(event) => updateDraft(index, { kind: event.target.value as SetKind })}
+        className={sizes.input}
+      >
+        {SET_KINDS.map((k) => (
+          <option key={k} value={k}>
+            {k}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  function logButtonFor(index: number) {
+    return (
+      <button
+        type="button"
+        onClick={() => void logRow(index)}
+        aria-label={large ? undefined : `Log set ${index + 1}`}
+        className={sizes.logButton}
+      >
+        {large ? (
+          `Log set ${index + 1}`
+        ) : (
+          <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
+        )}
+      </button>
+    );
+  }
   const repeatButton = lastSet && (
     <button
       type="button"
@@ -326,7 +393,7 @@ export function SessionExerciseSection({
           <p className={sizes.meta}>This week's target:</p>
           <button
             type="button"
-            onClick={() => setWeight(String(progressedWeight))}
+            onClick={() => updateDraft(nextIndex, { weight: String(progressedWeight) })}
             className="min-h-8 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
           >
             {progressedWeight}
@@ -342,7 +409,7 @@ export function SessionExerciseSection({
               <button
                 key={tier}
                 type="button"
-                onClick={() => setWeight(String(suggestedWeights[tier]))}
+                onClick={() => updateDraft(nextIndex, { weight: String(suggestedWeights[tier]) })}
                 className="min-h-8 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
               >
                 {STRENGTH_TIER_LABELS[tier]} {suggestedWeights[tier]}
@@ -376,19 +443,23 @@ export function SessionExerciseSection({
                 onDelete={() => void deleteSet(set)}
               />
             ))}
-            {!large && (
-              <tr>
-                <td className={sizes.indexCell}>{nextIndex + 1}</td>
-                <td className={sizes.cell}>{weightInput}</td>
-                <td className={sizes.cell}>{repsInput}</td>
-                <td className={sizes.cell}>{rpeInput}</td>
-                <td className={sizes.cell}>{kindSelect}</td>
-                <td className={sizes.actionCell}>
-                  {logButton}
-                  {repeatButton}
-                </td>
-              </tr>
-            )}
+            {!large &&
+              plannedIndices.map((index) => {
+                const draft = draftFor(index);
+                return (
+                  <tr key={index}>
+                    <td className={sizes.indexCell}>{index + 1}</td>
+                    <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
+                    <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
+                    <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
+                    <td className={sizes.cell}>{kindSelectFor(index, draft)}</td>
+                    <td className={sizes.actionCell}>
+                      {logButtonFor(index)}
+                      {index === nextIndex && repeatButton}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       )}
@@ -401,23 +472,23 @@ export function SessionExerciseSection({
           <div className="grid grid-cols-2 gap-3">
             <div className={sizes.fieldLabel}>
               <label htmlFor={`${fieldId}-weight`}>Weight</label>
-              {weightInput}
+              {weightInputFor(nextIndex, nextDraft)}
             </div>
             <div className={sizes.fieldLabel}>
               <label htmlFor={`${fieldId}-reps`}>Reps</label>
-              {repsInput}
+              {repsInputFor(nextIndex, nextDraft)}
             </div>
             <div className={sizes.fieldLabel}>
               <label htmlFor={`${fieldId}-rpe`}>RPE</label>
-              {rpeInput}
+              {rpeInputFor(nextIndex, nextDraft)}
             </div>
             <div className={sizes.fieldLabel}>
               <label htmlFor={`${fieldId}-kind`}>Kind</label>
-              {kindSelect}
+              {kindSelectFor(nextIndex, nextDraft)}
             </div>
           </div>
           <div className="flex gap-2">
-            {logButton}
+            {logButtonFor(nextIndex)}
             {repeatButton}
           </div>
         </div>
