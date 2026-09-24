@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Added haptic taps on the tab bar and workout buttons, with a Settings toggle to turn them off.";
+  "Focus view now takes over the whole screen, with bigger, easier-to-read controls.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
