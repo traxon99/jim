@@ -26,7 +26,8 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * changed. Update this string alongside whatever shipped — it's the only
  * place the notification's content lives.
  */
-export const LATEST_RELEASE_NOTE = "Pair a warm-up with each routine right from your program.";
+export const LATEST_RELEASE_NOTE =
+  "Every set is preloaded for you now — just tap the checkmark to log it.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

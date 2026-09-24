@@ -24,21 +24,47 @@ export function mapPreviousSetsByIndex(sets: readonly PreviousSet[]): Map<number
 }
 
 /**
- * An exercise's first set in a workout starts with last time's weight
- * already filled in, rather than an empty field the lifter has to retype
- * (issue #63) — every set after the first already has the one-tap "Repeat"
- * button for that. With no prior set to fall back on (the exercise's first
- * time ever being logged), `fallbackWeight` — a routine's progressive-overload
- * target, when configured — fills the same role.
+ * Every not-yet-logged set in a workout starts with a real weight already
+ * filled in, rather than an empty field the lifter has to retype (issue #63,
+ * extended by issue #121 to every row, not just the first): last time's
+ * weight at this same position, when there is one. With no prior set at all
+ * — the exercise's very first time being logged — `fallbackWeight` (a
+ * routine's progressive-overload target for the top set, when configured)
+ * fills the same role for set index 0 only; later sets in a brand-new
+ * exercise have nothing to fall back on and stay blank.
  */
-export function prefillWeightForFirstSet(
-  nextIndex: number,
+export function prefillWeightForSet(
+  index: number,
   previous: PreviousSet | undefined,
   fallbackWeight?: number | null,
 ): string {
-  if (nextIndex !== 0) return "";
   if (previous?.weight != null) return String(previous.weight);
-  return fallbackWeight != null ? String(fallbackWeight) : "";
+  if (index === 0 && fallbackWeight != null) return String(fallbackWeight);
+  return "";
+}
+
+/**
+ * Which not-yet-logged set rows an exercise should show right now: enough to
+ * cover the routine's target and last time's set count (issue #121: preload
+ * every set instead of drafting one at a time), plus one more once every
+ * planned row has been logged, so there's always somewhere to log an extra
+ * set. Never hides a row for a set skipped and logged out of order.
+ */
+export function plannedSetIndices(
+  targetSetCount: number | null,
+  previousSetCount: number,
+  loggedIndices: ReadonlySet<number>,
+): number[] {
+  let total = Math.max(targetSetCount ?? 0, previousSetCount, 1);
+
+  while (true) {
+    const indices: number[] = [];
+    for (let index = 0; index < total; index++) {
+      if (!loggedIndices.has(index)) indices.push(index);
+    }
+    if (indices.length > 0 || loggedIndices.size === 0) return indices;
+    total += 1;
+  }
 }
 
 /**
