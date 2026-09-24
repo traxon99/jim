@@ -9,10 +9,11 @@ import {
   isWarmupRoutine,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardList, Flame, Layers, Plus } from "lucide-react";
+import { Flame, Layers, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { RoutineIcon } from "./routine-icon";
 
 export function RoutinesList({ userId }: { userId: string }) {
   const router = useRouter();
@@ -247,11 +248,7 @@ export function RoutinesList({ userId }: { userId: string }) {
                         className="flex items-center justify-between gap-2 py-3"
                       >
                         <span className="flex min-w-0 items-center gap-2">
-                          <ClipboardList
-                            className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-600"
-                            strokeWidth={1.75}
-                            aria-hidden="true"
-                          />
+                          <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
                           <span className="flex min-w-0 flex-col gap-0.5">
                             <span className="truncate text-base font-medium">{routine.name}</span>
                             {routine.notes && (

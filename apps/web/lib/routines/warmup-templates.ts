@@ -1,7 +1,12 @@
 import { mutate } from "@/lib/db/mutate";
 import { type JimDatabase, type RoutineExerciseRow, type RoutineRow, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
-import { type WarmupTemplate, instantiateWarmupTemplate, uuidv7 } from "@jim/core";
+import {
+  type WarmupTemplate,
+  instantiateWarmupTemplate,
+  pickDefaultRoutineIcon,
+  uuidv7,
+} from "@jim/core";
 
 /**
  * Adds a code-defined warm-up template (issue #59) to the user's routines
@@ -28,7 +33,13 @@ export async function addWarmupTemplate(
 
   const deviceId = await getDeviceId(database);
   const now = new Date();
-  const position = await database.routines.count();
+  const existingRoutines = await database.routines.toArray();
+  const position = existingRoutines.length;
+  const icon = pickDefaultRoutineIcon(
+    existingRoutines
+      .filter((r) => !r.deletedAt)
+      .map((r) => ({ iconShape: r.iconShape, iconColor: r.iconColor })),
+  );
 
   const routineRow: RoutineRow = {
     ...routine,
@@ -36,6 +47,8 @@ export async function addWarmupTemplate(
     position,
     folder: null,
     warmupRoutineId: null,
+    iconShape: icon.iconShape,
+    iconColor: icon.iconColor,
     createdAt: now,
     updatedAt: now,
     deviceId,

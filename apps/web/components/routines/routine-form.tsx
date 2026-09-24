@@ -4,10 +4,38 @@ import { mutate } from "@/lib/db/mutate";
 import { type RoutineRow, db } from "@/lib/db/schema";
 import { addWarmupTemplate } from "@/lib/routines/warmup-templates";
 import { getDeviceId } from "@/lib/sync/engine";
-import { type RoutineKind, WARMUP_TEMPLATES, isWarmupRoutine, uuidv7 } from "@jim/core";
+import {
+  ROUTINE_ICON_COLORS,
+  ROUTINE_ICON_SHAPES,
+  type RoutineIconColor,
+  type RoutineIconShape,
+  type RoutineKind,
+  WARMUP_TEMPLATES,
+  isWarmupRoutine,
+  pickDefaultRoutineIcon,
+  uuidv7,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { RoutineIcon } from "./routine-icon";
+
+const SHAPE_LABELS: Record<RoutineIconShape, string> = {
+  square: "Square",
+  triangle: "Triangle",
+  squircle: "Squircle",
+};
+
+const COLOR_LABELS: Record<RoutineIconColor, string> = {
+  red: "Red",
+  orange: "Orange",
+  amber: "Amber",
+  green: "Green",
+  teal: "Teal",
+  blue: "Blue",
+  indigo: "Indigo",
+  pink: "Pink",
+};
 
 function toMinutesOrNull(value: string): number | null {
   if (value.trim() === "") return null;
@@ -37,7 +65,10 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
   // "template:<key>" = a built-in template, added as a routine on save.
   const [warmupChoice, setWarmupChoice] = useState("");
   const [warmupMinutes, setWarmupMinutes] = useState("");
+  const [iconShape, setIconShape] = useState<RoutineIconShape>("square");
+  const [iconColor, setIconColor] = useState<RoutineIconColor>("red");
   const [saving, setSaving] = useState(false);
+  const iconInitialized = useRef(false);
 
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const warmupRoutines = useMemo(
@@ -65,7 +96,26 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
     setKind(isWarmupRoutine(existing) ? "warmup" : "strength");
     setWarmupChoice(existing.warmupRoutineId ? `routine:${existing.warmupRoutineId}` : "");
     setWarmupMinutes(existing.warmupMinutes?.toString() ?? "");
+    setIconShape(existing.iconShape);
+    setIconColor(existing.iconColor);
+    iconInitialized.current = true;
   }, [existing]);
+
+  // New routines default to the first shape/color combo no existing routine
+  // is already wearing (issue #150), computed once allRoutines has loaded.
+  // Guarded so it only runs the one time — later re-renders (e.g. another
+  // routine syncing in) must not stomp on a color the user already picked.
+  useEffect(() => {
+    if (mode !== "new" || iconInitialized.current || allRoutines === undefined) return;
+    const picked = pickDefaultRoutineIcon(
+      allRoutines
+        .filter((r) => !r.deletedAt)
+        .map((r) => ({ iconShape: r.iconShape, iconColor: r.iconColor })),
+    );
+    setIconShape(picked.iconShape);
+    setIconColor(picked.iconColor);
+    iconInitialized.current = true;
+  }, [mode, allRoutines]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -100,6 +150,8 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
         position,
         folder: folder.trim() || null,
         ...warmupFields,
+        iconShape,
+        iconColor,
         createdAt: now,
         updatedAt: now,
         deviceId,
@@ -113,6 +165,8 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
         notes: notes.trim() || null,
         folder: folder.trim() || null,
         ...warmupFields,
+        iconShape,
+        iconColor,
         updatedAt: now,
         deviceId,
       };
@@ -156,6 +210,44 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
             className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
         </label>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm font-medium">Icon</legend>
+          <div className="flex gap-2">
+            {ROUTINE_ICON_SHAPES.map((shape) => (
+              <button
+                key={shape}
+                type="button"
+                aria-pressed={iconShape === shape}
+                aria-label={SHAPE_LABELS[shape]}
+                title={SHAPE_LABELS[shape]}
+                onClick={() => setIconShape(shape)}
+                className={`flex h-11 w-11 items-center justify-center rounded-lg border ${
+                  iconShape === shape ? "border-zinc-950 dark:border-zinc-50" : "border-transparent"
+                }`}
+              >
+                <RoutineIcon shape={shape} color={iconColor} className="h-6 w-6" />
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ROUTINE_ICON_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                aria-pressed={iconColor === color}
+                aria-label={COLOR_LABELS[color]}
+                title={COLOR_LABELS[color]}
+                onClick={() => setIconColor(color)}
+                className={`flex h-11 w-11 items-center justify-center rounded-lg border ${
+                  iconColor === color ? "border-zinc-950 dark:border-zinc-50" : "border-transparent"
+                }`}
+              >
+                <RoutineIcon shape={iconShape} color={color} className="h-6 w-6" />
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
         <fieldset className="flex flex-col gap-1">
           <legend className="text-sm font-medium">Type</legend>

@@ -20,6 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { RoutineExerciseRow as RoutineExerciseRowItem } from "./routine-exercise-row";
+import { RoutineIcon } from "./routine-icon";
 
 export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
@@ -192,7 +193,10 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold">{routine.name}</h1>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
+            {routine.name}
+          </h1>
           {(isWarmupKind || routine.folder) && (
             <p className="text-xs text-zinc-500 dark:text-zinc-500">
               {[
