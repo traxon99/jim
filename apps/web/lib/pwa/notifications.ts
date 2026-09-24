@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "RPE is now 5-10 with a tap-to-learn guide on what each number means, and Warm-ups and Routines can be collapsed on the Routines page.";
+  "Fixed the RPE info popup adding extra scroll room — it now opens centered and fits the screen.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
