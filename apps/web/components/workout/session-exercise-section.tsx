@@ -10,8 +10,8 @@ import {
   db,
 } from "@/lib/db/schema";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
-import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
-import { SET_KINDS, type SetKind } from "@/lib/sessions/set-kinds";
+import { completeSet, deleteSet, editSet, updateSetKind } from "@/lib/sessions/set-actions";
+import type { SetKind } from "@/lib/sessions/set-kinds";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -29,6 +29,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
+import { SetKindMenu } from "./set-kind-menu";
 import { SetRow } from "./set-row";
 
 interface Props {
@@ -261,14 +262,13 @@ export function SessionExerciseSection({
 
   async function handleEdit(
     original: SetRowEntity,
-    patch: {
-      weight: number | null;
-      reps: number | null;
-      kind: SetRowEntity["kind"];
-      rpe: number | null;
-    },
+    patch: { weight: number | null; reps: number | null; rpe: number | null },
   ) {
-    await editSet({ original, ...patch });
+    await editSet({ original, ...patch, kind: original.kind });
+  }
+
+  async function handleChangeKind(original: SetRowEntity, kind: SetKind) {
+    await updateSetKind(original, kind);
   }
 
   async function handleNotesBlur() {
@@ -321,22 +321,6 @@ export function SessionExerciseSection({
         onChange={(event) => updateDraft(index, { rpe: event.target.value })}
         className={sizes.input}
       />
-    );
-  }
-  function kindSelectFor(index: number, draft: DraftValues) {
-    return (
-      <select
-        id={index === nextIndex ? `${fieldId}-kind` : undefined}
-        value={draft.kind}
-        onChange={(event) => updateDraft(index, { kind: event.target.value as SetKind })}
-        className={sizes.input}
-      >
-        {SET_KINDS.map((k) => (
-          <option key={k} value={k}>
-            {k}
-          </option>
-        ))}
-      </select>
     );
   }
   function logButtonFor(index: number) {
@@ -437,7 +421,6 @@ export function SessionExerciseSection({
               <th className={sizes.headerCell}>Weight</th>
               <th className={sizes.headerCell}>Reps</th>
               <th className={sizes.headerCell}>RPE</th>
-              <th className={sizes.headerCell}>Kind</th>
               <th className={sizes.headerCell} />
             </tr>
           </thead>
@@ -449,6 +432,7 @@ export function SessionExerciseSection({
                 index={i}
                 isPr={prsBySetId.has(set.id)}
                 onEdit={(patch) => void handleEdit(set, patch)}
+                onChangeKind={(kind) => void handleChangeKind(set, kind)}
                 onDelete={() => void deleteSet(set)}
               />
             ))}
@@ -456,11 +440,16 @@ export function SessionExerciseSection({
               const draft = draftFor(index);
               return (
                 <tr key={index}>
-                  <td className={sizes.indexCell}>{index + 1}</td>
+                  <td className={sizes.indexCell}>
+                    <SetKindMenu
+                      index={index}
+                      kind={draft.kind}
+                      onChange={(kind) => updateDraft(index, { kind })}
+                    />
+                  </td>
                   <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
                   <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
                   <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
-                  <td className={sizes.cell}>{kindSelectFor(index, draft)}</td>
                   <td className={sizes.actionCell}>
                     <div className="flex min-w-22 items-center justify-end">
                       {index === nextIndex && repeatButton}
@@ -476,10 +465,13 @@ export function SessionExerciseSection({
 
       {large && (
         <div className="flex flex-col gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
-          <p className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Set {nextIndex + 1}
-          </p>
-          <div className="grid grid-cols-2 gap-3">
+          <SetKindMenu
+            index={nextIndex}
+            kind={nextDraft.kind}
+            onChange={(kind) => updateDraft(nextIndex, { kind })}
+            large
+          />
+          <div className="grid grid-cols-3 gap-3">
             <div className={sizes.fieldLabel}>
               <label htmlFor={`${fieldId}-weight`}>Weight</label>
               {weightInputFor(nextIndex, nextDraft)}
@@ -491,10 +483,6 @@ export function SessionExerciseSection({
             <div className={sizes.fieldLabel}>
               <label htmlFor={`${fieldId}-rpe`}>RPE</label>
               {rpeInputFor(nextIndex, nextDraft)}
-            </div>
-            <div className={sizes.fieldLabel}>
-              <label htmlFor={`${fieldId}-kind`}>Kind</label>
-              {kindSelectFor(nextIndex, nextDraft)}
             </div>
           </div>
           <div className="flex gap-2">

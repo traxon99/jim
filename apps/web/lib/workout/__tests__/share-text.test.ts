@@ -108,7 +108,7 @@ describe("buildWorkoutShareText", () => {
       ],
     });
 
-    expect(text).toContain("95×8 (warmup), 175×3 (PR), 115×8 (drop, PR)");
+    expect(text).toContain("95×8 (Warmup), 175×3 (PR), 115×8 (Drop, PR)");
   });
 
   it("formats a duration-only set in seconds and a distance-only set as-is", () => {

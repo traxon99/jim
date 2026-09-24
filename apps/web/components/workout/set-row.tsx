@@ -1,21 +1,18 @@
 "use client";
 
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
-import { SET_KINDS } from "@/lib/sessions/set-kinds";
+import type { SetKind } from "@/lib/sessions/set-kinds";
 import { Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { SetKindMenu } from "./set-kind-menu";
 
 interface Props {
   set: SetRowEntity;
   index: number;
   isPr: boolean;
   large?: boolean;
-  onEdit: (patch: {
-    weight: number | null;
-    reps: number | null;
-    kind: SetRowEntity["kind"];
-    rpe: number | null;
-  }) => void;
+  onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
+  onChangeKind: (kind: SetKind) => void;
   onDelete: () => void;
 }
 
@@ -60,19 +57,17 @@ function sizesFor(large: boolean) {
   };
 }
 
-export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Props) {
+export function SetRow({ set, index, isPr, large = false, onEdit, onChangeKind, onDelete }: Props) {
   const sizes = sizesFor(large);
   const [editing, setEditing] = useState(false);
   const [weight, setWeight] = useState(set.weight ?? "");
   const [reps, setReps] = useState(set.reps?.toString() ?? "");
   const [rpe, setRpe] = useState(set.rpe ?? "");
-  const [kind, setKind] = useState<SetRowEntity["kind"]>(set.kind);
 
   function save() {
     onEdit({
       weight: toNumberOrNull(weight),
       reps: toNumberOrNull(reps),
-      kind,
       rpe: toNumberOrNull(rpe),
     });
     setEditing(false);
@@ -81,7 +76,9 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
   if (editing) {
     return (
       <tr className="border-b border-zinc-100 bg-zinc-50 last:border-0 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <td className={sizes.indexCell}>{index + 1}</td>
+        <td className={sizes.indexCell}>
+          <SetKindMenu index={index} kind={set.kind} onChange={onChangeKind} />
+        </td>
         <td className={sizes.cell}>
           <input
             type="number"
@@ -112,19 +109,6 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
             className={sizes.input}
           />
         </td>
-        <td className={sizes.cell}>
-          <select
-            value={kind}
-            onChange={(event) => setKind(event.target.value as SetRowEntity["kind"])}
-            className={sizes.input}
-          >
-            {SET_KINDS.map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </select>
-        </td>
         <td className={sizes.actionCell}>
           <div className={sizes.actionGroup}>
             <button type="button" onClick={save} className={sizes.saveButton}>
@@ -146,7 +130,9 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
 
   return (
     <tr className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-      <td className={sizes.indexCell}>{index + 1}</td>
+      <td className={sizes.indexCell}>
+        <SetKindMenu index={index} kind={set.kind} onChange={onChangeKind} />
+      </td>
       <td className={sizes.cell}>
         <div className="flex items-center gap-1">
           <span className="font-medium">{set.weight ?? "—"}</span>
@@ -155,7 +141,6 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
       </td>
       <td className={sizes.cell}>{set.reps ?? "—"}</td>
       <td className={sizes.metaCell}>{set.rpe ?? "—"}</td>
-      <td className={sizes.metaCell}>{set.kind !== "working" ? set.kind : "—"}</td>
       <td className={sizes.actionCell}>
         <div className={sizes.actionGroup}>
           <button

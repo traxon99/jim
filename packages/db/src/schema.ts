@@ -90,6 +90,9 @@ export const routineKindEnum = pgEnum("routine_kind", ["strength", "warmup"]);
 export const routineIconShapeEnum = pgEnum("routine_icon_shape", [...ROUTINE_ICON_SHAPES]);
 export const routineIconColorEnum = pgEnum("routine_icon_color", [...ROUTINE_ICON_COLORS]);
 
+// "drop" is kept for sets logged before issue #161 removed it as a UI
+// option (Postgres enums can't drop a value without recreating the type) —
+// apps/web/lib/sessions/set-kinds.ts's SET_KINDS is the selectable subset.
 export const setKindEnum = pgEnum("set_kind", ["warmup", "working", "drop", "failure"]);
 
 export const prKindEnum = pgEnum("pr_kind", ["1rm", "volume", "weight", "reps_at_weight"]);

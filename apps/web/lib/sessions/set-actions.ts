@@ -151,6 +151,27 @@ export async function editSet(input: EditSetInput, database: JimDatabase = db): 
   return updated;
 }
 
+/**
+ * Quick set-type change (issue #161: tapping the set number opens a menu of
+ * set types) — same append-only supersede as `editSet`, but touches nothing
+ * else about the set.
+ */
+export async function updateSetKind(
+  original: SetRow,
+  kind: SetRow["kind"],
+  database: JimDatabase = db,
+): Promise<SetRow> {
+  const updated: SetRow = {
+    ...original,
+    id: uuidv7(),
+    kind,
+    supersedesId: original.id,
+    deletedAt: null,
+  };
+  await mutate("sets", updated, database);
+  return updated;
+}
+
 /** Also append-only: "deleting" a set inserts a superseding row carrying a `deletedAt` tombstone. */
 export async function deleteSet(original: SetRow, database: JimDatabase = db): Promise<void> {
   const tombstone: SetRow = {

@@ -1,4 +1,5 @@
 import type { SessionDetailExercise, SessionDetailSet } from "@/lib/history/session-detail-entries";
+import { setKindLabel } from "@/lib/sessions/set-kinds";
 import type { SessionSummary } from "@jim/core";
 
 export interface BuildWorkoutShareTextInput {
@@ -28,7 +29,7 @@ function formatSet(set: SessionDetailSet): string {
             : "—";
 
   const tags = [
-    set.kind === "working" ? null : set.kind,
+    set.kind === "working" ? null : setKindLabel(set.kind),
     set.prKinds.length > 0 ? "PR" : null,
   ].filter((tag): tag is string => tag != null);
 
