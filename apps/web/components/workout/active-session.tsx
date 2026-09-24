@@ -119,6 +119,13 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     return map;
   }, [rawSets]);
 
+  // Issue #156: a workout with nothing logged has nothing to finish — the
+  // only thing to do with it is cancel, so Finish isn't offered until then.
+  const hasLoggedSets = useMemo(
+    () => [...setCompletedAtBySessionExerciseId.values()].some((times) => times.length > 0),
+    [setCompletedAtBySessionExerciseId],
+  );
+
   const focusCandidates = useMemo<FocusViewExercise[]>(
     () =>
       sessionExercises.map((se) => ({
@@ -215,11 +222,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   }
 
   async function handleFinalize() {
-    if (!session) return;
+    if (!session || !hasLoggedSets) return;
     setFinalizing(true);
     try {
       const { cancelled } = await finalizeSession(session);
-      if (cancelled) router.push("/workout");
+      if (cancelled) router.replace("/workout");
     } finally {
       setFinalizing(false);
     }
@@ -227,17 +234,16 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   async function handleCancel() {
     if (!session) return;
-    const hasSets = [...setCompletedAtBySessionExerciseId.values()].some(
-      (times) => times.length > 0,
-    );
-    const message = hasSets
+    const message = hasLoggedSets
       ? "Cancel this workout? Logged sets will not be saved."
       : "Cancel this workout?";
     if (!confirm(message)) return;
     setCancelling(true);
     try {
       await cancelSession(session);
-      router.push("/workout");
+      // Replace, not push: the cancelled session's URL shouldn't stay in
+      // history for Back to land on.
+      router.replace("/workout");
     } finally {
       setCancelling(false);
     }
@@ -314,14 +320,16 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => void handleFinalize()}
-            disabled={finalizing || cancelling}
-            className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-          >
-            Finish
-          </button>
+          {hasLoggedSets && (
+            <button
+              type="button"
+              onClick={() => void handleFinalize()}
+              disabled={finalizing || cancelling}
+              className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+            >
+              Finish
+            </button>
+          )}
         </div>
       </div>
 
@@ -367,14 +375,25 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           }
           onExit={exitFocusMode}
           headerAction={
-            <button
-              type="button"
-              onClick={() => void handleFinalize()}
-              disabled={finalizing || cancelling}
-              className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-            >
-              Finish
-            </button>
+            hasLoggedSets ? (
+              <button
+                type="button"
+                onClick={() => void handleFinalize()}
+                disabled={finalizing || cancelling}
+                className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+              >
+                Finish
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleCancel()}
+                disabled={finalizing || cancelling}
+                className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-950 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
+              >
+                Cancel
+              </button>
+            )
           }
           footer={<RestTimerBar timer={restTimer} />}
         >

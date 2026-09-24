@@ -33,13 +33,17 @@ function sizesFor(large: boolean) {
     indexCell: large
       ? "py-3 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
       : "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
-    cell: large ? "py-3 pr-3 align-top text-lg" : "py-2 pr-2 align-top text-sm",
+    cell: large ? "py-3 pr-3 align-middle text-lg" : "py-2 pr-2 align-middle text-sm",
     metaCell: large
-      ? "py-3 pr-3 align-top text-base text-zinc-500 dark:text-zinc-500"
-      : "py-2 pr-2 align-top text-xs text-zinc-500 dark:text-zinc-500",
+      ? "py-3 pr-3 align-middle text-base text-zinc-500 dark:text-zinc-500"
+      : "py-2 pr-2 align-middle text-xs text-zinc-500 dark:text-zinc-500",
     actionCell: large
-      ? "py-3 pl-1 align-top text-right whitespace-nowrap"
-      : "py-2 pl-1 align-top text-right whitespace-nowrap",
+      ? "py-3 pl-1 align-middle text-right whitespace-nowrap"
+      : "py-2 pl-1 align-middle text-right whitespace-nowrap",
+    // The buttons are block-level flex boxes, so without a row wrapper two of
+    // them stack and the row doubles in height the moment a set is logged
+    // (issue #157) — keep them side by side so logging happens in place.
+    actionGroup: "flex min-w-22 items-center justify-end",
     saveButton: large
       ? "min-h-12 rounded-md bg-accent px-4 text-base font-medium text-accent-foreground"
       : "min-h-11 rounded-md bg-accent px-2 text-xs font-medium text-accent-foreground",
@@ -122,17 +126,19 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
           </select>
         </td>
         <td className={sizes.actionCell}>
-          <button type="button" onClick={save} className={sizes.saveButton}>
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            aria-label="Cancel edit"
-            className={sizes.textButton}
-          >
-            <X className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <div className={sizes.actionGroup}>
+            <button type="button" onClick={save} className={sizes.saveButton}>
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              aria-label="Cancel edit"
+              className={sizes.textButton}
+            >
+              <X className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </div>
         </td>
       </tr>
     );
@@ -151,22 +157,24 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onDelete }: Pr
       <td className={sizes.metaCell}>{set.rpe ?? "—"}</td>
       <td className={sizes.metaCell}>{set.kind !== "working" ? set.kind : "—"}</td>
       <td className={sizes.actionCell}>
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          aria-label="Edit set"
-          className={sizes.editButton}
-        >
-          <Pencil className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="Remove set"
-          className={sizes.deleteButton}
-        >
-          <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <div className={sizes.actionGroup}>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label="Edit set"
+            className={sizes.editButton}
+          >
+            <Pencil className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Remove set"
+            className={sizes.deleteButton}
+          >
+            <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
       </td>
     </tr>
   );

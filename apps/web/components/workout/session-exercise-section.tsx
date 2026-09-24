@@ -450,8 +450,10 @@ export function SessionExerciseSection({
                   <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
                   <td className={sizes.cell}>{kindSelectFor(index, draft)}</td>
                   <td className={sizes.actionCell}>
-                    {logButtonFor(index)}
-                    {index === nextIndex && repeatButton}
+                    <div className="flex min-w-22 items-center justify-end">
+                      {index === nextIndex && repeatButton}
+                      {logButtonFor(index)}
+                    </div>
                   </td>
                 </tr>
               );
