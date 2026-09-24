@@ -1,4 +1,5 @@
 export * from "./exercises";
+export * from "./explore";
 export * from "./history";
 export * from "./one-rep-max";
 export * from "./programs";
