@@ -2,6 +2,7 @@
 
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import type { SetKind } from "@/lib/sessions/set-kinds";
+import { RPE_MAX, RPE_MIN, clampRpe } from "@jim/core";
 import { Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { SetKindMenu } from "./set-kind-menu";
@@ -65,10 +66,11 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onChangeKind, 
   const [rpe, setRpe] = useState(set.rpe ?? "");
 
   function save() {
+    const rpeValue = toNumberOrNull(rpe);
     onEdit({
       weight: toNumberOrNull(weight),
       reps: toNumberOrNull(reps),
-      rpe: toNumberOrNull(rpe),
+      rpe: rpeValue == null ? null : clampRpe(rpeValue),
     });
     setEditing(false);
   }
@@ -101,8 +103,8 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onChangeKind, 
           <input
             type="number"
             inputMode="decimal"
-            min={1}
-            max={10}
+            min={RPE_MIN}
+            max={RPE_MAX}
             step={0.5}
             value={rpe}
             onChange={(event) => setRpe(event.target.value)}

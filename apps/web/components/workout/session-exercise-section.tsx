@@ -18,7 +18,10 @@ import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
   type PreviousSet,
+  RPE_MAX,
+  RPE_MIN,
   STRENGTH_STANDARD_TIERS,
+  clampRpe,
   currentProgressedWeight,
   plannedSetIndices,
   prefillWeightForSet,
@@ -29,6 +32,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
+import { RpeInfoMenu } from "./rpe-info-menu";
 import { SetKindMenu } from "./set-kind-menu";
 import { SetRow } from "./set-row";
 
@@ -48,6 +52,11 @@ function toNumberOrNull(value: string): number | null {
   if (value.trim() === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function toRpeOrNull(value: string): number | null {
+  const n = toNumberOrNull(value);
+  return n == null ? null : clampRpe(n);
 }
 
 interface DraftValues {
@@ -232,7 +241,7 @@ export function SessionExerciseSection({
       kind: draft.kind,
       weight,
       reps,
-      rpe: toNumberOrNull(draft.rpe),
+      rpe: toRpeOrNull(draft.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
     setDraftOverrides((current) => {
@@ -311,10 +320,11 @@ export function SessionExerciseSection({
     return (
       <input
         id={index === nextIndex ? `${fieldId}-rpe` : undefined}
+        aria-labelledby={index === nextIndex ? `${fieldId}-rpe-label` : undefined}
         type="number"
         inputMode="decimal"
-        min={1}
-        max={10}
+        min={RPE_MIN}
+        max={RPE_MAX}
         step={0.5}
         placeholder="—"
         value={draft.rpe}
@@ -420,7 +430,9 @@ export function SessionExerciseSection({
               <th className={`w-8 ${sizes.headerCell}`}>Set</th>
               <th className={sizes.headerCell}>Weight</th>
               <th className={sizes.headerCell}>Reps</th>
-              <th className={sizes.headerCell}>RPE</th>
+              <th className={sizes.headerCell}>
+                <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
+              </th>
               <th className={sizes.headerCell} />
             </tr>
           </thead>
@@ -481,7 +493,7 @@ export function SessionExerciseSection({
               {repsInputFor(nextIndex, nextDraft)}
             </div>
             <div className={sizes.fieldLabel}>
-              <label htmlFor={`${fieldId}-rpe`}>RPE</label>
+              <RpeInfoMenu large titleId={`${fieldId}-rpe-label`} />
               {rpeInputFor(nextIndex, nextDraft)}
             </div>
           </div>

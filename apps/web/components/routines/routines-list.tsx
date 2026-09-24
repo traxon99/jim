@@ -13,6 +13,7 @@ import { Flame, Layers, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { CollapsibleSection } from "./collapsible-section";
 import { RoutineIcon } from "./routine-icon";
 
 export function RoutinesList({ userId }: { userId: string }) {
@@ -152,10 +153,7 @@ export function RoutinesList({ userId }: { userId: string }) {
         )}
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-          Warm-ups
-        </h2>
+      <CollapsibleSection title="Warm-ups">
         {warmupRoutines.length === 0 && (
           <p className="text-sm text-zinc-500 dark:text-zinc-500">
             Attach a warm-up to any routine and it runs as a timed block at the start of the
@@ -222,56 +220,58 @@ export function RoutinesList({ userId }: { userId: string }) {
             ))}
           </ul>
         )}
-      </section>
+      </CollapsibleSection>
 
-      {groups.length === 0 ? (
-        <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-          No routines yet.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {groups.map((group) => (
-            <section key={group.folder ?? "__ungrouped"} className="flex flex-col gap-1">
-              {group.folder && (
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                  {group.folder}
-                </h2>
-              )}
-              <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                {group.routines.map((routine) => {
-                  const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
-                  return (
-                    <li key={routine.id}>
-                      <Link
-                        href={`/routines/${routine.id}`}
-                        data-ripple
-                        className="flex items-center justify-between gap-2 py-3"
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            <span className="truncate text-base font-medium">{routine.name}</span>
-                            {routine.notes && (
-                              <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                                {routine.notes}
-                              </span>
-                            )}
+      <CollapsibleSection title="Routines">
+        {groups.length === 0 ? (
+          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+            No routines yet.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {groups.map((group) => (
+              <section key={group.folder ?? "__ungrouped"} className="flex flex-col gap-1">
+                {group.folder && (
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                    {group.folder}
+                  </h3>
+                )}
+                <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {group.routines.map((routine) => {
+                    const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
+                    return (
+                      <li key={routine.id}>
+                        <Link
+                          href={`/routines/${routine.id}`}
+                          data-ripple
+                          className="flex items-center justify-between gap-2 py-3"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                            <span className="flex min-w-0 flex-col gap-0.5">
+                              <span className="truncate text-base font-medium">{routine.name}</span>
+                              {routine.notes && (
+                                <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                                  {routine.notes}
+                                </span>
+                              )}
+                            </span>
                           </span>
-                        </span>
-                        {exerciseCount > 0 && (
-                          <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-                            {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+                          {exerciseCount > 0 && (
+                            <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+                              {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
+                            </span>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
     </main>
   );
 }

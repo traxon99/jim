@@ -5,3 +5,4 @@ export * from "./session-summary";
 export * from "./previous-performance";
 export * from "./focus-exercise";
 export * from "./pace";
+export * from "./rpe";
