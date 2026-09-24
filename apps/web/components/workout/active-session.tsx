@@ -4,6 +4,7 @@ import { ExercisePicker } from "@/components/exercise-picker";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
+import { triggerHaptic } from "@/lib/haptics";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -214,6 +215,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   async function handleFinalize() {
     if (!session) return;
+    triggerHaptic();
     setFinalizing(true);
     try {
       const { cancelled } = await finalizeSession(session);
@@ -232,6 +234,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       ? "Cancel this workout? Logged sets will not be saved."
       : "Cancel this workout?";
     if (!confirm(message)) return;
+    triggerHaptic();
     setCancelling(true);
     try {
       await cancelSession(session);

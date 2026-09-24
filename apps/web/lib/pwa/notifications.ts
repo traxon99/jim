@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Profile is now workout stuff only — appearance, notifications, and sign out moved to a new Settings page.";
+  "Added haptic taps on the tab bar and workout buttons, with a Settings toggle to turn them off.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

@@ -1,5 +1,7 @@
 "use client";
 
+import { triggerHaptic } from "@/lib/haptics";
+
 interface RestTimer {
   active: boolean;
   remaining: number;
@@ -27,7 +29,10 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
       </div>
       <button
         type="button"
-        onClick={timer.skip}
+        onClick={() => {
+          triggerHaptic();
+          timer.skip();
+        }}
         className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
       >
         Skip
