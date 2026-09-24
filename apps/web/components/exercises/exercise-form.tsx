@@ -31,19 +31,38 @@ interface Props {
   userId: string;
   mode: "new" | "edit";
   exerciseId?: string;
+  /**
+   * Embedded use (issue #169): the exercise picker opens this form in place
+   * to create an exercise without leaving the routine or workout. When set,
+   * saving hands the new row back instead of navigating to its page.
+   */
+  onSaved?: (exercise: ExerciseRow) => void;
+  onCancel?: () => void;
+  initialName?: string;
+  initialCategory?: ExerciseCategory;
 }
 
-export function ExerciseForm({ userId, mode, exerciseId }: Props) {
+export function ExerciseForm({
+  userId,
+  mode,
+  exerciseId,
+  onSaved,
+  onCancel,
+  initialName = "",
+  initialCategory = "strength",
+}: Props) {
   const router = useRouter();
   const existing = useLiveQuery(
     () => (exerciseId ? db.exercises.get(exerciseId) : undefined),
     [exerciseId],
   );
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   const [equipment, setEquipment] = useState("");
-  const [category, setCategory] = useState<ExerciseCategory>("strength");
-  const [trackingType, setTrackingType] = useState<(typeof TRACKING_TYPES)[number]>("weight_reps");
+  const [category, setCategory] = useState<ExerciseCategory>(initialCategory);
+  const [trackingType, setTrackingType] = useState<(typeof TRACKING_TYPES)[number]>(
+    initialCategory === "warmup" ? "bodyweight" : "weight_reps",
+  );
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -129,6 +148,10 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
     }
 
     await mutate("exercises", entity);
+    if (onSaved) {
+      onSaved(entity);
+      return;
+    }
     router.push(`/exercises/${entity.id}`);
   }
 
@@ -155,9 +178,24 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
     );
   }
 
+  const Container = onSaved ? "div" : "main";
+
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <h1 className="text-xl font-semibold">{mode === "new" ? "New exercise" : "Edit exercise"}</h1>
+    <Container className="flex flex-1 flex-col gap-4 px-4 py-4">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold">
+          {mode === "new" ? "New exercise" : "Edit exercise"}
+        </h1>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-2 py-2 text-sm font-medium underline underline-offset-4"
+          >
+            Back
+          </button>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm font-medium">
@@ -267,6 +305,6 @@ export function ExerciseForm({ userId, mode, exerciseId }: Props) {
           </button>
         )}
       </form>
-    </main>
+    </Container>
   );
 }

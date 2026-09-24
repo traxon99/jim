@@ -55,3 +55,19 @@ export function partitionWarmups<T extends { exerciseId: string }>(
   }
   return { warmups, main };
 }
+
+export interface WarmupProgressItem {
+  loggedSetCount: number;
+  targetSetCount: number | null;
+}
+
+/**
+ * Whether the warm-up block is finished (issue #179): every warm-up has hit
+ * its planned set count, or — for one added without a target — has at least
+ * one set logged. An empty block is never "complete"; there's nothing to
+ * collapse.
+ */
+export function isWarmupComplete(items: readonly WarmupProgressItem[]): boolean {
+  if (items.length === 0) return false;
+  return items.every((item) => item.loggedSetCount >= Math.max(1, item.targetSetCount ?? 1));
+}
