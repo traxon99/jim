@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Tap a set's number to quickly mark it warmup, working, or failure — drop sets are gone, and the exercise card is tidier without a separate kind column.";
+  "RPE is now 5-10 with a tap-to-learn guide on what each number means, and Warm-ups and Routines can be collapsed on the Routines page.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
