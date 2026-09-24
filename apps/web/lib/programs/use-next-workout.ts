@@ -1,7 +1,7 @@
 "use client";
 
 import { type ProgramRoutineRow, type ProgramRow, type RoutineRow, db } from "@/lib/db/schema";
-import { type NextWorkout, suggestNextWorkout } from "@jim/core";
+import { type NextWorkout, isWarmupRoutine, suggestNextWorkout } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 
 export interface ProgramSuggestion {
@@ -26,8 +26,11 @@ export function useNextWorkout(programId?: string): ProgramSuggestion | null | u
       db.sessions.toArray(),
       db.routines.toArray(),
     ]);
-    // A routine deleted out from under the program just drops out of it.
-    const liveRoutineIds = new Set(routines.filter((r) => !r.deletedAt).map((r) => r.id));
+    // A routine deleted out from under the program just drops out of it, and
+    // a warm-up is never a workout of its own — it's paired with a routine.
+    const liveRoutineIds = new Set(
+      routines.filter((r) => !r.deletedAt && !isWarmupRoutine(r)).map((r) => r.id),
+    );
     const items = allItems.filter((item) => liveRoutineIds.has(item.routineId));
 
     const next = suggestNextWorkout({ mode: program.mode, items, sessions, now: new Date() });

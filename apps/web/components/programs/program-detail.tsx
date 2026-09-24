@@ -1,7 +1,8 @@
 "use client";
 
 import { mutate } from "@/lib/db/mutate";
-import { type ProgramRoutineRow, db } from "@/lib/db/schema";
+import { type ProgramRoutineRow, type RoutineRow, db } from "@/lib/db/schema";
+import { pairWarmup } from "@/lib/programs/pair-warmup";
 import { setActiveProgram } from "@/lib/programs/set-active";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { weekdaysFrom } from "@/lib/programs/weekdays";
@@ -9,7 +10,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { reorderRoutineExercises, uuidv7 } from "@jim/core";
+import { isWarmupRoutine, reorderRoutineExercises, uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Layers } from "lucide-react";
 import Link from "next/link";
@@ -29,24 +30,31 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const suggestion = useNextWorkout(id);
 
-  const routines = useMemo(
+  const liveRoutines = useMemo(
     () =>
       (rawRoutines ?? [])
         .filter((routine) => !routine.deletedAt)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [rawRoutines],
   );
-  const routineNames = useMemo(
-    () => new Map(routines.map((routine) => [routine.id, routine.name])),
-    [routines],
+  // Warm-ups aren't program steps of their own — they're paired with a
+  // workout routine instead (issue #139).
+  const routines = useMemo(
+    () => liveRoutines.filter((routine) => !isWarmupRoutine(routine)),
+    [liveRoutines],
+  );
+  const warmupRoutines = useMemo(() => liveRoutines.filter(isWarmupRoutine), [liveRoutines]);
+  const routinesById = useMemo(
+    () => new Map(liveRoutines.map((routine) => [routine.id, routine])),
+    [liveRoutines],
   );
 
   const items = useMemo(
     () =>
       (rawItems ?? [])
-        .filter((item) => !item.deletedAt && routineNames.has(item.routineId))
+        .filter((item) => !item.deletedAt && routinesById.has(item.routineId))
         .sort((a, b) => a.position - b.position),
-    [rawItems, routineNames],
+    [rawItems, routinesById],
   );
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -91,6 +99,10 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
   async function handleUpdateItem(item: ProgramRoutineRow, patch: Partial<ProgramRoutineRow>) {
     const deviceId = await getDeviceId();
     await mutate("programRoutines", { ...item, ...patch, updatedAt: new Date(), deviceId });
+  }
+
+  async function handleWarmupChange(routine: RoutineRow, choice: string) {
+    await pairWarmup(userId, routine, choice);
   }
 
   async function handleRemoveItem(item: ProgramRoutineRow) {
@@ -139,6 +151,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
 
   const weekly = program.mode === "weekly";
   const nextItemId = suggestion?.next?.item.id;
+  let step = 0;
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
@@ -171,7 +184,8 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         {weekly
           ? "Pick a day for each routine. The Workout tab suggests today's, or the next one coming up."
-          : "Routines run in this order. The Workout tab suggests the one after your last completed, looping back to the start."}
+          : "Routines run in this order. The Workout tab suggests the one after your last completed, looping back to the start."}{" "}
+        Pair a warm-up with any routine to run it at the start of that workout.
       </p>
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -180,19 +194,33 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
           strategy={verticalListSortingStrategy}
         >
           <ul className="flex flex-col gap-2">
-            {items.map((item, index) => (
-              <ProgramRoutineRowItem
-                key={item.id}
-                item={item}
-                routineName={routineNames.get(item.routineId) ?? "Unknown routine"}
-                step={index + 1}
-                weekly={weekly}
-                weekdayOrder={weekdaysFrom(settings.weekStart)}
-                isNext={item.id === nextItemId}
-                onWeekdayChange={(weekday) => handleUpdateItem(item, { weekday })}
-                onRemove={() => handleRemoveItem(item)}
-              />
-            ))}
+            {items.map((item) => {
+              const routine = routinesById.get(item.routineId);
+              if (!routine) return null;
+              const isWarmup = isWarmupRoutine(routine);
+              if (!isWarmup) step += 1;
+              return (
+                <ProgramRoutineRowItem
+                  key={item.id}
+                  item={item}
+                  routine={routine}
+                  isWarmup={isWarmup}
+                  warmupName={
+                    routine.warmupRoutineId
+                      ? routinesById.get(routine.warmupRoutineId)?.name
+                      : undefined
+                  }
+                  warmupRoutines={warmupRoutines}
+                  step={step}
+                  weekly={weekly}
+                  weekdayOrder={weekdaysFrom(settings.weekStart)}
+                  isNext={item.id === nextItemId}
+                  onWeekdayChange={(weekday) => handleUpdateItem(item, { weekday })}
+                  onWarmupChange={(choice) => void handleWarmupChange(routine, choice)}
+                  onRemove={() => handleRemoveItem(item)}
+                />
+              );
+            })}
           </ul>
         </SortableContext>
       </DndContext>
