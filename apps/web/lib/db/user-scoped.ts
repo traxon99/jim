@@ -53,3 +53,14 @@ export async function withUserDb<T>(
 
   return runAsUser(getDb(), userId, (tx) => fn(tx, userId, email));
 }
+
+/**
+ * `withUserDb` for callers that already hold a verified user id without a
+ * session cookie — the QStash-signed rest-timer callback
+ * (app/api/push/rest-timer/fire/route.ts), whose body this server itself
+ * wrote when the signed-in user started the rest. RLS still applies. Never
+ * pass an id that hasn't been through signature verification.
+ */
+export function withVerifiedUserDb<T>(userId: string, fn: (tx: DbOrTx) => Promise<T>): Promise<T> {
+  return runAsUser(getDb(), userId, fn);
+}

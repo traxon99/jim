@@ -2,20 +2,37 @@
 
 import { playRestAlert } from "@/lib/audio/rest-alert";
 import { restCompleteMessage } from "@/lib/pwa/notifications";
-import { showLocalNotification } from "@/lib/pwa/push-client";
+import {
+  cancelRestCompletePush,
+  scheduleRestCompletePush,
+  showLocalNotification,
+} from "@/lib/pwa/push-client";
 import { isRestComplete, remainingRestSeconds, restEndsAt } from "@jim/core";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function storageKey(sessionId: string): string {
   return `jim:rest-timer:${sessionId}`;
 }
 
-function readStoredEndsAt(sessionId: string): Date | null {
+/** The `endsAt` (ISO) the server has a push scheduled for, if any. */
+function pushStorageKey(sessionId: string): string {
+  return `jim:rest-timer-push:${sessionId}`;
+}
+
+function readStored(key: string): string | null {
   try {
-    const raw = window.localStorage.getItem(storageKey(sessionId));
-    return raw ? new Date(raw) : null;
+    return window.localStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+function writeStored(key: string, value: string | null): void {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch {
+    // Safari private mode etc. — state still holds for this page life.
   }
 }
 
@@ -26,14 +43,42 @@ function readStoredEndsAt(sessionId: string): Date | null {
  * remaining time instead of drifting. Persisted to `localStorage` (not
  * Dexie/outbox: purely local, ephemeral UI state, not something that syncs)
  * so a full page reload mid-rest still shows the right countdown.
+ *
+ * The completion notification can't come from this hook alone: iOS suspends
+ * a backgrounded PWA's JS, so the tick that notices the rest is over only
+ * runs once the user reopens Jim. So `start` also asks the server to push it
+ * at `endsAt` (docs/DECISIONS.md ADR-014), and the page-side notification is
+ * only the fallback for when that couldn't be scheduled.
  */
 export function useRestTimer(sessionId: string) {
   const [endsAt, setEndsAt] = useState<Date | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
   const [alerted, setAlerted] = useState(false);
+  const [pushedFor, setPushedFor] = useState<string | null>(null);
+  const pushedForRef = useRef<string | null>(null);
+  // Schedule/cancel requests run one at a time, in order, so a quick skip
+  // can't reach the server before the schedule it's meant to cancel.
+  const pushQueue = useRef<Promise<void>>(Promise.resolve());
+
+  const markPushed = useCallback(
+    (iso: string | null) => {
+      pushedForRef.current = iso;
+      setPushedFor(iso);
+      writeStored(pushStorageKey(sessionId), iso);
+    },
+    [sessionId],
+  );
+
+  const enqueuePush = useCallback((task: () => Promise<void>) => {
+    pushQueue.current = pushQueue.current.then(task).catch(() => {});
+  }, []);
 
   useEffect(() => {
-    setEndsAt(readStoredEndsAt(sessionId));
+    const stored = readStored(storageKey(sessionId));
+    setEndsAt(stored ? new Date(stored) : null);
+    const pushed = readStored(pushStorageKey(sessionId));
+    pushedForRef.current = pushed;
+    setPushedFor(pushed);
   }, [sessionId]);
 
   useEffect(() => {
@@ -53,23 +98,31 @@ export function useRestTimer(sessionId: string) {
       const end = restEndsAt(new Date(), durationSeconds);
       setEndsAt(end);
       setAlerted(false);
-      try {
-        window.localStorage.setItem(storageKey(sessionId), end.toISOString());
-      } catch {
-        // Safari private mode etc. — the timer still runs for this page life.
-      }
+      writeStored(storageKey(sessionId), end.toISOString());
+      enqueuePush(async () => {
+        if (await scheduleRestCompletePush(end).catch(() => false)) {
+          // Server-side this replaced any earlier pending rest.
+          markPushed(end.toISOString());
+        } else if (pushedForRef.current) {
+          // An earlier rest's push is still scheduled and would fire at the
+          // wrong time; this rest falls back to the local notification.
+          markPushed(null);
+          await cancelRestCompletePush();
+        }
+      });
     },
-    [sessionId],
+    [sessionId, enqueuePush, markPushed],
   );
 
   const skip = useCallback(() => {
     setEndsAt(null);
-    try {
-      window.localStorage.removeItem(storageKey(sessionId));
-    } catch {
-      // Nothing to clean up if it never wrote.
-    }
-  }, [sessionId]);
+    writeStored(storageKey(sessionId), null);
+    enqueuePush(async () => {
+      if (!pushedForRef.current) return;
+      markPushed(null);
+      await cancelRestCompletePush();
+    });
+  }, [sessionId, enqueuePush, markPushed]);
 
   const complete = endsAt !== null && isRestComplete(endsAt, now);
   const remaining = endsAt !== null ? remainingRestSeconds(endsAt, now) : 0;
@@ -77,13 +130,17 @@ export function useRestTimer(sessionId: string) {
   useEffect(() => {
     if (endsAt !== null && complete && !alerted) {
       playRestAlert();
-      // Reaches the user even if Jim isn't the focused tab; audio alone
-      // doesn't. Fire-and-forget: a rest timer that can't show a system
-      // notification still completed, the beep already covers this session.
-      showLocalNotification(restCompleteMessage()).catch(() => {});
+      // The server push covers this rest when it was scheduled; showing a
+      // local one too would just duplicate it. Otherwise this is the
+      // fallback: it reaches the user even if Jim isn't the focused tab,
+      // which audio alone doesn't. Fire-and-forget: a rest timer that can't
+      // show a system notification still completed.
+      if (pushedFor !== endsAt.toISOString()) {
+        showLocalNotification(restCompleteMessage()).catch(() => {});
+      }
       setAlerted(true);
     }
-  }, [complete, endsAt, alerted]);
+  }, [complete, endsAt, alerted, pushedFor]);
 
   return { active: endsAt !== null && !complete, remaining, start, skip };
 }

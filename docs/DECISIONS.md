@@ -253,7 +253,7 @@ the database credentials and runs exactly once per production deploy.
 
 ## ADR-013 — Rest timer completion shows a local notification, not a server push
 
-**Status:** Accepted · 2026-09-24
+**Status:** Superseded by ADR-014 · 2026-09-24
 
 **Context.** The rest timer (`packages/core/src/sessions/rest-timer.ts`) is entirely client-side
 and foreground-driven, per constraint 4 (`docs/ARCHITECTURE.md` §2): it derives remaining time from
@@ -277,3 +277,40 @@ timer start (this repo has no queue/cron infra to schedule one) or a serverless 
 for the rest duration (wastes function time, unreliable past a few minutes, and still couldn't beat
 the precision of just asking the already-running page). The timer's completion instant is only ever
 known client-side, so showing the notification client-side is the direct path, not a compromise.
+
+---
+
+## ADR-014 — Rest timer completion is a server push, scheduled through QStash
+
+**Status:** Accepted · 2026-09-24 · Supersedes ADR-013
+
+**Context.** ADR-013 fired the "Rest complete" notification from the page, on the assumption that
+the page is still running when the rest ends. On a phone it usually isn't: iOS suspends a
+backgrounded or screen-locked PWA's JavaScript (constraint 4, `docs/ARCHITECTURE.md` §2), so the
+tick that notices the rest is over only runs once the user reopens Jim. The notification then
+arrives on return, not at the end of the rest, which is exactly when it isn't needed.
+
+**Decision.** When a rest starts, the page POSTs its `endsAt` and its own push subscription's
+endpoint to `/api/push/rest-timer`. The server records it in `rest_timer_pushes` (one row per
+user) and publishes an Upstash QStash message with `notBefore = endsAt`. At that instant QStash
+calls `/api/push/rest-timer/fire`, which verifies QStash's signature, deletes the row only if it
+still has the same `ends_at`, and sends a Web Push to that one device (`TTL` 60 s, high urgency).
+The service worker's `push` handler shows it like any other push, so it arrives with Jim closed.
+
+- **Skip, restart, finish, cancel.** A new rest upserts the row; skipping, finishing, or
+  cancelling the workout deletes it. The stale QStash message still arrives but finds no matching
+  row and does nothing, so nothing ever needs cancelling at QStash.
+- **Fallback.** If the push couldn't be scheduled (no subscription on this device, QStash or VAPID
+  not configured, offline, development), the page still shows ADR-013's local notification when it
+  next runs. When the push *was* scheduled, the page skips its local one so it isn't shown twice.
+  The audio alert plays either way when the page is running.
+- **Only this device.** The push goes to the endpoint that started the rest, not every device the
+  user has subscribed, so a laptop doesn't chime for a set on the phone.
+
+**Rejected: Supabase `pg_cron` polling for due rows.** No new vendor, but it needs `pg_net` and a
+shared secret configured in the database outside migrations, and its precision is the poll
+interval. QStash's delayed delivery is second-precise, and its free tier covers far more rests
+than one app's users log.
+
+**Rejected: a serverless function sleeping until `endsAt`.** Pays for idle function time per rest
+and is cut off by function duration limits on long rests (ADR-013's reasoning still holds here).

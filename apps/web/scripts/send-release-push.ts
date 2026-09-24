@@ -8,9 +8,9 @@
 // push to real users. Never fails the build: a deploy matters more than
 // its notification.
 import postgres from "postgres";
-import webpush from "web-push";
 import { releasePushMessage } from "../lib/pwa/notifications";
 import { type StoredSubscription, fanOutPush } from "../lib/pwa/send-push";
+import { configureWebPush, webpush } from "../lib/pwa/web-push-server";
 
 async function main() {
   if (process.env.VERCEL_ENV !== "production") {
@@ -18,12 +18,7 @@ async function main() {
     return;
   }
 
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  const subject =
-    process.env.VAPID_SUBJECT || (productionHost ? `https://${productionHost}` : undefined);
-  if (!publicKey || !privateKey || !subject) {
+  if (!configureWebPush()) {
     console.log("[release-push] VAPID keys not configured (see .env.example); skipping.");
     return;
   }
@@ -36,7 +31,6 @@ async function main() {
     return;
   }
 
-  webpush.setVapidDetails(subject, publicKey, privateKey);
   const sql = postgres(url, { max: 1, prepare: false, ssl: "prefer", onnotice: () => {} });
   try {
     const subscriptions = await sql<StoredSubscription[]>`

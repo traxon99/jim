@@ -2,7 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { supabaseEnv } from "./env";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth/confirm", "/auth/auth-code-error"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/auth/confirm",
+  "/auth/auth-code-error",
+  // QStash's server-to-server callback: no cookie, authenticated by its
+  // request signature instead (app/api/push/rest-timer/fire/route.ts).
+  "/api/push/rest-timer/fire",
+];
 
 /**
  * Refreshes the Supabase session cookie on every request and redirects
