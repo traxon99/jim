@@ -11,6 +11,8 @@ export interface FocusViewExercise extends FocusExerciseCandidate {
 
 interface Props {
   title: string;
+  /** Shown before the title — the session's routine icon, if any. */
+  titleIcon?: React.ReactNode;
   exercises: readonly FocusViewExercise[];
   index: number;
   onIndexChange: (index: number) => void;
@@ -31,6 +33,7 @@ interface Props {
  */
 export function FocusView({
   title,
+  titleIcon,
   exercises,
   index,
   onIndexChange,
@@ -74,7 +77,10 @@ export function FocusView({
           <X className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
         </button>
         <div className="min-w-0 flex-1 text-center">
-          <p className="truncate text-base font-semibold">{title}</p>
+          <p className="flex items-center justify-center gap-1.5 text-base font-semibold">
+            {titleIcon}
+            <span className="truncate">{title}</span>
+          </p>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Exercise {index + 1} of {exercises.length} · {doneCount} done
           </p>

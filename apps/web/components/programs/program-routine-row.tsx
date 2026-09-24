@@ -1,5 +1,6 @@
 "use client";
 
+import { RoutineIcon } from "@/components/routines/routine-icon";
 import type { ProgramRoutineRow as ProgramRoutineEntity, RoutineRow } from "@/lib/db/schema";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useSortable } from "@dnd-kit/sortable";
@@ -69,7 +70,10 @@ export function ProgramRoutineRow({
             </span>
           )}
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-base font-medium">{routineName}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+              <span className="truncate text-base font-medium">{routineName}</span>
+            </span>
             {isNext && (
               <span className="text-xs font-medium text-zinc-500 dark:text-zinc-500">Up next</span>
             )}

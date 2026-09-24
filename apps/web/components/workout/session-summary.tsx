@@ -1,5 +1,6 @@
 "use client";
 
+import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -109,7 +110,10 @@ export function SessionSummary({ session, sessionExercises }: Props) {
       <div>
         <h1 className="text-xl font-semibold">Workout complete</h1>
         {session.name && (
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{session.name}</p>
+          <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+            <RoutineIconById routineId={session.routineId} />
+            {session.name}
+          </p>
         )}
       </div>
 

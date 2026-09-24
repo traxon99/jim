@@ -1,5 +1,6 @@
 "use client";
 
+import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -30,6 +31,7 @@ export function HistoryHome() {
   const rawExercises = useLiveQuery(() => db.exercises.toArray(), []);
   const rawSets = useLiveQuery(() => db.sets.toArray(), []);
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
+  const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
 
   const entries = useMemo(
     () =>
@@ -42,6 +44,18 @@ export function HistoryHome() {
       ),
     [rawSessions, rawSessionExercises, rawExercises, rawSets, rawPersonalRecords],
   );
+
+  // Session id → the routine it was started from, so the list can show that
+  // routine's icon next to the session name (issue #154).
+  const routineBySessionId = useMemo(() => {
+    const routinesById = new Map((rawRoutines ?? []).map((routine) => [routine.id, routine]));
+    const map = new Map<string, NonNullable<typeof rawRoutines>[number]>();
+    for (const session of rawSessions ?? []) {
+      const routine = session.routineId ? routinesById.get(session.routineId) : undefined;
+      if (routine) map.set(session.id, routine);
+    }
+    return map;
+  }, [rawSessions, rawRoutines]);
 
   const calendarDays = useMemo(() => buildTrainingCalendar(entries), [entries]);
 
@@ -120,32 +134,40 @@ export function HistoryHome() {
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-            {selectedDaySessions.map((session) => (
-              <li key={session.id}>
-                <Link
-                  href={`/history/${session.id}`}
-                  data-ripple
-                  className="flex items-center justify-between gap-2 py-3"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-base font-medium">{session.name}</span>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                      {session.startedAt.toLocaleTimeString(undefined, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}{" "}
-                      · {session.setCount} sets
-                      {session.prCount > 0
-                        ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
-                        : ""}
+            {selectedDaySessions.map((session) => {
+              const routine = routineBySessionId.get(session.id);
+              return (
+                <li key={session.id}>
+                  <Link
+                    href={`/history/${session.id}`}
+                    data-ripple
+                    className="flex items-center justify-between gap-2 py-3"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-2 text-base font-medium">
+                        {routine && (
+                          <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                        )}
+                        {session.name}
+                      </span>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                        {session.startedAt.toLocaleTimeString(undefined, {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}{" "}
+                        · {session.setCount} sets
+                        {session.prCount > 0
+                          ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
+                          : ""}
+                      </span>
+                    </div>
+                    <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                      {Math.round(session.totalVolume).toLocaleString()} {settings.units}
                     </span>
-                  </div>
-                  <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    {Math.round(session.totalVolume).toLocaleString()} {settings.units}
-                  </span>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
