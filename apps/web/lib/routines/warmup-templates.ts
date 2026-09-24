@@ -38,6 +38,7 @@ export async function addWarmupTemplate(
   const icon = pickDefaultRoutineIcon(
     existingRoutines
       .filter((r) => !r.deletedAt)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .map((r) => ({ iconShape: r.iconShape, iconColor: r.iconColor })),
   );
 

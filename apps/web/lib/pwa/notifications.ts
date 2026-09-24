@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Routines now show a small shape+color icon you can customize, so your list is easier to scan.";
+  "Routine icons now come in more outline shapes, look sharper in dark mode, and new routines get a fresh random icon.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
