@@ -165,36 +165,48 @@ export function SessionExerciseSection({
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
   // Preloaded sets (issue #121): every not-yet-logged set the routine or last
-  // time's workout calls for gets its own row, prefilled, rather than typing
-  // one set at a time. `draftOverrides` holds only rows the lifter has
-  // actually edited; everything else is computed fresh from the plan/history
-  // on every render, so it stays current as `previousByIndex` loads in.
+  // time's workout calls for gets its own row, ready to log one tap at a
+  // time. `draftOverrides` holds only rows the lifter has actually edited;
+  // everything else is computed fresh from the plan/history on every render,
+  // so it stays current as `previousByIndex` loads in.
   const plannedIndices = useMemo(
     () => plannedSetIndices(target?.targetSets ?? null, previousByIndex.size, loggedIndices),
     [target?.targetSets, previousByIndex, loggedIndices],
   );
 
-  function defaultDraftFor(index: number): DraftValues {
+  // Suggested weight/reps for a not-yet-logged row (issue #159): last time's
+  // numbers at this position, or the routine's target, same source as before
+  // — but now shown only as a background suggestion (the input's placeholder,
+  // matching the warm-up logger) rather than typed into the field. Logging
+  // with the field left blank falls back to this suggestion, same as a
+  // warm-up set left blank falls back to its target.
+  function suggestedWeightFor(index: number): string {
+    return prefillWeightForSet(index, previousByIndex.get(index), progressedWeight);
+  }
+  function suggestedRepsFor(index: number): string {
     const priorAtIndex = previousByIndex.get(index);
+    return priorAtIndex?.reps != null
+      ? String(priorAtIndex.reps)
+      : (target?.targetRepsLow?.toString() ?? "");
+  }
+
+  function defaultDraft(): DraftValues {
     return {
-      weight: prefillWeightForSet(index, priorAtIndex, progressedWeight),
-      reps:
-        priorAtIndex?.reps != null
-          ? String(priorAtIndex.reps)
-          : (target?.targetRepsLow?.toString() ?? ""),
+      weight: "",
+      reps: "",
       rpe: "",
       kind: "working",
     };
   }
 
   function draftFor(index: number): DraftValues {
-    return draftOverrides.get(index) ?? defaultDraftFor(index);
+    return draftOverrides.get(index) ?? defaultDraft();
   }
 
   function updateDraft(index: number, patch: Partial<DraftValues>) {
     setDraftOverrides((current) => {
       const next = new Map(current);
-      next.set(index, { ...(current.get(index) ?? defaultDraftFor(index)), ...patch });
+      next.set(index, { ...(current.get(index) ?? defaultDraft()), ...patch });
       return next;
     });
   }
@@ -209,14 +221,16 @@ export function SessionExerciseSection({
 
   async function logRow(index: number) {
     const draft = draftFor(index);
+    const weight = toNumberOrNull(draft.weight) ?? toNumberOrNull(suggestedWeightFor(index));
+    const reps = toNumberOrNull(draft.reps) ?? toNumberOrNull(suggestedRepsFor(index));
     const { set, prs } = await completeSet({
       userId,
       sessionExerciseId: item.id,
       exerciseId: item.exerciseId,
       setIndex: index,
       kind: draft.kind,
-      weight: toNumberOrNull(draft.weight),
-      reps: toNumberOrNull(draft.reps),
+      weight,
+      reps,
       rpe: toNumberOrNull(draft.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
@@ -273,7 +287,7 @@ export function SessionExerciseSection({
         id={index === nextIndex ? `${fieldId}-weight` : undefined}
         type="number"
         inputMode="decimal"
-        placeholder={previousByIndex.get(index)?.weight?.toString() ?? ""}
+        placeholder={suggestedWeightFor(index)}
         value={draft.weight}
         onChange={(event) => updateDraft(index, { weight: event.target.value })}
         className={sizes.input}
@@ -286,9 +300,7 @@ export function SessionExerciseSection({
         id={index === nextIndex ? `${fieldId}-reps` : undefined}
         type="number"
         inputMode="numeric"
-        placeholder={
-          previousByIndex.get(index)?.reps?.toString() ?? target?.targetRepsLow?.toString() ?? ""
-        }
+        placeholder={suggestedRepsFor(index)}
         value={draft.reps}
         onChange={(event) => updateDraft(index, { reps: event.target.value })}
         className={sizes.input}
