@@ -27,7 +27,7 @@ export function writePushNotificationsEnabled(enabled: boolean): void {
  * place the notification's content lives.
  */
 export const LATEST_RELEASE_NOTE =
-  "Routine icons now show up wherever the routine does — the Workout tab, Up next, programs, your active workout and history.";
+  "Logging a set no longer makes the list jump, and a workout with nothing logged yet can only be cancelled, not finished.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
