@@ -314,3 +314,30 @@ than one app's users log.
 
 **Rejected: a serverless function sleeping until `endsAt`.** Pays for idle function time per rest
 and is cut off by function duration limits on long rests (ADR-013's reasoning still holds here).
+
+---
+
+## ADR-015 — The web portal reads from the server and skips the install gate
+
+**Status:** Accepted · 2026-09-24
+
+**Context.** Issue #38 asks for a web portal for detailed analysis of strength numbers and other
+metrics — something to look at on a computer, not just a 393px phone. The app is local-first
+(IndexedDB, ADR-001) and hard-gated on home-screen install (ADR-010), so a desktop browser only
+ever sees install instructions.
+
+**Decision.** `/portal` is a server component outside the `(shell)` group. It reads sessions,
+session exercises, sets and exercises straight from Postgres under the signed-in user's RLS scope
+(`withUserDb`), and hands them to a client dashboard that computes everything with `packages/core`
+(`summarizeTraining`, `strengthTrends`, `weeklyVolumeTotals`, built on the same
+`estimatedOneRepMaxSeries` as the phone's exercise chart). The install gate lets `/portal` through,
+along with `/login` and `/signup` when their `next` is the portal.
+
+- **Read-only.** The portal never writes and never opens IndexedDB, so ADR-010's reason for the
+  gate — data logged in a browser tab being evicted — doesn't apply to it.
+- **Server data, not local.** It shows what has synced. Sets still waiting in the phone's outbox
+  appear after the next push; the portal isn't where training is logged.
+- **Also in the app.** History links to it, so the same view is one tap away on the phone.
+
+**Rejected: un-gating the whole app on desktop.** It would let someone log a workout into a
+browser's IndexedDB that nothing protects from eviction — exactly what ADR-010 exists to prevent.

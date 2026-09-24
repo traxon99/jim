@@ -1,7 +1,10 @@
 "use client";
 
+import { PORTAL_PATH, isInstallGateExempt } from "@/lib/pwa/install-gate-exempt";
 import { type InstallPlatform, detectInstallPlatform } from "@/lib/pwa/platform";
 import { STANDALONE_MEDIA_QUERY, isStandalone } from "@/lib/pwa/standalone";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type InstallState = "checking" | "installed" | "not-installed";
@@ -55,6 +58,7 @@ function InstallSteps({ platform }: { platform: InstallPlatform }) {
 export function InstallGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<InstallState>("checking");
   const [platform, setPlatform] = useState<InstallPlatform>("other");
+  const pathname = usePathname();
 
   useEffect(() => {
     const update = () => setState(isStandalone() ? "installed" : "not-installed");
@@ -68,6 +72,13 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
 
   if (state === "checking") return null;
 
+  // `window` is safe here: state only leaves "checking" after mount. Read
+  // directly rather than via useSearchParams, which would force every page
+  // under the root layout into a Suspense boundary for one param.
+  if (state === "not-installed" && isInstallGateExempt(pathname, window.location.search)) {
+    return children;
+  }
+
   if (state === "not-installed") {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
@@ -79,6 +90,13 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
         <ol className="max-w-xs list-decimal space-y-1 pl-5 text-left text-sm text-zinc-600 dark:text-zinc-400">
           <InstallSteps platform={platform} />
         </ol>
+        <p className="max-w-xs text-sm text-zinc-600 dark:text-zinc-400">
+          On a computer?{" "}
+          <Link href={PORTAL_PATH} className="font-medium underline underline-offset-4">
+            Open the web portal
+          </Link>{" "}
+          to analyze your training.
+        </p>
       </div>
     );
   }
