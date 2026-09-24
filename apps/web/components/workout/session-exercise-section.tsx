@@ -9,7 +9,6 @@ import {
   type SettingsRow,
   db,
 } from "@/lib/db/schema";
-import { triggerHaptic } from "@/lib/haptics";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
 import { SET_KINDS, type SetKind } from "@/lib/sessions/set-kinds";
@@ -117,6 +116,7 @@ export function SessionExerciseSection({
   const [previousByIndex, setPreviousByIndex] = useState<Map<number, PreviousSet>>(new Map());
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
   const [notes, setNotes] = useState(item.notes ?? "");
+  const [notesOpen, setNotesOpen] = useState(!large || Boolean(item.notes));
   const [draftOverrides, setDraftOverrides] = useState<Map<number, DraftValues>>(new Map());
 
   useEffect(() => {
@@ -226,7 +226,6 @@ export function SessionExerciseSection({
       next.delete(index);
       return next;
     });
-    triggerHaptic();
     onSetLogged(restSeconds);
   }
 
@@ -243,7 +242,6 @@ export function SessionExerciseSection({
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
-    triggerHaptic();
     onSetLogged(restSeconds);
   }
 
@@ -419,7 +417,7 @@ export function SessionExerciseSection({
         </div>
       )}
 
-      {(!large || sets.length > 0) && (
+      {!large && (
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className={sizes.headerRow}>
@@ -438,28 +436,26 @@ export function SessionExerciseSection({
                 set={set}
                 index={i}
                 isPr={prsBySetId.has(set.id)}
-                large={large}
                 onEdit={(patch) => void handleEdit(set, patch)}
                 onDelete={() => void deleteSet(set)}
               />
             ))}
-            {!large &&
-              plannedIndices.map((index) => {
-                const draft = draftFor(index);
-                return (
-                  <tr key={index}>
-                    <td className={sizes.indexCell}>{index + 1}</td>
-                    <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
-                    <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
-                    <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
-                    <td className={sizes.cell}>{kindSelectFor(index, draft)}</td>
-                    <td className={sizes.actionCell}>
-                      {logButtonFor(index)}
-                      {index === nextIndex && repeatButton}
-                    </td>
-                  </tr>
-                );
-              })}
+            {plannedIndices.map((index) => {
+              const draft = draftFor(index);
+              return (
+                <tr key={index}>
+                  <td className={sizes.indexCell}>{index + 1}</td>
+                  <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
+                  <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
+                  <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
+                  <td className={sizes.cell}>{kindSelectFor(index, draft)}</td>
+                  <td className={sizes.actionCell}>
+                    {logButtonFor(index)}
+                    {index === nextIndex && repeatButton}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -494,16 +490,26 @@ export function SessionExerciseSection({
         </div>
       )}
 
-      <label className={sizes.notesLabel}>
-        Exercise notes
-        <input
-          type="text"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          onBlur={() => void handleNotesBlur()}
-          className={sizes.notesInput}
-        />
-      </label>
+      {notesOpen ? (
+        <label className={sizes.notesLabel}>
+          Exercise notes
+          <input
+            type="text"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            onBlur={() => void handleNotesBlur()}
+            className={sizes.notesInput}
+          />
+        </label>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setNotesOpen(true)}
+          className="self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+        >
+          + Add note
+        </button>
+      )}
     </section>
   );
 }

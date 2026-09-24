@@ -1,6 +1,5 @@
 "use client";
 
-import { triggerHaptic } from "@/lib/haptics";
 import { type FocusExerciseCandidate, isFocusExerciseComplete } from "@jim/core";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
@@ -59,11 +58,6 @@ export function FocusView({
     setGoal != null && setGoal > 0 ? Math.min(1, current.loggedSetCount / setGoal) : null;
   const currentComplete = isFocusExerciseComplete(current);
 
-  function go(nextIndex: number) {
-    triggerHaptic();
-    onIndexChange(nextIndex);
-  }
-
   return (
     <section
       aria-label="Focus view"
@@ -88,7 +82,7 @@ export function FocusView({
         <div className="flex min-w-11 shrink-0 justify-end">{headerAction}</div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3">
         <ol className="flex gap-1.5" aria-label="Exercises">
           {exercises.map((exercise, i) => {
             const complete = isFocusExerciseComplete(exercise);
@@ -97,7 +91,7 @@ export function FocusView({
               <li key={exercise.id} className="flex-1">
                 <button
                   type="button"
-                  onClick={() => go(i)}
+                  onClick={() => onIndexChange(i)}
                   aria-label={`Go to ${exercise.name}${complete ? " (done)" : ""}`}
                   aria-current={active ? "step" : undefined}
                   className="flex min-h-11 w-full items-center justify-center"
@@ -156,7 +150,7 @@ export function FocusView({
       >
         <button
           type="button"
-          onClick={() => go(index - 1)}
+          onClick={() => onIndexChange(index - 1)}
           disabled={isFirst}
           aria-label="Previous exercise"
           className="flex min-h-14 min-w-14 items-center justify-center rounded-xl border border-zinc-300 disabled:opacity-40 dark:border-zinc-700"
@@ -165,7 +159,7 @@ export function FocusView({
         </button>
         <button
           type="button"
-          onClick={() => go(index + 1)}
+          onClick={() => onIndexChange(index + 1)}
           disabled={isLast}
           className="flex min-h-14 flex-1 items-center justify-between gap-2 rounded-xl bg-accent px-4 text-left text-accent-foreground disabled:opacity-40"
         >
