@@ -47,7 +47,7 @@ them produces silent data loss, which is the worst failure mode a workout logger
 |---|---|---|
 | 1 | **Background Sync API does not exist on iOS.** Safari has never shipped it. | Sync cannot be driven by `sync` events. It is foreground-driven only. |
 | 2 | **Non-installed iOS web apps have storage evicted after 7 days of non-use.** Home-screen-installed PWAs are exempt. | The app hard-gates on install. Not a dismissible banner. |
-| 3 | **`navigator.vibrate` is unsupported on iOS.** iOS 18+ Safari does give a native haptic tick when a real `<input type="checkbox" switch>` is toggled, so `lib/haptics.ts` fires one of these (hidden, from within the user gesture) as well as `navigator.vibrate`. | Single-tap haptics (log a set, tab bar, finish/cancel) work on-device. The switch trick only does discrete taps, not a sustained pattern, so rest-timer completion still uses audio + notification. |
+| 3 | **`navigator.vibrate` is unsupported on iOS**, and the app isn't installed as a PWA widely enough to rely on tricks that only work from a real user gesture in a standalone window. | No haptic feedback anywhere; `components/ripple-effect.tsx` gives taps a visual confirmation instead, and rest-timer completion uses audio + notification. |
 | 4 | **Background timers are unreliable.** | The rest timer derives from a stored absolute timestamp, recomputed on resume. Never `setInterval` accumulation. |
 | 5 | **Web Push requires home-screen install**, and is unavailable in the EU under the DMA. | Acceptable here; noted so it is not discovered late. |
 

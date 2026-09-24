@@ -112,9 +112,9 @@ summary {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* `navigator.vibrate` doesn't exist on iOS (docs/ARCHITECTURE.md constraint 3),
-   so a button press has no haptic confirmation. This is the visual stand-in:
-   a small Material-style ripple (components/ripple-effect.tsx) splashes out
+/* Buttons get no native tap feedback on iOS (docs/ARCHITECTURE.md constraint 3).
+   This is the visual stand-in: a small Material-style ripple
+   (components/ripple-effect.tsx) splashes out
    from the touch point, tinted with the element's own text color so it reads
    correctly on both dark and light controls. Applies to every button and to
    anything tagged [data-ripple] — the bottom tab bar's links aren't <button>s

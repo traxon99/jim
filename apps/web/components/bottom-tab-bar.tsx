@@ -1,6 +1,5 @@
 "use client";
 
-import { triggerHaptic } from "@/lib/haptics";
 import { useHasActiveSession } from "@/lib/sessions/use-active-session";
 import { BicepsFlexed, CircleUserRound, ClipboardList, Dumbbell, History } from "lucide-react";
 import Link from "next/link";
@@ -31,7 +30,6 @@ export function BottomTabBar() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            onClick={() => triggerHaptic()}
             data-ripple
             className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium leading-none ${
               active ? "text-accent" : "text-zinc-500 dark:text-zinc-500"

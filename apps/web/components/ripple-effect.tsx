@@ -5,8 +5,8 @@ import { useEffect } from "react";
 const RIPPLE_TARGET_SELECTOR = "button:not(:disabled), [data-ripple]";
 const RIPPLE_DURATION_MS = 450;
 
-// Android-style ripple (docs/ARCHITECTURE.md §2 constraint 3: no navigator.vibrate,
-// so a splash is the visual stand-in for a haptic). One delegated listener covers
+// Android-style ripple (docs/ARCHITECTURE.md §2 constraint 3: no native tap
+// feedback on iOS, so a splash is the visual stand-in). One delegated listener covers
 // every button plus [data-ripple] elements, so nothing has to wire this up itself.
 export function RippleEffect() {
   useEffect(() => {
