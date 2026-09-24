@@ -12,6 +12,7 @@ import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
 import {
   type PaceExercise,
+  isWarmupComplete,
   isWarmupExercise,
   partitionWarmups,
   resolveCurrentRows,
@@ -136,6 +137,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       })),
     [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
   );
+
+  const warmupComplete = useMemo(() => {
+    const warmupIds = new Set(warmupItems.map((se) => se.id));
+    return isWarmupComplete(focusCandidates.filter((candidate) => warmupIds.has(candidate.id)));
+  }, [warmupItems, focusCandidates]);
 
   // When the main workout started: its first logged set ends the warm-up timer.
   const mainStartedAt = useMemo(() => {
@@ -410,6 +416,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               startedAt={session.startedAt}
               targetMinutes={warmupTargetMinutes}
               endedAt={mainStartedAt}
+              complete={warmupComplete}
             >
               {warmupItems.map((item) => renderExercise(item))}
             </WarmupBlock>

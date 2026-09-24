@@ -3,7 +3,7 @@ import { MUSCLES } from "../../exercises/muscles";
 import { WARMUP_EXERCISES } from "../catalog";
 import { exerciseCategoryOf, isWarmupExercise, isWarmupRoutine } from "../category";
 import { warmupFrequency } from "../frequency";
-import { partitionWarmups, planSessionExercises } from "../session-plan";
+import { isWarmupComplete, partitionWarmups, planSessionExercises } from "../session-plan";
 import { WARMUP_TEMPLATES, instantiateWarmupTemplate } from "../templates";
 import { formatClock, warmupTimerState } from "../timer";
 
@@ -172,6 +172,33 @@ describe("partitionWarmups", () => {
     const result = partitionWarmups(items, (id) => id.startsWith("s") && id !== "squat");
     expect(result.warmups.map((i) => i.exerciseId)).toEqual(["s1", "s2"]);
     expect(result.main.map((i) => i.exerciseId)).toEqual(["squat"]);
+  });
+});
+
+describe("isWarmupComplete", () => {
+  it("is false for an empty block", () => {
+    expect(isWarmupComplete([])).toBe(false);
+  });
+
+  it("requires every warm-up to reach its target set count", () => {
+    expect(
+      isWarmupComplete([
+        { loggedSetCount: 2, targetSetCount: 2 },
+        { loggedSetCount: 1, targetSetCount: 2 },
+      ]),
+    ).toBe(false);
+    expect(
+      isWarmupComplete([
+        { loggedSetCount: 2, targetSetCount: 2 },
+        { loggedSetCount: 3, targetSetCount: 2 },
+      ]),
+    ).toBe(true);
+  });
+
+  it("treats a warm-up without a target as done after one set", () => {
+    expect(isWarmupComplete([{ loggedSetCount: 0, targetSetCount: null }])).toBe(false);
+    expect(isWarmupComplete([{ loggedSetCount: 1, targetSetCount: null }])).toBe(true);
+    expect(isWarmupComplete([{ loggedSetCount: 0, targetSetCount: 0 }])).toBe(false);
   });
 });
 

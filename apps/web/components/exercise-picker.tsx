@@ -1,5 +1,6 @@
 "use client";
 
+import { ExerciseForm } from "@/components/exercises/exercise-form";
 import { db } from "@/lib/db/schema";
 import {
   type ExerciseCategory,
@@ -9,6 +10,7 @@ import {
   searchExercises,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface Props {
@@ -36,6 +38,9 @@ export function ExercisePicker({
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ExerciseCategory | "all">(initialCategory);
+  // Issue #169: create a missing exercise from here with the same form the
+  // Exercises page uses, then add it straight away.
+  const [creating, setCreating] = useState(false);
 
   const results = useMemo(() => {
     const rows = allExercises ?? [];
@@ -45,6 +50,24 @@ export function ExercisePicker({
     }).filter((exercise) => !excludeExerciseIds.has(exercise.id));
     return searchExercises(filtered, query);
   }, [allExercises, userId, query, excludeExerciseIds, category]);
+
+  if (creating) {
+    return (
+      <div
+        className="fixed inset-0 z-10 flex flex-col overflow-y-auto bg-white dark:bg-zinc-950"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <ExerciseForm
+          userId={userId}
+          mode="new"
+          initialName={query.trim()}
+          initialCategory={category === "warmup" ? "warmup" : "strength"}
+          onSaved={(exercise) => onPick(exercise.id, exercise.name)}
+          onCancel={() => setCreating(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -119,6 +142,16 @@ export function ExercisePicker({
             No exercises match.
           </li>
         )}
+        <li>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="flex min-h-11 w-full items-center gap-2 py-3 text-left text-base font-medium text-accent"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+            {query.trim() ? `Create “${query.trim()}”` : "New exercise"}
+          </button>
+        </li>
       </ul>
     </div>
   );

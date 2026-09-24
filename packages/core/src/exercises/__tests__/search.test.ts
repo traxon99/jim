@@ -125,4 +125,77 @@ describe("searchExercises", () => {
     expect(searchExercises(catalog, "")).toHaveLength(2);
     expect(searchExercises(catalog, "   ")).toHaveLength(2);
   });
+
+  describe("fuzzy matching (issue #130)", () => {
+    it("ignores spacing and hyphens", () => {
+      const catalog = [exercise({ name: "Push-Up" }), exercise({ name: "Pull-Up" })];
+      expect(searchExercises(catalog, "pushup").map((e) => e.name)).toEqual(["Push-Up"]);
+      expect(searchExercises(catalog, "pull up").map((e) => e.name)).toEqual(["Pull-Up"]);
+    });
+
+    it("matches every query word in any order, not just a contiguous phrase", () => {
+      const catalog = [
+        exercise({ name: "Incline Dumbbell Press" }),
+        exercise({ name: "Dumbbell Bench Press" }),
+        exercise({ name: "Barbell Curl" }),
+      ];
+      expect(searchExercises(catalog, "press incline").map((e) => e.name)).toEqual([
+        "Incline Dumbbell Press",
+      ]);
+    });
+
+    it("expands gym shorthand like db and bb", () => {
+      const catalog = [
+        exercise({ name: "Incline Dumbbell Press" }),
+        exercise({ name: "Barbell Curl" }),
+      ];
+      expect(searchExercises(catalog, "incline db press").map((e) => e.name)).toEqual([
+        "Incline Dumbbell Press",
+      ]);
+      expect(searchExercises(catalog, "bb curl").map((e) => e.name)).toEqual(["Barbell Curl"]);
+    });
+
+    it("tolerates small typos, including transposed letters", () => {
+      const catalog = [
+        exercise({ name: "Barbell Squat" }),
+        exercise({ name: "Romanian Deadlift" }),
+        exercise({ name: "Pull-Up" }),
+      ];
+      expect(searchExercises(catalog, "sqaut").map((e) => e.name)).toEqual(["Barbell Squat"]);
+      expect(searchExercises(catalog, "romainan deadlfit").map((e) => e.name)).toEqual([
+        "Romanian Deadlift",
+      ]);
+    });
+
+    it("folds simple plurals", () => {
+      const catalog = [exercise({ name: "Pull-Up" }), exercise({ name: "Barbell Curl" })];
+      expect(searchExercises(catalog, "pull ups").map((e) => e.name)).toEqual(["Pull-Up"]);
+      expect(searchExercises(catalog, "barbell curls").map((e) => e.name)).toEqual([
+        "Barbell Curl",
+      ]);
+    });
+
+    it("doesn't apply typo tolerance to short words", () => {
+      const catalog = [exercise({ name: "Row" }), exercise({ name: "Bench Dip" })];
+      expect(searchExercises(catalog, "raw")).toHaveLength(0);
+    });
+
+    it("falls back to equipment and muscles when the name doesn't match", () => {
+      const catalog = [
+        exercise({ name: "Fly", equipment: "dumbbell", primaryMuscles: ["chest"] }),
+        exercise({ name: "Squat", equipment: "barbell", primaryMuscles: ["quadriceps"] }),
+      ];
+      expect(searchExercises(catalog, "chest dumbbell").map((e) => e.name)).toEqual(["Fly"]);
+    });
+
+    it("always ranks a whole-phrase match above a fuzzy one", () => {
+      const catalog = [
+        exercise({ name: "Squat Jump" }),
+        exercise({ name: "Sqat Machine" }),
+        exercise({ name: "Barbell Squat" }),
+      ];
+      const results = searchExercises(catalog, "squat").map((e) => e.name);
+      expect(results).toEqual(["Squat Jump", "Barbell Squat", "Sqat Machine"]);
+    });
+  });
 });
