@@ -22,7 +22,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         routines: <RoutinesList userId={userId} />,
         history: <HistoryHome />,
         exercises: <ExercisesList userId={userId} />,
-        profile: <ProfileHome email={data?.claims.email} />,
+        profile: <ProfileHome />,
       }
     : { workout: null, routines: null, history: null, exercises: null, profile: null };
 
