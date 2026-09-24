@@ -6,7 +6,7 @@ import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart3, Trophy } from "lucide-react";
+import { BarChart3, LineChart, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TrainingCalendarMonth } from "./training-calendar-month";
@@ -101,6 +101,13 @@ export function HistoryHome() {
           >
             <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             Volume
+          </Link>
+          <Link
+            href="/portal"
+            className="flex min-h-11 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+          >
+            <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+            Analysis
           </Link>
         </nav>
       </div>
