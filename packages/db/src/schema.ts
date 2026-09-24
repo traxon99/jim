@@ -1,4 +1,4 @@
-import { MUSCLES } from "@jim/core";
+import { MUSCLES, ROUTINE_ICON_COLORS, ROUTINE_ICON_SHAPES } from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -82,6 +82,13 @@ export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "wa
 // A "warmup" routine is a reusable warm-up block (e.g. "Leg warm-up") that a
 // strength routine can link to as its warm-up (routines.warmup_routine_id).
 export const routineKindEnum = pgEnum("routine_kind", ["strength", "warmup"]);
+
+// Small shape+color icon shown per routine (issue #150), so a list of
+// routines doesn't read as identical rows. Kept as two small enums rather
+// than one combined one so each axis can grow (a new shape or color)
+// without an enum-value migration touching every existing routine's value.
+export const routineIconShapeEnum = pgEnum("routine_icon_shape", [...ROUTINE_ICON_SHAPES]);
+export const routineIconColorEnum = pgEnum("routine_icon_color", [...ROUTINE_ICON_COLORS]);
 
 export const setKindEnum = pgEnum("set_kind", ["warmup", "working", "drop", "failure"]);
 
@@ -245,6 +252,11 @@ export const routines = pgTable(
     }),
     // Target length of the timed warm-up block at the start of a workout.
     warmupMinutes: integer("warmup_minutes"),
+    // Defaults only exist so ALTER TABLE ADD COLUMN is safe against a
+    // non-empty table; every real write picks the next unused combo via
+    // packages/core's pickDefaultRoutineIcon instead of taking this default.
+    iconShape: routineIconShapeEnum("icon_shape").notNull().default("square"),
+    iconColor: routineIconColorEnum("icon_color").notNull().default("red"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S3): last-write-wins tie-broken on (updatedAt, deviceId)
     // per ADR-003; deletedAt is a tombstone rather than a real DELETE, so a

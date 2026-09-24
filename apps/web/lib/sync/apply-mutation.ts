@@ -95,6 +95,8 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             kind: excluded(routines.kind),
             warmupRoutineId: excluded(routines.warmupRoutineId),
             warmupMinutes: excluded(routines.warmupMinutes),
+            iconShape: excluded(routines.iconShape),
+            iconColor: excluded(routines.iconColor),
             updatedAt: excluded(routines.updatedAt),
             deviceId: excluded(routines.deviceId),
             deletedAt: excluded(routines.deletedAt),

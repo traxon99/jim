@@ -58,6 +58,8 @@ function routine(overrides: Partial<RoutineRow> & { id: string }): RoutineRow {
     kind: "strength",
     warmupRoutineId: null,
     warmupMinutes: null,
+    iconShape: "square",
+    iconColor: "blue",
     createdAt: new Date(),
     updatedAt: new Date(),
     deviceId: "device-a",

@@ -163,6 +163,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
       notes: null,
       position: 0,
       folder: null,
+      iconShape: "square",
+      iconColor: "blue",
       updatedAt: now,
       deviceId: "device-a",
       deletedAt: null,
