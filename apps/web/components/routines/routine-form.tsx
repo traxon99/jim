@@ -24,6 +24,12 @@ const SHAPE_LABELS: Record<RoutineIconShape, string> = {
   square: "Square",
   triangle: "Triangle",
   squircle: "Squircle",
+  circle: "Circle",
+  diamond: "Diamond",
+  pentagon: "Pentagon",
+  hexagon: "Hexagon",
+  octagon: "Octagon",
+  star: "Star",
 };
 
 const COLOR_LABELS: Record<RoutineIconColor, string> = {
@@ -101,8 +107,10 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
     iconInitialized.current = true;
   }, [existing]);
 
-  // New routines default to the first shape/color combo no existing routine
-  // is already wearing (issue #150), computed once allRoutines has loaded.
+  // New routines default to a random shape/color combo that no existing
+  // routine is wearing and that differs from the most recently created
+  // routine's shape and color (issues #150, #152), computed once
+  // allRoutines has loaded.
   // Guarded so it only runs the one time — later re-renders (e.g. another
   // routine syncing in) must not stomp on a color the user already picked.
   useEffect(() => {
@@ -110,6 +118,7 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
     const picked = pickDefaultRoutineIcon(
       allRoutines
         .filter((r) => !r.deletedAt)
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
         .map((r) => ({ iconShape: r.iconShape, iconColor: r.iconColor })),
     );
     setIconShape(picked.iconShape);
@@ -213,7 +222,7 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
 
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm font-medium">Icon</legend>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {ROUTINE_ICON_SHAPES.map((shape) => (
               <button
                 key={shape}

@@ -99,6 +99,13 @@
       "when": 1790275181684,
       "tag": "0013_add_routine_icon",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790275974278,
+      "tag": "0014_expand_routine_icon_shapes",
+      "breakpoints": true
     }
   ]
 }
