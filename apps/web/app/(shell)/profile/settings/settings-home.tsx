@@ -1,5 +1,6 @@
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
+import { ConnectClaudeSection } from "@/components/profile/connect-claude-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
 import { WorkoutSection } from "@/components/profile/workout-section";
@@ -27,6 +28,7 @@ export function SettingsHome({ email }: { email?: string }) {
       <AccentColorSection />
       <FontFamilySection />
       <PushNotificationsSection />
+      <ConnectClaudeSection />
       <SignOutButton />
       <p className="text-xs text-zinc-500 dark:text-zinc-500">Jim v{APP_VERSION}</p>
     </main>

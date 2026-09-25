@@ -25,8 +25,30 @@ hosted authorize page of its own — see `src/auth/`).
 ## Deploying
 
 This process holds OAuth/session state in memory (registered clients, pending
-logins, the streamable HTTP transport's session state) and calls `app.listen()`,
-so it needs a platform that runs a persistent Node process — Fly.io, Render,
-Railway, a small VM — rather than a serverless function platform. Set
-`MCP_ISSUER_URL` to the deployed HTTPS origin, and add
-`<that origin>/login/callback` to Supabase's redirect URL allowlist.
+logins, issued auth codes) and calls `app.listen()`, so it needs a platform
+that runs a persistent Node process — Fly.io, Render, Railway, a small VM —
+rather than a serverless function platform. Run a single instance: that
+in-memory state isn't shared between replicas.
+
+`Dockerfile` builds the server as a container. Build it from the repo root so
+the workspace packages it imports are in context:
+
+```
+docker build -f apps/mcp/Dockerfile -t jim-mcp .
+```
+
+It runs the TypeScript source under `tsx` (`pnpm start` does the same outside
+Docker): `@jim/core` and `@jim/db` ship raw `.ts` with no build step, so there
+is no compiled output to run.
+
+To bring up the official server:
+
+1. Deploy the image. Set `PORT` if the host doesn't default to 3001, and point
+   the host's health check at `GET /healthz`.
+2. Set `DATABASE_URL` (the transaction pooler string), `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY`, and `MCP_ISSUER_URL` = the deployed HTTPS origin.
+3. Add `<MCP_ISSUER_URL>/login/callback` to Supabase's
+   **Auth → URL Configuration → Redirect URLs**.
+4. Set `NEXT_PUBLIC_MCP_URL` = the same origin in the web app's Vercel env and
+   redeploy it. Settings → Connect Claude then shows the server URL and the
+   `claude mcp add` command.
