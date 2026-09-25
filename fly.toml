@@ -3,7 +3,7 @@
 # Deploy with `fly deploy` from the repo root; see apps/mcp/README.md → Deploying.
 
 app = "jim-mcp"
-primary_region = "sjc"
+primary_region = "iad"
 
 [build]
   dockerfile = "apps/mcp/Dockerfile"
