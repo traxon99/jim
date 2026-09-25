@@ -41,6 +41,10 @@ It runs the TypeScript source under `tsx` (`pnpm start` does the same outside
 Docker): `@jim/core` and `@jim/db` ship raw `.ts` with no build step, so there
 is no compiled output to run.
 
+The official server runs on Fly.io as the `jim-mcp` app
+(https://jim-mcp.fly.dev), configured by `fly.toml` at the repo root. Redeploy
+with `fly deploy` from the repo root; set runtime config with `fly secrets set`.
+
 To bring up the official server:
 
 1. Deploy the image. Set `PORT` if the host doesn't default to 3001, and point

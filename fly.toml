@@ -1,0 +1,33 @@
+# Fly.io config for the Jim MCP server (apps/mcp). Lives at the repo root
+# because the Dockerfile builds from here to pull in the workspace packages.
+# Deploy with `fly deploy` from the repo root; see apps/mcp/README.md → Deploying.
+
+app = "jim-mcp"
+primary_region = "iad"
+
+[build]
+  dockerfile = "apps/mcp/Dockerfile"
+
+[env]
+  PORT = "3001"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  # OAuth clients, pending logins, and auth codes live in memory, so keep exactly
+  # one Machine up: stopping it would drop them, and a second would split them.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "5s"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
