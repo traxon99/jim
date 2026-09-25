@@ -48,17 +48,26 @@ function WeekVolumeBars({ week, units }: { week: WeeklyMuscleVolume; units: stri
  */
 export function MuscleVolume() {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
   const rawSets = useLiveQuery(() => db.sets.toArray(), []);
 
   const weeks = useMemo(() => {
-    const sets = buildMuscleVolumeSets(rawSessionExercises ?? [], exercises ?? [], rawSets ?? []);
+    const sets = buildMuscleVolumeSets(
+      rawSessions ?? [],
+      rawSessionExercises ?? [],
+      exercises ?? [],
+      rawSets ?? [],
+    );
     return weeklyVolumeByMuscle(sets, settings.weekStart).slice(0, WEEKS_SHOWN);
-  }, [rawSessionExercises, exercises, rawSets, settings.weekStart]);
+  }, [rawSessions, rawSessionExercises, exercises, rawSets, settings.weekStart]);
 
   const loading =
-    rawSessionExercises === undefined || exercises === undefined || rawSets === undefined;
+    rawSessions === undefined ||
+    rawSessionExercises === undefined ||
+    exercises === undefined ||
+    rawSets === undefined;
 
   if (loading) {
     return (

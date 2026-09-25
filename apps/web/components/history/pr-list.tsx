@@ -42,14 +42,26 @@ function tierBadgeLabel(tier: StrengthStandardTier | null): string {
 
 export function PrList() {
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
+  // Only needed to leave out PRs from deleted workouts (issue #200).
+  const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
+  const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
+  const rawSets = useLiveQuery(() => db.sets.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
 
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
   const current = useMemo(
-    () => currentPersonalRecords(toPersonalRecordEntries(rawPersonalRecords ?? [])),
-    [rawPersonalRecords],
+    () =>
+      currentPersonalRecords(
+        toPersonalRecordEntries(
+          rawPersonalRecords ?? [],
+          rawSessions ?? [],
+          rawSessionExercises ?? [],
+          rawSets ?? [],
+        ),
+      ),
+    [rawPersonalRecords, rawSessions, rawSessionExercises, rawSets],
   );
 
   const exerciseById = useMemo(() => {
@@ -94,7 +106,13 @@ export function PrList() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [current, exerciseById, strengthProfile]);
 
-  if (rawPersonalRecords === undefined || exercises === undefined) {
+  if (
+    rawPersonalRecords === undefined ||
+    rawSessions === undefined ||
+    rawSessionExercises === undefined ||
+    rawSets === undefined ||
+    exercises === undefined
+  ) {
     return (
       <main className="flex flex-1 items-center justify-center">
         <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>

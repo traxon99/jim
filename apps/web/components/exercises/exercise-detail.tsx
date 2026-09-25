@@ -3,6 +3,7 @@
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { db } from "@/lib/db/schema";
 import {
+  deletedSessionExerciseIds,
   estimatedOneRepMaxSeries,
   isWarmupExercise,
   resolveCurrentRows,
@@ -19,8 +20,18 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
   // Every current (non-superseded, non-deleted) set logged against this
   // exercise, most recent first, paired with which session it belongs to
   // (estimatedOneRepMaxSeries needs that to plot one point per session).
+  // Sets from a deleted workout, or an exercise removed from one, don't
+  // count (issue #200).
   const resolvedSets = useLiveQuery(async () => {
-    const sessionExercises = await db.sessionExercises.where("exerciseId").equals(id).toArray();
+    const allSessionExercises = await db.sessionExercises.where("exerciseId").equals(id).toArray();
+    const sessions = await db.sessions.bulkGet([
+      ...new Set(allSessionExercises.map((se) => se.sessionId)),
+    ]);
+    const deleted = deletedSessionExerciseIds(
+      sessions.filter((session) => session != null),
+      allSessionExercises,
+    );
+    const sessionExercises = allSessionExercises.filter((se) => !deleted.has(se.id));
     if (sessionExercises.length === 0) return [];
 
     const sessionIdBySessionExerciseId = new Map(
