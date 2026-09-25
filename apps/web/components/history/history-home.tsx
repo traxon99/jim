@@ -86,25 +86,27 @@ export function HistoryHome() {
   return (
     <main className="flex flex-1 flex-col gap-6 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">History</h1>
-        <nav className="flex gap-2">
+        <h1 className="shrink-0 text-xl font-semibold">History</h1>
+        {/* min-w-0 lets this row shrink below its content width so it scrolls
+            within itself instead of forcing the page wider (issue #182). */}
+        <nav className="flex min-w-0 gap-2 overflow-x-auto">
           <Link
             href="/history/prs"
-            className="flex min-h-11 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
           >
             <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             PRs
           </Link>
           <Link
             href="/history/volume"
-            className="flex min-h-11 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
           >
             <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             Volume
           </Link>
           <Link
             href="/portal"
-            className="flex min-h-11 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
           >
             <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             Analysis
