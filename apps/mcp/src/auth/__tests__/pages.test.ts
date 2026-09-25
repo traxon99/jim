@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkEmailPage, errorPage, loginFormPage } from "../pages";
+import { errorPage, loginFormPage } from "../pages";
 
 describe("login pages", () => {
   it("escapes a client name that contains markup", () => {
@@ -8,8 +8,8 @@ describe("login pages", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
-  it("escapes an email address containing markup", () => {
-    const html = checkEmailPage('"><img src=x onerror=alert(1)>@example.com');
+  it("escapes a prefilled email address containing markup", () => {
+    const html = loginFormPage("login-id", "jim client", "Wrong", '"><img src=x onerror=alert(1)>');
     expect(html).not.toContain("<img src=x onerror=alert(1)>");
   });
 
@@ -21,5 +21,11 @@ describe("login pages", () => {
   it("embeds the login id in the hidden form field", () => {
     const html = loginFormPage("abc-123", "jim client");
     expect(html).toContain('value="abc-123"');
+  });
+
+  it("asks for an email and a password", () => {
+    const html = loginFormPage("abc-123", "jim client");
+    expect(html).toContain('name="email"');
+    expect(html).toContain('type="password" name="password"');
   });
 });

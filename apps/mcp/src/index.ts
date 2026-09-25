@@ -42,7 +42,7 @@ app.use(
     resourceName: "jim",
   }),
 );
-app.use(loginRoutes(issuerUrl));
+app.use(loginRoutes());
 
 const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(resourceUrl);
 

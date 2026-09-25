@@ -19,11 +19,11 @@ let client: SupabaseClient | undefined;
 
 /**
  * A single shared client used only for stateless Auth API calls
- * (`signInWithOtp`, `getClaims`, `refreshSession` with an explicit
- * `refresh_token`) — never for `setSession`/`signOut`, which mutate the
- * client's own in-memory "current session" and would race across
- * concurrently handled requests. `persistSession: false` because this is a
- * server process, not a browser.
+ * (`getClaims`, `refreshSession` with an explicit `refresh_token`) — never
+ * for `signInWithPassword`/`setSession`/`signOut`, which mutate the client's
+ * own in-memory "current session" and would race across concurrently handled
+ * requests (use `createSignInClient` for those). `persistSession: false`
+ * because this is a server process, not a browser.
  */
 export function getSupabase(): SupabaseClient {
   const { url, anonKey } = supabaseEnv();
@@ -31,4 +31,16 @@ export function getSupabase(): SupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return client;
+}
+
+/**
+ * A fresh, throwaway client for one `signInWithPassword` call. Signing in
+ * stores the new session on the client itself, so each login gets its own
+ * rather than touching the shared one above; only the returned tokens are kept.
+ */
+export function createSignInClient(): SupabaseClient {
+  const { url, anonKey } = supabaseEnv();
+  return createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
