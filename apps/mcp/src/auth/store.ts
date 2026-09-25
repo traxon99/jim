@@ -1,7 +1,7 @@
 import type { AuthorizationParams } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
 
-/** Time to complete the magic-link round trip: request it, open the inbox, click it. */
+/** Time to complete the sign-in form, including a retry or two after a mistyped password. */
 const PENDING_TTL_MS = 10 * 60 * 1000;
 /** Authorization codes are single-use and exchanged within the same request/response cycle. */
 const CODE_TTL_MS = 60 * 1000;

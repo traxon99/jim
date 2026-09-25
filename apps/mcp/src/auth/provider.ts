@@ -24,7 +24,7 @@ import { getSupabase } from "./supabase.js";
  * `verifyAccessToken` validates it the same way apps/web does (`getClaims`).
  * An MCP bug here is therefore bounded by RLS, exactly like the web app.
  *
- * The actual "prove who you are" step is a magic-link login page this
+ * The actual "prove who you are" step is an email/password login page this
  * server renders itself (see pages.ts and login-routes.ts) — Supabase has
  * no hosted authorize page of its own to redirect to.
  */

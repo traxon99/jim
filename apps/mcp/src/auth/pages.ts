@@ -1,6 +1,6 @@
 /**
- * The whole login UI, in one file: a handful of tiny, self-contained HTML
- * pages for the OAuth authorize → magic-link → callback bridge (see
+ * The whole login UI, in one file: a couple of tiny, self-contained HTML
+ * pages for the OAuth authorize → email/password sign-in step (see
  * provider.ts and login-routes.ts). No client framework, no build step —
  * this is a few kilobytes of markup rendered by a personal-use auth server.
  */
@@ -43,6 +43,7 @@ export function loginFormPage(
   loginId: string,
   clientName: string | undefined,
   error?: string,
+  email = "",
 ): string {
   return page(
     "Sign in",
@@ -52,78 +53,11 @@ export function loginFormPage(
 ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
 <form method="POST" action="/login">
   <input type="hidden" name="login" value="${escapeHtml(loginId)}">
-  <input type="email" name="email" placeholder="you@example.com" required autofocus autocomplete="email">
-  <button type="submit">Send magic link</button>
+  <input type="email" name="email" value="${escapeHtml(email)}" placeholder="you@example.com" required ${email ? "" : "autofocus "}autocomplete="username">
+  <input type="password" name="password" placeholder="Password" required ${email ? "autofocus " : ""}autocomplete="current-password">
+  <button type="submit">Sign in</button>
 </form>
-`,
-  );
-}
-
-export function checkEmailPage(email: string): string {
-  return page(
-    "Check your email",
-    `
-<h1>Check your email</h1>
-<p>We sent a sign-in link to <strong>${escapeHtml(email)}</strong>. Open it on this device to finish signing in.</p>
-`,
-  );
-}
-
-/**
- * Supabase's magic link redirects here with tokens in the URL *fragment*
- * (`#access_token=...`), which never reaches the server — only inline JS in
- * the browser can read it. This page reads the fragment, forwards it to
- * `POST /login/callback`, and then navigates to whatever redirect that
- * returns (the original OAuth client's `redirect_uri`, with `code`/`state`).
- */
-export function callbackBridgePage(loginId: string): string {
-  return page(
-    "Signing in…",
-    `
-<h1>Signing in…</h1>
-<p class="muted" id="status">Completing sign-in.</p>
-<script>
-  (function () {
-    var params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    var accessToken = params.get("access_token");
-    var refreshToken = params.get("refresh_token");
-    var status = document.getElementById("status");
-
-    if (params.get("error")) {
-      status.textContent = params.get("error_description") || params.get("error");
-      status.className = "error";
-      return;
-    }
-    if (!accessToken || !refreshToken) {
-      status.textContent = "This link is missing its sign-in tokens. Request a new one.";
-      status.className = "error";
-      return;
-    }
-
-    fetch("/login/callback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        login: ${JSON.stringify(loginId)},
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      }),
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.redirect) {
-          window.location.replace(data.redirect);
-        } else {
-          status.textContent = data.error_description || "Sign-in failed.";
-          status.className = "error";
-        }
-      })
-      .catch(function () {
-        status.textContent = "Sign-in failed. Request a new link.";
-        status.className = "error";
-      });
-  })();
-</script>
+<p class="muted">Use the same email and password as the jim app.</p>
 `,
   );
 }

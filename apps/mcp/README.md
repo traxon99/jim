@@ -14,13 +14,11 @@ cp .env.example .env   # fill in SUPABASE_URL / SUPABASE_ANON_KEY / DATABASE_URL
 pnpm dev                # from repo root: pnpm --filter @jim/mcp dev
 ```
 
-Add `http://localhost:3001/login/callback` to the Supabase project's
-**Auth → URL Configuration → Redirect URLs**, or magic-link sign-in will fail.
-
 Connect an MCP client (e.g. `claude mcp add --transport http jim http://localhost:3001/mcp`)
 and it'll be walked through OAuth: an authorization code flow with PKCE, ending
-in a magic-link sign-in page this server renders itself (Supabase has no
-hosted authorize page of its own — see `src/auth/`).
+in an email/password sign-in page this server renders itself — the same
+Supabase Auth account as the web app (Supabase has no hosted authorize page of
+its own — see `src/auth/`).
 
 ## Deploying
 
@@ -51,8 +49,6 @@ To bring up the official server:
    the host's health check at `GET /healthz`.
 2. Set `DATABASE_URL` (the transaction pooler string), `SUPABASE_URL`,
    `SUPABASE_ANON_KEY`, and `MCP_ISSUER_URL` = the deployed HTTPS origin.
-3. Add `<MCP_ISSUER_URL>/login/callback` to Supabase's
-   **Auth → URL Configuration → Redirect URLs**.
-4. Set `NEXT_PUBLIC_MCP_URL` = the same origin in the web app's Vercel env and
+3. Set `NEXT_PUBLIC_MCP_URL` = the same origin in the web app's Vercel env and
    redeploy it. Settings → Connect Claude then shows the server URL and the
    `claude mcp add` command.
