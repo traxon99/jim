@@ -120,6 +120,13 @@
       "when": 1790286752563,
       "tag": "0016_add_rest_timer_pushes",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790368067804,
+      "tag": "0017_add_show_pace_tracker",
+      "breakpoints": true
     }
   ]
 }
