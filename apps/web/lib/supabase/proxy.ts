@@ -5,6 +5,7 @@ import { supabaseEnv } from "./env";
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
+  "/forgot-password",
   "/auth/confirm",
   "/auth/auth-code-error",
   // QStash's server-to-server callback: no cookie, authenticated by its
