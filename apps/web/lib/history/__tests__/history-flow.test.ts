@@ -192,6 +192,7 @@ describe("history read pipeline (against Dexie)", () => {
     await loggedAndFinishedSession(135, 5);
 
     const volumeSets = buildMuscleVolumeSets(
+      await testDb.sessions.toArray(),
       await testDb.sessionExercises.toArray(),
       await testDb.exercises.toArray(),
       await testDb.sets.toArray(),
@@ -209,10 +210,81 @@ describe("history read pipeline (against Dexie)", () => {
     await loggedAndFinishedSession(185, 5);
 
     const current = currentPersonalRecords(
-      toPersonalRecordEntries(await testDb.personalRecords.toArray()),
+      toPersonalRecordEntries(
+        await testDb.personalRecords.toArray(),
+        await testDb.sessions.toArray(),
+        await testDb.sessionExercises.toArray(),
+        await testDb.sets.toArray(),
+      ),
     );
     const weightPr = current.find((pr) => pr.kind === "weight");
     expect(weightPr?.value).toBe(185);
+  });
+
+  it("drops a deleted workout's PRs so the previous best is current again (issue #200)", async () => {
+    await testDb.exercises.put(bench());
+    await loggedAndFinishedSession(135, 5);
+    const heavierSessionId = await loggedAndFinishedSession(185, 5);
+
+    const heavierSession = await testDb.sessions.get(heavierSessionId);
+    if (!heavierSession) throw new Error("session missing");
+    await deleteSession(heavierSession, testDb);
+
+    const current = currentPersonalRecords(
+      toPersonalRecordEntries(
+        await testDb.personalRecords.toArray(),
+        await testDb.sessions.toArray(),
+        await testDb.sessionExercises.toArray(),
+        await testDb.sets.toArray(),
+      ),
+    );
+    expect(current.find((pr) => pr.kind === "weight")?.value).toBe(135);
+  });
+
+  it("doesn't make a new set beat a deleted workout's sets to count as a PR (issue #200)", async () => {
+    await testDb.exercises.put(bench());
+    const deletedSessionId = await loggedAndFinishedSession(225, 5);
+    const deletedSession = await testDb.sessions.get(deletedSessionId);
+    if (!deletedSession) throw new Error("session missing");
+    await deleteSession(deletedSession, testDb);
+
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId);
+    const { prs } = await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 135,
+        reps: 5,
+      },
+      testDb,
+    );
+
+    expect(prs.map((pr) => pr.kind).sort()).toEqual(
+      ["1rm", "reps_at_weight", "volume", "weight"].sort(),
+    );
+  });
+
+  it("leaves a deleted workout's sets out of weekly muscle volume (issue #200)", async () => {
+    await testDb.exercises.put(bench());
+    await loggedAndFinishedSession(135, 5);
+    const deletedSessionId = await loggedAndFinishedSession(185, 5);
+
+    const deletedSession = await testDb.sessions.get(deletedSessionId);
+    if (!deletedSession) throw new Error("session missing");
+    await deleteSession(deletedSession, testDb);
+
+    const volumeSets = buildMuscleVolumeSets(
+      await testDb.sessions.toArray(),
+      await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
+      await testDb.sets.toArray(),
+    );
+    const [week] = weeklyVolumeByMuscle(volumeSets, 0);
+    expect(week?.volumeByMuscle.chest).toBe(135 * 5);
   });
 
   it("plots one estimated-1RM point per session and marks each training day on the calendar", async () => {

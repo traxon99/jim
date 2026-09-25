@@ -215,6 +215,7 @@ describe("logging warm-ups (against Dexie)", () => {
   it("leaves warm-ups out of muscle volume", () => {
     const when = new Date();
     const sets = buildMuscleVolumeSets(
+      [],
       [
         {
           id: "se-lift",

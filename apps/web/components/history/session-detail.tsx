@@ -76,6 +76,7 @@ export function SessionDetail({ id }: { id: string }) {
     if (!session) return null;
     if (session.name) return session.name;
     const muscleVolumeSets = buildMuscleVolumeSets(
+      [session],
       rawSessionExercises ?? [],
       exercises ?? [],
       rawSets ?? [],

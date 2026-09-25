@@ -4,6 +4,7 @@ import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
   computePriorBests,
+  deletedSessionExerciseIds,
   detectPersonalRecords,
   isWarmupExercise,
   resolveCurrentRows,
@@ -19,7 +20,15 @@ async function historicalWeightReps(
     .where("exerciseId")
     .equals(exerciseId)
     .toArray();
-  const sessionExerciseIds = sessionExercises.map((se) => se.id);
+  // A deleted workout's sets aren't history to beat (issue #200).
+  const sessions = await database.sessions.bulkGet([
+    ...new Set(sessionExercises.map((se) => se.sessionId)),
+  ]);
+  const deleted = deletedSessionExerciseIds(
+    sessions.filter((session) => session != null),
+    sessionExercises,
+  );
+  const sessionExerciseIds = sessionExercises.map((se) => se.id).filter((id) => !deleted.has(id));
   if (sessionExerciseIds.length === 0) return [];
 
   const rawSets = await database.sets

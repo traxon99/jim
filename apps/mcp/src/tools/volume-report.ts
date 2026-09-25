@@ -1,5 +1,10 @@
-import { groupByWeek, resolveCurrentRows, weeklyVolumeByMuscle } from "@jim/core";
-import { type DbOrTx, exercises, sessionExercises, sets, users } from "@jim/db";
+import {
+  deletedSessionExerciseIds,
+  groupByWeek,
+  resolveCurrentRows,
+  weeklyVolumeByMuscle,
+} from "@jim/core";
+import { type DbOrTx, exercises, sessionExercises, sessions, sets, users } from "@jim/db";
 import { eq, inArray } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
@@ -21,8 +26,13 @@ interface ResolvedSet {
 
 async function resolvedSetsInRange(tx: DbOrTx, from: Date, to: Date): Promise<ResolvedSet[]> {
   const exerciseRows = await tx.select().from(sessionExercises);
+  // Sets from a deleted workout don't count as volume (issue #200).
+  const deleted = deletedSessionExerciseIds(
+    await tx.select({ id: sessions.id, deletedAt: sessions.deletedAt }).from(sessions),
+    exerciseRows,
+  );
   const exerciseIdBySessionExercise = new Map(
-    exerciseRows.filter((row) => !row.deletedAt).map((row) => [row.id, row.exerciseId]),
+    exerciseRows.filter((row) => !deleted.has(row.id)).map((row) => [row.id, row.exerciseId]),
   );
 
   const setRows = resolveCurrentRows(await tx.select().from(sets)).filter((set) => !set.deletedAt);

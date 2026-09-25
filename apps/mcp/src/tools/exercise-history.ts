@@ -1,5 +1,5 @@
-import { estimatedOneRepMaxSeries, resolveCurrentRows } from "@jim/core";
-import { sessionExercises, sets } from "@jim/db";
+import { deletedSessionExerciseIds, estimatedOneRepMaxSeries, resolveCurrentRows } from "@jim/core";
+import { sessionExercises, sessions, sets } from "@jim/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
@@ -15,10 +15,20 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
   return withUser(context, async (tx) => {
     const exercise = await resolveExercise(tx, context.userId, input.exercise);
 
-    const exerciseRows = await tx
+    const liveExerciseRows = await tx
       .select()
       .from(sessionExercises)
       .where(and(eq(sessionExercises.exerciseId, exercise.id), isNull(sessionExercises.deletedAt)));
+    // Leave out sets from deleted workouts (issue #200).
+    const sessionIds = [...new Set(liveExerciseRows.map((row) => row.sessionId))];
+    const sessionRows = sessionIds.length
+      ? await tx
+          .select({ id: sessions.id, deletedAt: sessions.deletedAt })
+          .from(sessions)
+          .where(inArray(sessions.id, sessionIds))
+      : [];
+    const deleted = deletedSessionExerciseIds(sessionRows, liveExerciseRows);
+    const exerciseRows = liveExerciseRows.filter((row) => !deleted.has(row.id));
     const sessionExerciseIds = exerciseRows.map((row) => row.id);
     if (sessionExerciseIds.length === 0) {
       return {
