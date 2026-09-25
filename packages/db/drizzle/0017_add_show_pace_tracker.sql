@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "show_pace_tracker" boolean DEFAULT true NOT NULL;

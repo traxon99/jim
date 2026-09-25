@@ -52,6 +52,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "system",
       accentColor: "zinc",
       fontFamily: "sans",
+      showPaceTracker: true,
       sex: null,
       birthdate: null,
       heightCm: null,
@@ -83,6 +84,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("rejects a non-boolean pace tracker toggle", async () => {
+    const response = await patch({ showPaceTracker: "no" });
+    expect(response.status).toBe(400);
+  });
+
   it("rejects an invalid sex", async () => {
     const response = await patch({ sex: "other" });
     expect(response.status).toBe(400);
@@ -111,6 +117,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "dark",
       accentColor: "blue",
       fontFamily: "serif",
+      showPaceTracker: false,
       sex: "female",
       birthdate: "1990-06-15",
       heightCm: 170,
@@ -123,6 +130,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(body.colorScheme).toBe("dark");
     expect(body.accentColor).toBe("blue");
     expect(body.fontFamily).toBe("serif");
+    expect(body.showPaceTracker).toBe(false);
     expect(body.sex).toBe("female");
     expect(body.birthdate).toBe("1990-06-15");
     expect(body.heightCm).toBe("170.0");
@@ -133,6 +141,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.colorScheme).toBe("dark");
     expect(again.accentColor).toBe("blue");
     expect(again.fontFamily).toBe("serif");
+    expect(again.showPaceTracker).toBe(false);
     expect(again.sex).toBe("female");
     expect(again.birthdate).toBe("1990-06-15");
     expect(again.heightCm).toBe("170.0");

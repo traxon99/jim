@@ -19,6 +19,7 @@ interface SettingsPayload {
   colorScheme: "system" | "light" | "dark";
   accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose";
   fontFamily: "sans" | "serif" | "mono";
+  showPaceTracker: boolean;
   sex: "male" | "female" | null;
   birthdate: string | null;
   heightCm: string | null;
@@ -35,6 +36,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     colorScheme: row.colorScheme,
     accentColor: row.accentColor,
     fontFamily: row.fontFamily,
+    showPaceTracker: row.showPaceTracker,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm,
@@ -112,6 +114,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("fontFamily" in candidate && !FONT_FAMILIES.has(candidate.fontFamily as string)) {
     return false;
   }
+  if ("showPaceTracker" in candidate && typeof candidate.showPaceTracker !== "boolean") {
+    return false;
+  }
   if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
     return false;
   }
@@ -162,6 +167,7 @@ export async function PATCH(request: Request) {
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
       if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
       if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;
+      if (body.showPaceTracker !== undefined) patch.showPaceTracker = body.showPaceTracker;
       if (body.sex !== undefined) patch.sex = body.sex;
       if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
       if (body.heightCm !== undefined) {

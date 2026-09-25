@@ -153,6 +153,17 @@ button:not(:disabled),
  * components/pwa-chrome.tsx; in a browser tab none of this applies, because
  * a page that can't be selected or long-pressed just feels broken there.
  */
+/* The document itself never scrolls in the installed app: every screen scrolls
+   inside the shell's own overflow container ((shell)/layout.tsx). Without this,
+   any overflow past <body> let a drag that starts on something that isn't a
+   scroller (the bottom tab bar, a screen's header) scroll the whole document —
+   tab bar and all — up off the bottom of the screen (issue #194). Set on both,
+   since body's overflow only reaches the viewport when <html>'s is visible. */
+:root:has(body.pwa),
+body.pwa {
+  overflow: hidden;
+}
+
 body.pwa {
   -webkit-user-select: none;
   user-select: none;

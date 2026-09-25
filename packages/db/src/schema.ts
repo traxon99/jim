@@ -131,6 +131,8 @@ export const users = pgTable(
     accentColor: accentColorEnum("accent_color").notNull().default("zinc"),
     // The app's body typeface. "sans" keeps the original system sans-serif look.
     fontFamily: fontFamilyEnum("font_family").notNull().default("sans"),
+    // Whether the live pace tracker card shows during a workout.
+    showPaceTracker: boolean("show_pace_tracker").notNull().default(true),
 
     // Profile fields feeding the strength-standards lookup (packages/core):
     // sex and bodyweight select the standards table, age adjusts it. All

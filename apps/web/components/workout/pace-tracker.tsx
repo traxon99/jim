@@ -49,21 +49,6 @@ function formatDelta(seconds: number): string {
   return `${minutes > 0 ? "+" : "−"}${Math.abs(minutes)} min`;
 }
 
-/**
- * Copy is deliberately never "hurry up": behind reads as "keep moving",
- * ahead reads as "take your full rest" (issue #37 — don't encourage rushing,
- * but keep the person working).
- */
-function paceMessage(status: PaceStatus, overdue: boolean, deltaSeconds: number): string {
-  if (status === "done") return "Every planned set is logged. Finish when you're ready.";
-  if (status === "ahead") return "Moving quick — take your full rest between sets.";
-  if (overdue) return "Rest's up — start your next set when you're ready.";
-  if (status === "behind") {
-    return `About ${formatMinutes(deltaSeconds)} over plan. No need to rush — just keep moving.`;
-  }
-  return "Right on plan. Keep it steady.";
-}
-
 /** Where the plan says the lifter should be (in sets) at `seconds`, linearly interpolated. */
 function planSetsAt(plan: readonly PacePoint[], seconds: number): number {
   for (let i = 1; i < plan.length; i++) {
@@ -191,9 +176,6 @@ export function PaceTracker({
               </span>
             )}
           </span>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            {paceMessage(pace.status, pace.overdue, pace.deltaSeconds)}
-          </p>
           {!expanded && (
             <p className="tabular-nums text-xs text-zinc-500 dark:text-zinc-500">
               {pace.setsDone}/{pace.setsPlanned} sets · {formatMinutes(elapsedSeconds)} in

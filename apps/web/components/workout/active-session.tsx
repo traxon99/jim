@@ -343,7 +343,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         </div>
       </div>
 
-      <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
+      {(settings.showPaceTracker ?? DEFAULT_SETTINGS.showPaceTracker) && (
+        <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
+      )}
 
       {sessionExercises.length > 0 && (
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
