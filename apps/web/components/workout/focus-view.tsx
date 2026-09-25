@@ -50,6 +50,21 @@ export function FocusView({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onExit]);
 
+  // The overlay is `fixed`, so without this the page underneath stays
+  // scrollable — a drag that starts on the top bar, rest timer, or prev/next
+  // controls scrolls the workout page behind the overlay.
+  useEffect(() => {
+    const html = document.documentElement;
+    const { body } = document;
+    const previous = { html: html.style.overflow, body: body.style.overflow };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = previous.html;
+      body.style.overflow = previous.body;
+    };
+  }, []);
+
   const current = exercises[index];
   if (!current) return null;
   const next = exercises[index + 1];
@@ -64,10 +79,10 @@ export function FocusView({
   return (
     <section
       aria-label="Focus view"
-      className="fixed inset-0 z-20 flex flex-col bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50"
+      className="fixed inset-0 z-20 flex flex-col overscroll-none bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <header className="flex shrink-0 items-center gap-2 border-b border-zinc-200 px-2 py-2 dark:border-zinc-800">
+      <header className="flex shrink-0 touch-none items-center gap-2 border-b border-zinc-200 px-2 py-2 dark:border-zinc-800">
         <button
           type="button"
           onClick={onExit}
@@ -147,11 +162,11 @@ export function FocusView({
         {children}
       </div>
 
-      {footer}
+      {footer && <div className="shrink-0 touch-none">{footer}</div>}
 
       <nav
         aria-label="Exercise navigation"
-        className="flex shrink-0 gap-2 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
+        className="flex shrink-0 touch-none gap-2 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
         style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
       >
         <button
