@@ -84,7 +84,7 @@ volume this is trivially small — a few thousand rows a year. Queries must filt
 
 **Decision.** Next.js 16 App Router for the PWA, Supabase Postgres for storage and auth, Drizzle
 for schema and migrations, deployed on Vercel. The MCP server is a separate deployable against the
-same database.
+same database, hosted per ADR-016.
 
 **Rejected: SvelteKit.** A genuinely lighter runtime and smaller bundle, which matters for a PWA.
 Rejected on ecosystem depth — the component and charting libraries wanted here are better served in
@@ -341,3 +341,38 @@ along with `/login` and `/signup` when their `next` is the portal.
 
 **Rejected: un-gating the whole app on desktop.** It would let someone log a workout into a
 browser's IndexedDB that nothing protects from eviction — exactly what ADR-010 exists to prevent.
+
+---
+
+## ADR-016 — The MCP server runs on a Raspberry Pi 3 behind a Cloudflare Tunnel
+
+**Status:** Accepted · 2026-09-25
+
+**Context.** `apps/mcp` must be a persistent Node process (OAuth clients, pending logins and auth
+codes live in memory) at a public HTTPS origin — the SDK refuses a non-localhost HTTP issuer, and
+claude.ai connectors call it from Anthropic's servers. ADR-004 puts cost and operational burden
+first. Fly.io, the first target, no longer has a free tier for new accounts.
+
+**Decision.** Run the server's Docker image on a Raspberry Pi 3 (64-bit Raspberry Pi OS) with
+`apps/mcp/compose.yaml`, alongside a `cloudflared` connector. A Cloudflare Tunnel maps a hostname
+on a Cloudflare-managed domain to the container over the compose network.
+
+- **No inbound ports.** The Pi only dials out, to Cloudflare and Supabase. Nothing is port-forwarded,
+  the home IP isn't published, and no host port is exposed on the LAN.
+- **TLS is Cloudflare's.** No certificates to issue or renew on the Pi.
+- **$0.** Hardware already owned; the tunnel is on Cloudflare's free plan.
+- **Accepted costs.** Uptime is the home's power and internet. Any restart drops the in-memory OAuth
+  state, so clients re-authenticate after reboots and redeploys. Deploys are a manual `git pull` and
+  `docker compose up -d --build` on the Pi. 1 GB of RAM is enough to run the server; the image build
+  may need extra swap.
+- **No challenges on the hostname.** Access policies, Bot Fight Mode and the like would block the
+  non-interactive OAuth and MCP calls; the server's own OAuth is the gate (ADR-006).
+
+**Rejected: Fly.io (or Render, Railway).** Better uptime and push-to-deploy, but a recurring bill for
+a single-user service, and the same in-memory-state restart behaviour on every deploy.
+
+**Rejected: port-forwarding 443 to the Pi with Caddy and dynamic DNS.** Works, but publishes the home
+IP, opens an inbound port on the router, and puts certificate renewal and DDNS on the Pi.
+
+**Rejected: Tailscale Serve (tailnet-only).** Fine for Claude Code on a device in the tailnet, but
+claude.ai connectors reach the server from Anthropic's cloud and need a public origin.

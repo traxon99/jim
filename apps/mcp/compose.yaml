@@ -1,0 +1,31 @@
+# The official Jim MCP server on a Raspberry Pi 3, published through a
+# Cloudflare Tunnel (ADR-016; see README → Deploying). From apps/mcp on the Pi:
+#   docker compose up -d --build
+#
+# No port is published to the host: cloudflared reaches the server over the
+# compose network (the tunnel's public hostname points at http://mcp:3001), so
+# nothing on the LAN can bypass Cloudflare's TLS.
+services:
+  mcp:
+    build:
+      context: ../..
+      dockerfile: apps/mcp/Dockerfile
+    image: jim-mcp
+    env_file: .env
+    restart: unless-stopped
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    # Kept out of .env so the network-exposed MCP process never sees the
+    # credential that controls where its hostname routes.
+    env_file: .env.tunnel
+    depends_on:
+      - mcp
+    restart: unless-stopped
+    logging: *logging

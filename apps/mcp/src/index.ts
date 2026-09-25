@@ -24,9 +24,10 @@ const resourceUrl = new URL("/mcp", issuerUrl);
 
 const provider = new SupabaseOAuthProvider();
 const app = express();
-// Deployed behind the host's TLS-terminating proxy (Fly, Render, Railway):
-// trust its one X-Forwarded-For hop so the auth router's rate limiter keys on
-// the real client IP instead of rejecting the forwarded header outright.
+// Deployed behind a Cloudflare Tunnel (ADR-016), whose edge terminates TLS
+// and forwards through cloudflared: trust that one X-Forwarded-For hop so the
+// auth router's rate limiter keys on the real client IP instead of rejecting
+// the forwarded header outright.
 app.set("trust proxy", 1);
 
 // Liveness probe for the host's health check — no auth, no DB round trip.

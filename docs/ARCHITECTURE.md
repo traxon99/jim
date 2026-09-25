@@ -162,6 +162,11 @@ TypeScript SDK's `authProvider`. It reaches Postgres through `packages/db` and i
 same RLS — **it holds a user token, not a service-role key.** A service-role key here would be a
 standing full-database credential sitting in a network-exposed process.
 
+**Hosting.** A single long-running Node container on a Raspberry Pi 3, published through a
+Cloudflare Tunnel that terminates TLS at Cloudflare's edge (ADR-016). OAuth state lives in process
+memory, so it runs as exactly one instance and a restart signs connected clients out. Runbook:
+`apps/mcp/README.md` → Deploying.
+
 **Read tools**
 
 | Tool | Purpose |
