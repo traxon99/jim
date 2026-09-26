@@ -25,16 +25,21 @@ function toNumberOrNull(value: string): number | null {
 
 function sizesFor(large: boolean) {
   return {
+    // Matches the entry inputs in session-exercise-section.tsx (issue #186):
+    // centered, h-11 so the row keeps the height of its action buttons.
     input: large
-      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-      : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 py-2 text-center text-3xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+      : "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
     indexCell: large
       ? "py-3 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
       : "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
-    cell: large ? "py-3 pr-3 align-middle text-lg" : "py-2 pr-2 align-middle text-sm",
+    // Logged values line up under the centered entry inputs at the same size.
+    cell: large
+      ? "py-3 pr-3 align-middle text-center text-3xl tabular-nums"
+      : "py-2 pr-2 align-middle text-center text-xl tabular-nums",
     metaCell: large
-      ? "py-3 pr-3 align-middle text-base text-zinc-500 dark:text-zinc-500"
-      : "py-2 pr-2 align-middle text-xs text-zinc-500 dark:text-zinc-500",
+      ? "py-3 pr-3 align-middle text-center text-3xl tabular-nums text-zinc-500 dark:text-zinc-500"
+      : "py-2 pr-2 align-middle text-center text-xl tabular-nums text-zinc-500 dark:text-zinc-500",
     actionCell: large
       ? "py-3 pl-1 align-middle text-right whitespace-nowrap"
       : "py-2 pl-1 align-middle text-right whitespace-nowrap",
@@ -136,7 +141,7 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onChangeKind, 
         <SetKindMenu index={index} kind={set.kind} onChange={onChangeKind} />
       </td>
       <td className={sizes.cell}>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center gap-1">
           <span className="font-medium">{set.weight ?? "—"}</span>
           {isPr && <span title="Personal record">🎉</span>}
         </div>
