@@ -37,36 +37,57 @@ export function SetupWizard({
   exercises,
   snapshot,
   activeProgram,
+  prefill = null,
 }: {
   userId: string;
   settings: SettingsRow;
   exercises: readonly ExerciseRow[];
   snapshot: DprSnapshot;
   activeProgram: ProgramRow | null;
+  /** The next block (issue #215): last block's lifts, starting from their final e1RMs. */
+  prefill?: { focus: string[]; baselines: ReadonlyMap<string, number> } | null;
 }) {
   const now = useMemo(() => new Date(), []);
   const guess = useMemo(
     () => guessExperience(snapshot, exercises, settings, now),
     [snapshot, exercises, settings, now],
   );
-  const candidates = useMemo(
-    () => focusCandidates(snapshot.usageRows, exercises, now),
-    [snapshot, exercises, now],
-  );
+  // The last block's lifts stay pickable even if they've left the top 10.
+  const candidates = useMemo(() => {
+    const top = focusCandidates(snapshot.usageRows, exercises, now);
+    const carried = (prefill?.focus ?? [])
+      .filter((id) => !top.some((c) => c.exercise.id === id))
+      .flatMap((id) => {
+        const exercise = exercises.find((e) => e.id === id);
+        return exercise ? [{ exercise, frequency: 0, lastPerformedAt: now }] : [];
+      });
+    return [...carried, ...top];
+  }, [snapshot, exercises, now, prefill]);
   const programWeeks = blockWeeksForProgram(activeProgram?.durationWeeks ?? null);
 
   const [step, setStep] = useState(0);
-  const [experience, setExperience] = useState<ExperienceLevel | null>(settings.dprExperience);
+  // A next block re-infers experience from the new history.
+  const [experience, setExperience] = useState<ExperienceLevel | null>(
+    prefill ? null : settings.dprExperience,
+  );
   const [preset, setPreset] = useState<DprPresetName>(settings.dprAggressiveness);
-  const [focus, setFocus] = useState<string[]>([]);
+  const [focus, setFocus] = useState<string[]>(prefill?.focus.slice(0, DPR_MAX_FOCUS) ?? []);
   const [weeks, setWeeks] = useState<DprBlockWeeks>(programWeeks ?? 8);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const level = experience ?? guess.level;
   const plan = useMemo(
-    () => planBlock(snapshot, { exerciseIds: focus, weeks, preset, experience: level, now }),
-    [snapshot, focus, weeks, preset, level, now],
+    () =>
+      planBlock(snapshot, {
+        exerciseIds: focus,
+        weeks,
+        preset,
+        experience: level,
+        now,
+        baselineOverrides: prefill?.baselines,
+      }),
+    [snapshot, focus, weeks, preset, level, now, prefill],
   );
   const namesById = useMemo(() => new Map(exercises.map((e) => [e.id, e.name])), [exercises]);
 

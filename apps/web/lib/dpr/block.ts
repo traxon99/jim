@@ -10,6 +10,7 @@ import {
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
+  DPR_DELOAD_WEEK_DAYS,
   DPR_MAX_FOCUS,
   DPR_PRESETS,
   type DprBlockWeeks,
@@ -18,6 +19,7 @@ import {
   type StandardLift,
   baselineE1rm,
   computeGoal,
+  currentBlockOf,
   inferExperience,
   standardLiftForSlug,
   uuidv7,
@@ -28,10 +30,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The block DPR is running now (active or in its deload week), newest first wins. */
 export function currentBlock(blocks: readonly DprBlockRow[]): DprBlockRow | null {
-  const live = blocks
-    .filter((block) => !block.deletedAt && block.status !== "completed")
-    .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
-  return live[0] ?? null;
+  return currentBlockOf(blocks);
 }
 
 export function liveBlockLifts(
@@ -118,11 +117,15 @@ export function planBlock(
     preset: DprPresetName;
     experience: ExperienceLevel;
     now: Date;
+    /** Next block (issue #215): the finished block's final e1RMs. */
+    baselineOverrides?: ReadonlyMap<string, number>;
   },
 ): BlockPlan {
   const { weeks, preset, experience, now } = options;
   const lifts = options.exerciseIds.slice(0, DPR_MAX_FOCUS).map((exerciseId): PlannedLift => {
-    const baseline = baselineE1rm(e1rmSeries(snapshot.history, exerciseId), now);
+    const baseline =
+      options.baselineOverrides?.get(exerciseId) ??
+      baselineE1rm(e1rmSeries(snapshot.history, exerciseId), now);
     return {
       exerciseId,
       baselineE1rm: baseline,
@@ -263,4 +266,41 @@ export function shouldShowDprPrompt(
     settings.dprPromptDismissedAt === null &&
     completedSessionCount >= DPR_PROMPT_MIN_SESSIONS
   );
+}
+
+/** The most recently started block that's finished — the next block prefills from it. */
+export function lastCompletedBlock(blocks: readonly DprBlockRow[]): DprBlockRow | null {
+  return (
+    blocks
+      .filter((block) => !block.deletedAt && block.status === "completed")
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())[0] ?? null
+  );
+}
+
+async function updateBlock(
+  block: DprBlockRow,
+  patch: Partial<Pick<DprBlockRow, "status" | "endsAt">>,
+  database: JimDatabase,
+) {
+  const deviceId = await getDeviceId(database);
+  await mutate("dprBlocks", { ...block, ...patch, updatedAt: new Date(), deviceId }, database);
+}
+
+/** Optional deload week after a block (issue #215): 7 days of −10% calls. */
+export async function startDeloadWeek(block: DprBlockRow, database: JimDatabase = db) {
+  const now = new Date();
+  await updateBlock(
+    block,
+    { status: "deload", endsAt: new Date(now.getTime() + DPR_DELOAD_WEEK_DAYS * DAY_MS) },
+    database,
+  );
+}
+
+export async function completeBlock(block: DprBlockRow, database: JimDatabase = db) {
+  await updateBlock(block, { status: "completed" }, database);
+}
+
+/** "End block early": the recap shows from now. */
+export async function endBlockNow(block: DprBlockRow, database: JimDatabase = db) {
+  await updateBlock(block, { endsAt: new Date() }, database);
 }

@@ -6,21 +6,18 @@ import type {
   SettingsRow,
 } from "@/lib/db/schema";
 import {
-  DPR_PRESETS,
   type DprCall,
   type DprDecision,
-  type E1rmPoint,
+  type DprLiftCall,
+  type DprLogEntry,
+  type DprUserSettings,
   type IncrementOverrides,
   type OnTrackStatus,
-  type RepRange,
-  decideNextWeight,
-  onTrackStatus,
-  resolveIncrement,
-  resolveRepRange,
-  sessionsForKey,
+  callForLift,
+  liftProgress,
 } from "@jim/core";
 import { currentBlock, liveBlockLifts } from "./block";
-import { type DprSnapshot, defaultRepRange, e1rmSeries } from "./data";
+import { type DprSnapshot, defaultRepRange } from "./data";
 
 /**
  * Everything needed to make DPR calls for any lift, gathered once per
@@ -59,14 +56,18 @@ export function buildDprContext(input: {
   };
 }
 
-export interface DprCallInfo {
-  exerciseId: string;
-  decision: DprDecision;
-  repRange: RepRange;
-  increment: number;
-}
+export type DprCallInfo = DprLiftCall;
 
 type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight">;
+
+export function dprUserSettings(settings: SettingsRow): DprUserSettings {
+  return {
+    units: settings.units,
+    aggressiveness: settings.dprAggressiveness,
+    increments: settings.dprEquipmentIncrements as IncrementOverrides,
+    defaultRange: defaultRepRange(settings),
+  };
+}
 
 /** DPR's call for one lift, or null when the lift isn't focused. */
 export function dprCallFor(
@@ -75,27 +76,17 @@ export function dprCallFor(
   target?: RoutineTarget | null,
 ): DprCallInfo | null {
   if (!ctx.lifts.has(exerciseId)) return null;
-  const repRange = resolveRepRange(
-    exerciseId,
-    target ?? null,
-    ctx.snapshot.routineRanges,
-    defaultRepRange(ctx.settings),
-  );
-  const increment = resolveIncrement(
-    ctx.exercises.get(exerciseId)?.equipment,
-    ctx.settings.units,
-    ctx.settings.dprEquipmentIncrements as IncrementOverrides,
-  );
   const fallback = target?.targetWeight == null ? null : Number(target.targetWeight);
-  const decision = decideNextWeight({
-    sessions: sessionsForKey(ctx.snapshot.history, exerciseId, repRange),
-    repRange,
-    preset: DPR_PRESETS[ctx.settings.dprAggressiveness],
-    increment,
-    now: ctx.now,
+  return callForLift({
+    snapshot: ctx.snapshot,
+    exerciseId,
+    equipment: ctx.exercises.get(exerciseId)?.equipment,
+    settings: dprUserSettings(ctx.settings),
+    target: target ?? null,
     fallbackWeight: Number.isFinite(fallback) ? fallback : null,
+    block: ctx.block,
+    now: ctx.now,
   });
-  return { exerciseId, decision, repRange, increment };
 }
 
 /** Calls for every focused lift in a routine, in routine order. */
@@ -229,32 +220,52 @@ const STATUS_TEXT: Record<OnTrackStatus, string> = {
 export function dprGoalLine(ctx: DprContext, exerciseId: string): DprGoalLine | null {
   const lift = ctx.lifts.get(exerciseId);
   if (!lift) return null;
-  const baseline = lift.baselineE1rm === null ? null : Number(lift.baselineE1rm);
-  const goal = lift.goalE1rm === null ? null : Number(lift.goalE1rm);
+  const goal = liftGoal(lift);
   const by = ctx.block.endsAt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  if (baseline === null || goal === null) {
+  if (goal.baselineE1rm === null || goal.goalE1rm === null) {
     return { status: null, text: `Goal set after your first session with RPE · block ends ${by}` };
   }
-  const series: E1rmPoint[] = e1rmSeries(ctx.snapshot.history, exerciseId);
-  const status = onTrackStatus(
-    {
-      startDate: ctx.block.startedAt,
-      weeks: ctx.block.weeks,
-      baselineE1rm: baseline,
-      goalE1rm: goal,
-    },
-    series,
-    ctx.now,
-  );
-  const latest = series.filter((p) => p.date >= ctx.block.startedAt).at(-1)?.e1rm ?? baseline;
+  const { currentE1rm, status } = liftProgress(ctx.snapshot, exerciseId, ctx.block, goal, ctx.now);
   return {
     status,
-    text: `${STATUS_TEXT[status]} · e1RM ${Math.round(latest)} → ${Math.round(goal)} by ${by}`,
+    text: `${status ? STATUS_TEXT[status] : "no data yet"} · e1RM ${Math.round(currentE1rm ?? goal.baselineE1rm)} → ${Math.round(goal.goalE1rm)} by ${by}`,
   };
 }
+
+export function liftGoal(lift: DprBlockLiftRow): {
+  baselineE1rm: number | null;
+  goalE1rm: number | null;
+} {
+  return {
+    baselineE1rm: lift.baselineE1rm === null ? null : Number(lift.baselineE1rm),
+    goalE1rm: lift.goalE1rm === null ? null : Number(lift.goalE1rm),
+  };
+}
+
+export const ON_TRACK_LABELS = STATUS_TEXT;
 
 /** Chips that fit on one line: the first `max`, then "+N more". */
 export function splitChips<T>(items: readonly T[], max: number): { shown: T[]; more: number } {
   if (items.length <= max) return { shown: [...items], more: 0 };
   return { shown: items.slice(0, max), more: items.length - max };
+}
+
+function shortDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/** A decision-log line, e.g. "Sep 12 · ↑ 185→190 · 3×8 @ RPE 7.5". */
+export function formatLogEntry(entry: DprLogEntry): string {
+  const { decision } = entry;
+  const { symbol } = dprBadge(decision.call);
+  const from = decision.previousWeight;
+  const to = decision.weight;
+  const move =
+    from !== null && to !== null && from !== to
+      ? `${formatWeight(from)}→${formatWeight(to)}`
+      : to !== null
+        ? formatWeight(to)
+        : "—";
+  const reason = decision.reason.replace(/^Hit /, "");
+  return `${shortDate(entry.sessionDate)} · ${symbol} ${move} · ${reason}`;
 }
