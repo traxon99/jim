@@ -1,6 +1,8 @@
 import type { Mutation } from "@jim/core";
 import type {
   bodyMeasurements,
+  dprBlockLifts,
+  dprBlocks,
   exercises,
   personalRecords,
   programRoutines,
@@ -27,6 +29,8 @@ export type BodyMeasurementRow = typeof bodyMeasurements.$inferSelect;
 export type ExerciseRow = typeof exercises.$inferSelect;
 export type ProgramRow = typeof programs.$inferSelect;
 export type ProgramRoutineRow = typeof programRoutines.$inferSelect;
+export type DprBlockRow = typeof dprBlocks.$inferSelect;
+export type DprBlockLiftRow = typeof dprBlockLifts.$inferSelect;
 
 export interface SyncTableRowMap {
   routines: RoutineRow;
@@ -39,6 +43,8 @@ export interface SyncTableRowMap {
   exercises: ExerciseRow;
   programs: ProgramRow;
   programRoutines: ProgramRoutineRow;
+  dprBlocks: DprBlockRow;
+  dprBlockLifts: DprBlockLiftRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -74,6 +80,13 @@ export type SettingsRow = Pick<
   | "birthdate"
   | "heightCm"
   | "bodyweight"
+  | "dprEnabled"
+  | "dprAggressiveness"
+  | "dprExperience"
+  | "dprEquipmentIncrements"
+  | "dprDefaultRepLow"
+  | "dprDefaultRepHigh"
+  | "dprPromptDismissedAt"
 > & { id: "me" };
 
 export class JimDatabase extends Dexie {
@@ -87,6 +100,8 @@ export class JimDatabase extends Dexie {
   exercises!: EntityTable<ExerciseRow, "id">;
   programs!: EntityTable<ProgramRow, "id">;
   programRoutines!: EntityTable<ProgramRoutineRow, "id">;
+  dprBlocks!: EntityTable<DprBlockRow, "id">;
+  dprBlockLifts!: EntityTable<DprBlockLiftRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -109,6 +124,10 @@ export class JimDatabase extends Dexie {
     this.version(2).stores({
       programs: "id, updatedAt, deletedAt",
       programRoutines: "id, programId, routineId",
+    });
+    this.version(3).stores({
+      dprBlocks: "id, status, updatedAt, deletedAt",
+      dprBlockLifts: "id, blockId, exerciseId",
     });
   }
 }

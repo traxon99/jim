@@ -4,7 +4,7 @@ import { mutate } from "@/lib/db/mutate";
 import { type ProgramRow, db } from "@/lib/db/schema";
 import { setActiveProgram } from "@/lib/programs/set-active";
 import { getDeviceId } from "@/lib/sync/engine";
-import { type ProgramMode, uuidv7 } from "@jim/core";
+import { PROGRAM_DURATION_OPTIONS, type ProgramMode, uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -39,6 +39,7 @@ export function ProgramForm({ userId, mode, programId }: Props) {
   const [programMode, setProgramMode] = useState<ProgramMode>("sequence");
   const [active, setActive] = useState(true);
   const [notes, setNotes] = useState("");
+  const [durationWeeks, setDurationWeeks] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export function ProgramForm({ userId, mode, programId }: Props) {
     setProgramMode(existing.mode);
     setActive(existing.isActive);
     setNotes(existing.notes ?? "");
+    setDurationWeeks(existing.durationWeeks);
   }, [existing]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -67,6 +69,8 @@ export function ProgramForm({ userId, mode, programId }: Props) {
         isActive: false,
         notes: notes.trim() || null,
         position: await db.programs.count(),
+        durationWeeks,
+        activatedAt: null,
         createdAt: now,
         updatedAt: now,
         deviceId,
@@ -79,6 +83,11 @@ export function ProgramForm({ userId, mode, programId }: Props) {
         name,
         mode: programMode,
         notes: notes.trim() || null,
+        durationWeeks,
+        // An already-active program getting a length for the first time
+        // starts its week count now.
+        activatedAt:
+          existing.isActive && durationWeeks && !existing.activatedAt ? now : existing.activatedAt,
         updatedAt: now,
         deviceId,
       };
@@ -144,6 +153,27 @@ export function ProgramForm({ userId, mode, programId }: Props) {
             </label>
           ))}
         </fieldset>
+
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Duration
+          <select
+            value={durationWeeks ?? ""}
+            onChange={(event) =>
+              setDurationWeeks(event.target.value ? Number(event.target.value) : null)
+            }
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          >
+            <option value="">No set length</option>
+            {/* A duration set before these options existed stays selectable. */}
+            {[...new Set([...PROGRAM_DURATION_OPTIONS, ...(durationWeeks ? [durationWeeks] : [])])]
+              .sort((a, b) => a - b)
+              .map((weeks) => (
+                <option key={weeks} value={weeks}>
+                  {weeks} weeks
+                </option>
+              ))}
+          </select>
+        </label>
 
         <label className="flex items-center gap-3 text-sm font-medium">
           <input

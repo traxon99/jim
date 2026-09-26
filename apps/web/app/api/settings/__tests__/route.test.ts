@@ -57,6 +57,13 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       birthdate: null,
       heightCm: null,
       bodyweight: null,
+      dprEnabled: false,
+      dprAggressiveness: "moderate",
+      dprExperience: null,
+      dprEquipmentIncrements: {},
+      dprDefaultRepLow: 6,
+      dprDefaultRepHigh: 10,
+      dprPromptDismissedAt: null,
     });
 
     const rows = await admin`SELECT id, email FROM public.users WHERE id = ${USER_A}`;
@@ -107,6 +114,38 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
   it("rejects a non-positive height or bodyweight", async () => {
     expect((await patch({ heightCm: -5 })).status).toBe(400);
     expect((await patch({ bodyweight: 0 })).status).toBe(400);
+  });
+
+  it("rejects invalid DPR settings", async () => {
+    expect((await patch({ dprEnabled: "yes" })).status).toBe(400);
+    expect((await patch({ dprAggressiveness: "reckless" })).status).toBe(400);
+    expect((await patch({ dprExperience: "elite" })).status).toBe(400);
+    expect((await patch({ dprEquipmentIncrements: { anvil: { lb: 5 } } })).status).toBe(400);
+    expect((await patch({ dprEquipmentIncrements: { barbell: { lb: -1 } } })).status).toBe(400);
+    expect((await patch({ dprDefaultRepLow: 0 })).status).toBe(400);
+    expect((await patch({ dprDefaultRepLow: 12, dprDefaultRepHigh: 8 })).status).toBe(400);
+    expect((await patch({ dprPromptDismissedAt: "soon" })).status).toBe(400);
+  });
+
+  it("round-trips every DPR setting", async () => {
+    const dismissedAt = "2026-09-20T12:00:00.000Z";
+    const fields = {
+      dprEnabled: true,
+      dprAggressiveness: "aggressive",
+      dprExperience: "intermediate",
+      dprEquipmentIncrements: { barbell: { lb: 5 }, dumbbell: { kg: 2.5 } },
+      dprDefaultRepLow: 5,
+      dprDefaultRepHigh: 8,
+      dprPromptDismissedAt: dismissedAt,
+    };
+    const response = await patch(fields);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject(fields);
+    expect(await (await GET()).json()).toMatchObject(fields);
+
+    const cleared = await (await patch({ dprExperience: null, dprPromptDismissedAt: null })).json();
+    expect(cleared.dprExperience).toBeNull();
+    expect(cleared.dprPromptDismissedAt).toBeNull();
   });
 
   it("persists a valid patch and reflects it on the next read", async () => {

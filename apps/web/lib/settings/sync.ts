@@ -9,6 +9,21 @@ import { DEFAULT_SETTINGS } from "./defaults";
  * defaults) in place on failure — a stale bar weight is a much smaller
  * problem than blocking logging on a network call.
  */
+type SettingsPayload = Omit<SettingsRow, "id" | "dprPromptDismissedAt"> & {
+  dprPromptDismissedAt?: string | null;
+};
+
+/** The API sends timestamps as ISO strings; the cached row keeps Dates. */
+function toCachedRow(payload: SettingsPayload): SettingsRow {
+  const dismissed = payload.dprPromptDismissedAt;
+  return {
+    ...DEFAULT_SETTINGS,
+    ...payload,
+    id: "me",
+    dprPromptDismissedAt: dismissed ? new Date(dismissed) : null,
+  };
+}
+
 export async function refreshSettings(
   database: JimDatabase = db,
   fetchImpl: typeof fetch = fetch,
@@ -16,8 +31,8 @@ export async function refreshSettings(
   try {
     const response = await fetchImpl("/api/settings");
     if (!response.ok) return;
-    const payload = (await response.json()) as Omit<SettingsRow, "id">;
-    await database.settings.put({ id: "me", ...payload });
+    const payload = (await response.json()) as SettingsPayload;
+    await database.settings.put(toCachedRow(payload));
   } catch {
     // Offline or logged out — the cached/default row stands.
   }
@@ -38,8 +53,8 @@ export async function patchSettings(
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
       return { ok: false, error: body?.error ?? "Failed to save settings" };
     }
-    const payload = (await response.json()) as Omit<SettingsRow, "id">;
-    await database.settings.put({ id: "me", ...payload });
+    const payload = (await response.json()) as SettingsPayload;
+    await database.settings.put(toCachedRow(payload));
     return { ok: true };
   } catch {
     return { ok: false, error: "No connection — try again once you're back online" };

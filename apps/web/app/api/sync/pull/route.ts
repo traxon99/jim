@@ -2,6 +2,8 @@ import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import {
   type DbOrTx,
   bodyMeasurements,
+  dprBlockLifts,
+  dprBlocks,
   exercises,
   personalRecords,
   programRoutines,
@@ -31,6 +33,8 @@ const PULL_TABLES = [
   ["exercises", exercises, exercises.serverSeq],
   ["programs", programs, programs.serverSeq],
   ["programRoutines", programRoutines, programRoutines.serverSeq],
+  ["dprBlocks", dprBlocks, dprBlocks.serverSeq],
+  ["dprBlockLifts", dprBlockLifts, dprBlockLifts.serverSeq],
   ["scheduledWorkouts", scheduledWorkouts, scheduledWorkouts.serverSeq],
 ] as const;
 

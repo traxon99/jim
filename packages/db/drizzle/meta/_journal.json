@@ -127,6 +127,13 @@
       "when": 1790368067804,
       "tag": "0017_add_show_pace_tracker",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790386631522,
+      "tag": "0018_add_dpr",
+      "breakpoints": true
     }
   ]
 }

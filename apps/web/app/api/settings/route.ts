@@ -8,6 +8,17 @@ const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
 const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose"]);
 const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 const SEXES = new Set(["male", "female"]);
+const DPR_AGGRESSIVENESS = new Set(["conservative", "moderate", "aggressive"]);
+const DPR_EXPERIENCE = new Set(["novice", "intermediate", "advanced"]);
+const DPR_EQUIPMENT_BUCKETS = new Set([
+  "barbell",
+  "ez-bar",
+  "dumbbell",
+  "machine",
+  "cable",
+  "kettlebell",
+  "other",
+]);
 const BIRTHDATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 interface SettingsPayload {
@@ -24,6 +35,13 @@ interface SettingsPayload {
   birthdate: string | null;
   heightCm: string | null;
   bodyweight: string | null;
+  dprEnabled: boolean;
+  dprAggressiveness: "conservative" | "moderate" | "aggressive";
+  dprExperience: "novice" | "intermediate" | "advanced" | null;
+  dprEquipmentIncrements: Record<string, Record<string, number>>;
+  dprDefaultRepLow: number;
+  dprDefaultRepHigh: number;
+  dprPromptDismissedAt: string | null;
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -41,6 +59,13 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     birthdate: row.birthdate,
     heightCm: row.heightCm,
     bodyweight: row.bodyweight,
+    dprEnabled: row.dprEnabled,
+    dprAggressiveness: row.dprAggressiveness,
+    dprExperience: row.dprExperience,
+    dprEquipmentIncrements: row.dprEquipmentIncrements,
+    dprDefaultRepLow: row.dprDefaultRepLow,
+    dprDefaultRepHigh: row.dprDefaultRepHigh,
+    dprPromptDismissedAt: row.dprPromptDismissedAt?.toISOString() ?? null,
   };
 }
 
@@ -135,6 +160,57 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     const n = Number(candidate.bodyweight);
     if (!Number.isFinite(n) || n <= 0) return false;
   }
+  if ("dprEnabled" in candidate && typeof candidate.dprEnabled !== "boolean") return false;
+  if (
+    "dprAggressiveness" in candidate &&
+    !DPR_AGGRESSIVENESS.has(candidate.dprAggressiveness as string)
+  ) {
+    return false;
+  }
+  if (
+    "dprExperience" in candidate &&
+    candidate.dprExperience !== null &&
+    !DPR_EXPERIENCE.has(candidate.dprExperience as string)
+  ) {
+    return false;
+  }
+  if (
+    "dprEquipmentIncrements" in candidate &&
+    !isValidIncrements(candidate.dprEquipmentIncrements)
+  ) {
+    return false;
+  }
+  for (const key of ["dprDefaultRepLow", "dprDefaultRepHigh"] as const) {
+    if (key in candidate) {
+      const n = candidate[key];
+      if (typeof n !== "number" || !Number.isInteger(n) || n < 1 || n > 100) return false;
+    }
+  }
+  if (
+    typeof candidate.dprDefaultRepLow === "number" &&
+    typeof candidate.dprDefaultRepHigh === "number" &&
+    candidate.dprDefaultRepLow > candidate.dprDefaultRepHigh
+  ) {
+    return false;
+  }
+  if ("dprPromptDismissedAt" in candidate && candidate.dprPromptDismissedAt !== null) {
+    const value = candidate.dprPromptDismissedAt;
+    if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return false;
+  }
+  return true;
+}
+
+/** `{ [bucket]: { lb?: n, kg?: n } }` with known buckets and positive steps. */
+function isValidIncrements(value: unknown): value is Record<string, Record<string, number>> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  for (const [bucket, steps] of Object.entries(value)) {
+    if (!DPR_EQUIPMENT_BUCKETS.has(bucket)) return false;
+    if (typeof steps !== "object" || steps === null || Array.isArray(steps)) return false;
+    for (const [unit, step] of Object.entries(steps)) {
+      if (unit !== "lb" && unit !== "kg") return false;
+      if (typeof step !== "number" || !Number.isFinite(step) || step <= 0) return false;
+    }
+  }
   return true;
 }
 
@@ -175,6 +251,18 @@ export async function PATCH(request: Request) {
       }
       if (body.bodyweight !== undefined) {
         patch.bodyweight = body.bodyweight === null ? null : String(body.bodyweight);
+      }
+      if (body.dprEnabled !== undefined) patch.dprEnabled = body.dprEnabled;
+      if (body.dprAggressiveness !== undefined) patch.dprAggressiveness = body.dprAggressiveness;
+      if (body.dprExperience !== undefined) patch.dprExperience = body.dprExperience;
+      if (body.dprEquipmentIncrements !== undefined) {
+        patch.dprEquipmentIncrements = body.dprEquipmentIncrements;
+      }
+      if (body.dprDefaultRepLow !== undefined) patch.dprDefaultRepLow = body.dprDefaultRepLow;
+      if (body.dprDefaultRepHigh !== undefined) patch.dprDefaultRepHigh = body.dprDefaultRepHigh;
+      if (body.dprPromptDismissedAt !== undefined) {
+        patch.dprPromptDismissedAt =
+          body.dprPromptDismissedAt === null ? null : new Date(body.dprPromptDismissedAt);
       }
 
       const [row] = await tx.update(users).set(patch).where(eq(users.id, userId)).returning();

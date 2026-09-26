@@ -216,4 +216,91 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
       false,
     );
   });
+
+  it("round-trips a program's duration and a DPR block with its lifts", async () => {
+    const { cursor: cursorBefore } = await (await pull(0)).json();
+    const catalog = (await (await pull(0)).json()).changes.exercises;
+    const exerciseId = catalog[0].id as string;
+
+    const programId = uuidv7();
+    const blockId = uuidv7();
+    const liftId = uuidv7();
+    const now = new Date().toISOString();
+    const response = await push([
+      {
+        id: uuidv7(),
+        table: "programs",
+        entity: {
+          id: programId,
+          name: "8-week block",
+          mode: "sequence",
+          isActive: true,
+          notes: null,
+          position: 0,
+          durationWeeks: 8,
+          activatedAt: now,
+          createdAt: now,
+          updatedAt: now,
+          deviceId: "device-a",
+          deletedAt: null,
+        },
+      },
+      {
+        id: uuidv7(),
+        table: "dprBlocks",
+        entity: {
+          id: blockId,
+          startedAt: now,
+          weeks: 8,
+          endsAt: now,
+          status: "active",
+          aggressiveness: "moderate",
+          experience: "intermediate",
+          programId,
+          createdAt: now,
+          updatedAt: now,
+          deviceId: "device-a",
+          deletedAt: null,
+        },
+      },
+      {
+        id: uuidv7(),
+        table: "dprBlockLifts",
+        entity: {
+          id: liftId,
+          blockId,
+          exerciseId,
+          position: 0,
+          baselineE1rm: "239.17",
+          goalE1rm: "263.09",
+          updatedAt: now,
+          deviceId: "device-a",
+          deletedAt: null,
+        },
+      },
+    ]);
+    const results = (await response.json()).results;
+    expect(results.map((r: { status: string }) => r.status)).toEqual([
+      "applied",
+      "applied",
+      "applied",
+    ]);
+
+    const body = await (await pull(cursorBefore)).json();
+    expect(body.changes.programs.find((p: { id: string }) => p.id === programId)).toMatchObject({
+      durationWeeks: 8,
+      activatedAt: now,
+    });
+    expect(body.changes.dprBlocks).toEqual([
+      expect.objectContaining({ id: blockId, weeks: 8, status: "active", programId }),
+    ]);
+    expect(body.changes.dprBlockLifts).toEqual([
+      expect.objectContaining({ id: liftId, blockId, baselineE1rm: "239.17", goalE1rm: "263.09" }),
+    ]);
+
+    claimsSub = USER_B;
+    const otherUsersView = await (await pull(cursorBefore)).json();
+    expect(otherUsersView.changes.dprBlocks).toEqual([]);
+    expect(otherUsersView.changes.dprBlockLifts).toEqual([]);
+  });
 });

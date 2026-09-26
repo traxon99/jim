@@ -5,6 +5,7 @@ import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
+import { DprSettings } from "./dpr-settings";
 
 const UNIT_OPTIONS: { value: SettingsRow["units"]; label: string }[] = [
   { value: "lb", label: "lb" },
@@ -20,7 +21,7 @@ function formatRest(seconds: number): string {
   return rest === 0 ? `${minutes} min` : `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
-// Units, default rest, and the pace tracker toggle, saved the moment they
+// Units, default rest, the pace tracker toggle and DPR, saved the moment they
 // change — same "no Save button" pattern as ColorSchemeSection. These used to sit in a Save-button
 // form on the Profile page alongside bar weight and plates, which nothing in
 // the app reads; that form is gone and these two moved here.
@@ -38,7 +39,12 @@ export function WorkoutSection() {
     : [...REST_OPTIONS, restSeconds].sort((a, b) => a - b);
 
   async function save(
-    patch: Partial<Pick<SettingsRow, "units" | "defaultRestSeconds" | "showPaceTracker">>,
+    patch: Partial<
+      Pick<
+        SettingsRow,
+        "units" | "defaultRestSeconds" | "showPaceTracker" | "dprEnabled" | "dprEquipmentIncrements"
+      >
+    >,
   ) {
     setError(null);
     const result = await patchSettings(patch);
@@ -98,6 +104,8 @@ export function WorkoutSection() {
           className="h-5 w-5 accent-accent"
         />
       </label>
+
+      <DprSettings settings={cached ?? DEFAULT_SETTINGS} onSave={save} />
 
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
     </div>

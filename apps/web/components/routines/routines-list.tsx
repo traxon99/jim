@@ -1,7 +1,12 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
-import { groupRoutinesByFolder, isWarmupRoutine } from "@jim/core";
+import {
+  formatProgramWeek,
+  groupRoutinesByFolder,
+  isWarmupRoutine,
+  programWeekProgress,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Flame, Layers, Plus } from "lucide-react";
 import Link from "next/link";
@@ -145,6 +150,11 @@ export function RoutinesList({ userId }: { userId: string }) {
                           <span className="truncate text-base font-medium">{program.name}</span>
                           <span className="text-xs text-zinc-500 dark:text-zinc-500">
                             {program.mode === "weekly" ? "Weekly schedule" : "Sequence"}
+                            {program.isActive &&
+                              (() => {
+                                const progress = programWeekProgress(program, new Date());
+                                return progress ? ` · ${formatProgramWeek(progress)}` : "";
+                              })()}
                           </span>
                         </span>
                       </span>
