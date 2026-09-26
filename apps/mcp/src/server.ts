@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { UserContext } from "./context.js";
 import { createRoutine } from "./tools/create-routine.js";
+import { dprStatus } from "./tools/dpr-status.js";
 import { exerciseHistory } from "./tools/exercise-history.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getWorkout } from "./tools/get-workout.js";
@@ -110,6 +111,23 @@ export function createMcpServer(context: UserContext): McpServer {
     async (input) => {
       try {
         return json(await getPrs(context, input));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "dpr_status",
+    {
+      title: "Dynamic Progression status",
+      description:
+        "Read-only. Whether Dynamic Progression (DPR) is on, the current training block, and for each focused lift: its rep ranges, DPR's next call (increase / hold / deload / reenter / insufficient) with weight and reason, baseline / current / goal e1RM with on-track status, and the last 5 decisions.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return json(await dprStatus(context));
       } catch (error) {
         return toolError(error);
       }

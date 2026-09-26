@@ -393,7 +393,9 @@ export function SessionExerciseSection({
               title={dprBadge(dpr.decision.call).label}
               className={`shrink-0 rounded-full border px-1.5 text-xs font-semibold ${dprBadge(dpr.decision.call).className}`}
             >
-              DPR {dprBadge(dpr.decision.call).symbol}
+              {dpr.decision.reason === "Deload week"
+                ? "Deload week"
+                : `DPR ${dprBadge(dpr.decision.call).symbol}`}
             </span>
           )}
         </h2>

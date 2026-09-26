@@ -172,6 +172,7 @@ standing full-database credential sitting in a network-exposed process.
 | `get_prs(exercise?, kind?)` | Personal records |
 | `volume_report(group_by, from, to)` | Volume by muscle, exercise or week |
 | `search_exercises(query, muscles?, equipment?)` | Catalog search |
+| `dpr_status()` | Dynamic Progression: block, each focused lift's next call, e1RM vs goal, recent decisions |
 
 **Write tools**
 

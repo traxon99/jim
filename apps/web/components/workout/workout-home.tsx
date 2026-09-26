@@ -1,5 +1,6 @@
 "use client";
 
+import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprChips } from "@/components/dpr/dpr-chips";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
@@ -96,6 +97,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
       <h1 className="text-xl font-semibold">Workout</h1>
 
       <TryDprCard completedSessionCount={completedSessionCount} />
+      <BlockEndCard context={dprContext} />
 
       <UpNextCard
         starting={starting}
