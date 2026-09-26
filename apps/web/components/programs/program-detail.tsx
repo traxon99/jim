@@ -10,7 +10,13 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { isWarmupRoutine, reorderRoutineExercises, uuidv7 } from "@jim/core";
+import {
+  formatProgramWeek,
+  isWarmupRoutine,
+  programWeekProgress,
+  reorderRoutineExercises,
+  uuidv7,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Layers } from "lucide-react";
 import Link from "next/link";
@@ -150,6 +156,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
   }
 
   const weekly = program.mode === "weekly";
+  const weekProgress = program.isActive ? programWeekProgress(program, new Date()) : null;
   const nextItemId = suggestion?.next?.item.id;
   let step = 0;
 
@@ -168,6 +175,8 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
             {weekly ? "Weekly schedule" : "Sequence"}
             {program.isActive && " · Active"}
+            {weekProgress && ` · ${formatProgramWeek(weekProgress)}`}
+            {!weekProgress && program.durationWeeks && ` · ${program.durationWeeks} weeks`}
           </p>
           {program.notes && (
             <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{program.notes}</p>

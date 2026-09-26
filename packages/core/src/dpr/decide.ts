@@ -279,12 +279,14 @@ function rangeOf(source: {
 
 /**
  * The rep range DPR tracks a lift at: the routine being run's, else the most
- * recently updated routine containing the lift, else the DPR default (6–10).
+ * recently updated routine containing the lift, else the DPR default (6–10,
+ * or the user's own `defaultRange`).
  */
 export function resolveRepRange(
   exerciseId: string,
   routineExercise?: { targetRepsLow: number | null; targetRepsHigh: number | null } | null,
   history: readonly RoutineRepRangeSource[] = [],
+  defaultRange: RepRange = DPR_DEFAULT_REP_RANGE,
 ): RepRange {
   const own = routineExercise ? rangeOf(routineExercise) : null;
   if (own) return own;
@@ -296,7 +298,7 @@ export function resolveRepRange(
     const range = rangeOf(source);
     if (range) return range;
   }
-  return { ...DPR_DEFAULT_REP_RANGE };
+  return { low: defaultRange.low, high: defaultRange.high };
 }
 
 /** DPR state is kept per (exercise, rep range) — this is that key. */

@@ -2,6 +2,8 @@ import { type Mutation, SYNC_DATE_FIELDS, normalizeDates } from "@jim/core";
 import {
   type DbOrTx,
   bodyMeasurements,
+  dprBlockLifts,
+  dprBlocks,
   exercises,
   personalRecords,
   programRoutines,
@@ -309,6 +311,8 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             isActive: excluded(programs.isActive),
             notes: excluded(programs.notes),
             position: excluded(programs.position),
+            durationWeeks: excluded(programs.durationWeeks),
+            activatedAt: excluded(programs.activatedAt),
             updatedAt: excluded(programs.updatedAt),
             deviceId: excluded(programs.deviceId),
             deletedAt: excluded(programs.deletedAt),
@@ -341,6 +345,63 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(programRoutines.updatedAt, programRoutines.deviceId),
+        });
+      return;
+    }
+
+    case "dprBlocks": {
+      // createdAt kept on insert, absent from the update set (as programs).
+      const dated = normalizeDates(
+        entity as typeof dprBlocks.$inferInsert,
+        SYNC_DATE_FIELDS.dprBlocks,
+      );
+      const { serverSeq: _serverSeq, ...row } = dated;
+      await tx
+        .insert(dprBlocks)
+        .values({ ...row, userId })
+        .onConflictDoUpdate({
+          target: dprBlocks.id,
+          set: {
+            startedAt: excluded(dprBlocks.startedAt),
+            weeks: excluded(dprBlocks.weeks),
+            endsAt: excluded(dprBlocks.endsAt),
+            status: excluded(dprBlocks.status),
+            aggressiveness: excluded(dprBlocks.aggressiveness),
+            experience: excluded(dprBlocks.experience),
+            programId: excluded(dprBlocks.programId),
+            updatedAt: excluded(dprBlocks.updatedAt),
+            deviceId: excluded(dprBlocks.deviceId),
+            deletedAt: excluded(dprBlocks.deletedAt),
+            serverSeq: sql`nextval('sync_seq')`,
+          },
+          setWhere: lwwGuard(dprBlocks.updatedAt, dprBlocks.deviceId),
+        });
+      return;
+    }
+
+    case "dprBlockLifts": {
+      const dated = normalizeDates(
+        entity as typeof dprBlockLifts.$inferInsert,
+        SYNC_DATE_FIELDS.dprBlockLifts,
+      );
+      const { serverSeq: _serverSeq, ...row } = dated;
+      await tx
+        .insert(dprBlockLifts)
+        .values({ ...row, userId })
+        .onConflictDoUpdate({
+          target: dprBlockLifts.id,
+          set: {
+            blockId: excluded(dprBlockLifts.blockId),
+            exerciseId: excluded(dprBlockLifts.exerciseId),
+            position: excluded(dprBlockLifts.position),
+            baselineE1rm: excluded(dprBlockLifts.baselineE1rm),
+            goalE1rm: excluded(dprBlockLifts.goalE1rm),
+            updatedAt: excluded(dprBlockLifts.updatedAt),
+            deviceId: excluded(dprBlockLifts.deviceId),
+            deletedAt: excluded(dprBlockLifts.deletedAt),
+            serverSeq: sql`nextval('sync_seq')`,
+          },
+          setWhere: lwwGuard(dprBlockLifts.updatedAt, dprBlockLifts.deviceId),
         });
       return;
     }

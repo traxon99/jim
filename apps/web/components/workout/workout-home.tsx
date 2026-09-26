@@ -1,5 +1,6 @@
 "use client";
 
+import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
@@ -39,6 +40,11 @@ export function WorkoutHome({ userId }: { userId: string }) {
     if (pathname !== "/workout") setStarting(false);
   }, [pathname]);
 
+  const completedSessionCount = useMemo(
+    () => (rawSessions ?? []).filter((session) => session.endedAt && !session.deletedAt).length,
+    [rawSessions],
+  );
+
   const routineGroups = useMemo(
     () => groupRoutinesByFolder((rawRoutines ?? []).filter((routine) => !routine.deletedAt)),
     [rawRoutines],
@@ -74,6 +80,8 @@ export function WorkoutHome({ userId }: { userId: string }) {
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <h1 className="text-xl font-semibold">Workout</h1>
+
+      <TryDprCard completedSessionCount={completedSessionCount} />
 
       <UpNextCard
         starting={starting}

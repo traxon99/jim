@@ -9,6 +9,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgPolicy,
@@ -99,6 +100,16 @@ export const prKindEnum = pgEnum("pr_kind", ["1rm", "volume", "weight", "reps_at
 
 export const programModeEnum = pgEnum("program_mode", ["sequence", "weekly"]);
 
+// Dynamic Progression (DPR, issue #207). Mirrors @jim/core's DprPresetName,
+// ExperienceLevel, and the block lifecycle.
+export const dprAggressivenessEnum = pgEnum("dpr_aggressiveness", [
+  "conservative",
+  "moderate",
+  "aggressive",
+]);
+export const dprExperienceEnum = pgEnum("dpr_experience", ["novice", "intermediate", "advanced"]);
+export const dprBlockStatusEnum = pgEnum("dpr_block_status", ["active", "deload", "completed"]);
+
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
 // ---------------------------------------------------------------------------
@@ -144,6 +155,21 @@ export const users = pgTable(
     birthdate: date("birthdate"),
     heightCm: numeric("height_cm", { precision: 5, scale: 1 }),
     bodyweight: numeric("bodyweight", { precision: 6, scale: 2 }),
+
+    // Dynamic Progression (issue #207) — off by default. `dprExperience` is
+    // the user-confirmed level (null until the setup wizard runs);
+    // `dprEquipmentIncrements` holds per-bucket overrides of @jim/core's
+    // DEFAULT_INCREMENTS, e.g. { "barbell": { "lb": 5 } }.
+    dprEnabled: boolean("dpr_enabled").notNull().default(false),
+    dprAggressiveness: dprAggressivenessEnum("dpr_aggressiveness").notNull().default("moderate"),
+    dprExperience: dprExperienceEnum("dpr_experience"),
+    dprEquipmentIncrements: jsonb("dpr_equipment_increments")
+      .$type<Record<string, Record<string, number>>>()
+      .notNull()
+      .default({}),
+    dprDefaultRepLow: integer("dpr_default_rep_low").notNull().default(6),
+    dprDefaultRepHigh: integer("dpr_default_rep_high").notNull().default(10),
+    dprPromptDismissedAt: timestamp("dpr_prompt_dismissed_at", { withTimezone: true }),
   },
   (table) => [
     pgPolicy("users_select_own", {
@@ -340,6 +366,10 @@ export const programs = pgTable(
     isActive: boolean("is_active").notNull().default(false),
     notes: text("notes"),
     position: integer("position").notNull().default(0),
+    // Planned length (issue #216); null = open-ended. `activatedAt` is when
+    // it last became the active program, for "Week N of M".
+    durationWeeks: integer("duration_weeks"),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
@@ -376,6 +406,69 @@ export const programRoutines = pgTable(
   (table) => [
     ...ownRowPolicies("program_routines", table.userId),
     index("program_routines_server_seq").on(table.serverSeq),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// dpr_blocks / dpr_block_lifts — Dynamic Progression training blocks (issue
+// #207). Only config is stored: DPR's calls are pure @jim/core functions of
+// set history, so the decision log is derived, never persisted. At most 5
+// lifts per block, enforced in the app.
+// ---------------------------------------------------------------------------
+
+export const dprBlocks = pgTable(
+  "dpr_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    // 6, 8 or 12
+    weeks: integer("weeks").notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    status: dprBlockStatusEnum("status").notNull().default("active"),
+    // Snapshots from when the block started, so changing settings mid-block
+    // doesn't move its goals.
+    aggressiveness: dprAggressivenessEnum("aggressiveness").notNull(),
+    experience: dprExperienceEnum("experience").notNull(),
+    programId: uuid("program_id").references(() => programs.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("dpr_blocks", table.userId),
+    index("dpr_blocks_server_seq").on(table.serverSeq),
+  ],
+).enableRLS();
+
+export const dprBlockLifts = pgTable(
+  "dpr_block_lifts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blockId: uuid("block_id")
+      .notNull()
+      .references(() => dprBlocks.id, { onDelete: "cascade" }),
+    exerciseId: uuid("exercise_id")
+      .notNull()
+      .references(() => exercises.id, { onDelete: "cascade" }),
+    position: integer("position").notNull().default(0),
+    baselineE1rm: numeric("baseline_e1rm", { precision: 7, scale: 2 }),
+    goalE1rm: numeric("goal_e1rm", { precision: 7, scale: 2 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("dpr_block_lifts", table.userId),
+    index("dpr_block_lifts_server_seq").on(table.serverSeq),
   ],
 ).enableRLS();
 

@@ -16,4 +16,11 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   birthdate: null,
   heightCm: null,
   bodyweight: null,
+  dprEnabled: false,
+  dprAggressiveness: "moderate",
+  dprExperience: null,
+  dprEquipmentIncrements: {},
+  dprDefaultRepLow: 6,
+  dprDefaultRepHigh: 10,
+  dprPromptDismissedAt: null,
 };

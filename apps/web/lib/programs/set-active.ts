@@ -5,7 +5,8 @@ import { getDeviceId } from "@/lib/sync/engine";
 /**
  * Makes `programId` the one active program (or clears it with `null`),
  * deactivating any other — the "at most one active" rule lives here rather
- * than in a DB constraint (see packages/db's programs comment).
+ * than in a DB constraint (see packages/db's programs comment). Activating
+ * stamps `activatedAt`, which "Week N of M" counts from.
  */
 export async function setActiveProgram(
   programId: string | null,
@@ -20,7 +21,13 @@ export async function setActiveProgram(
     if (program.isActive === shouldBeActive) continue;
     await mutate(
       "programs",
-      { ...program, isActive: shouldBeActive, updatedAt: now, deviceId },
+      {
+        ...program,
+        isActive: shouldBeActive,
+        activatedAt: shouldBeActive ? now : program.activatedAt,
+        updatedAt: now,
+        deviceId,
+      },
       database,
     );
   }

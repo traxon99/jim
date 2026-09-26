@@ -1,6 +1,6 @@
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
-import { Settings } from "lucide-react";
+import { ChevronRight, Settings } from "lucide-react";
 import Link from "next/link";
 
 export function ProfileHome() {
@@ -17,6 +17,13 @@ export function ProfileHome() {
         </Link>
       </div>
       <BodyStatsSection />
+      <Link
+        href="/progression"
+        className="flex min-h-11 w-full max-w-xs items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+      >
+        Progression
+        <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+      </Link>
       <FeedbackSection />
     </main>
   );

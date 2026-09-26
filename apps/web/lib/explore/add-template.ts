@@ -134,6 +134,8 @@ export async function addProgramTemplate(
     mode: template.mode,
     isActive: false,
     notes: template.notes,
+    durationWeeks: null,
+    activatedAt: null,
     position: await database.programs.count(),
     createdAt: now,
     updatedAt: now,

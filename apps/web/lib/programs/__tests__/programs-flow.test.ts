@@ -26,6 +26,8 @@ function program(overrides: Partial<ProgramRow> = {}): ProgramRow {
     isActive: false,
     notes: null,
     position: 0,
+    durationWeeks: null,
+    activatedAt: null,
     createdAt: now,
     updatedAt: now,
     deviceId: "device-a",
