@@ -3,14 +3,12 @@
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { type ProgressionMechanic, suggestedWeeklyIncrement } from "@jim/core";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
   item: RoutineExerciseRowEntity;
   exerciseName: string;
-  exerciseMechanic: ProgressionMechanic;
   /** Warm-ups (issue #59) only take sets plus reps or a hold time. */
   warmup?: { timed: boolean } | null;
   units: "lb" | "kg";
@@ -40,7 +38,6 @@ function toNumericStringOrNull(value: string): string | null {
 export function RoutineExerciseRow({
   item,
   exerciseName,
-  exerciseMechanic,
   warmup = null,
   units,
   onUpdate,
@@ -58,35 +55,12 @@ export function RoutineExerciseRow({
   );
   const [restSeconds, setRestSeconds] = useState(item.targetRestSeconds?.toString() ?? "");
   const [targetWeight, setTargetWeight] = useState(formatNumericField(item.targetWeight));
-  const [progressionEnabled, setProgressionEnabled] = useState(item.progressionIncrement != null);
-  const [increment, setIncrement] = useState(
-    formatNumericField(item.progressionIncrement) ||
-      String(suggestedWeeklyIncrement(exerciseMechanic, units)),
-  );
   const [notes, setNotes] = useState(item.notes ?? "");
 
-  // Editing the baseline weight moves the progression's anchor to now, so
-  // next week's suggestion is one increment past what was just typed rather
-  // than stacking on top of however many weeks had already elapsed.
+  // The starting weight for an exercise with no history yet — DPR (issue
+  // #217) replaced the weekly auto-increment that used to build on it.
   function commitTargetWeight() {
-    const patch: Partial<RoutineExerciseRowEntity> = {
-      targetWeight: toNumericStringOrNull(targetWeight),
-    };
-    if (progressionEnabled) patch.progressionStartedAt = new Date();
-    onUpdate(patch);
-  }
-
-  function toggleProgression(enabled: boolean) {
-    setProgressionEnabled(enabled);
-    onUpdate({
-      progressionIncrement: enabled ? toNumericStringOrNull(increment) : null,
-      progressionStartedAt: enabled ? new Date() : null,
-    });
-  }
-
-  function commitIncrement() {
-    if (!progressionEnabled) return;
-    onUpdate({ progressionIncrement: toNumericStringOrNull(increment) });
+    onUpdate({ targetWeight: toNumericStringOrNull(targetWeight) });
   }
 
   const style = {
@@ -229,34 +203,6 @@ export function RoutineExerciseRow({
           </>
         )}
       </div>
-
-      {!warmup && (
-        <div className="flex flex-wrap items-center gap-2 pl-10">
-          <label className="flex items-center gap-1.5 text-xs font-medium">
-            <input
-              type="checkbox"
-              checked={progressionEnabled}
-              onChange={(event) => toggleProgression(event.target.checked)}
-              className="h-4 w-4"
-            />
-            Auto-increase weekly
-          </label>
-          {progressionEnabled && (
-            <label className="flex items-center gap-1 text-xs font-medium">
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={increment}
-                onChange={(event) => setIncrement(event.target.value)}
-                onBlur={commitIncrement}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-              {units}/week
-            </label>
-          )}
-        </div>
-      )}
 
       <label className="flex flex-col gap-1 pl-10 text-xs font-medium">
         Notes

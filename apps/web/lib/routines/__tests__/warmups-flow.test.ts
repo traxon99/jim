@@ -83,8 +83,6 @@ function routineExercise(
     targetRestSeconds: null,
     targetDurationSeconds: null,
     targetWeight: null,
-    progressionIncrement: null,
-    progressionStartedAt: null,
     notes: null,
     updatedAt: new Date(),
     deviceId: "device-a",

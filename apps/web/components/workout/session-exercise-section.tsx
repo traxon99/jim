@@ -9,6 +9,14 @@ import {
   type SettingsRow,
   db,
 } from "@/lib/db/schema";
+import {
+  type DprCallInfo,
+  dprBadge,
+  dprRepsPlaceholder,
+  dprWeightPlaceholder,
+  dprWhyLine,
+  needsRpeNudge,
+} from "@/lib/dpr/calls";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet, updateSetKind } from "@/lib/sessions/set-actions";
 import type { SetKind } from "@/lib/sessions/set-kinds";
@@ -22,7 +30,6 @@ import {
   RPE_MIN,
   STRENGTH_STANDARD_TIERS,
   clampRpe,
-  currentProgressedWeight,
   plannedSetIndices,
   prefillWeightForSet,
   resolveCurrentRows,
@@ -43,6 +50,8 @@ interface Props {
   exercise: ExerciseRow | undefined;
   target: RoutineExerciseRow | undefined;
   settings: SettingsRow;
+  /** DPR's call when this is a focused lift and DPR is on (issue #212); else null. */
+  dpr?: DprCallInfo | null;
   large?: boolean;
   onSetLogged: (restSeconds: number) => void;
   onRemove: () => void;
@@ -119,6 +128,7 @@ export function SessionExerciseSection({
   exercise,
   target,
   settings,
+  dpr = null,
   large = false,
   onSetLogged,
   onRemove,
@@ -158,21 +168,10 @@ export function SessionExerciseSection({
 
   const loggedIndices = useMemo(() => new Set(sets.map((set) => set.setIndex)), [sets]);
 
-  // Progressive overload (issue #98): a routine exercise configured with a
-  // weekly increment keeps climbing on its own — this is what it calls for
-  // this week, independent of whatever was actually logged last time.
-  const progressedWeight = useMemo(() => {
-    if (target?.targetWeight == null) return null;
-    return currentProgressedWeight(
-      {
-        targetWeight: Number(target.targetWeight),
-        progressionIncrement:
-          target.progressionIncrement == null ? null : Number(target.progressionIncrement),
-        progressionStartedAt: target.progressionStartedAt,
-      },
-      new Date(),
-    );
-  }, [target?.targetWeight, target?.progressionIncrement, target?.progressionStartedAt]);
+  // The routine's target weight is the starting point for an exercise with
+  // no history yet (the weekly auto-increment it once drove is replaced by
+  // DPR, issue #217).
+  const targetWeight = target?.targetWeight == null ? null : Number(target.targetWeight);
 
   // Strength-standard weight suggestions (#94): only for the four lifts
   // packages/core has published standards for, and only once sex + bodyweight
@@ -195,11 +194,18 @@ export function SessionExerciseSection({
   // — but now shown only as a background suggestion (the input's placeholder,
   // matching the warm-up logger) rather than typed into the field. Logging
   // with the field left blank falls back to this suggestion, same as a
-  // warm-up set left blank falls back to its target.
+  // warm-up set left blank falls back to its target. For a DPR-focused lift
+  // (issue #212), DPR's weight — and after a change, the bottom of the rep
+  // range — replaces both on working sets, still just a placeholder.
   function suggestedWeightFor(index: number): string {
-    return prefillWeightForSet(index, previousByIndex.get(index), progressedWeight);
+    return (
+      dprWeightPlaceholder(dpr, draftFor(index).kind) ??
+      prefillWeightForSet(index, previousByIndex.get(index), targetWeight)
+    );
   }
   function suggestedRepsFor(index: number): string {
+    const dprReps = dprRepsPlaceholder(dpr, draftFor(index).kind);
+    if (dprReps !== null) return dprReps;
     const priorAtIndex = previousByIndex.get(index);
     return priorAtIndex?.reps != null
       ? String(priorAtIndex.reps)
@@ -332,10 +338,15 @@ export function SessionExerciseSection({
         min={RPE_MIN}
         max={RPE_MAX}
         step={0.5}
-        placeholder="—"
+        placeholder={dpr && draft.kind === "working" ? "RPE" : "—"}
         value={draft.rpe}
         onChange={(event) => updateDraft(index, { rpe: event.target.value })}
-        className={sizes.input}
+        className={
+          // Soft-required on focused lifts: sessions without RPE don't count.
+          dpr && draft.kind === "working"
+            ? `${sizes.input} border-accent ring-1 ring-accent dark:border-accent`
+            : sizes.input
+        }
       />
     );
   }
@@ -375,7 +386,17 @@ export function SessionExerciseSection({
       }
     >
       <div className="flex items-start justify-between gap-2">
-        <h2 className={sizes.title}>{exercise?.name ?? "Exercise"}</h2>
+        <h2 className={`${sizes.title} flex min-w-0 items-center gap-2`}>
+          <span className="min-w-0">{exercise?.name ?? "Exercise"}</span>
+          {dpr && (
+            <span
+              title={dprBadge(dpr.decision.call).label}
+              className={`shrink-0 rounded-full border px-1.5 text-xs font-semibold ${dprBadge(dpr.decision.call).className}`}
+            >
+              DPR {dprBadge(dpr.decision.call).symbol}
+            </span>
+          )}
+        </h2>
         <button
           type="button"
           onClick={onRemove}
@@ -398,18 +419,7 @@ export function SessionExerciseSection({
         </p>
       )}
 
-      {progressedWeight != null && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <p className={sizes.meta}>This week's target:</p>
-          <button
-            type="button"
-            onClick={() => updateDraft(nextIndex, { weight: String(progressedWeight) })}
-            className="min-h-8 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
-          >
-            {progressedWeight}
-          </button>
-        </div>
-      )}
+      {dpr && <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>}
 
       {suggestedWeights && (
         <div className="flex flex-col gap-1.5">
@@ -449,6 +459,7 @@ export function SessionExerciseSection({
                 set={set}
                 index={i}
                 isPr={prsBySetId.has(set.id)}
+                rpeNudge={needsRpeNudge(dpr !== null, set)}
                 onEdit={(patch) => void handleEdit(set, patch)}
                 onChangeKind={(kind) => void handleChangeKind(set, kind)}
                 onDelete={() => void deleteSet(set)}

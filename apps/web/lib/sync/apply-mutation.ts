@@ -131,8 +131,6 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             targetRestSeconds: excluded(routineExercises.targetRestSeconds),
             targetDurationSeconds: excluded(routineExercises.targetDurationSeconds),
             targetWeight: excluded(routineExercises.targetWeight),
-            progressionIncrement: excluded(routineExercises.progressionIncrement),
-            progressionStartedAt: excluded(routineExercises.progressionStartedAt),
             notes: excluded(routineExercises.notes),
             updatedAt: excluded(routineExercises.updatedAt),
             deviceId: excluded(routineExercises.deviceId),

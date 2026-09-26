@@ -38,6 +38,8 @@ export interface DprDecision {
   call: DprCall;
   /** Suggested working weight for the next session; null only with no history and no fallback. */
   weight: number | null;
+  /** The weight the call is made from (last lifted), for "+5 lb" style deltas; null with no history. */
+  previousWeight: number | null;
   /** Rep target to aim for at that weight: the bottom of the range after any change. */
   targetReps: number | null;
   /** Short, user-facing, e.g. "Hit 3×8 @ RPE 7.5". */
@@ -141,6 +143,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     return {
       call: "insufficient",
       weight: fallback,
+      previousWeight: null,
       targetReps: fallback === null ? null : repRange.low,
       reason: "No history yet",
       streak: 0,
@@ -159,6 +162,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     return {
       call: "reenter",
       weight: roundToIncrement(current * (1 - reentry.pct), increment, "down"),
+      previousWeight: current,
       targetReps: repRange.low,
       reason: `${gapDays} days off — easing back in ${Math.round(reentry.pct * 100)}%`,
       streak: 0,
@@ -169,6 +173,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     return {
       call: "insufficient",
       weight: latest.topWeight,
+      previousWeight: latest.topWeight,
       targetReps: null,
       reason: "Add RPE for DPR",
       streak: 0,
@@ -190,6 +195,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     return {
       call: "increase",
       weight: roundToIncrement(current + jumpFor(current, preset, increment), increment),
+      previousWeight: current,
       targetReps: repRange.low,
       reason: `Hit ${describe(latestEligible)}${inARow}${skippedNote}`,
       streak: qualifyingStreak,
@@ -201,6 +207,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     return {
       call: "deload",
       weight: roundToIncrement(current * (1 - DELOAD_PCT), increment, "down"),
+      previousWeight: current,
       targetReps: repRange.low,
       reason: `Missed ${missStreak} in a row — deload ${Math.round(DELOAD_PCT * 100)}%${skippedNote}`,
       streak: missStreak,
@@ -222,7 +229,14 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     reason = `${describe(latestEligible)} — aim for ${repRange.high} on every set`;
     streak = 0;
   }
-  return { call: "hold", weight: current, targetReps: null, reason: reason + skippedNote, streak };
+  return {
+    call: "hold",
+    weight: current,
+    previousWeight: current,
+    targetReps: null,
+    reason: reason + skippedNote,
+    streak,
+  };
 }
 
 export interface DecisionLogEntry {

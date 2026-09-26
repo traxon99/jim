@@ -341,3 +341,30 @@ along with `/login` and `/signup` when their `next` is the portal.
 
 **Rejected: un-gating the whole app on desktop.** It would let someone log a workout into a
 browser's IndexedDB that nothing protects from eviction — exactly what ADR-010 exists to prevent.
+
+## ADR-016 — Dynamic Progression replaces the fixed weekly increment
+
+**Status:** Accepted · 2026-09-26
+
+**Context.** Routine exercises could add a fixed amount to their target weight every week
+(`progressionIncrement` / `progressionStartedAt`, issue #98). That number kept climbing whatever
+happened in the gym: a missed week, a grinder at RPE 10 or a layoff all left it on schedule, so the
+"this week's target" chip drifted away from what the lifter could actually do. Dynamic Progression
+(DPR, epic #207) makes the same call from what was actually logged: reps against the routine's
+range, RPE, the current weight and time off.
+
+**Decision.** DPR is the only automatic progression. The weekly increment's UI, the `@jim/core`
+`weekly-progression` module and the two `routine_exercises` columns are removed (migration 0019).
+`targetWeight` stays as the starting weight for an exercise with no history. DPR is opt-in and
+covers up to 5 focused lifts. Every other lift keeps the plain "last time" prefill, falling back to
+`targetWeight`.
+
+- **Calls are derived, not stored.** DPR stores only its config (settings, blocks and focus). Each
+  call is a pure `@jim/core` function of the set history, so logging stays append-only (ADR-003)
+  and the decision log can always be replayed.
+- **Suggestions, not writes.** The DPR weight is a placeholder the lifter can type over, and DPR
+  learns from whatever was logged.
+
+**Rejected: keeping both.** Two automatic systems suggesting different weights for the same lift
+would leave the lifter guessing which to trust. The weekly increment's one advantage, needing no
+RPE, isn't worth that.

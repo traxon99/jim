@@ -138,8 +138,6 @@ function routineExercise(
     targetRepsLow: low,
     targetRepsHigh: high,
     targetWeight: null,
-    progressionIncrement: null,
-    progressionStartedAt: null,
     notes: null,
     updatedAt: daysAgo(100),
     deviceId: "device-a",
