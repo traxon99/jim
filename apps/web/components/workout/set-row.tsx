@@ -11,6 +11,8 @@ interface Props {
   set: SetRowEntity;
   index: number;
   isPr: boolean;
+  /** A focused lift's working set logged without RPE doesn't count for DPR (issue #212). */
+  rpeNudge?: boolean;
   large?: boolean;
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
@@ -63,7 +65,16 @@ function sizesFor(large: boolean) {
   };
 }
 
-export function SetRow({ set, index, isPr, large = false, onEdit, onChangeKind, onDelete }: Props) {
+export function SetRow({
+  set,
+  index,
+  isPr,
+  rpeNudge = false,
+  large = false,
+  onEdit,
+  onChangeKind,
+  onDelete,
+}: Props) {
   const sizes = sizesFor(large);
   const [editing, setEditing] = useState(false);
   const [weight, setWeight] = useState(set.weight ?? "");
@@ -147,7 +158,20 @@ export function SetRow({ set, index, isPr, large = false, onEdit, onChangeKind, 
         </div>
       </td>
       <td className={sizes.cell}>{set.reps ?? "—"}</td>
-      <td className={sizes.metaCell}>{set.rpe ?? "—"}</td>
+      <td className={sizes.metaCell}>
+        {rpeNudge ? (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label="Add RPE for DPR"
+            className="min-h-11 w-full rounded-md border border-dashed border-accent px-1 text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300"
+          >
+            Add RPE
+          </button>
+        ) : (
+          (set.rpe ?? "—")
+        )}
+      </td>
       <td className={sizes.actionCell}>
         <div className={sizes.actionGroup}>
           <button

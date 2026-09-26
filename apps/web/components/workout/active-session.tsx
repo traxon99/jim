@@ -5,6 +5,8 @@ import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
+import { dprCallFor } from "@/lib/dpr/calls";
+import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -66,6 +68,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     return rows.sort((a, b) => routineIds.indexOf(a.routineId) - routineIds.indexOf(b.routineId));
   }, [session?.routineId, warmupRoutineId]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const dprContext = useDprContext();
 
   const restTimer = useRestTimer(id);
   const isActive = session != null && !session.endedAt && !session.deletedAt;
@@ -298,6 +301,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         exercise={exercise}
         target={target}
         settings={settings}
+        dpr={dprContext ? dprCallFor(dprContext, item.exerciseId, target) : null}
         large={large}
         onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
         onRemove={() => void handleRemoveExercise(item.id)}

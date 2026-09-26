@@ -108,8 +108,6 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       targetRestSeconds: null,
       targetDurationSeconds: null,
       targetWeight: null,
-      progressionIncrement: null,
-      progressionStartedAt: null,
       notes: null,
       updatedAt: now,
       deviceId,
@@ -264,7 +262,6 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                 key={item.id}
                 item={item}
                 exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
-                exerciseMechanic={exercisesById.get(item.exerciseId)?.mechanic ?? null}
                 warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                 units={settings.units}
                 onUpdate={(patch) => handleUpdateItem(item, patch)}

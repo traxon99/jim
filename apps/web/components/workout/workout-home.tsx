@@ -1,8 +1,11 @@
 "use client";
 
+import { DprChips } from "@/components/dpr/dpr-chips";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
-import { db } from "@/lib/db/schema";
+import { type RoutineExerciseRow, db } from "@/lib/db/schema";
+import { dprCallsForRoutine } from "@/lib/dpr/calls";
+import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -17,6 +20,17 @@ export function WorkoutHome({ userId }: { userId: string }) {
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
+  const dprContext = useDprContext();
+  const itemsByRoutine = useLiveQuery(async () => {
+    const map = new Map<string, RoutineExerciseRow[]>();
+    if (!dprContext) return map;
+    for (const item of await db.routineExercises.toArray()) {
+      const list = map.get(item.routineId) ?? [];
+      list.push(item);
+      map.set(item.routineId, list);
+    }
+    return map;
+  }, [dprContext !== null]);
 
   const activeSession = useMemo(
     () => (rawSessions ?? []).find((session) => !session.endedAt && !session.deletedAt) ?? null,
@@ -112,9 +126,21 @@ export function WorkoutHome({ userId }: { userId: string }) {
               <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
                 {group.routines.map((routine) => (
                   <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                      <span className="truncate text-base font-medium">{routine.name}</span>
+                    <span className="flex min-w-0 flex-col gap-1">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                        <span className="truncate text-base font-medium">{routine.name}</span>
+                      </span>
+                      {dprContext && (
+                        <DprChips
+                          context={dprContext}
+                          calls={dprCallsForRoutine(
+                            dprContext,
+                            itemsByRoutine?.get(routine.id) ?? [],
+                          )}
+                          max={2}
+                        />
+                      )}
                     </span>
                     <button
                       type="button"

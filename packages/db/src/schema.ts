@@ -326,14 +326,10 @@ export const routineExercises = pgTable(
     targetRestSeconds: integer("target_rest_seconds"),
     // Hold/duration target for time-tracked exercises (e.g. a 30s stretch).
     targetDurationSeconds: integer("target_duration_seconds"),
-    // Progressive overload (S9): targetWeight is the baseline working weight;
-    // progressionIncrement, when set, is added once per full week elapsed
-    // since progressionStartedAt (packages/core's progression module does the
-    // math). null/unset increment means no auto-progression — targetWeight is
-    // just a static target, same as before this field existed.
+    // Starting weight for an exercise with no history yet. The weekly
+    // auto-increment that once built on it was replaced by DPR (issue #217,
+    // docs/DECISIONS.md ADR-016).
     targetWeight: numeric("target_weight", { precision: 7, scale: 2 }),
-    progressionIncrement: numeric("progression_increment", { precision: 6, scale: 2 }),
-    progressionStartedAt: timestamp("progression_started_at", { withTimezone: true }),
     notes: text("notes"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),

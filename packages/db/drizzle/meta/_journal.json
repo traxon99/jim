@@ -134,6 +134,13 @@
       "when": 1790386631522,
       "tag": "0018_add_dpr",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790387477332,
+      "tag": "0019_drop_weekly_progression",
+      "breakpoints": true
     }
   ]
 }

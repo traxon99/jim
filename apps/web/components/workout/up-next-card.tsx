@@ -1,7 +1,10 @@
 "use client";
 
+import { DprChips } from "@/components/dpr/dpr-chips";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
+import { dprCallsForRoutine } from "@/lib/dpr/calls";
+import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import type { NextWorkout } from "@jim/core";
@@ -38,15 +41,17 @@ function heading(next: NextWorkout): string {
 export function UpNextCard({ starting, onStart }: Props) {
   const suggestion = useNextWorkout();
   const routineId = suggestion?.routine?.id;
-  const exerciseCount = useLiveQuery(
+  const routineItems = useLiveQuery(
     async () =>
       routineId
         ? (await db.routineExercises.where("routineId").equals(routineId).toArray()).filter(
             (item) => !item.deletedAt,
-          ).length
-        : 0,
+          )
+        : [],
     [routineId],
   );
+  const exerciseCount = routineItems?.length;
+  const dprContext = useDprContext();
 
   if (suggestion === undefined) return null;
 
@@ -106,6 +111,9 @@ export function UpNextCard({ starting, onStart }: Props) {
           Program
         </Link>
       </div>
+      {dprContext && routineItems && (
+        <DprChips context={dprContext} calls={dprCallsForRoutine(dprContext, routineItems)} />
+      )}
       <button
         type="button"
         onClick={() => onStart(routine.id, routine.name)}
