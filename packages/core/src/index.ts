@@ -1,3 +1,4 @@
+export * from "./dpr";
 export * from "./exercises";
 export * from "./explore";
 export * from "./history";
