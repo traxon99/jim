@@ -86,9 +86,15 @@ function sizesFor(large: boolean) {
     actionCell: large
       ? "py-3 pl-1 align-middle text-right whitespace-nowrap"
       : "py-2 pl-1 align-middle text-right whitespace-nowrap",
+    // Values are centered and sized as large as the row allows (issue #186):
+    // the compact input is pinned to h-11, the same height as the log/repeat
+    // buttons beside it, so the row doesn't grow; text-xl is the largest size
+    // where a five-character weight ("315.5") still fits the ~60px column on
+    // an iPhone 16. The large layout keeps its original 54px box height
+    // (py-2 + text-3xl's 36px line) with ~95px columns to fill.
     input: large
-      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-      : "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 py-2 text-center text-3xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+      : "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
     logButton: large
       ? "min-h-14 flex-1 rounded-lg bg-accent px-4 text-lg font-semibold text-accent-foreground"
       : "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
@@ -428,9 +434,9 @@ export function SessionExerciseSection({
           <thead>
             <tr className={sizes.headerRow}>
               <th className={`w-8 ${sizes.headerCell}`}>Set</th>
-              <th className={sizes.headerCell}>Weight</th>
-              <th className={sizes.headerCell}>Reps</th>
-              <th className={sizes.headerCell}>
+              <th className={`text-center ${sizes.headerCell}`}>Weight</th>
+              <th className={`text-center ${sizes.headerCell}`}>Reps</th>
+              <th className={`text-center ${sizes.headerCell}`}>
                 <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
               </th>
               <th className={sizes.headerCell} />
