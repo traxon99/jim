@@ -90,33 +90,27 @@ function sizesFor(large: boolean) {
     meta: large
       ? "text-base text-zinc-500 dark:text-zinc-500"
       : "text-xs text-zinc-500 dark:text-zinc-500",
-    headerRow: large
-      ? "border-b border-zinc-200 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500"
-      : "border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500",
-    headerCell: large ? "py-2 pr-3 font-medium" : "py-1 pr-2 font-medium",
-    indexCell: large
-      ? "py-3 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
-      : "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
-    cell: large ? "py-3 pr-3 align-middle" : "py-2 pr-2 align-middle",
-    actionCell: large
-      ? "py-3 pl-1 align-middle text-right whitespace-nowrap"
-      : "py-2 pl-1 align-middle text-right whitespace-nowrap",
+    // Set rows (header, logged and to-log) are the same list-view row in
+    // both views: focus view puts its Log button beside the inputs too, and
+    // at ~305px wide that only fits with the compact inputs.
+    headerRow:
+      "border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500",
+    headerCell: "py-1 pr-2 font-medium",
+    indexCell: "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    cell: "py-2 pr-2 align-middle",
+    actionCell: "py-2 pl-1 align-middle text-right whitespace-nowrap",
     // Values are centered and sized as large as the row allows (issue #186):
-    // the compact input is pinned to h-11, the same height as the log/repeat
-    // buttons beside it, so the row doesn't grow; text-xl is the largest size
-    // where a five-character weight ("315.5") still fits the ~60px column on
-    // an iPhone 16. The large layout keeps its original 54px box height
-    // (py-2 + text-3xl's 36px line) with ~95px columns to fill.
-    input: large
-      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 py-2 text-center text-3xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-      : "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
-    logButton: large
-      ? "min-h-14 flex-1 rounded-lg bg-accent px-4 text-lg font-semibold text-accent-foreground"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
-    repeatButton: large
-      ? "flex min-h-14 min-w-14 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
-    fieldLabel: "flex flex-col gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-400",
+    // the input is pinned to h-11, the same height as the log/repeat buttons
+    // beside it, so the row doesn't grow; text-xl is the largest size where a
+    // five-character weight ("315.5") still fits the ~60px column on an
+    // iPhone 16.
+    input:
+      "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+    logButton:
+      "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
+    repeatButton:
+      "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
+    rowIcon: "h-4 w-4",
     icon: large ? "h-5 w-5" : "h-4 w-4",
     notesLabel: large
       ? "flex flex-col gap-1 text-base font-medium"
@@ -377,14 +371,10 @@ export function SessionExerciseSection({
       <button
         type="button"
         onClick={() => void logRow(index)}
-        aria-label={large ? undefined : `Log set ${index + 1}`}
+        aria-label={`Log set ${index + 1}`}
         className={sizes.logButton}
       >
-        {large ? (
-          `Log set ${index + 1}`
-        ) : (
-          <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
-        )}
+        <Check className={sizes.rowIcon} strokeWidth={2.25} aria-hidden="true" />
       </button>
     );
   }
@@ -395,9 +385,60 @@ export function SessionExerciseSection({
       aria-label="Repeat last set"
       className={sizes.repeatButton}
     >
-      <RotateCcw className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
+      <RotateCcw className={sizes.rowIcon} strokeWidth={1.75} aria-hidden="true" />
     </button>
   );
+
+  const tableHead = (
+    <thead>
+      <tr className={sizes.headerRow}>
+        <th className={`w-8 ${sizes.headerCell}`}>Set</th>
+        <th className={`text-center ${sizes.headerCell}`}>Weight</th>
+        <th className={`text-center ${sizes.headerCell}`}>Reps</th>
+        <th className={`text-center ${sizes.headerCell}`}>
+          <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
+        </th>
+        <th className={sizes.headerCell} />
+      </tr>
+    </thead>
+  );
+  function loggedRow(set: SetRowEntity, label: string) {
+    return (
+      <SetRow
+        key={set.id}
+        set={set}
+        label={label}
+        isPr={prsBySetId.has(set.id)}
+        rpeNudge={needsRpeNudge(dpr !== null, set)}
+        onEdit={(patch) => void handleEdit(set, patch)}
+        onChangeKind={(kind) => void handleChangeKind(set, kind)}
+        onDelete={() => void deleteSet(set)}
+      />
+    );
+  }
+  function plannedRow(index: number, label: string) {
+    const draft = draftFor(index);
+    return (
+      <tr key={index}>
+        <td className={sizes.indexCell}>
+          <SetKindMenu
+            label={label}
+            kind={draft.kind}
+            onChange={(kind) => updateDraft(index, { kind })}
+          />
+        </td>
+        <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
+        <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
+        <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
+        <td className={sizes.actionCell}>
+          <div className="flex min-w-22 items-center justify-end">
+            {index === nextIndex && repeatButton}
+            {logButtonFor(index)}
+          </div>
+        </td>
+      </tr>
+    );
+  }
 
   return (
     <section
@@ -465,107 +506,26 @@ export function SessionExerciseSection({
 
       {!large && (
         <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className={sizes.headerRow}>
-              <th className={`w-8 ${sizes.headerCell}`}>Set</th>
-              <th className={`text-center ${sizes.headerCell}`}>Weight</th>
-              <th className={`text-center ${sizes.headerCell}`}>Reps</th>
-              <th className={`text-center ${sizes.headerCell}`}>
-                <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
-              </th>
-              <th className={sizes.headerCell} />
-            </tr>
-          </thead>
+          {tableHead}
           <tbody>
-            {sets.map((set, i) => (
-              <SetRow
-                key={set.id}
-                set={set}
-                label={rowLabels[i] ?? String(i + 1)}
-                isPr={prsBySetId.has(set.id)}
-                rpeNudge={needsRpeNudge(dpr !== null, set)}
-                onEdit={(patch) => void handleEdit(set, patch)}
-                onChangeKind={(kind) => void handleChangeKind(set, kind)}
-                onDelete={() => void deleteSet(set)}
-              />
-            ))}
-            {plannedIndices.map((index, i) => {
-              const draft = draftFor(index);
-              return (
-                <tr key={index}>
-                  <td className={sizes.indexCell}>
-                    <SetKindMenu
-                      label={rowLabels[sets.length + i] ?? String(index + 1)}
-                      kind={draft.kind}
-                      onChange={(kind) => updateDraft(index, { kind })}
-                    />
-                  </td>
-                  <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
-                  <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
-                  <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
-                  <td className={sizes.actionCell}>
-                    <div className="flex min-w-22 items-center justify-end">
-                      {index === nextIndex && repeatButton}
-                      {logButtonFor(index)}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+            {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
+            {plannedIndices.map((index, i) =>
+              plannedRow(index, rowLabels[sets.length + i] ?? String(index + 1)),
+            )}
           </tbody>
         </table>
       )}
 
-      {/* Focus view shows only the entry card, so the set just logged for
-          this exercise sits above it (issue #257). It's the compact list-view
-          row, which keeps it tappable to edit and fits the no-scroll layout (#148). */}
-      {large && lastSet && (
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Previous set</p>
-          <table className="w-full border-collapse text-left">
-            <tbody>
-              <SetRow
-                key={lastSet.id}
-                set={lastSet}
-                label={rowLabels[sets.length - 1] ?? String(sets.length)}
-                isPr={prsBySetId.has(lastSet.id)}
-                rpeNudge={needsRpeNudge(dpr !== null, lastSet)}
-                onEdit={(patch) => void handleEdit(lastSet, patch)}
-                onChangeKind={(kind) => void handleChangeKind(lastSet, kind)}
-                onDelete={() => void deleteSet(lastSet)}
-              />
-            </tbody>
-          </table>
-        </div>
-      )}
-
+      {/* Focus view shows the set just logged (issue #257) above the one to
+          log next, as list-view rows with the Log button beside the inputs. */}
       {large && (
-        <div className="flex flex-col gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
-          <SetKindMenu
-            label={nextLabel}
-            kind={nextDraft.kind}
-            onChange={(kind) => updateDraft(nextIndex, { kind })}
-            large
-          />
-          <div className="grid grid-cols-3 gap-3">
-            <div className={sizes.fieldLabel}>
-              <label htmlFor={`${fieldId}-weight`}>Weight</label>
-              {weightInputFor(nextIndex, nextDraft)}
-            </div>
-            <div className={sizes.fieldLabel}>
-              <label htmlFor={`${fieldId}-reps`}>Reps</label>
-              {repsInputFor(nextIndex, nextDraft)}
-            </div>
-            <div className={sizes.fieldLabel}>
-              <RpeInfoMenu large titleId={`${fieldId}-rpe-label`} />
-              {rpeInputFor(nextIndex, nextDraft)}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {logButtonFor(nextIndex)}
-            {repeatButton}
-          </div>
-        </div>
+        <table className="w-full border-collapse text-left">
+          {tableHead}
+          <tbody>
+            {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
+            {plannedRow(nextIndex, nextLabel)}
+          </tbody>
+        </table>
       )}
 
       {notesOpen ? (
