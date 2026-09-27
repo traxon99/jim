@@ -62,3 +62,35 @@ export function buildWorkoutShareText({
 
   return lines.join("\n");
 }
+
+export type ShareOutcome = "shared" | "copied" | "cancelled" | "unavailable";
+
+type ShareNavigator = Pick<Navigator, "share" | "clipboard">;
+
+/**
+ * Hands a workout's share text to the OS share sheet, falling back to the
+ * clipboard where Web Share isn't available (or fails for any reason other
+ * than the user dismissing the sheet).
+ */
+export async function shareWorkoutText(
+  title: string,
+  text: string,
+  nav: Partial<ShareNavigator> | undefined = typeof navigator === "undefined"
+    ? undefined
+    : navigator,
+): Promise<ShareOutcome> {
+  if (nav?.share) {
+    try {
+      await nav.share({ title, text });
+      return "shared";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
+      // fall through to the clipboard fallback below
+    }
+  }
+  if (nav?.clipboard) {
+    await nav.clipboard.writeText(text);
+    return "copied";
+  }
+  return "unavailable";
+}

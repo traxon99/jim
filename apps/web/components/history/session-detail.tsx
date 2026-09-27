@@ -1,12 +1,14 @@
 "use client";
 
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setKindLabel } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
@@ -84,6 +86,20 @@ export function SessionDetail({ id }: { id: string }) {
     return deriveUntitledSessionName(session.startedAt, muscleVolumeSets);
   }, [session, rawSessionExercises, exercises, rawSets]);
 
+  const shareText = useMemo(
+    () =>
+      session && summary
+        ? buildWorkoutShareText({
+            name: displayName,
+            startedAt: session.startedAt,
+            units: settings.units,
+            summary,
+            exercises: groups,
+          })
+        : null,
+    [session, summary, displayName, settings.units, groups],
+  );
+
   if (session === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
@@ -117,14 +133,23 @@ export function SessionDetail({ id }: { id: string }) {
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold">
-          <RoutineIconById routineId={session.routineId} className="h-5 w-5" />
-          {displayName}
-        </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">
-          {session.startedAt.toLocaleString()}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <RoutineIconById routineId={session.routineId} className="h-5 w-5" />
+            {displayName}
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-500">
+            {session.startedAt.toLocaleString()}
+          </p>
+        </div>
+        {session.endedAt && shareText && (
+          <ShareWorkoutButton
+            title={displayName ?? "Workout"}
+            text={shareText}
+            className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+          />
+        )}
       </div>
 
       {summary && (
