@@ -2,9 +2,10 @@
 
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import type { SetKind } from "@/lib/sessions/set-kinds";
-import { RPE_MAX, RPE_MIN, clampRpe } from "@jim/core";
-import { Pencil, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { type SetField, setFieldEditPatch } from "@/lib/workout/set-field-edit";
+import { RPE_MAX, RPE_MIN } from "@jim/core";
+import { Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { SetKindMenu } from "./set-kind-menu";
 
 interface Props {
@@ -17,12 +18,6 @@ interface Props {
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
   onDelete: () => void;
-}
-
-function toNumberOrNull(value: string): number | null {
-  if (value.trim() === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
 }
 
 function sizesFor(large: boolean) {
@@ -49,20 +44,93 @@ function sizesFor(large: boolean) {
     // them stack and the row doubles in height the moment a set is logged
     // (issue #157) — keep them side by side so logging happens in place.
     actionGroup: "flex min-w-22 items-center justify-end",
-    saveButton: large
-      ? "min-h-12 rounded-md bg-accent px-4 text-base font-medium text-accent-foreground"
-      : "min-h-11 rounded-md bg-accent px-2 text-xs font-medium text-accent-foreground",
-    textButton: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
-    editButton: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
+    // A logged value reads as plain text but is its own tap target (issue
+    // #234): tapping it swaps in an input for just that value.
+    valueButton: large
+      ? "min-h-12 w-full rounded-md tabular-nums"
+      : "min-h-11 w-full rounded-md tabular-nums",
     deleteButton: large
       ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-red-600 dark:text-red-500"
       : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-600 dark:text-red-500",
     icon: large ? "h-5 w-5" : "h-4 w-4",
   };
+}
+
+interface EditableValueProps {
+  field: SetField;
+  label: string;
+  value: string;
+  editing: boolean;
+  inputClassName: string;
+  buttonClassName: string;
+  onStartEdit: () => void;
+  onCommit: (raw: string) => void;
+  onCancel: () => void;
+}
+
+const INPUT_ATTRS: Record<SetField, React.InputHTMLAttributes<HTMLInputElement>> = {
+  weight: { inputMode: "decimal" },
+  reps: { inputMode: "numeric" },
+  rpe: { inputMode: "decimal", min: RPE_MIN, max: RPE_MAX, step: 0.5 },
+};
+
+function EditableValue({
+  field,
+  label,
+  value,
+  editing,
+  inputClassName,
+  buttonClassName,
+  onStartEdit,
+  onCommit,
+  onCancel,
+}: EditableValueProps) {
+  const [draft, setDraft] = useState(value);
+  // Escape blurs the input on its way out; this stops that blur saving.
+  const cancelled = useRef(false);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(value);
+          cancelled.current = false;
+          onStartEdit();
+        }}
+        aria-label={`Edit ${label}`}
+        className={buttonClassName}
+      >
+        {value === "" ? "—" : value}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      type="number"
+      {...INPUT_ATTRS[field]}
+      // biome-ignore lint/a11y/noAutofocus: the input only exists because the value was just tapped
+      autoFocus
+      aria-label={label}
+      value={draft}
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => setDraft(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.currentTarget.blur();
+        } else if (event.key === "Escape") {
+          cancelled.current = true;
+          onCancel();
+        }
+      }}
+      onBlur={() => {
+        if (cancelled.current) return;
+        onCommit(draft);
+      }}
+      className={inputClassName}
+    />
+  );
 }
 
 export function SetRow({
@@ -76,73 +144,28 @@ export function SetRow({
   onDelete,
 }: Props) {
   const sizes = sizesFor(large);
-  const [editing, setEditing] = useState(false);
-  const [weight, setWeight] = useState(set.weight ?? "");
-  const [reps, setReps] = useState(set.reps?.toString() ?? "");
-  const [rpe, setRpe] = useState(set.rpe ?? "");
+  const [editingField, setEditingField] = useState<SetField | null>(null);
 
-  function save() {
-    const rpeValue = toNumberOrNull(rpe);
-    onEdit({
-      weight: toNumberOrNull(weight),
-      reps: toNumberOrNull(reps),
-      rpe: rpeValue == null ? null : clampRpe(rpeValue),
-    });
-    setEditing(false);
+  function commit(field: SetField, raw: string) {
+    // Empty, invalid or unchanged input just reverts to the logged value.
+    const patch = setFieldEditPatch(set, field, raw);
+    if (patch) onEdit(patch);
+    setEditingField(null);
   }
 
-  if (editing) {
+  function editable(field: SetField, label: string, value: string | number | null) {
     return (
-      <tr className="border-b border-zinc-100 bg-zinc-50 last:border-0 dark:border-zinc-800 dark:bg-zinc-900/50">
-        <td className={sizes.indexCell}>
-          <SetKindMenu index={index} kind={set.kind} onChange={onChangeKind} />
-        </td>
-        <td className={sizes.cell}>
-          <input
-            type="number"
-            inputMode="decimal"
-            value={weight}
-            onChange={(event) => setWeight(event.target.value)}
-            className={sizes.input}
-          />
-        </td>
-        <td className={sizes.cell}>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={reps}
-            onChange={(event) => setReps(event.target.value)}
-            className={sizes.input}
-          />
-        </td>
-        <td className={sizes.cell}>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={RPE_MIN}
-            max={RPE_MAX}
-            step={0.5}
-            value={rpe}
-            onChange={(event) => setRpe(event.target.value)}
-            className={sizes.input}
-          />
-        </td>
-        <td className={sizes.actionCell}>
-          <div className={sizes.actionGroup}>
-            <button type="button" onClick={save} className={sizes.saveButton}>
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              aria-label="Cancel edit"
-              className={sizes.textButton}
-            >
-              <X className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-            </button>
-          </div>
-        </td>
-      </tr>
+      <EditableValue
+        field={field}
+        label={label}
+        value={value == null ? "" : String(value)}
+        editing={editingField === field}
+        inputClassName={sizes.input}
+        buttonClassName={sizes.valueButton}
+        onStartEdit={() => setEditingField(field)}
+        onCommit={(raw) => commit(field, raw)}
+        onCancel={() => setEditingField(null)}
+      />
     );
   }
 
@@ -152,36 +175,28 @@ export function SetRow({
         <SetKindMenu index={index} kind={set.kind} onChange={onChangeKind} />
       </td>
       <td className={sizes.cell}>
-        <div className="flex items-center justify-center gap-1">
-          <span className="font-medium">{set.weight ?? "—"}</span>
-          {isPr && <span title="Personal record">🎉</span>}
+        <div className="flex items-center justify-center gap-1 font-medium">
+          {editable("weight", "weight", set.weight)}
+          {isPr && editingField !== "weight" && <span title="Personal record">🎉</span>}
         </div>
       </td>
-      <td className={sizes.cell}>{set.reps ?? "—"}</td>
+      <td className={sizes.cell}>{editable("reps", "reps", set.reps)}</td>
       <td className={sizes.metaCell}>
-        {rpeNudge ? (
+        {rpeNudge && editingField !== "rpe" ? (
           <button
             type="button"
-            onClick={() => setEditing(true)}
+            onClick={() => setEditingField("rpe")}
             aria-label="Add RPE for DPR"
             className="min-h-11 w-full rounded-md border border-dashed border-accent px-1 text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300"
           >
             Add RPE
           </button>
         ) : (
-          (set.rpe ?? "—")
+          editable("rpe", "RPE", set.rpe)
         )}
       </td>
       <td className={sizes.actionCell}>
         <div className={sizes.actionGroup}>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Edit set"
-            className={sizes.editButton}
-          >
-            <Pencil className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-          </button>
           <button
             type="button"
             onClick={onDelete}
