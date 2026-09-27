@@ -19,7 +19,7 @@ import {
 } from "@/lib/dpr/calls";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet, updateSetKind } from "@/lib/sessions/set-actions";
-import type { SetKind } from "@/lib/sessions/set-kinds";
+import { type SetKind, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -248,6 +248,14 @@ export function SessionExerciseSection({
   }
 
   const nextDraft = draftFor(nextIndex);
+
+  // Warm-ups show "W" and working sets are numbered from 1 after them (issue
+  // #220), across logged rows followed by the planned rows still to log.
+  const rowLabels = setNumberLabels([
+    ...sets.map((set) => set.kind),
+    ...plannedIndices.map((index) => draftFor(index).kind),
+  ]);
+  const nextLabel = setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ?? "1";
   const suggestionReps =
     toNumberOrNull(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
   const suggestedWeights = useMemo(() => {
@@ -473,7 +481,7 @@ export function SessionExerciseSection({
               <SetRow
                 key={set.id}
                 set={set}
-                index={i}
+                label={rowLabels[i] ?? String(i + 1)}
                 isPr={prsBySetId.has(set.id)}
                 rpeNudge={needsRpeNudge(dpr !== null, set)}
                 onEdit={(patch) => void handleEdit(set, patch)}
@@ -481,13 +489,13 @@ export function SessionExerciseSection({
                 onDelete={() => void deleteSet(set)}
               />
             ))}
-            {plannedIndices.map((index) => {
+            {plannedIndices.map((index, i) => {
               const draft = draftFor(index);
               return (
                 <tr key={index}>
                   <td className={sizes.indexCell}>
                     <SetKindMenu
-                      index={index}
+                      label={rowLabels[sets.length + i] ?? String(index + 1)}
                       kind={draft.kind}
                       onChange={(kind) => updateDraft(index, { kind })}
                     />
@@ -511,7 +519,7 @@ export function SessionExerciseSection({
       {large && (
         <div className="flex flex-col gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
           <SetKindMenu
-            index={nextIndex}
+            label={nextLabel}
             kind={nextDraft.kind}
             onChange={(kind) => updateDraft(nextIndex, { kind })}
             large

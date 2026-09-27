@@ -6,14 +6,19 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface Props {
-  index: number;
+  /** The set's number, or "W" for a warm-up (see `setNumberLabels`). */
+  label: string;
   kind: SetRow["kind"];
   onChange: (kind: SetKind) => void;
   large?: boolean;
 }
 
-/** Set #N, opened into a menu for picking its type (issue #161) — replaces the old always-visible "Kind" column/field. */
-export function SetKindMenu({ index, kind, onChange, large = false }: Props) {
+/**
+ * Set #N, opened into a menu for picking its type (issue #161) — replaces the
+ * old always-visible "Kind" column/field. Warm-ups show a yellow W instead of
+ * a number (issue #220).
+ */
+export function SetKindMenu({ label, kind, onChange, large = false }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +38,10 @@ export function SetKindMenu({ index, kind, onChange, large = false }: Props) {
     };
   }, [open]);
 
-  const subtitle = kind !== "working" ? setKindLabel(kind) : null;
+  const isWarmup = kind === "warmup";
+  // The W already says "warm-up"; other non-working kinds get a subtitle.
+  const subtitle = kind !== "working" && !isWarmup ? setKindLabel(kind) : null;
+  const warmupClass = "font-bold text-amber-500 dark:text-amber-400";
 
   return (
     <div ref={rootRef} className="relative inline-block text-left">
@@ -50,16 +58,23 @@ export function SetKindMenu({ index, kind, onChange, large = false }: Props) {
       >
         {large ? (
           <>
-            <span>
-              Set {index + 1}
-              {subtitle ? ` · ${subtitle}` : ""}
-            </span>
+            {isWarmup ? (
+              <span className={warmupClass}>Warm-up</span>
+            ) : (
+              <span>
+                Set {label}
+                {subtitle ? ` · ${subtitle}` : ""}
+              </span>
+            )}
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
           </>
         ) : (
           <>
-            <span className="flex items-center gap-0.5">
-              {index + 1}
+            <span
+              className={`flex items-center gap-0.5 ${isWarmup ? warmupClass : ""}`}
+              aria-label={isWarmup ? "Warm-up set" : `Set ${label}`}
+            >
+              {label}
               <ChevronDown className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
             </span>
             {subtitle && (
