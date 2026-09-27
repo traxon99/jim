@@ -17,13 +17,16 @@ interface Props {
   index: number;
   onIndexChange: (index: number) => void;
   onExit: () => void;
-  /** Right side of the top bar — the workout's Finish button. */
+  /**
+   * Right side of the top bar — the workout's Finish (or Cancel) button while
+   * sets remain. Omitted once `finishAction` is shown (issue #261).
+   */
   headerAction?: ReactNode;
   /** Pinned just above the prev/next controls — the rest timer. */
   footer?: ReactNode;
   /**
-   * Takes the place of the next control on the last exercise — the Finish
-   * button, passed once every planned set is logged (issue #232).
+   * Takes the place of the next control on every exercise — the Finish
+   * button, passed once every planned set is logged (issues #232, #261).
    */
   finishAction?: ReactNode;
   children: ReactNode;
@@ -184,7 +187,7 @@ export function FocusView({
         >
           <ChevronLeft className="h-7 w-7" strokeWidth={2} aria-hidden="true" />
         </button>
-        {isLast && finishAction ? (
+        {finishAction ? (
           finishAction
         ) : (
           <button
