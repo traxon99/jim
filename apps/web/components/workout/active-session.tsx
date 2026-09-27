@@ -420,7 +420,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           }
           onExit={exitFocusMode}
           headerAction={
-            hasLoggedSets ? (
+            // Issue #261: once everything is logged, Finish lives in the
+            // "Up next" spot at the bottom instead of the top bar.
+            allSetsLogged ? undefined : hasLoggedSets ? (
               <button
                 type="button"
                 onClick={() => void handleFinalize()}
