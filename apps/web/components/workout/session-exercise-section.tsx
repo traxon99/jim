@@ -516,6 +516,29 @@ export function SessionExerciseSection({
         </table>
       )}
 
+      {/* Focus view shows only the entry card, so the set just logged for
+          this exercise sits above it (issue #257). It's the compact list-view
+          row, which keeps it tappable to edit and fits the no-scroll layout (#148). */}
+      {large && lastSet && (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Previous set</p>
+          <table className="w-full border-collapse text-left">
+            <tbody>
+              <SetRow
+                key={lastSet.id}
+                set={lastSet}
+                label={rowLabels[sets.length - 1] ?? String(sets.length)}
+                isPr={prsBySetId.has(lastSet.id)}
+                rpeNudge={needsRpeNudge(dpr !== null, lastSet)}
+                onEdit={(patch) => void handleEdit(lastSet, patch)}
+                onChangeKind={(kind) => void handleChangeKind(lastSet, kind)}
+                onDelete={() => void deleteSet(lastSet)}
+              />
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {large && (
         <div className="flex flex-col gap-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
           <SetKindMenu
