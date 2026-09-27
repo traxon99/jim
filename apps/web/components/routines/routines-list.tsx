@@ -6,6 +6,7 @@ import {
   groupRoutinesByFolder,
   isWarmupRoutine,
   programWeekProgress,
+  searchRoutines,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Flame, Layers, Plus } from "lucide-react";
@@ -30,6 +31,10 @@ export function RoutinesList({ userId }: { userId: string }) {
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const allPrograms = useLiveQuery(() => db.programs.toArray(), []);
   const allRoutineExercises = useLiveQuery(() => db.routineExercises.toArray(), []);
+  const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
+  // Fuzzy search over Your Routines (issue #219).
+  const [query, setQuery] = useState("");
+  const searching = query.trim().length > 0;
 
   const exerciseCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -57,6 +62,32 @@ export function RoutinesList({ userId }: { userId: string }) {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [allRoutines],
   );
+
+  const exerciseNamesByRoutineId = useMemo(() => {
+    const nameById = new Map((allExercises ?? []).map((exercise) => [exercise.id, exercise.name]));
+    const names = new Map<string, string[]>();
+    for (const item of allRoutineExercises ?? []) {
+      if (item.deletedAt) continue;
+      const name = nameById.get(item.exerciseId);
+      if (!name) continue;
+      const list = names.get(item.routineId);
+      if (list) {
+        list.push(name);
+      } else {
+        names.set(item.routineId, [name]);
+      }
+    }
+    return names;
+  }, [allExercises, allRoutineExercises]);
+
+  // Searches warm-ups and strength routines together, flattened out of
+  // their folders; equal scores keep the list's usual folder/position order.
+  const searchResults = useMemo(() => {
+    if (!searching) return [];
+    const live = (allRoutines ?? []).filter((routine) => !routine.deletedAt);
+    const ordered = groupRoutinesByFolder(live).flatMap((group) => group.routines);
+    return searchRoutines(ordered, query, exerciseNamesByRoutineId);
+  }, [searching, allRoutines, query, exerciseNamesByRoutineId]);
 
   const programs = useMemo(
     () =>
@@ -111,8 +142,67 @@ export function RoutinesList({ userId }: { userId: string }) {
         ))}
       </div>
 
+      {view === "mine" && (
+        <input
+          type="search"
+          inputMode="search"
+          placeholder="Search routines"
+          aria-label="Search routines"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        />
+      )}
+
       {view === "explore" ? (
         <ExploreList userId={userId} />
+      ) : searching ? (
+        searchResults.length === 0 ? (
+          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+            No routines match “{query.trim()}”.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+            {searchResults.map((routine) => {
+              const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
+              const warmup = isWarmupRoutine(routine);
+              return (
+                <li key={routine.id}>
+                  <Link
+                    href={`/routines/${routine.id}`}
+                    data-ripple
+                    className="flex items-center justify-between gap-2 py-3"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      {warmup ? (
+                        <Flame
+                          className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
+                          strokeWidth={1.75}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                      )}
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate text-base font-medium">{routine.name}</span>
+                        {(warmup || routine.folder) && (
+                          <span className="truncate text-xs text-zinc-500 dark:text-zinc-500">
+                            {warmup ? "Warm-up" : routine.folder}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    {exerciseCount > 0 && (
+                      <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+                        {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )
       ) : (
         <>
           <section className="flex flex-col gap-1">
