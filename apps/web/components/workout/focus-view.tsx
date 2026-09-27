@@ -21,6 +21,11 @@ interface Props {
   headerAction?: ReactNode;
   /** Pinned just above the prev/next controls — the rest timer. */
   footer?: ReactNode;
+  /**
+   * Takes the place of the next control on the last exercise — the Finish
+   * button, passed once every planned set is logged (issue #232).
+   */
+  finishAction?: ReactNode;
   children: ReactNode;
 }
 
@@ -40,6 +45,7 @@ export function FocusView({
   onExit,
   headerAction,
   footer,
+  finishAction,
   children,
 }: Props) {
   useEffect(() => {
@@ -178,22 +184,28 @@ export function FocusView({
         >
           <ChevronLeft className="h-7 w-7" strokeWidth={2} aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          onClick={() => onIndexChange(index + 1)}
-          disabled={isLast}
-          className="flex min-h-14 flex-1 items-center justify-between gap-2 rounded-xl bg-accent px-4 text-left text-accent-foreground disabled:opacity-40"
-        >
-          <span className="flex min-w-0 flex-col">
-            <span className="text-xs font-semibold uppercase tracking-wide opacity-80">
-              {next ? "Up next" : "Last exercise"}
+        {isLast && finishAction ? (
+          finishAction
+        ) : (
+          <button
+            type="button"
+            onClick={() => onIndexChange(index + 1)}
+            disabled={isLast}
+            className="flex min-h-14 flex-1 items-center justify-between gap-2 rounded-xl bg-accent px-4 text-left text-accent-foreground disabled:opacity-40"
+          >
+            <span className="flex min-w-0 flex-col">
+              <span className="text-xs font-semibold uppercase tracking-wide opacity-80">
+                {next ? "Up next" : "Last exercise"}
+              </span>
+              <span className="truncate text-lg font-semibold">
+                {next ? next.name : "Finish when you're ready"}
+              </span>
             </span>
-            <span className="truncate text-lg font-semibold">
-              {next ? next.name : "Finish when you're ready"}
-            </span>
-          </span>
-          {next && <ChevronRight className="h-7 w-7 shrink-0" strokeWidth={2} aria-hidden="true" />}
-        </button>
+            {next && (
+              <ChevronRight className="h-7 w-7 shrink-0" strokeWidth={2} aria-hidden="true" />
+            )}
+          </button>
+        )}
       </nav>
     </section>
   );

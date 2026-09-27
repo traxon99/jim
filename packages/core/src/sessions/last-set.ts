@@ -31,3 +31,12 @@ export function isLastRemainingSet(
 ): boolean {
   return remainingInLoggedExercise === 0 && otherExercises.every(isFocusExerciseComplete);
 }
+
+/**
+ * Whether every exercise in the workout has all its planned sets logged
+ * (issue #232), so a Finish button can be offered where the lifter already
+ * is, at the bottom of the page. An empty workout is never complete.
+ */
+export function isWorkoutComplete(exercises: readonly FocusExerciseCandidate[]): boolean {
+  return exercises.length > 0 && exercises.every(isFocusExerciseComplete);
+}

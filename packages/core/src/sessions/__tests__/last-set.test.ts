@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isLastRemainingSet, remainingPlannedSetCount } from "../last-set";
+import { isLastRemainingSet, isWorkoutComplete, remainingPlannedSetCount } from "../last-set";
 
 describe("remainingPlannedSetCount", () => {
   it("counts the target's unlogged sets", () => {
@@ -49,5 +49,31 @@ describe("isLastRemainingSet", () => {
       { loggedSetCount: 0, targetSetCount: null },
     ];
     expect(isLastRemainingSet(0, others)).toBe(false);
+  });
+});
+
+describe("isWorkoutComplete", () => {
+  it("is true once every exercise has its planned sets logged", () => {
+    const exercises = [
+      { loggedSetCount: 3, targetSetCount: 3 },
+      { loggedSetCount: 1, targetSetCount: null },
+    ];
+    expect(isWorkoutComplete(exercises)).toBe(true);
+  });
+
+  it("is false while any exercise still has sets left", () => {
+    const exercises = [
+      { loggedSetCount: 3, targetSetCount: 3 },
+      { loggedSetCount: 2, targetSetCount: 3 },
+    ];
+    expect(isWorkoutComplete(exercises)).toBe(false);
+  });
+
+  it("is false for an exercise with no target and nothing logged", () => {
+    expect(isWorkoutComplete([{ loggedSetCount: 0, targetSetCount: null }])).toBe(false);
+  });
+
+  it("is false for an empty workout", () => {
+    expect(isWorkoutComplete([])).toBe(false);
   });
 });
