@@ -196,6 +196,9 @@ engine has proven itself in use.
 Design target **393 × 852 CSS px** (iPhone 16 base). The Pro is 402 × 874 and the Plus 430 × 932,
 so layout must be fluid rather than pinned to one width.
 
+The hands-on rules learned since (layout model, scroll locking, overlays, popups, z-index,
+lifecycle) live in [`docs/PWA.md`](PWA.md).
+
 - `viewport-fit=cover` plus `env(safe-area-inset-*)` padding; the bottom tab bar clears the home indicator.
 - **Minimum 16px font on every input** — anything smaller triggers focus-zoom on iOS.
 - `touch-action: manipulation` globally, killing double-tap zoom and the 300ms delay.
