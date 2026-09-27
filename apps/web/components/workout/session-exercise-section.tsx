@@ -32,6 +32,7 @@ import {
   clampRpe,
   plannedSetIndices,
   prefillWeightForSet,
+  remainingPlannedSetCount,
   resolveCurrentRows,
   standardLiftForSlug,
   suggestedWeightsByTier,
@@ -53,7 +54,12 @@ interface Props {
   /** DPR's call when this is a focused lift and DPR is on (issue #212); else null. */
   dpr?: DprCallInfo | null;
   large?: boolean;
-  onSetLogged: (restSeconds: number) => void;
+  /**
+   * Called after a set is logged, with this exercise's rest and how many of
+   * its planned sets are still unlogged (issue #231: zero on the final set
+   * of the workout means there's nothing to rest for).
+   */
+  onSetLogged: (restSeconds: number, remainingPlannedSets: number) => void;
   onRemove: () => void;
 }
 
@@ -197,6 +203,14 @@ export function SessionExerciseSection({
   // warm-up set left blank falls back to its target. For a DPR-focused lift
   // (issue #212), DPR's weight — and after a change, the bottom of the rep
   // range — replaces both on working sets, still just a placeholder.
+  function remainingAfterLogging(index: number): number {
+    return remainingPlannedSetCount(
+      target?.targetSets ?? null,
+      previousByIndex.size,
+      new Set([...loggedIndices, index]),
+    );
+  }
+
   function suggestedWeightFor(index: number): string {
     return (
       dprWeightPlaceholder(dpr, draftFor(index).kind) ??
@@ -262,7 +276,7 @@ export function SessionExerciseSection({
       next.delete(index);
       return next;
     });
-    onSetLogged(restSeconds);
+    onSetLogged(restSeconds, remainingAfterLogging(index));
   }
 
   async function repeatLast() {
@@ -278,7 +292,7 @@ export function SessionExerciseSection({
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
     });
     if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
-    onSetLogged(restSeconds);
+    onSetLogged(restSeconds, remainingAfterLogging(nextIndex));
   }
 
   async function handleEdit(

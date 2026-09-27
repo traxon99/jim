@@ -14,6 +14,7 @@ import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
 import {
   type PaceExercise,
+  isLastRemainingSet,
   isWarmupComplete,
   isWarmupExercise,
   partitionWarmups,
@@ -172,6 +173,22 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     [mainItems, targetByExerciseId, setCompletedAtBySessionExerciseId, defaultRestSeconds],
   );
 
+  // Issue #231: no rest after the workout's final set — there's no next set
+  // to rest for. Warm-ups don't count; they have their own timer.
+  function handleSetLogged(itemId: string, restSeconds: number, remainingPlannedSets: number) {
+    const mainIds = new Set(mainItems.map((se) => se.id));
+    const others = focusCandidates.filter(
+      (candidate) => candidate.id !== itemId && mainIds.has(candidate.id),
+    );
+    if (isLastRemainingSet(remainingPlannedSets, others)) {
+      // A rest still counting down from an earlier set would push "Time for
+      // your next set" with nothing left to do.
+      restTimer.skip();
+      return;
+    }
+    restTimer.start(restSeconds);
+  }
+
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
   const focusedItem = sessionExercises[clampedFocusedIndex];
 
@@ -303,7 +320,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         settings={settings}
         dpr={dprContext ? dprCallFor(dprContext, item.exerciseId, target) : null}
         large={large}
-        onSetLogged={(restSeconds) => restTimer.start(restSeconds)}
+        onSetLogged={(restSeconds, remainingPlannedSets) =>
+          handleSetLogged(item.id, restSeconds, remainingPlannedSets)
+        }
         onRemove={() => void handleRemoveExercise(item.id)}
       />
     );
