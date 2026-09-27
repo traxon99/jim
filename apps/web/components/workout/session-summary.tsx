@@ -1,6 +1,7 @@
 "use client";
 
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -8,7 +9,7 @@ import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 interface Props {
   session: SessionRow;
@@ -22,7 +23,6 @@ interface Props {
  */
 export function SessionSummary({ session, sessionExercises }: Props) {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
-  const [shareState, setShareState] = useState<"idle" | "copied">("idle");
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
 
   const rawSets = useLiveQuery(
@@ -86,23 +86,6 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [session.name, session.startedAt, settings.units, summary, exerciseGroups],
   );
 
-  async function handleShare() {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title: session.name ?? "Workout", text: shareText });
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        // fall through to the clipboard fallback below
-      }
-    }
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(shareText);
-      setShareState("copied");
-      setTimeout(() => setShareState("idle"), 2000);
-    }
-  }
-
   const minutes = Math.round(summary.durationSeconds / 60);
 
   return (
@@ -139,14 +122,11 @@ export function SessionSummary({ session, sessionExercises }: Props) {
       </dl>
 
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={handleShare}
-          data-ripple
+        <ShareWorkoutButton
+          title={session.name ?? "Workout"}
+          text={shareText}
           className="min-h-11 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-        >
-          {shareState === "copied" ? "Copied!" : "Share"}
-        </button>
+        />
         <Link
           href="/workout"
           data-ripple

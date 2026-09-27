@@ -1,7 +1,7 @@
 import type { SessionDetailExercise, SessionDetailSet } from "@/lib/history/session-detail-entries";
 import type { SessionSummary } from "@jim/core";
-import { describe, expect, it } from "vitest";
-import { buildWorkoutShareText } from "../share-text";
+import { describe, expect, it, vi } from "vitest";
+import { buildWorkoutShareText, shareWorkoutText } from "../share-text";
 
 function set(overrides: Partial<SessionDetailSet> = {}): SessionDetailSet {
   return {
@@ -144,5 +144,53 @@ describe("buildWorkoutShareText", () => {
 
     expect(text).not.toContain("Skipped");
     expect(text).toContain("Barbell Bench Press");
+  });
+});
+
+describe("shareWorkoutText", () => {
+  it("uses the Web Share sheet when available", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const writeText = vi.fn();
+    const outcome = await shareWorkoutText("Push", "body", {
+      share,
+      clipboard: { writeText } as unknown as Clipboard,
+    });
+    expect(outcome).toBe("shared");
+    expect(share).toHaveBeenCalledWith({ title: "Push", text: "body" });
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("does nothing more when the user dismisses the share sheet", async () => {
+    const share = vi.fn().mockRejectedValue(new DOMException("dismissed", "AbortError"));
+    const writeText = vi.fn();
+    const outcome = await shareWorkoutText("Push", "body", {
+      share,
+      clipboard: { writeText } as unknown as Clipboard,
+    });
+    expect(outcome).toBe("cancelled");
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the clipboard when sharing fails", async () => {
+    const share = vi.fn().mockRejectedValue(new DOMException("nope", "NotAllowedError"));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const outcome = await shareWorkoutText("Push", "body", {
+      share,
+      clipboard: { writeText } as unknown as Clipboard,
+    });
+    expect(outcome).toBe("copied");
+    expect(writeText).toHaveBeenCalledWith("body");
+  });
+
+  it("copies to the clipboard when Web Share isn't supported", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const outcome = await shareWorkoutText("Push", "body", {
+      clipboard: { writeText } as unknown as Clipboard,
+    });
+    expect(outcome).toBe("copied");
+  });
+
+  it("reports unavailable with neither API", async () => {
+    expect(await shareWorkoutText("Push", "body", {})).toBe("unavailable");
   });
 });
