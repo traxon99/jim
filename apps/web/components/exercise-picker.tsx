@@ -52,9 +52,11 @@ export function ExercisePicker({
   }, [allExercises, userId, query, excludeExerciseIds, category]);
 
   if (creating) {
+    // z-20: above RestTimerBar's z-10 — both are siblings under active-session.tsx's
+    // <main>, so without this the timer bar paints over this full-screen view (#227).
     return (
       <div
-        className="fixed inset-0 z-10 flex flex-col overflow-y-auto bg-white dark:bg-zinc-950"
+        className="fixed inset-0 z-20 flex flex-col overflow-y-auto bg-white dark:bg-zinc-950"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
         <ExerciseForm
@@ -69,9 +71,11 @@ export function ExercisePicker({
     );
   }
 
+  // z-20: above RestTimerBar's z-10 — both are siblings under active-session.tsx's
+  // <main>, so without this the timer bar paints over this full-screen view (#227).
   return (
     <div
-      className="fixed inset-0 z-10 flex flex-col bg-white dark:bg-zinc-950"
+      className="fixed inset-0 z-20 flex flex-col bg-white dark:bg-zinc-950"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex items-center justify-between gap-2 border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
