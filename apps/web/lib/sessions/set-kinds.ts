@@ -18,3 +18,20 @@ const SET_KIND_LABELS: Record<string, string> = {
 export function setKindLabel(kind: string): string {
   return SET_KIND_LABELS[kind] ?? kind;
 }
+
+/** What a warm-up set shows in place of a set number (issue #220). */
+export const WARMUP_SET_LABEL = "W";
+
+/**
+ * The label each set shows in its Set column, in display order (issue #220):
+ * warm-ups are marked "W" and don't take a number, so working set 1 is the
+ * first set after the warm-ups rather than, say, set 3.
+ */
+export function setNumberLabels(kinds: readonly string[]): string[] {
+  let number = 0;
+  return kinds.map((kind) => {
+    if (kind === "warmup") return WARMUP_SET_LABEL;
+    number += 1;
+    return String(number);
+  });
+}

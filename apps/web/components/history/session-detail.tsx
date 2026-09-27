@@ -6,7 +6,7 @@ import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { deleteSession } from "@/lib/sessions/finalize-session";
-import { setKindLabel } from "@/lib/sessions/set-kinds";
+import { setKindLabel, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
@@ -180,56 +180,72 @@ export function SessionDetail({ id }: { id: string }) {
       {session.notes && <p className="text-sm text-zinc-700 dark:text-zinc-300">{session.notes}</p>}
 
       <div className="flex flex-col gap-5">
-        {groups.map((group) => (
-          <section key={group.sessionExerciseId} className="flex flex-col gap-1">
-            <Link
-              href={`/exercises/${group.exerciseId}`}
-              className="text-base font-semibold underline-offset-4 hover:underline"
-            >
-              {group.exerciseName}
-            </Link>
-            {group.notes && (
-              <p className="text-xs text-zinc-500 dark:text-zinc-500">{group.notes}</p>
-            )}
-            <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-              {group.sets.map((set) => (
-                <li key={set.id} className="flex items-center justify-between gap-2 py-2">
-                  <span className="flex items-center gap-2">
-                    <span className="text-zinc-500 dark:text-zinc-500">#{set.setIndex + 1}</span>
-                    <span>
-                      {set.weight != null && set.reps != null
-                        ? `${set.weight} × ${set.reps}`
-                        : set.reps != null
-                          ? `${set.reps} reps`
-                          : set.durationSeconds != null
-                            ? `${set.durationSeconds}s`
-                            : set.distance != null
-                              ? `${set.distance}`
-                              : "—"}
+        {groups
+          .map((entry) => ({
+            ...entry,
+            setLabels: setNumberLabels(entry.sets.map((set) => set.kind)),
+          }))
+          .map((group) => (
+            <section key={group.sessionExerciseId} className="flex flex-col gap-1">
+              <Link
+                href={`/exercises/${group.exerciseId}`}
+                className="text-base font-semibold underline-offset-4 hover:underline"
+              >
+                {group.exerciseName}
+              </Link>
+              {group.notes && (
+                <p className="text-xs text-zinc-500 dark:text-zinc-500">{group.notes}</p>
+              )}
+              <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                {group.sets.map((set, i) => (
+                  <li key={set.id} className="flex items-center justify-between gap-2 py-2">
+                    <span className="flex items-center gap-2">
+                      {set.kind === "warmup" ? (
+                        <span
+                          aria-label="Warm-up set"
+                          className="font-bold text-amber-500 dark:text-amber-400"
+                        >
+                          W
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 dark:text-zinc-500">
+                          #{group.setLabels[i]}
+                        </span>
+                      )}
+                      <span>
+                        {set.weight != null && set.reps != null
+                          ? `${set.weight} × ${set.reps}`
+                          : set.reps != null
+                            ? `${set.reps} reps`
+                            : set.durationSeconds != null
+                              ? `${set.durationSeconds}s`
+                              : set.distance != null
+                                ? `${set.distance}`
+                                : "—"}
+                      </span>
+                      {set.kind !== "working" && set.kind !== "warmup" && (
+                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                          {setKindLabel(set.kind)}
+                        </span>
+                      )}
                     </span>
-                    {set.kind !== "working" && (
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                        {setKindLabel(set.kind)}
+                    {set.prKinds.length > 0 && (
+                      <span className="flex gap-1">
+                        {set.prKinds.map((kind) => (
+                          <span
+                            key={kind}
+                            className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
+                          >
+                            PR · {PR_LABELS[kind] ?? kind}
+                          </span>
+                        ))}
                       </span>
                     )}
-                  </span>
-                  {set.prKinds.length > 0 && (
-                    <span className="flex gap-1">
-                      {set.prKinds.map((kind) => (
-                        <span
-                          key={kind}
-                          className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
-                        >
-                          PR · {PR_LABELS[kind] ?? kind}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
       </div>
 
       <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">

@@ -10,7 +10,8 @@ import { SetKindMenu } from "./set-kind-menu";
 
 interface Props {
   set: SetRowEntity;
-  index: number;
+  /** The Set column's label: the set's number, or "W" for a warm-up. */
+  label: string;
   isPr: boolean;
   /** A focused lift's working set logged without RPE doesn't count for DPR (issue #212). */
   rpeNudge?: boolean;
@@ -135,7 +136,7 @@ function EditableValue({
 
 export function SetRow({
   set,
-  index,
+  label,
   isPr,
   rpeNudge = false,
   large = false,
@@ -172,7 +173,7 @@ export function SetRow({
   return (
     <tr className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
       <td className={sizes.indexCell}>
-        <SetKindMenu index={index} kind={set.kind} onChange={onChangeKind} />
+        <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} />
       </td>
       <td className={sizes.cell}>
         <div className="flex items-center justify-center gap-1 font-medium">
