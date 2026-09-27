@@ -17,6 +17,7 @@ import {
   isLastRemainingSet,
   isWarmupComplete,
   isWarmupExercise,
+  isWorkoutComplete,
   partitionWarmups,
   resolveCurrentRows,
   resolveFocusedExerciseIndex,
@@ -141,6 +142,15 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       })),
     [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
   );
+
+  // Issue #232: once every planned set is logged the lifter is at the bottom
+  // of the page, so Finish is offered there too. Warm-ups don't count, same
+  // as the last-set rest rule, unless the workout is nothing but warm-ups.
+  const allSetsLogged = useMemo(() => {
+    const mainIds = new Set(mainItems.map((se) => se.id));
+    const main = focusCandidates.filter((candidate) => mainIds.has(candidate.id));
+    return hasLoggedSets && isWorkoutComplete(main.length > 0 ? main : focusCandidates);
+  }, [mainItems, focusCandidates, hasLoggedSets]);
 
   const warmupComplete = useMemo(() => {
     const warmupIds = new Set(warmupItems.map((se) => se.id));
@@ -431,6 +441,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             )
           }
           footer={<RestTimerBar timer={restTimer} />}
+          finishAction={
+            allSetsLogged ? (
+              <button
+                type="button"
+                onClick={() => void handleFinalize()}
+                disabled={finalizing || cancelling}
+                className="min-h-14 flex-1 rounded-xl bg-accent px-4 text-lg font-semibold text-accent-foreground disabled:opacity-50"
+              >
+                Finish workout
+              </button>
+            ) : undefined
+          }
         >
           {renderExercise(focusedItem, true)}
         </FocusView>
@@ -447,6 +469,16 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             </WarmupBlock>
           )}
           {mainItems.map((item) => renderExercise(item))}
+          {allSetsLogged && (
+            <button
+              type="button"
+              onClick={() => void handleFinalize()}
+              disabled={finalizing || cancelling}
+              className="min-h-14 rounded-xl bg-accent px-4 text-lg font-semibold text-accent-foreground disabled:opacity-50"
+            >
+              Finish workout
+            </button>
+          )}
         </div>
       )}
 
