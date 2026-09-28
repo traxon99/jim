@@ -1,7 +1,12 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
-import { removeExerciseAction, supersetActions } from "@/components/supersets/superset-actions";
+import {
+  preferencesAction,
+  removeExerciseAction,
+  replaceExerciseAction,
+  supersetActions,
+} from "@/components/supersets/superset-actions";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -30,6 +35,8 @@ import { RoutineIcon } from "./routine-icon";
 export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // The row whose ⋯ Replace Exercise opened the picker (issue #271).
+  const [replacing, setReplacing] = useState<RoutineExerciseRow | null>(null);
 
   const routine = useLiveQuery(async () => (await db.routines.get(id)) ?? null, [id]);
   const rawItems = useLiveQuery(
@@ -301,7 +308,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                 item={item}
                 supersetLabel={labels.get(item.id) ?? null}
                 actions={[
+                  replaceExerciseAction(() => setReplacing(item)),
                   ...supersetActions(items, index, (changes) => void applySupersetChanges(changes)),
+                  preferencesAction(item.exerciseId, router.push),
                   removeExerciseAction(() => void handleRemoveItem(item)),
                 ]}
                 exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
@@ -352,6 +361,21 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           initialCategory={isWarmupKind ? "warmup" : "all"}
           onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {replacing && (
+        <ExercisePicker
+          userId={userId}
+          mode="replace"
+          excludeExerciseIds={excludeExerciseIds}
+          initialCategory={isWarmupKind ? "warmup" : "all"}
+          onPick={([exerciseId]) => {
+            setReplacing(null);
+            // The targets stay: they're this slot's plan, whichever lift fills it.
+            if (exerciseId) void handleUpdateItem(replacing, { exerciseId });
+          }}
+          onClose={() => setReplacing(null)}
         />
       )}
     </main>

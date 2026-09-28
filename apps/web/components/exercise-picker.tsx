@@ -24,6 +24,11 @@ interface Props {
   onClose: () => void;
   /** Which tab the picker opens on — e.g. "warmup" inside a warm-up routine. */
   initialCategory?: ExerciseCategory | "all";
+  /**
+   * "replace" (the ⋯ menu's Replace Exercise, issue #271) picks exactly one:
+   * a tap picks it straight away, with no selection or superset.
+   */
+  mode?: "add" | "replace";
 }
 
 const CATEGORY_TABS = [
@@ -38,7 +43,9 @@ export function ExercisePicker({
   onPick,
   onClose,
   initialCategory = "all",
+  mode = "add",
 }: Props) {
+  const replacing = mode === "replace";
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ExerciseCategory | "all">(initialCategory);
@@ -48,6 +55,10 @@ export function ExercisePicker({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   function toggleSelected(exerciseId: string) {
+    if (replacing) {
+      onPick([exerciseId]);
+      return;
+    }
     setSelectedIds((current) =>
       current.includes(exerciseId)
         ? current.filter((selectedId) => selectedId !== exerciseId)
@@ -101,7 +112,7 @@ export function ExercisePicker({
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex items-center justify-between gap-2 border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
-        <h2 className="text-lg font-semibold">Add exercise</h2>
+        <h2 className="text-lg font-semibold">{replacing ? "Replace exercise" : "Add exercise"}</h2>
         <button
           type="button"
           onClick={onClose}
@@ -140,12 +151,18 @@ export function ExercisePicker({
           onChange={(event) => setQuery(event.target.value)}
           className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
-        <p className="text-xs text-zinc-500 dark:text-zinc-500">
-          Pick two or more to add them as a superset.
-        </p>
+        {!replacing && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-500">
+            Pick two or more to add them as a superset.
+          </p>
+        )}
       </div>
 
-      <ul className="flex flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto px-4 dark:divide-zinc-800">
+      <ul
+        className="flex flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto px-4 dark:divide-zinc-800"
+        // Without the footer, the list itself reaches the home indicator.
+        style={replacing ? { paddingBottom: "max(12px, env(safe-area-inset-bottom))" } : undefined}
+      >
         {results.map((exercise) => {
           const order = selectedIds.indexOf(exercise.id);
           const selected = order !== -1;
@@ -153,7 +170,7 @@ export function ExercisePicker({
             <li key={exercise.id}>
               <button
                 type="button"
-                aria-pressed={selected}
+                aria-pressed={replacing ? undefined : selected}
                 onClick={() => toggleSelected(exercise.id)}
                 className="flex w-full items-center gap-3 py-3 text-left"
               >
@@ -169,21 +186,23 @@ export function ExercisePicker({
                       .join(" · ")}
                   </span>
                 </span>
-                <span
-                  aria-hidden="true"
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
-                    selected
-                      ? "border-accent bg-accent text-accent-foreground"
-                      : "border-zinc-300 dark:border-zinc-700"
-                  }`}
-                >
-                  {selected &&
-                    (selectedIds.length > 1 ? (
-                      order + 1
-                    ) : (
-                      <Check className="h-4 w-4" strokeWidth={2.5} />
-                    ))}
-                </span>
+                {!replacing && (
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                      selected
+                        ? "border-accent bg-accent text-accent-foreground"
+                        : "border-zinc-300 dark:border-zinc-700"
+                    }`}
+                  >
+                    {selected &&
+                      (selectedIds.length > 1 ? (
+                        order + 1
+                      ) : (
+                        <Check className="h-4 w-4" strokeWidth={2.5} />
+                      ))}
+                  </span>
+                )}
               </button>
             </li>
           );
@@ -205,23 +224,25 @@ export function ExercisePicker({
         </li>
       </ul>
 
-      <div
-        className="shrink-0 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
-        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
-      >
-        <button
-          type="button"
-          onClick={() => onPick(selectedIds)}
-          disabled={selectedIds.length === 0}
-          className="min-h-11 w-full rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-40"
+      {!replacing && (
+        <div
+          className="shrink-0 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
+          style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
         >
-          {selectedIds.length > 1
-            ? `Add ${selectedIds.length} as superset`
-            : selectedIds.length === 1
-              ? "Add exercise"
-              : "Select exercises"}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => onPick(selectedIds)}
+            disabled={selectedIds.length === 0}
+            className="min-h-11 w-full rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-40"
+          >
+            {selectedIds.length > 1
+              ? `Add ${selectedIds.length} as superset`
+              : selectedIds.length === 1
+                ? "Add exercise"
+                : "Select exercises"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,11 +1,15 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, type LucideIcon, MoreHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export interface ExerciseAction {
   label: string;
-  onSelect: () => void;
+  icon: LucideIcon;
+  /** Runs on tap. Omitted for an entry that only opens `submenu`. */
+  onSelect?: () => void;
+  /** Entries shown in place of the menu, with a back row, when tapped. */
+  submenu?: readonly ExerciseAction[];
   destructive?: boolean;
 }
 
@@ -16,11 +20,13 @@ interface Props {
 }
 
 /**
- * The ⋯ menu at the top right of an exercise (issue #269): superset options
- * and Remove. It sits at the right edge, so it opens leftward (docs/PWA.md).
+ * The ⋯ menu at the top right of an exercise (issues #269, #271): notes,
+ * warm-ups, rest, replace, superset, preferences and Remove, each with a
+ * blue icon. It sits at the right edge, so it opens leftward (docs/PWA.md).
  */
 export function ExerciseActionsMenu({ actions, large = false }: Props) {
   const [open, setOpen] = useState(false);
+  const [submenuLabel, setSubmenuLabel] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +44,25 @@ export function ExerciseActionsMenu({ actions, large = false }: Props) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open) setSubmenuLabel(null);
+  }, [open]);
+
+  const submenu = actions.find((action) => action.label === submenuLabel)?.submenu ?? null;
+  const shown = submenu ?? actions;
+
+  function handleSelect(action: ExerciseAction) {
+    if (action.submenu) {
+      setSubmenuLabel(action.label);
+      return;
+    }
+    setOpen(false);
+    action.onSelect?.();
+  }
+
+  const itemClass =
+    "flex min-h-12 w-full items-center gap-3 px-4 text-left text-base font-semibold";
 
   return (
     <div ref={rootRef} className="relative shrink-0">
@@ -58,26 +83,46 @@ export function ExerciseActionsMenu({ actions, large = false }: Props) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-10 mt-1 flex min-w-44 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-md border border-zinc-200 bg-white py-1 shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+          className="absolute right-0 top-full z-10 mt-1 flex max-h-[calc(100vh-2rem)] w-64 max-w-[calc(100vw-2rem)] flex-col overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
         >
-          {actions.map((action) => (
+          {submenu && (
             <button
-              key={action.label}
               type="button"
               role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                action.onSelect();
-              }}
-              className={`min-h-11 px-3 text-left text-sm ${
-                action.destructive
-                  ? "text-red-600 dark:text-red-500"
-                  : "text-zinc-700 dark:text-zinc-300"
-              }`}
+              onClick={() => setSubmenuLabel(null)}
+              className={`${itemClass} border-b border-zinc-200 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400`}
             >
-              {action.label}
+              <ChevronLeft className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden="true" />
+              {submenuLabel}
             </button>
-          ))}
+          )}
+          {shown.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.label}
+                type="button"
+                role="menuitem"
+                aria-haspopup={action.submenu ? "menu" : undefined}
+                onClick={() => handleSelect(action)}
+                className={`${itemClass} text-zinc-950 dark:text-zinc-50`}
+              >
+                <Icon
+                  className={`h-5 w-5 shrink-0 ${action.destructive ? "text-red-500" : "text-accent"}`}
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1">{action.label}</span>
+                {action.submenu && (
+                  <ChevronRight
+                    className="h-5 w-5 shrink-0 text-accent"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
