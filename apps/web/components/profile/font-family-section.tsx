@@ -29,7 +29,7 @@ export function FontFamilySection() {
   }
 
   return (
-    <div className="flex w-full max-w-xs flex-col gap-3 text-left">
+    <div className="flex w-full flex-col gap-3 text-left">
       <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
         Font
       </h2>

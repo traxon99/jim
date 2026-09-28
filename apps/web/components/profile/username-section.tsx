@@ -55,7 +55,7 @@ export function UsernameSection() {
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex w-full max-w-xs flex-col gap-2 text-left"
+      className="flex w-full flex-col gap-2 text-left"
     >
       <label
         htmlFor="username"

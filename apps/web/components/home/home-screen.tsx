@@ -11,8 +11,8 @@ import { FriendsPanel } from "./friends-panel";
 export function HomeScreen() {
   return (
     <main className="flex flex-1 flex-col items-center text-center">
-      <header className="sticky top-0 z-10 flex w-full justify-center bg-white px-6 pt-6 pb-3 dark:bg-zinc-950">
-        <div className="flex w-full max-w-xs items-center justify-between">
+      <header className="sticky top-0 z-10 flex w-full justify-center bg-white px-4 pt-4 pb-3 dark:bg-zinc-950">
+        <div className="flex w-full items-center justify-between">
           <h1 className="text-xl font-semibold">Home</h1>
           <Link
             href="/profile"

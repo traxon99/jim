@@ -68,11 +68,11 @@ export function FriendsPanel() {
   }
 
   if (load.status === "loading") {
-    return <p className="px-6 py-10 text-sm text-zinc-500 dark:text-zinc-500">Loading friends…</p>;
+    return <p className="px-4 py-10 text-sm text-zinc-500 dark:text-zinc-500">Loading friends…</p>;
   }
   if (load.status === "error") {
     return (
-      <section className="flex w-full max-w-xs flex-col items-center gap-3 px-6 py-10">
+      <section className="flex w-full flex-col items-center gap-3 px-4 py-10">
         <p className="allow-pwa-select text-sm text-zinc-600 dark:text-zinc-400">{load.error}</p>
         <button
           type="button"
@@ -93,7 +93,7 @@ export function FriendsPanel() {
   const accepted = load.friends.filter((f) => f.status === "accepted");
 
   return (
-    <div className="route-fade flex w-full max-w-xs flex-col gap-6 px-6 py-4 text-left">
+    <div className="route-fade flex w-full flex-col gap-6 px-4 py-4 text-left">
       {load.username && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Friends can add you as{" "}
