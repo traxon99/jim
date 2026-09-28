@@ -38,7 +38,7 @@ export function AchievementsSection() {
   const { streak } = data;
 
   return (
-    <section className="flex w-full max-w-xs flex-col gap-4 text-left">
+    <section className="flex w-full flex-col gap-4 text-left">
       <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-500">Achievements</h2>
 
       <div className="flex items-center gap-3 rounded-lg border border-zinc-300 p-3 dark:border-zinc-700">
