@@ -90,6 +90,40 @@ describe("callForLift", () => {
     });
     expect(isDeloadWeek(deload, day(35))).toBe(false);
   });
+
+  it("adjusts the call for the session's intensity", () => {
+    const input = {
+      snapshot: snapshot([{ day: 20, weight: 200, reps: 8, rpe: 7 }]),
+      exerciseId: "bench",
+      equipment: "barbell",
+      settings,
+      block,
+      now: day(22),
+    };
+    expect(callForLift({ ...input, intensity: "push" }).decision.weight).toBe(205);
+    expect(callForLift({ ...input, intensity: "maintain" }).decision).toMatchObject({
+      call: "hold",
+      weight: 200,
+    });
+    expect(callForLift({ ...input, intensity: "light" }).decision).toMatchObject({
+      call: "light",
+      weight: 180,
+    });
+  });
+
+  it("ignores the intensity during a deload week", () => {
+    const deload: DprBlockInfo = { ...block, status: "deload", endsAt: day(35) };
+    const call = callForLift({
+      snapshot: snapshot([{ day: 27, weight: 185, reps: 8, rpe: 7 }]),
+      exerciseId: "bench",
+      equipment: "barbell",
+      settings,
+      block: deload,
+      intensity: "light",
+      now: day(30),
+    });
+    expect(call.decision).toMatchObject({ call: "deload", weight: 165 });
+  });
 });
 
 describe("block end", () => {

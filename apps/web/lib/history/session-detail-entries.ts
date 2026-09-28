@@ -9,6 +9,9 @@ export interface SessionDetailSet {
   reps: number | null;
   durationSeconds: number | null;
   distance: number | null;
+  /** Rest taken before the set and its target (issue #233). */
+  restSeconds: number | null;
+  restTargetSeconds: number | null;
   prKinds: PrKind[];
 }
 
@@ -77,6 +80,8 @@ export function buildSessionDetailExercises(
           reps: set.reps,
           durationSeconds: set.durationSeconds,
           distance: set.distance == null ? null : Number(set.distance),
+          restSeconds: set.restSeconds ?? null,
+          restTargetSeconds: set.restTargetSeconds ?? null,
           prKinds: prKindsBySetId.get(set.id) ?? [],
         })),
     }));

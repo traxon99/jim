@@ -1,3 +1,4 @@
+import { isShortRest } from "../sessions/rest-compliance";
 import { jumpFor, roundToIncrement } from "./equipment-increments";
 import {
   DELOAD_PCT,
@@ -5,6 +6,7 @@ import {
   type DprPreset,
   LAYOFF_REENTRY,
   MISS_RPE,
+  SHORT_REST_RPE_CREDIT,
 } from "./presets";
 
 /**
@@ -20,11 +22,19 @@ export interface DprSet {
   weight: number | null;
   reps: number | null;
   rpe: number | null;
+  /** Rest taken before this set and its target (issue #233); absent = unknown. */
+  restSeconds?: number | null;
+  restTargetSeconds?: number | null;
 }
+
+/** The "how hard today?" pick for a session (issue #235). */
+export type SessionIntensity = "light" | "maintain" | "push";
 
 export interface DprSession {
   date: Date;
   sets: readonly DprSet[];
+  /** A "light" session never counts toward or against progression. */
+  intensity?: SessionIntensity | null;
 }
 
 export interface RepRange {
@@ -32,7 +42,8 @@ export interface RepRange {
   high: number;
 }
 
-export type DprCall = "increase" | "hold" | "deload" | "reenter" | "insufficient";
+/** "light" only comes from `applyIntensity` — the engine itself never calls it. */
+export type DprCall = "increase" | "hold" | "deload" | "reenter" | "light" | "insufficient";
 
 export interface DprDecision {
   call: DprCall;
@@ -65,6 +76,7 @@ interface WorkingSet {
   weight: number;
   reps: number;
   rpe: number | null;
+  shortRest: boolean;
 }
 
 interface Summary {
@@ -73,6 +85,9 @@ interface Summary {
   eligible: boolean;
   topWeight: number;
   avgRpe: number | null;
+  /** Any working set started on a short rest (issue #233). */
+  shortRest: boolean;
+  light: boolean;
 }
 
 function summarize(session: DprSession): Summary | null {
@@ -80,7 +95,12 @@ function summarize(session: DprSession): Summary | null {
   for (const set of session.sets) {
     if (set.kind !== "working" || set.weight === null || set.reps === null) continue;
     if (set.weight <= 0 || set.reps <= 0) continue;
-    sets.push({ weight: set.weight, reps: set.reps, rpe: set.rpe });
+    sets.push({
+      weight: set.weight,
+      reps: set.reps,
+      rpe: set.rpe,
+      shortRest: isShortRest(set.restSeconds, set.restTargetSeconds),
+    });
   }
   if (sets.length === 0) return null;
 
@@ -92,17 +112,33 @@ function summarize(session: DprSession): Summary | null {
     eligible,
     topWeight: Math.max(...sets.map((s) => s.weight)),
     avgRpe,
+    shortRest: sets.some((s) => s.shortRest),
+    light: session.intensity === "light",
   };
+}
+
+/** Rest compliance (issue #233): short rests earn some RPE headroom. */
+function rpeCapFor(s: Summary, preset: DprPreset): number {
+  return preset.rpeCap + (s.shortRest ? SHORT_REST_RPE_CREDIT : 0);
 }
 
 function qualifies(s: Summary, range: RepRange, preset: DprPreset): boolean {
   return (
-    s.avgRpe !== null && s.avgRpe <= preset.rpeCap && s.sets.every((set) => set.reps >= range.high)
+    s.avgRpe !== null &&
+    s.avgRpe <= rpeCapFor(s, preset) &&
+    s.sets.every((set) => set.reps >= range.high)
   );
 }
 
+/**
+ * A missed rep target only counts when the set had its full rest — coming
+ * up short after a skipped rest says more about the rest than the weight.
+ */
 function isMiss(s: Summary, range: RepRange): boolean {
-  return (s.avgRpe !== null && s.avgRpe >= MISS_RPE) || s.sets.some((set) => set.reps < range.low);
+  return (
+    (s.avgRpe !== null && s.avgRpe >= MISS_RPE) ||
+    s.sets.some((set) => set.reps < range.low && !set.shortRest)
+  );
 }
 
 function formatNumber(n: number): string {
@@ -113,7 +149,8 @@ function formatNumber(n: number): string {
 function describe(s: Summary): string {
   const reps = s.sets.map((set) => set.reps);
   const repsText = reps.every((r) => r === reps[0]) ? `${reps.length}×${reps[0]}` : reps.join("/");
-  return s.avgRpe === null ? repsText : `${repsText} @ RPE ${formatNumber(s.avgRpe)}`;
+  const text = s.avgRpe === null ? repsText : `${repsText} @ RPE ${formatNumber(s.avgRpe)}`;
+  return s.shortRest ? `${text} on short rest` : text;
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -150,11 +187,16 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     };
   }
 
+  // A light day (issue #235) still counts as training for layoff purposes,
+  // but decisions are made from the other sessions, so going light can't
+  // reset a streak or drag the working weight down.
   const latest = summaries[0] as Summary;
-  const eligible = summaries.filter((s) => s.eligible);
+  const decisive = summaries.some((s) => !s.light) ? summaries.filter((s) => !s.light) : summaries;
+  const latestDecisive = decisive[0] as Summary;
+  const eligible = decisive.filter((s) => s.eligible);
   const latestEligible = eligible[0];
   // Learn from what was actually lifted, including user overrides.
-  const current = latestEligible?.topWeight ?? latest.topWeight;
+  const current = latestEligible?.topWeight ?? latestDecisive.topWeight;
 
   const gapDays = daysBetween(latest.date, now);
   const reentry = LAYOFF_REENTRY.find((r) => gapDays >= r.minDays);
@@ -172,8 +214,8 @@ export function decideNextWeight(input: DecideInput): DprDecision {
   if (!latestEligible) {
     return {
       call: "insufficient",
-      weight: latest.topWeight,
-      previousWeight: latest.topWeight,
+      weight: latestDecisive.topWeight,
+      previousWeight: latestDecisive.topWeight,
       targetReps: null,
       reason: "Add RPE for DPR",
       streak: 0,
@@ -187,7 +229,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     0,
     leadingCount(eligible, (s) => s.topWeight === current),
   );
-  const skippedNote = latest.eligible ? "" : " · Add RPE for DPR";
+  const skippedNote = latestDecisive.eligible ? "" : " · Add RPE for DPR";
 
   const qualifyingStreak = leadingCount(contiguous, (s) => qualifies(s, repRange, preset));
   if (qualifyingStreak >= preset.qualifyingSessions) {
@@ -223,7 +265,7 @@ export function decideNextWeight(input: DecideInput): DprDecision {
     reason = `Hit ${describe(latestEligible)} — ${qualifyingStreak}/${preset.qualifyingSessions} to go up`;
     streak = qualifyingStreak;
   } else if (latestEligible.sets.every((s) => s.reps >= repRange.high)) {
-    reason = `Hit ${describe(latestEligible)} — RPE over ${formatNumber(preset.rpeCap)} cap, holding`;
+    reason = `Hit ${describe(latestEligible)} — RPE over ${formatNumber(rpeCapFor(latestEligible, preset))} cap, holding`;
     streak = 0;
   } else {
     reason = `${describe(latestEligible)} — aim for ${repRange.high} on every set`;
@@ -339,5 +381,5 @@ export function sessionsForKey(
         h.repRange.high === range.high,
     )
     .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .map(({ date, sets }) => ({ date, sets }));
+    .map(({ date, sets, intensity }) => ({ date, sets, intensity }));
 }

@@ -109,6 +109,9 @@ export const dprAggressivenessEnum = pgEnum("dpr_aggressiveness", [
 ]);
 export const dprExperienceEnum = pgEnum("dpr_experience", ["novice", "intermediate", "advanced"]);
 export const dprBlockStatusEnum = pgEnum("dpr_block_status", ["active", "deload", "completed"]);
+// A DPR user's "how hard today?" pick for one session (issue #235). Mirrors
+// @jim/core's SessionIntensity.
+export const sessionIntensityEnum = pgEnum("session_intensity", ["light", "maintain", "push"]);
 
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
@@ -485,6 +488,9 @@ export const sessions = pgTable(
     endedAt: timestamp("ended_at", { withTimezone: true }),
     notes: text("notes"),
     bodyweight: numeric("bodyweight", { precision: 6, scale: 2 }),
+    // Chosen on the pre-workout sheet (issue #235); null when none was asked
+    // (DPR off, or an empty workout). Adjusts this session's DPR calls only.
+    intensity: sessionIntensityEnum("intensity"),
     deviceId: text("device_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -555,6 +561,11 @@ export const sets = pgTable(
     distance: numeric("distance", { precision: 8, scale: 2 }),
     rpe: numeric("rpe", { precision: 3, scale: 1 }),
     rir: integer("rir"),
+    // Rest taken before this set (issue #233): seconds since the session's
+    // previous set, and the rest the timer was counting down then. Null for
+    // a session's first set and for warm-up exercises, which have no rest.
+    restSeconds: integer("rest_seconds"),
+    restTargetSeconds: integer("rest_target_seconds"),
     completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
     supersedesId: uuid("supersedes_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

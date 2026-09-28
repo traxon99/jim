@@ -148,6 +148,13 @@
       "when": 1790613117887,
       "tag": "0020_add_exercise_menu_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790614904105,
+      "tag": "0021_add_session_intensity_and_rest",
+      "breakpoints": true
     }
   ]
 }

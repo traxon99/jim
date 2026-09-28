@@ -440,7 +440,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         exercise={exercise}
         target={target}
         settings={settings}
-        dpr={dprContext ? dprCallFor(dprContext, item.exerciseId, target) : null}
+        dpr={
+          dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
+        }
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}
         onSetLogged={(restSeconds, remainingPlannedSets) =>

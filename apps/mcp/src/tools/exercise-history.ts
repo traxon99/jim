@@ -1,4 +1,10 @@
-import { deletedSessionExerciseIds, estimatedOneRepMaxSeries, resolveCurrentRows } from "@jim/core";
+import {
+  deletedSessionExerciseIds,
+  estimatedOneRepMaxSeries,
+  isShortRest,
+  resolveCurrentRows,
+  restStats,
+} from "@jim/core";
 import { sessionExercises, sessions, sets } from "@jim/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
@@ -34,6 +40,7 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
       return {
         exercise: { id: exercise.id, name: exercise.name },
         sets: [],
+        rest: restStats([]),
         estimatedOneRepMaxSeries: [],
       };
     }
@@ -69,8 +76,14 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
         kind: set.kind,
         weight: set.weight == null ? null : Number(set.weight),
         reps: set.reps,
+        rpe: set.rpe == null ? null : Number(set.rpe),
+        restSeconds: set.restSeconds,
+        restTargetSeconds: set.restTargetSeconds,
+        shortRest: isShortRest(set.restSeconds, set.restTargetSeconds),
         completedAt: set.completedAt.toISOString(),
       })),
+      // Rest compliance across these sets (issue #233).
+      rest: restStats(filtered),
       estimatedOneRepMaxSeries: series.map((point) => ({
         date: point.date.toISOString(),
         sessionId: point.sessionId,

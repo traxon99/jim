@@ -8,16 +8,19 @@ import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
-import { groupRoutinesByFolder } from "@jim/core";
+import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { PreWorkoutSheet } from "./pre-workout-sheet";
 import { UpNextCard } from "./up-next-card";
 
 export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [starting, setStarting] = useState(false);
+  // The routine waiting on the pre-workout sheet (issue #235, DPR only).
+  const [preview, setPreview] = useState<{ id: string; name: string } | null>(null);
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
@@ -52,7 +55,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
   // actually left /workout, the flag has done its job of blocking a double
   // start — clear it so the buttons work again whenever we return here.
   useEffect(() => {
-    if (pathname !== "/workout") setStarting(false);
+    if (pathname !== "/workout") {
+      setStarting(false);
+      setPreview(null);
+    }
   }, [pathname]);
 
   const completedSessionCount = useMemo(
@@ -71,7 +77,20 @@ export function WorkoutHome({ userId }: { userId: string }) {
     router.push(`/workout/${sessionId}`);
   }
 
-  async function handleStartFromRoutine(routineId: string, routineName: string) {
+  const closePreview = useCallback(() => setPreview(null), []);
+
+  // DPR users see today's targets and pick an intensity first (issue #235);
+  // everyone else starts straight away.
+  function handleChooseRoutine(routineId: string, routineName: string) {
+    if (dprContext) setPreview({ id: routineId, name: routineName });
+    else void handleStartFromRoutine(routineId, routineName, null);
+  }
+
+  async function handleStartFromRoutine(
+    routineId: string,
+    routineName: string,
+    intensity: SessionIntensity | null,
+  ) {
     setStarting(true);
     const items = await db.routineExercises.where("routineId").equals(routineId).toArray();
     const live = items.filter((item) => !item.deletedAt);
@@ -80,6 +99,8 @@ export function WorkoutHome({ userId }: { userId: string }) {
       userId,
       { id: routineId, name: routineName, warmupRoutineId: routine?.warmupRoutineId },
       live,
+      undefined,
+      intensity,
     );
     router.push(`/workout/${sessionId}`);
   }
@@ -99,10 +120,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
       <TryDprCard completedSessionCount={completedSessionCount} />
       <BlockEndCard context={dprContext} />
 
-      <UpNextCard
-        starting={starting}
-        onStart={(routineId, routineName) => void handleStartFromRoutine(routineId, routineName)}
-      />
+      <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
       <button
         type="button"
@@ -146,7 +164,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
                     </span>
                     <button
                       type="button"
-                      onClick={() => void handleStartFromRoutine(routine.id, routine.name)}
+                      onClick={() => handleChooseRoutine(routine.id, routine.name)}
                       disabled={starting}
                       className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-3 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
                     >
@@ -158,6 +176,17 @@ export function WorkoutHome({ userId }: { userId: string }) {
             </section>
           ))}
         </div>
+      )}
+
+      {preview && dprContext && (
+        <PreWorkoutSheet
+          context={dprContext}
+          routineId={preview.id}
+          routineName={preview.name}
+          starting={starting}
+          onStart={(intensity) => void handleStartFromRoutine(preview.id, preview.name, intensity)}
+          onCancel={closePreview}
+        />
       )}
     </main>
   );

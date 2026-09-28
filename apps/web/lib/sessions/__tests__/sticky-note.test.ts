@@ -38,6 +38,7 @@ async function addWorkout(
     endedAt: null,
     notes: null,
     bodyweight: null,
+    intensity: null,
     deviceId: "device-a",
     updatedAt: new Date(startedAt),
     deletedAt: null,

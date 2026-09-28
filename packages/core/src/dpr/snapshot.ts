@@ -6,6 +6,7 @@ import {
   type DprSetKind,
   type RepRange,
   type RoutineRepRangeSource,
+  type SessionIntensity,
   resolveRepRange,
 } from "./decide";
 import { sessionE1rm } from "./e1rm";
@@ -36,6 +37,7 @@ export interface DprSourceRows {
     startedAt: Date;
     endedAt: Date | null;
     deletedAt: Date | null;
+    intensity?: SessionIntensity | null;
   }[];
   sessionExercises: readonly {
     id: string;
@@ -64,6 +66,8 @@ export interface DprSourceSet {
   weight: string | number | null;
   reps: number | null;
   rpe: string | number | null;
+  restSeconds?: number | null;
+  restTargetSeconds?: number | null;
   supersedesId: string | null;
   deletedAt: Date | null;
 }
@@ -80,6 +84,8 @@ export function toDprSet(row: DprSourceSet): DprSet {
     weight: toNumber(row.weight),
     reps: row.reps,
     rpe: toNumber(row.rpe),
+    restSeconds: row.restSeconds ?? null,
+    restTargetSeconds: row.restTargetSeconds ?? null,
   };
 }
 
@@ -147,6 +153,7 @@ export function buildDprSnapshot(rows: DprSourceRows, defaultRange: RepRange): D
       ),
       date: session.startedAt,
       sets,
+      intensity: session.intensity ?? null,
     });
   }
 

@@ -7,7 +7,7 @@ import {
   db,
 } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
-import { isWarmupExercise, planSessionExercises, uuidv7 } from "@jim/core";
+import { type SessionIntensity, isWarmupExercise, planSessionExercises, uuidv7 } from "@jim/core";
 
 export async function startEmptySession(
   userId: string,
@@ -24,6 +24,7 @@ export async function startEmptySession(
     endedAt: null,
     notes: null,
     bodyweight: null,
+    intensity: null,
     deviceId,
     updatedAt: now,
     deletedAt: null,
@@ -44,6 +45,8 @@ export async function startSessionFromRoutine(
   routine: { id: string; name: string; warmupRoutineId?: string | null },
   routineExercises: readonly RoutineExerciseRow[],
   database: JimDatabase = db,
+  /** The pre-workout sheet's "how hard today?" pick (issue #235); DPR users only. */
+  intensity: SessionIntensity | null = null,
 ): Promise<string> {
   const deviceId = await getDeviceId(database);
   const now = new Date();
@@ -58,6 +61,7 @@ export async function startSessionFromRoutine(
     endedAt: null,
     notes: null,
     bodyweight: null,
+    intensity,
     deviceId,
     updatedAt: now,
     deletedAt: null,

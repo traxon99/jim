@@ -10,6 +10,7 @@ import {
 } from "../../db/schema";
 import { completeSet } from "../../sessions/set-actions";
 import { DEFAULT_SETTINGS } from "../../settings/defaults";
+import { buildPreWorkoutRows, formatPlan } from "../../workout/pre-workout-preview";
 import {
   type DprContext,
   buildDprContext,
@@ -74,6 +75,7 @@ async function logSession(
     endedAt: new Date(startedAt.getTime() + 3_600_000),
     notes: null,
     bodyweight: null,
+    intensity: null,
     deviceId: "d",
     updatedAt: startedAt,
     deletedAt: null,
@@ -108,6 +110,8 @@ async function logSession(
       distance: null,
       rpe: rpe === null ? null : String(rpe),
       rir: null,
+      restSeconds: null,
+      restTargetSeconds: null,
       completedAt: startedAt,
       supersedesId: null,
       deletedAt: null,
@@ -313,5 +317,61 @@ describe("Workout tab chips (issue #213)", () => {
     expect(line?.text).toMatch(/^(ahead|on track|behind) · e1RM \d+ → 242 by /);
     expect(dprGoalLine(ctx, ROW)?.text).toMatch(/^Goal set after your first session with RPE/);
     expect(dprGoalLine(ctx, SQUAT)).toBeNull();
+  });
+});
+
+describe("pre-workout sheet (issue #235)", () => {
+  it("formats a routine item's plan", () => {
+    const plan = (sets: number | null, low: number | null, high: number | null) =>
+      formatPlan({ targetSets: sets, targetRepsLow: low, targetRepsHigh: high });
+    expect(plan(3, 6, 8)).toBe("3 × 6–8");
+    expect(plan(3, 8, 8)).toBe("3 × 8");
+    expect(plan(1, null, null)).toBe("1 set");
+    expect(plan(null, 10, null)).toBe("10 reps");
+    expect(plan(null, null, null)).toBeNull();
+  });
+
+  it("lists the routine in order with calls for the picked intensity", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await context();
+    if (!ctx) throw new Error("expected a DPR context");
+    const items = [
+      { ...target(SQUAT, 1), id: "b", targetSets: 3 },
+      { ...target(BENCH, 0), id: "a", targetSets: 3 },
+    ];
+
+    const push = buildPreWorkoutRows(ctx, items, "push");
+    expect(push.map((row) => row.name)).toEqual(["Bench", "Squat"]);
+    expect(push[0]).toMatchObject({ plan: "3 × 6–8" });
+    expect(push[0]?.dpr?.decision).toMatchObject({ call: "increase", weight: 190 });
+    // Squat isn't a focused lift.
+    expect(push[1]?.dpr).toBeNull();
+
+    expect(buildPreWorkoutRows(ctx, items, "maintain")[0]?.dpr?.decision).toMatchObject({
+      call: "hold",
+      weight: 185,
+    });
+    // min(190, 185) × 0.9 = 166.5 → 165
+    expect(buildPreWorkoutRows(ctx, items, "light")[0]?.dpr?.decision).toMatchObject({
+      call: "light",
+      weight: 165,
+    });
+  });
+
+  it("has a badge and why line for a light call", () => {
+    expect(dprBadge("light").label).toBe("DPR: light day");
+    expect(
+      dprWhyLine(
+        {
+          call: "light",
+          weight: 165,
+          previousWeight: 185,
+          targetReps: null,
+          reason: "Light day — 165 instead of 185",
+          streak: 0,
+        },
+        "lb",
+      ),
+    ).toBe("DPR: light day — 165 instead of 185");
   });
 });

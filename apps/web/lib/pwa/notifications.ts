@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Profile now tracks your weekly training streak and milestone badges, and the PR page shows plate medals, progress sparklines and highlights your newest PRs.";
+  "DPR users pick Go light, Maintain or Push before a workout, and short rests are now tracked and count toward progression.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
