@@ -36,6 +36,10 @@ export function TabbedShell({
 }) {
   const pathname = usePathname();
   const isBaseTab = (BASE_TABS as readonly string[]).includes(pathname);
+  // Exercise detail is a floating card over the Exercises tab (issue #294),
+  // so that tab stays visible underneath instead of a blank page.
+  const isExerciseCard = /^\/exercises\/(?!new$)[^/]+$/.test(pathname);
+  const activeTab: string = isExerciseCard ? "/exercises" : pathname;
 
   const content: Record<BaseTab, ReactNode> = {
     "/workout": workout,
@@ -48,11 +52,12 @@ export function TabbedShell({
   return (
     <>
       {BASE_TABS.map((href) => (
-        <Activity key={href} mode={pathname === href ? "visible" : "hidden"}>
+        <Activity key={href} mode={activeTab === href ? "visible" : "hidden"}>
           <div className="page-fade flex min-h-0 flex-1 flex-col">{content[href]}</div>
         </Activity>
       ))}
-      {!isBaseTab && (
+      {isExerciseCard && children}
+      {!isBaseTab && !isExerciseCard && (
         // Keyed by pathname: sub-routes (e.g. /workout/[id]) still fully
         // remount on navigation, same as before this component existed.
         <div key={pathname} className="route-fade flex min-h-0 flex-1 flex-col">
