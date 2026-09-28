@@ -1,4 +1,4 @@
-import type { RoutineExerciseRow } from "@/lib/db/schema";
+import type { ExerciseRow, RoutineExerciseRow } from "@/lib/db/schema";
 import { type DprCallInfo, type DprContext, dprCallFor } from "@/lib/dpr/calls";
 import type { SessionIntensity } from "@jim/core";
 
@@ -28,12 +28,14 @@ export function formatPlan(
 /**
  * The pre-workout sheet's exercise list (issue #235): a routine's live items
  * in order, each with its plan and, for DPR's focused lifts, the call for
- * the intensity picked so far.
+ * the intensity picked so far. Without DPR (`ctx` null, issue #282) every
+ * row's call is null and names come from `exercises`.
  */
 export function buildPreWorkoutRows(
-  ctx: DprContext,
+  ctx: DprContext | null,
   items: readonly RoutineExerciseRow[],
   intensity: SessionIntensity,
+  exercises: ReadonlyMap<string, Pick<ExerciseRow, "name">> = ctx?.exercises ?? new Map(),
 ): PreWorkoutRow[] {
   return items
     .filter((item) => !item.deletedAt)
@@ -41,8 +43,8 @@ export function buildPreWorkoutRows(
     .map((item) => ({
       id: item.id,
       exerciseId: item.exerciseId,
-      name: ctx.exercises.get(item.exerciseId)?.name ?? "Exercise",
+      name: exercises.get(item.exerciseId)?.name ?? "Exercise",
       plan: formatPlan(item),
-      dpr: dprCallFor(ctx, item.exerciseId, item, intensity),
+      dpr: ctx ? dprCallFor(ctx, item.exerciseId, item, intensity) : null,
     }));
 }

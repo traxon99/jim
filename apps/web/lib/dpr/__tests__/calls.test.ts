@@ -358,6 +358,18 @@ describe("pre-workout sheet (issue #235)", () => {
     });
   });
 
+  it("lists a routine without DPR calls when DPR is off (issue #282)", () => {
+    const items = [
+      { ...target(SQUAT, 1), id: "b", targetSets: 3 },
+      { ...target(BENCH, 0), id: "a", targetSets: 3 },
+    ];
+    const names = new Map(EXERCISES.map((exercise) => [exercise.id, exercise]));
+    const rows = buildPreWorkoutRows(null, items, "maintain", names);
+    expect(rows.map((row) => row.name)).toEqual(["Bench", "Squat"]);
+    expect(rows[0]).toMatchObject({ plan: "3 × 6–8", dpr: null });
+    expect(rows[1]?.dpr).toBeNull();
+  });
+
   it("has a badge and why line for a light call", () => {
     expect(dprBadge("light").label).toBe("DPR: light day");
     expect(
