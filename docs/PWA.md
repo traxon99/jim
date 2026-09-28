@@ -214,8 +214,8 @@ rather than writing new keyframes:
 - **Routes outside the tab bar and full-screen overlays** (e.g. `/workout/[id]`, focus view):
   `.route-fade` (220ms). `TabbedShell` applies it to routed pages. Also put it on content that
   replaces a "Loading…" placeholder, so the swap doesn't snap.
-- **Bottom sheets:** `.sheet-backdrop` on the backdrop and `.sheet-panel` on the sheet. The
-  backdrop fades while the sheet rises. To close, set `data-closing="true"` and unmount on the
+- **Sheets and floating cards:** `.sheet-backdrop` on the backdrop and `.sheet-panel` on the
+  card. The backdrop fades while the card rises. To close, set `data-closing="true"` and unmount on the
   backdrop's own `animationend`. Under reduced motion, skip straight to unmounting, because no
   `animationend` fires (`components/workout/pre-workout-sheet.tsx`).
 - Keep transitions short (under ~250ms) and opacity/transform only. Put a `transform` animation on

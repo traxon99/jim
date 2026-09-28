@@ -87,22 +87,26 @@ export function PreWorkoutSheet({
   return (
     // z-20: a full-screen overlay, above the tab bar and in-flow chrome
     // (docs/PWA.md §4). Only shown from the Workout tab, never alongside
-    // FocusView or the exercise picker.
+    // FocusView or the exercise picker. The card floats centered, inset from
+    // every edge so the blurred page stays visible around it (issue #278).
     <div
       data-closing={closing}
       onAnimationEnd={handleAnimationEnd}
-      className="sheet-backdrop fixed inset-0 z-20 flex flex-col justify-end overscroll-none bg-black/40"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      className="sheet-backdrop fixed inset-0 z-20 flex items-center justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm"
+      style={{
+        paddingTop: "max(16px, env(safe-area-inset-top))",
+        paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+      }}
     >
       <button
         type="button"
         aria-label="Close"
         onClick={requestClose}
-        className="min-h-0 flex-1 touch-none"
+        className="absolute inset-0 touch-none"
       />
       <section
         aria-labelledby="pre-workout-title"
-        className="sheet-panel flex max-h-[85%] min-h-0 flex-col rounded-t-2xl bg-white dark:bg-zinc-950"
+        className="sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
       >
         <div className="flex touch-none flex-col gap-1 px-4 pt-4">
           <h2
@@ -148,10 +152,7 @@ export function PreWorkoutSheet({
           })}
         </ul>
 
-        <div
-          className="flex touch-none flex-col gap-3 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
-          style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
-        >
+        <div className="flex touch-none flex-col gap-3 border-t border-zinc-200 px-4 pt-3 pb-4 dark:border-zinc-800">
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-sm font-semibold">
               How hard do you want to push today?
