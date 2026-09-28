@@ -1,13 +1,13 @@
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { ExercisesList } from "@/components/exercises/exercises-list";
 import { HistoryHome } from "@/components/history/history-home";
+import { HomeScreen } from "@/components/home/home-screen";
 import { RoutinesList } from "@/components/routines/routines-list";
 import { SyncEngineBoot } from "@/components/sync-engine-boot";
 import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { TabbedShell } from "@/components/tabbed-shell";
 import { WorkoutHome } from "@/components/workout/workout-home";
 import { createClient } from "@/lib/supabase/server";
-import { ProfileHome } from "./profile/profile-home";
 
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -22,9 +22,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         routines: <RoutinesList userId={userId} />,
         history: <HistoryHome />,
         exercises: <ExercisesList userId={userId} />,
-        profile: <ProfileHome />,
+        home: <HomeScreen />,
       }
-    : { workout: null, routines: null, history: null, exercises: null, profile: null };
+    : { workout: null, routines: null, history: null, exercises: null, home: null };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

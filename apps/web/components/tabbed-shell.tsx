@@ -1,11 +1,8 @@
 "use client";
 
+import { BASE_TABS, type BaseTab } from "@/lib/navigation/tabs";
 import { usePathname } from "next/navigation";
 import { Activity, type ReactNode } from "react";
-
-const BASE_TABS = ["/workout", "/routines", "/history", "/exercises", "/profile"] as const;
-
-type BaseTab = (typeof BASE_TABS)[number];
 
 /**
  * Keeps all five tab home screens mounted at once instead of the default
@@ -24,14 +21,14 @@ export function TabbedShell({
   routines,
   history,
   exercises,
-  profile,
+  home,
   children,
 }: {
   workout: ReactNode;
   routines: ReactNode;
   history: ReactNode;
   exercises: ReactNode;
-  profile: ReactNode;
+  home: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -46,7 +43,7 @@ export function TabbedShell({
     "/routines": routines,
     "/history": history,
     "/exercises": exercises,
-    "/profile": profile,
+    "/home": home,
   };
 
   return (
