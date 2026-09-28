@@ -1,7 +1,7 @@
 "use client";
 
 import { BlockEndCard } from "@/components/dpr/block-end-card";
-import { DprChips } from "@/components/dpr/dpr-chips";
+import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
@@ -174,29 +174,27 @@ export function WorkoutHome({ userId }: { userId: string }) {
               <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
                 {group.routines.map((routine) => (
                   <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
-                    <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      {/* The chips below have their own tap targets, so only
-                          the name row opens the preview (issue #282). */}
-                      <button
-                        type="button"
-                        onClick={() => handlePreviewRoutine(routine.id, routine.name)}
-                        data-ripple
-                        className="flex min-h-11 min-w-0 items-center gap-2 text-left"
-                      >
-                        <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                        <span className="truncate text-base font-medium">{routine.name}</span>
-                      </button>
-                      {dprContext && (
-                        <DprChips
-                          context={dprContext}
-                          calls={dprCallsForRoutine(
-                            dprContext,
-                            itemsByRoutine?.get(routine.id) ?? [],
-                          )}
-                          max={2}
-                        />
-                      )}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handlePreviewRoutine(routine.id, routine.name)}
+                      data-ripple
+                      className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+                    >
+                      <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                      <span className="truncate text-base font-medium">{routine.name}</span>
+                    </button>
+                    {/* One badge instead of inline chips; the details open
+                        in a floating card (issue #284). */}
+                    {dprContext && (
+                      <DprWorkoutBadge
+                        context={dprContext}
+                        calls={dprCallsForRoutine(
+                          dprContext,
+                          itemsByRoutine?.get(routine.id) ?? [],
+                        )}
+                        routineName={routine.name}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => handleChooseRoutine(routine.id, routine.name)}

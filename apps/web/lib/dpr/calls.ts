@@ -255,10 +255,21 @@ export function liftGoal(lift: DprBlockLiftRow): {
 
 export const ON_TRACK_LABELS = STATUS_TEXT;
 
-/** Chips that fit on one line: the first `max`, then "+N more". */
-export function splitChips<T>(items: readonly T[], max: number): { shown: T[]; more: number } {
-  if (items.length <= max) return { shown: [...items], more: 0 };
-  return { shown: items.slice(0, max), more: items.length - max };
+/**
+ * A routine's calls folded into one badge's text (issue #284), e.g.
+ * "↑2 =1" — each call's symbol with its count, most common first; ties keep
+ * the order the calls first appear in.
+ */
+export function dprCallSummary(calls: readonly DprCallInfo[]): string {
+  const counts = new Map<string, number>();
+  for (const { decision } of calls) {
+    const { symbol } = BADGES[decision.call];
+    counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+  }
+  return [...counts]
+    .sort((a, b) => b[1] - a[1])
+    .map(([symbol, count]) => `${symbol}${count}`)
+    .join(" ");
 }
 
 function shortDate(date: Date): string {
