@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type JimDatabase, type RoutineRow, createTestDb } from "../../db/schema";
-import { drainOutbox, pullChanges } from "../engine";
+import { PUSH_BATCH_SIZE, drainOutbox, pullChanges } from "../engine";
 import { getSyncStatus } from "../status";
 
 let testDb: JimDatabase;
@@ -93,6 +93,33 @@ describe("drainOutbox", () => {
 
     expect(await testDb.outbox.count()).toBe(1);
     expect(getSyncStatus()).toEqual({ kind: "error", count: 1 });
+  });
+
+  it("pushes a large outbox in ordered batches, stopping at the first failed request", async () => {
+    const total = PUSH_BATCH_SIZE * 2 + 5;
+    await testDb.outbox.bulkPut(
+      Array.from({ length: total }, (_, i) => ({
+        id: `m${String(i).padStart(5, "0")}`,
+        table: "routines" as const,
+        entity: routine(),
+      })),
+    );
+    const sent: string[][] = [];
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const { mutations } = JSON.parse(String(init.body)) as { mutations: { id: string }[] };
+      sent.push(mutations.map((m) => m.id));
+      if (sent.length === 2) return new Response("", { status: 500 });
+      return jsonResponse({ results: mutations.map((m) => ({ id: m.id, status: "applied" })) });
+    });
+
+    await drainOutbox(testDb, fetchMock as unknown as typeof fetch);
+
+    expect(sent).toHaveLength(2);
+    expect(sent[0]).toHaveLength(PUSH_BATCH_SIZE);
+    expect(sent[0]?.[0]).toBe("m00000");
+    expect(sent[1]?.[0]).toBe(`m${String(PUSH_BATCH_SIZE).padStart(5, "0")}`);
+    expect(await testDb.outbox.count()).toBe(total - PUSH_BATCH_SIZE);
+    expect(getSyncStatus()).toEqual({ kind: "error", count: total - PUSH_BATCH_SIZE });
   });
 });
 

@@ -22,10 +22,18 @@ async function refreshStatusFromOutbox(database: JimDatabase): Promise<void> {
 }
 
 /**
- * Drains the outbox to POST /api/sync/push, oldest mutation first. Applied
- * and duplicate mutations are removed; anything the server reports as an
- * error stays queued for the next cycle. A network failure or non-2xx
- * response leaves the whole outbox untouched and surfaces `error`.
+ * Mutations per push request. A Strong/Hevy import (issue #241) queues
+ * thousands at once, which as one request would outgrow the serverless
+ * body limit and the time the route has to apply them one by one.
+ */
+export const PUSH_BATCH_SIZE = 200;
+
+/**
+ * Drains the outbox to POST /api/sync/push, oldest mutation first, in
+ * batches of `PUSH_BATCH_SIZE`. Applied and duplicate mutations are removed;
+ * anything the server reports as an error stays queued for the next cycle.
+ * A network failure or non-2xx response stops the drain, leaving that batch
+ * and everything after it untouched, and surfaces `error`.
  */
 export async function drainOutbox(
   database: JimDatabase = db,
@@ -37,30 +45,33 @@ export async function drainOutbox(
     return;
   }
 
-  let response: Response;
-  try {
-    response = await fetchImpl("/api/sync/push", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        mutations: entries.map(({ id, table, entity }) => ({ id, table, entity })),
-      }),
-    });
-  } catch {
-    setSyncStatus({ kind: "error", count: entries.length });
-    return;
-  }
+  for (let start = 0; start < entries.length; start += PUSH_BATCH_SIZE) {
+    const batch = entries.slice(start, start + PUSH_BATCH_SIZE);
+    let response: Response;
+    try {
+      response = await fetchImpl("/api/sync/push", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mutations: batch.map(({ id, table, entity }) => ({ id, table, entity })),
+        }),
+      });
+    } catch {
+      setSyncStatus({ kind: "error", count: await database.outbox.count() });
+      return;
+    }
 
-  if (!response.ok) {
-    setSyncStatus({ kind: "error", count: entries.length });
-    return;
-  }
+    if (!response.ok) {
+      setSyncStatus({ kind: "error", count: await database.outbox.count() });
+      return;
+    }
 
-  const { results } = (await response.json()) as { results: { id: string; status: string }[] };
-  const settled = results
-    .filter((result) => result.status === "applied" || result.status === "duplicate")
-    .map((result) => result.id);
-  await database.outbox.bulkDelete(settled);
+    const { results } = (await response.json()) as { results: { id: string; status: string }[] };
+    const settled = results
+      .filter((result) => result.status === "applied" || result.status === "duplicate")
+      .map((result) => result.id);
+    await database.outbox.bulkDelete(settled);
+  }
 
   await refreshStatusFromOutbox(database);
 }

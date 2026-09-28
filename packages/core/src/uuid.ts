@@ -1,9 +1,11 @@
 /**
  * Client-generated UUIDv7 primary keys (see docs/ARCHITECTURE.md §3):
- * time-sortable, no server round-trip needed to obtain an id.
+ * time-sortable, no server round-trip needed to obtain an id. Pass an
+ * explicit timestamp to order ids generated within the same millisecond
+ * (the random bits alone don't), e.g. a bulk import's outbox entries.
  */
-export function uuidv7(): string {
-  const timestamp = BigInt(Date.now());
+export function uuidv7(timestampMs: number = Date.now()): string {
+  const timestamp = BigInt(timestampMs);
   const mask = BigInt(0xff);
 
   const [a0 = 0, a1 = 0] = crypto.getRandomValues(new Uint8Array(2));

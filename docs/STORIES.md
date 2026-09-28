@@ -232,7 +232,7 @@ Deferred from v1. Roughly grouped by what would most improve the app once the co
 **Logging depth** — supersets as a first-class UI · RPE/RIR capture · automatic warmup-set
 generation · 1RM test tracking · exercise notes and form cues
 
-**Data** — Strong CSV import · full data export · Apple Health XML importer (ADR-009) ·
+**Data** — Apple Health XML importer (ADR-009) ·
 body measurements beyond bodyweight
 
 **Programming** — program templates (5/3/1, GZCLP) · progression rules that auto-advance loads ·
