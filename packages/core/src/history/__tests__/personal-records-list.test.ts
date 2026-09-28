@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type PersonalRecordEntry, currentPersonalRecords } from "../personal-records-list";
+import {
+  type PersonalRecordEntry,
+  currentPersonalRecords,
+  personalRecordProgression,
+  personalRecordStats,
+} from "../personal-records-list";
 
 function record(overrides: Partial<PersonalRecordEntry> = {}): PersonalRecordEntry {
   return {
@@ -51,5 +56,37 @@ describe("currentPersonalRecords", () => {
 
   it("returns an empty array for no records", () => {
     expect(currentPersonalRecords([])).toEqual([]);
+  });
+});
+
+describe("personalRecordStats", () => {
+  it("counts current PRs, this month's and the last week's rows", () => {
+    const now = new Date(2026, 8, 28, 12);
+    const stats = personalRecordStats(
+      [
+        record({ id: "a", value: 100, achievedAt: new Date(2026, 7, 20) }),
+        record({ id: "b", value: 110, achievedAt: new Date(2026, 8, 3) }),
+        record({ id: "c", value: 120, achievedAt: new Date(2026, 8, 25) }),
+        record({ id: "d", exerciseId: "squat", kind: "weight", achievedAt: new Date(2026, 8, 27) }),
+      ],
+      now,
+    );
+    expect(stats).toEqual({ current: 2, thisMonth: 3, recent: 2, exercises: 2 });
+  });
+});
+
+describe("personalRecordProgression", () => {
+  it("returns each new best, oldest first", () => {
+    const points = personalRecordProgression(
+      [
+        record({ value: 120, achievedAt: new Date(2026, 2, 1) }),
+        record({ value: 100, achievedAt: new Date(2026, 0, 1) }),
+        record({ value: 110, achievedAt: new Date(2026, 3, 1) }),
+        record({ value: 999, kind: "weight" }),
+      ],
+      "bench",
+      "1rm",
+    );
+    expect(points.map((point) => point.value)).toEqual([100, 120]);
   });
 });

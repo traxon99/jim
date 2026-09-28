@@ -1,3 +1,4 @@
+import { AchievementsSection } from "@/components/profile/achievements-section";
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { ChevronRight, Settings } from "lucide-react";
@@ -16,6 +17,7 @@ export function ProfileHome() {
           <Settings className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
         </Link>
       </div>
+      <AchievementsSection />
       <BodyStatsSection />
       <Link
         href="/progression"
