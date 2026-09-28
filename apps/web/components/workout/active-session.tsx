@@ -464,8 +464,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   }
 
   return (
+    // route-fade: eases the swap from "Loading…" to the workout itself.
     <main
-      className="flex flex-1 flex-col gap-4 px-4 py-4"
+      className="route-fade flex flex-1 flex-col gap-4 px-4 py-4"
       onPointerDownCapture={primeRestAlertAudio}
     >
       <div className="flex items-start justify-between gap-2">
