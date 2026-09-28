@@ -11,6 +11,7 @@ import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Play } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PreWorkoutSheet } from "./pre-workout-sheet";
@@ -20,7 +21,8 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [starting, setStarting] = useState(false);
-  // The routine waiting on the pre-workout sheet (issue #235, DPR only).
+  // The routine waiting on the pre-workout sheet (issue #235); opened by the
+  // Start button for DPR users and by tapping a routine for everyone (#282).
   const [preview, setPreview] = useState<{ id: string; name: string } | null>(null);
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
@@ -92,6 +94,11 @@ export function WorkoutHome({ userId }: { userId: string }) {
   function handleChooseRoutine(routineId: string, routineName: string) {
     if (dprContext) setPreview({ id: routineId, name: routineName });
     else void handleStartFromRoutine(routineId, routineName, null);
+  }
+
+  // Tapping a routine previews it in the sheet, DPR or not (issue #282).
+  function handlePreviewRoutine(routineId: string, routineName: string) {
+    if (!starting) setPreview({ id: routineId, name: routineName });
   }
 
   async function handleStartFromRoutine(
@@ -167,11 +174,18 @@ export function WorkoutHome({ userId }: { userId: string }) {
               <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
                 {group.routines.map((routine) => (
                   <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
-                    <span className="flex min-w-0 flex-col gap-1">
-                      <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      {/* The chips below have their own tap targets, so only
+                          the name row opens the preview (issue #282). */}
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewRoutine(routine.id, routine.name)}
+                        data-ripple
+                        className="flex min-h-11 min-w-0 items-center gap-2 text-left"
+                      >
                         <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
                         <span className="truncate text-base font-medium">{routine.name}</span>
-                      </span>
+                      </button>
                       {dprContext && (
                         <DprChips
                           context={dprContext}
@@ -187,9 +201,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
                       type="button"
                       onClick={() => handleChooseRoutine(routine.id, routine.name)}
                       disabled={starting}
-                      className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-3 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
+                      aria-label={`Start ${routine.name}`}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-300 disabled:opacity-50 dark:border-zinc-700"
                     >
-                      Start
+                      <Play className="h-4 w-4 fill-current" strokeWidth={2} aria-hidden="true" />
                     </button>
                   </li>
                 ))}
@@ -199,7 +214,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
         </div>
       )}
 
-      {preview && dprContext && (
+      {preview && (
         <PreWorkoutSheet
           context={dprContext}
           routineId={preview.id}
