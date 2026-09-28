@@ -7,6 +7,7 @@ import { RoutineIcon } from "@/components/routines/routine-icon";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -77,6 +78,13 @@ export function WorkoutHome({ userId }: { userId: string }) {
     router.push(`/workout/${sessionId}`);
   }
 
+  // Issue #280: an ad hoc workout aimed at the muscles trained least lately.
+  async function handleStartSmart() {
+    setStarting(true);
+    const sessionId = await startSmartSession(userId);
+    router.push(`/workout/${sessionId}`);
+  }
+
   const closePreview = useCallback(() => setPreview(null), []);
 
   // DPR users see today's targets and pick an intensity first (issue #235);
@@ -122,14 +130,27 @@ export function WorkoutHome({ userId }: { userId: string }) {
 
       <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
-      <button
-        type="button"
-        onClick={() => void handleStartEmpty()}
-        disabled={starting}
-        className="min-h-11 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-      >
-        Start empty workout
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => void handleStartEmpty()}
+          disabled={starting}
+          className="min-h-11 rounded-lg border border-zinc-300 px-3 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
+        >
+          Start empty workout
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleStartSmart()}
+          disabled={starting}
+          className="flex min-h-11 flex-col items-center justify-center rounded-lg border border-zinc-300 px-3 py-2 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
+        >
+          Smart workout
+          <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+            Balances recent volume
+          </span>
+        </button>
+      </div>
 
       {routineGroups.length > 0 && (
         <div className="flex flex-col gap-4">
