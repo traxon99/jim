@@ -368,3 +368,35 @@ covers up to 5 focused lifts. Every other lift keeps the plain "last time" prefi
 **Rejected: keeping both.** Two automatic systems suggesting different weights for the same lift
 would leave the lifter guessing which to trust. The weekly increment's one advantage, needing no
 RPE, isn't worth that.
+
+---
+
+## ADR-017 — Friends read each other's workouts through SECURITY DEFINER functions, not RLS
+
+**Status:** Accepted · 2026-09-28
+
+**Context.** Issue #35 adds friends: find someone by their exact username, send a request, and once
+it's accepted see their finished workouts on the Home tab. That's the first read that crosses users.
+ADR-005 anticipated it ("sharing features later are a feature, not a migration"). But
+`/api/sync/pull` selects every syncable table under RLS with no `user_id` filter of its own. A
+policy that let a friend's `sessions` or `sets` through would copy them into this user's IndexedDB
+on the next pull, where they'd show up as the user's own history.
+
+**Decision.** The syncable tables keep their own-rows-only policies. Migration 0023 adds
+`SECURITY DEFINER` functions that act for `auth.uid()` alone and check the friendship themselves:
+`send_friend_request`, `respond_to_friend_request`, `remove_friend`, `list_friends` and
+`friend_workouts`. The last returns a per-session summary (exercises with set counts and the top
+set), not raw rows. `friendships` is readable by its two users and has no write policies, so the
+functions are the only way to change it. They're executable by `authenticated` only.
+
+- **Usernames** are lowercase and unique, and matched exactly, so there's no directory to browse.
+  Every user starts with their email's local part (a number is added on a clash, oldest account
+  first). A trigger fills it for new rows, and Profile lets the user change it.
+- **Server data, not local-first.** Friends and their workouts are read from `/api/friends*` when
+  Home is shown, like the portal (ADR-015). Nothing about a friend is written to IndexedDB, so
+  offline the panel says it can't load rather than showing stale data.
+
+**Rejected: friend-aware RLS on `sessions`/`session_exercises`/`sets`.** Simpler SQL, but every pull
+would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
+server, the portal) silently merges someone else's training into yours.
+
