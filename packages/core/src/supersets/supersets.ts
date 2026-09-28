@@ -1,0 +1,155 @@
+/**
+ * Supersets (issue #228). A superset is a run of neighbouring exercises —
+ * in display order — that share the same non-null `supersetGroup`. The
+ * number itself carries no meaning beyond "these belong together"; it's
+ * the adjacency that makes a superset, so an item dragged out of the middle
+ * of one simply splits it. Every helper here takes items already in display
+ * order.
+ */
+export interface SupersetItem {
+  id: string;
+  supersetGroup: number | null;
+}
+
+export interface SupersetChange {
+  id: string;
+  supersetGroup: number | null;
+}
+
+export interface SupersetBlock<T> {
+  /** The block's items, in order — one for a plain exercise. */
+  items: T[];
+  /** "A", "B", … for supersets, counting only supersets; null otherwise. */
+  letter: string | null;
+}
+
+/** `links[i]` is whether item `i` is supersetted with item `i + 1`. */
+export function supersetLinks(items: readonly SupersetItem[]): boolean[] {
+  const links: boolean[] = [];
+  for (let i = 0; i < items.length - 1; i++) {
+    const group = items[i]?.supersetGroup ?? null;
+    links.push(group != null && group === (items[i + 1]?.supersetGroup ?? null));
+  }
+  return links;
+}
+
+/** Group numbers from links: runs of two or more get 1, 2, …; singles get null. */
+function groupsFromLinks(links: readonly boolean[], count: number): (number | null)[] {
+  const groups: (number | null)[] = [];
+  let next = 0;
+  let current: number | null = null;
+  for (let i = 0; i < count; i++) {
+    const linkedToPrevious = i > 0 && links[i - 1] === true;
+    const linkedToNext = links[i] === true;
+    if (!linkedToPrevious) current = linkedToNext ? ++next : null;
+    groups.push(current);
+  }
+  return groups;
+}
+
+function changesFor(
+  items: readonly SupersetItem[],
+  groups: readonly (number | null)[],
+): SupersetChange[] {
+  const changes: SupersetChange[] = [];
+  items.forEach((item, i) => {
+    const supersetGroup = groups[i] ?? null;
+    if (item.supersetGroup !== supersetGroup) changes.push({ id: item.id, supersetGroup });
+  });
+  return changes;
+}
+
+/**
+ * Links (or unlinks) the item at `index` with the one after it, renumbering
+ * every superset so each run gets its own group. Returns only the items
+ * whose `supersetGroup` actually changes.
+ */
+export function setSupersetLink(
+  items: readonly SupersetItem[],
+  index: number,
+  linked: boolean,
+): SupersetChange[] {
+  if (index < 0 || index >= items.length - 1) return [];
+  const links = supersetLinks(items);
+  links[index] = linked;
+  return changesFor(items, groupsFromLinks(links, items.length));
+}
+
+/**
+ * Renumbers groups to match the current adjacency — after a reorder, a
+ * superset split in two gets two groups and a lone leftover member is
+ * cleared, so the stored numbers never claim a link the list doesn't show.
+ */
+export function normalizeSupersets(items: readonly SupersetItem[]): SupersetChange[] {
+  return changesFor(items, groupsFromLinks(supersetLinks(items), items.length));
+}
+
+/** Splits items into display blocks: each superset together, everything else alone. */
+export function supersetBlocks<T extends SupersetItem>(items: readonly T[]): SupersetBlock<T>[] {
+  const links = supersetLinks(items);
+  const blocks: SupersetBlock<T>[] = [];
+  let letters = 0;
+  items.forEach((item, i) => {
+    if (i > 0 && links[i - 1]) {
+      blocks[blocks.length - 1]?.items.push(item);
+      return;
+    }
+    const isSuperset = links[i] === true;
+    blocks.push({
+      items: [item],
+      letter: isSuperset ? supersetLetter(letters++) : null,
+    });
+  });
+  return blocks;
+}
+
+function supersetLetter(index: number): string {
+  let label = "";
+  let n = index;
+  do {
+    label = String.fromCharCode(65 + (n % 26)) + label;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return label;
+}
+
+/**
+ * "A1", "A2", "B1", … for each item in a superset, keyed by id. Plain
+ * exercises aren't in the map.
+ */
+export function supersetLabels(items: readonly SupersetItem[]): Map<string, string> {
+  const labels = new Map<string, string>();
+  for (const block of supersetBlocks(items)) {
+    if (!block.letter) continue;
+    block.items.forEach((item, i) => labels.set(item.id, `${block.letter}${i + 1}`));
+  }
+  return labels;
+}
+
+export interface SupersetFollowUp {
+  /** Whether to start the rest timer — only once a round of the superset is done. */
+  rest: boolean;
+  /** The exercise to do next within the superset, or null to carry on as usual. */
+  nextId: string | null;
+}
+
+/**
+ * What comes after logging a set of `id` in a workout: in a superset, go
+ * straight to the next exercise in the round that still has sets left, with
+ * no rest in between; once the round is done, rest and start the next round
+ * back at the first unfinished member. Outside a superset, just rest.
+ * `isComplete` should already count the set just logged.
+ */
+export function supersetFollowUp(
+  items: readonly SupersetItem[],
+  id: string,
+  isComplete: (id: string) => boolean,
+): SupersetFollowUp {
+  const block = supersetBlocks(items).find((b) => b.items.some((item) => item.id === id));
+  if (!block || block.items.length < 2) return { rest: true, nextId: null };
+  const position = block.items.findIndex((item) => item.id === id);
+  const laterInRound = block.items.slice(position + 1).find((item) => !isComplete(item.id));
+  if (laterInRound) return { rest: false, nextId: laterInRound.id };
+  const nextRound = block.items.find((item) => !isComplete(item.id));
+  return { rest: true, nextId: nextRound?.id ?? null };
+}

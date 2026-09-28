@@ -8,10 +8,15 @@ import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
+  type SupersetChange,
   duplicateRoutine,
   isWarmupExercise,
   isWarmupRoutine,
+  normalizeSupersets,
   reorderRoutineExercises,
+  setSupersetLink,
+  supersetLabels,
+  supersetLinks,
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -70,6 +75,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     return map;
   }, [exercises]);
 
+  const links = useMemo(() => supersetLinks(items), [items]);
+  const labels = useMemo(() => supersetLabels(items), [items]);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -77,15 +85,41 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     if (!over || active.id === over.id) return;
 
     const reordered = reorderRoutineExercises(items, String(active.id), String(over.id));
+    // A move can split a superset or strand one member (issue #228).
+    const groups = new Map(
+      normalizeSupersets(reordered).map((change) => [change.id, change.supersetGroup]),
+    );
     const deviceId = await getDeviceId();
     const now = new Date();
 
     for (const reorderedItem of reordered) {
       const original = items.find((item) => item.id === reorderedItem.id);
-      if (!original || original.position === reorderedItem.position) continue;
+      if (!original) continue;
+      const supersetGroup = groups.has(original.id)
+        ? (groups.get(original.id) ?? null)
+        : original.supersetGroup;
+      if (original.position === reorderedItem.position && original.supersetGroup === supersetGroup)
+        continue;
       await mutate("routineExercises", {
         ...original,
         position: reorderedItem.position,
+        supersetGroup,
+        updatedAt: now,
+        deviceId,
+      });
+    }
+  }
+
+  async function applySupersetChanges(changes: readonly SupersetChange[]) {
+    if (changes.length === 0) return;
+    const deviceId = await getDeviceId();
+    const now = new Date();
+    for (const change of changes) {
+      const original = items.find((item) => item.id === change.id);
+      if (!original) continue;
+      await mutate("routineExercises", {
+        ...original,
+        supersetGroup: change.supersetGroup,
         updatedAt: now,
         deviceId,
       });
@@ -131,6 +165,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       updatedAt: new Date(),
       deviceId,
     });
+    await applySupersetChanges(normalizeSupersets(items.filter((other) => other.id !== item.id)));
   }
 
   async function handleDuplicate() {
@@ -257,10 +292,15 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           strategy={verticalListSortingStrategy}
         >
           <ul className="flex flex-col gap-2">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <RoutineExerciseRowItem
                 key={item.id}
                 item={item}
+                supersetLabel={labels.get(item.id) ?? null}
+                linkedToNext={index < items.length - 1 ? (links[index] ?? false) : null}
+                onToggleLinkToNext={() =>
+                  void applySupersetChanges(setSupersetLink(items, index, !links[index]))
+                }
                 exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                 warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                 units={settings.units}

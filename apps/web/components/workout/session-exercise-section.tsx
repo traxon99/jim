@@ -1,5 +1,6 @@
 "use client";
 
+import { SupersetBadge } from "@/components/supersets/superset-link-toggle";
 import { mutate } from "@/lib/db/mutate";
 import {
   type ExerciseRow,
@@ -54,6 +55,8 @@ interface Props {
   /** DPR's call when this is a focused lift and DPR is on (issue #212); else null. */
   dpr?: DprCallInfo | null;
   large?: boolean;
+  /** "A1"-style place in a superset (issue #228), or null. */
+  supersetLabel?: string | null;
   /**
    * Called after a set is logged, with this exercise's rest and how many of
    * its planned sets are still unlogged (issue #231: zero on the final set
@@ -130,6 +133,7 @@ export function SessionExerciseSection({
   settings,
   dpr = null,
   large = false,
+  supersetLabel = null,
   onSetLogged,
   onRemove,
 }: Props) {
@@ -450,6 +454,7 @@ export function SessionExerciseSection({
     >
       <div className="flex items-start justify-between gap-2">
         <h2 className={`${sizes.title} flex min-w-0 items-center gap-2`}>
+          {supersetLabel && <SupersetBadge label={supersetLabel} />}
           <span className="min-w-0">{exercise?.name ?? "Exercise"}</span>
           {dpr && (
             <span
