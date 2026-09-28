@@ -10,13 +10,17 @@ import {
   searchExercises,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface Props {
   userId: string;
   excludeExerciseIds: ReadonlySet<string>;
-  onPick: (exerciseId: string, exerciseName: string) => void;
+  /**
+   * The picked exercises, in the order they were tapped. Two or more are
+   * added together as a superset (issue #269).
+   */
+  onPick: (exerciseIds: string[]) => void;
   onClose: () => void;
   /** Which tab the picker opens on — e.g. "warmup" inside a warm-up routine. */
   initialCategory?: ExerciseCategory | "all";
@@ -41,6 +45,15 @@ export function ExercisePicker({
   // Issue #169: create a missing exercise from here with the same form the
   // Exercises page uses, then add it straight away.
   const [creating, setCreating] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  function toggleSelected(exerciseId: string) {
+    setSelectedIds((current) =>
+      current.includes(exerciseId)
+        ? current.filter((selectedId) => selectedId !== exerciseId)
+        : [...current, exerciseId],
+    );
+  }
 
   const results = useMemo(() => {
     const rows = allExercises ?? [];
@@ -64,7 +77,16 @@ export function ExercisePicker({
           mode="new"
           initialName={query.trim()}
           initialCategory={category === "warmup" ? "warmup" : "strength"}
-          onSaved={(exercise) => onPick(exercise.id, exercise.name)}
+          onSaved={(exercise) => {
+            // On its own it's added straight away, as before; alongside
+            // others it joins the selection.
+            if (selectedIds.length === 0) {
+              onPick([exercise.id]);
+              return;
+            }
+            setSelectedIds((current) => [...current, exercise.id]);
+            setCreating(false);
+          }}
           onCancel={() => setCreating(false)}
         />
       </div>
@@ -118,29 +140,54 @@ export function ExercisePicker({
           onChange={(event) => setQuery(event.target.value)}
           className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
+        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+          Pick two or more to add them as a superset.
+        </p>
       </div>
 
       <ul className="flex flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto px-4 dark:divide-zinc-800">
-        {results.map((exercise) => (
-          <li key={exercise.id}>
-            <button
-              type="button"
-              onClick={() => onPick(exercise.id, exercise.name)}
-              className="flex w-full flex-col gap-0.5 py-3 text-left"
-            >
-              <span className="text-base font-medium">{exercise.name}</span>
-              <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                {[
-                  isWarmupExercise(exercise) ? "warm-up" : null,
-                  exercise.equipment,
-                  ...exercise.primaryMuscles,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            </button>
-          </li>
-        ))}
+        {results.map((exercise) => {
+          const order = selectedIds.indexOf(exercise.id);
+          const selected = order !== -1;
+          return (
+            <li key={exercise.id}>
+              <button
+                type="button"
+                aria-pressed={selected}
+                onClick={() => toggleSelected(exercise.id)}
+                className="flex w-full items-center gap-3 py-3 text-left"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-base font-medium">{exercise.name}</span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                    {[
+                      isWarmupExercise(exercise) ? "warm-up" : null,
+                      exercise.equipment,
+                      ...exercise.primaryMuscles,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                    selected
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : "border-zinc-300 dark:border-zinc-700"
+                  }`}
+                >
+                  {selected &&
+                    (selectedIds.length > 1 ? (
+                      order + 1
+                    ) : (
+                      <Check className="h-4 w-4" strokeWidth={2.5} />
+                    ))}
+                </span>
+              </button>
+            </li>
+          );
+        })}
         {results.length === 0 && (
           <li className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
             No exercises match.
@@ -157,6 +204,24 @@ export function ExercisePicker({
           </button>
         </li>
       </ul>
+
+      <div
+        className="shrink-0 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+      >
+        <button
+          type="button"
+          onClick={() => onPick(selectedIds)}
+          disabled={selectedIds.length === 0}
+          className="min-h-11 w-full rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-40"
+        >
+          {selectedIds.length > 1
+            ? `Add ${selectedIds.length} as superset`
+            : selectedIds.length === 1
+              ? "Add exercise"
+              : "Select exercises"}
+        </button>
+      </div>
     </div>
   );
 }

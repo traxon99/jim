@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { removeExerciseAction, supersetActions } from "@/components/supersets/superset-actions";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -12,11 +13,10 @@ import {
   duplicateRoutine,
   isWarmupExercise,
   isWarmupRoutine,
+  nextSupersetGroup,
   normalizeSupersets,
   reorderRoutineExercises,
-  setSupersetLink,
   supersetLabels,
-  supersetLinks,
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -75,7 +75,6 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     return map;
   }, [exercises]);
 
-  const links = useMemo(() => supersetLinks(items), [items]);
   const labels = useMemo(() => supersetLabels(items), [items]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -126,29 +125,33 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     }
   }
 
-  async function handleAddExercise(exerciseId: string) {
+  // Picking several exercises at once adds them as one superset (issue #269).
+  async function handleAddExercises(exerciseIds: readonly string[]) {
     const deviceId = await getDeviceId();
     const now = new Date();
-    const entity: RoutineExerciseRow = {
-      id: uuidv7(),
-      userId,
-      routineId: id,
-      exerciseId,
-      position: items.length,
-      supersetGroup: null,
-      targetSets: null,
-      targetRepsLow: null,
-      targetRepsHigh: null,
-      targetRestSeconds: null,
-      targetDurationSeconds: null,
-      targetWeight: null,
-      notes: null,
-      updatedAt: now,
-      deviceId,
-      deletedAt: null,
-      serverSeq: 0,
-    };
-    await mutate("routineExercises", entity);
+    const supersetGroup = exerciseIds.length > 1 ? nextSupersetGroup(items) : null;
+    for (const [offset, exerciseId] of exerciseIds.entries()) {
+      const entity: RoutineExerciseRow = {
+        id: uuidv7(),
+        userId,
+        routineId: id,
+        exerciseId,
+        position: items.length + offset,
+        supersetGroup,
+        targetSets: null,
+        targetRepsLow: null,
+        targetRepsHigh: null,
+        targetRestSeconds: null,
+        targetDurationSeconds: null,
+        targetWeight: null,
+        notes: null,
+        updatedAt: now,
+        deviceId,
+        deletedAt: null,
+        serverSeq: 0,
+      };
+      await mutate("routineExercises", entity);
+    }
     setPickerOpen(false);
   }
 
@@ -297,15 +300,14 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                 key={item.id}
                 item={item}
                 supersetLabel={labels.get(item.id) ?? null}
-                linkedToNext={index < items.length - 1 ? (links[index] ?? false) : null}
-                onToggleLinkToNext={() =>
-                  void applySupersetChanges(setSupersetLink(items, index, !links[index]))
-                }
+                actions={[
+                  ...supersetActions(items, index, (changes) => void applySupersetChanges(changes)),
+                  removeExerciseAction(() => void handleRemoveItem(item)),
+                ]}
                 exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                 warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                 units={settings.units}
                 onUpdate={(patch) => handleUpdateItem(item, patch)}
-                onRemove={() => handleRemoveItem(item)}
               />
             ))}
           </ul>
@@ -348,7 +350,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
           initialCategory={isWarmupKind ? "warmup" : "all"}
-          onPick={(exerciseId) => handleAddExercise(exerciseId)}
+          onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
         />
       )}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { isFocusExerciseComplete } from "../../sessions/focus-exercise";
 import {
+  leaveSuperset,
+  nextSupersetGroup,
   normalizeSupersets,
   setSupersetLink,
   supersetBlocks,
@@ -59,6 +61,39 @@ describe("setSupersetLink", () => {
 
   it("ignores an index with no next item", () => {
     expect(setSupersetLink(items(null, null), 1, true)).toEqual([]);
+  });
+});
+
+describe("leaveSuperset", () => {
+  it("takes the middle member out, splitting what's left", () => {
+    expect(leaveSuperset(items(1, 1, 1), 1)).toEqual([
+      { id: "a", supersetGroup: null },
+      { id: "b", supersetGroup: null },
+      { id: "c", supersetGroup: null },
+    ]);
+  });
+
+  it("takes the last member out, keeping the rest together", () => {
+    expect(leaveSuperset(items(1, 1, 1), 2)).toEqual([{ id: "c", supersetGroup: null }]);
+  });
+
+  it("takes the first member out, keeping the rest together", () => {
+    expect(leaveSuperset(items(null, 1, 1, 1), 1)).toEqual([{ id: "b", supersetGroup: null }]);
+  });
+
+  it("changes nothing for an exercise not in a superset", () => {
+    expect(leaveSuperset(items(null, 1, 1), 0)).toEqual([]);
+  });
+});
+
+describe("nextSupersetGroup", () => {
+  it("is one past the highest group in use", () => {
+    expect(nextSupersetGroup(items(null, 3, 3, 1, 1))).toBe(4);
+  });
+
+  it("starts at 1 with no supersets", () => {
+    expect(nextSupersetGroup(items(null, null))).toBe(1);
+    expect(nextSupersetGroup([])).toBe(1);
   });
 });
 
