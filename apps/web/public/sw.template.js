@@ -100,6 +100,20 @@ self.addEventListener("pushsubscriptionchange", (event) => {
   );
 });
 
+const STATIC_PREFIXES = [
+  "/_next/static/",
+  "/icons/",
+  "/splash/",
+  "/icon",
+  "/apple-icon",
+  "/manifest.webmanifest",
+  "/favicon.ico",
+];
+
+function isStaticAsset(pathname) {
+  return STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -116,6 +130,12 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+
+  // Cache-first only for immutable build output and PWA assets. Anything
+  // else — /api/*, RSC payloads (?_rsc=), route handlers — is per-user and
+  // must hit the network: a cached `/api/sync/pull?since=0` once served the
+  // previous account's rows to whoever signed in next on the device (#289).
+  if (!isStaticAsset(url.pathname)) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {

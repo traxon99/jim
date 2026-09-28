@@ -255,6 +255,10 @@ the exact same in-memory JS, React state included, indefinitely.
   `LATEST_RELEASE_NOTE` (`lib/pwa/notifications.ts`) as its text. **Update that string in every
   user-facing change.** The service worker changes on every build whether or not the note did, so
   a stale note gets resent on every deploy (#115).
+- **The service worker caches static assets only.** Cache-first is limited to `/_next/static/`,
+  icons, splash screens and the manifest (`isStaticAsset` in the template). Never cache `/api/*` or
+  RSC (`?_rsc=`) responses: they are per-user, and a cached `/api/sync/pull?since=0` served the
+  previous account's rows to the next account signed in on the device (#289).
 - Every `push` has to show a notification (Safari and Chrome require it, `userVisibleOnly`). Don't
   add silent pushes.
 - Web Push only works when the app is installed.
