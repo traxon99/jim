@@ -1,12 +1,14 @@
 "use client";
 
+import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
+import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
-import { resolveCurrentRows, summarizeSession } from "@jim/core";
+import { achievementsEarnedInSession, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -86,6 +88,13 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [session.name, session.startedAt, settings.units, summary, exerciseGroups],
   );
 
+  const achievementData = useAchievements();
+  const earned = useMemo(
+    () =>
+      achievementData ? achievementsEarnedInSession(achievementData.achievements, session.id) : [],
+    [achievementData, session.id],
+  );
+
   const minutes = Math.round(summary.durationSeconds / 60);
 
   return (
@@ -120,6 +129,36 @@ export function SessionSummary({ session, sessionExercises }: Props) {
           <dd className="text-2xl font-semibold">{summary.prCount}</dd>
         </div>
       </dl>
+
+      {earned.length > 0 && (
+        <section
+          aria-label="Achievements earned"
+          className="flex w-full max-w-xs flex-col gap-3 rounded-lg border border-zinc-300 p-4 dark:border-zinc-700"
+        >
+          <h2 className="text-sm font-semibold">
+            {earned.length === 1
+              ? "Achievement unlocked"
+              : `${earned.length} achievements unlocked`}
+          </h2>
+          <ul className="flex flex-col gap-2 text-left">
+            {earned.map((achievement, index) => (
+              <li key={achievement.id} className="flex items-center gap-3">
+                <AchievementBadge
+                  achievement={achievement}
+                  className="achievement-pop"
+                  style={{ animationDelay: `${index * 90}ms` }}
+                />
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-medium">{achievement.title}</span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                    {achievement.description}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="flex gap-3">
         <ShareWorkoutButton

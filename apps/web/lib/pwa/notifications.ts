@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Each exercise's ⋯ menu now adds notes, sticky notes that carry to future workouts, warm-up sets and its own rest timer, and can replace the exercise.";
+  "Profile now tracks your weekly training streak and milestone badges, and the PR page shows plate medals, progress sparklines and highlights your newest PRs.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
