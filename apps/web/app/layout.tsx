@@ -8,11 +8,12 @@ import { RippleEffect } from "@/components/ripple-effect";
 import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Geist_Mono, Playfair_Display, Roboto } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// The default ("sans") font choice (Profile > Appearance > Font).
+const roboto = Roboto({
+  variable: "--font-roboto",
   subsets: ["latin"],
 });
 
@@ -60,7 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
+      className={`${roboto.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
     >
       <body className="flex h-lvh flex-col">
         <LoadingScreen />
