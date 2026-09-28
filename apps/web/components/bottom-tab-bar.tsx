@@ -1,17 +1,25 @@
 "use client";
 
+import { type BaseTab, isTabActive } from "@/lib/navigation/tabs";
 import { useHasActiveSession } from "@/lib/sessions/use-active-session";
-import { BicepsFlexed, CircleUserRound, ClipboardList, Dumbbell, History } from "lucide-react";
+import {
+  BicepsFlexed,
+  ClipboardList,
+  Dumbbell,
+  History,
+  House,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
+const TABS: readonly { href: BaseTab; label: string; Icon: LucideIcon }[] = [
   { href: "/workout", label: "Workout", Icon: Dumbbell },
   { href: "/routines", label: "Routines", Icon: ClipboardList },
   { href: "/history", label: "History", Icon: History },
   { href: "/exercises", label: "Exercises", Icon: BicepsFlexed },
-  { href: "/profile", label: "Profile", Icon: CircleUserRound },
-] as const;
+  { href: "/home", label: "Home", Icon: House },
+];
 
 export function BottomTabBar() {
   const pathname = usePathname();
@@ -23,7 +31,7 @@ export function BottomTabBar() {
       style={{ paddingBottom: "max(6px, min(env(safe-area-inset-bottom), 34px))" }}
     >
       {TABS.map(({ href, label, Icon }) => {
-        const active = pathname.startsWith(href);
+        const active = isTabActive(href, pathname);
         const showActiveSessionDot = href === "/workout" && hasActiveSession;
         return (
           <Link

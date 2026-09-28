@@ -1,6 +1,7 @@
-// Content lives in the layout (app/(shell)/layout.tsx) via TabbedShell, so
-// all five tabs mount once and stay alive across tab switches. This route
-// still needs a page.tsx to exist for Next.js to match /profile at all.
+import { ProfileHome } from "./profile-home";
+
+// Profile is no longer a tab of its own — it's opened from the button in the
+// Home tab's top-right corner, so it renders as a regular routed page.
 export default function ProfilePage() {
-  return null;
+  return <ProfileHome />;
 }
