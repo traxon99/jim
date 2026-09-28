@@ -210,12 +210,20 @@ export function RoutinesList({ userId }: { userId: string }) {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
                 Programs
               </h2>
-              <Link
-                href="/routines/programs/new"
-                className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
-              >
-                New program
-              </Link>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/routines/programs/generate"
+                  className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                >
+                  Build me one
+                </Link>
+                <Link
+                  href="/routines/programs/new"
+                  className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                >
+                  New program
+                </Link>
+              </div>
             </div>
             {programs.length === 0 ? (
               <p className="text-sm text-zinc-500 dark:text-zinc-500">
