@@ -182,8 +182,65 @@ body.pwa {
   animation: page-fade-in 120ms ease-out;
 }
 
+/* A slower fade for routes and overlays outside the tab bar — the active
+   workout page (/workout/[id]) and its focus view — so entering them doesn't
+   snap in (issue #275). */
+.route-fade {
+  animation: page-fade-in 220ms ease-out;
+}
+
+/* Bottom sheet overlays (components/workout/pre-workout-sheet.tsx): the
+   backdrop fades while the sheet rises; data-closing plays it in reverse
+   before the sheet unmounts. */
+@keyframes sheet-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-rise-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-rise-out {
+  to {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+.sheet-backdrop {
+  animation: sheet-backdrop-in 200ms ease-out;
+}
+
+.sheet-backdrop[data-closing="true"] {
+  animation: sheet-backdrop-out 160ms ease-in forwards;
+}
+
+.sheet-panel {
+  animation: sheet-rise-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sheet-backdrop[data-closing="true"] .sheet-panel {
+  animation: sheet-rise-out 160ms ease-in forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .page-fade {
+  .page-fade,
+  .route-fade,
+  .sheet-backdrop,
+  .sheet-backdrop[data-closing="true"],
+  .sheet-panel,
+  .sheet-backdrop[data-closing="true"] .sheet-panel {
     animation: none;
   }
 }

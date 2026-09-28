@@ -12,7 +12,7 @@ import {
   type SessionIntensity,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useMemo, useState } from "react";
+import { type AnimationEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 interface Props {
   context: DprContext;
@@ -51,14 +51,25 @@ export function PreWorkoutSheet({
     [context, items, intensity],
   );
   const units = context.settings.units;
+  // Cancelling plays the sheet's exit fade (globals.css .sheet-backdrop)
+  // before handing control back; reduced motion skips straight to onCancel,
+  // since no animationend would ever fire.
+  const [closing, setClosing] = useState(false);
+  const requestClose = useCallback(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) onCancel();
+    else setClosing(true);
+  }, [onCancel]);
+  const handleAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
+    if (closing && event.target === event.currentTarget) onCancel();
+  };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
+      if (event.key === "Escape") requestClose();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onCancel]);
+  }, [requestClose]);
 
   // `fixed` doesn't stop the page underneath from scrolling (docs/PWA.md §2).
   useEffect(() => {
@@ -78,18 +89,20 @@ export function PreWorkoutSheet({
     // (docs/PWA.md §4). Only shown from the Workout tab, never alongside
     // FocusView or the exercise picker.
     <div
-      className="fixed inset-0 z-20 flex flex-col justify-end overscroll-none bg-black/40"
+      data-closing={closing}
+      onAnimationEnd={handleAnimationEnd}
+      className="sheet-backdrop fixed inset-0 z-20 flex flex-col justify-end overscroll-none bg-black/40"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <button
         type="button"
         aria-label="Close"
-        onClick={onCancel}
+        onClick={requestClose}
         className="min-h-0 flex-1 touch-none"
       />
       <section
         aria-labelledby="pre-workout-title"
-        className="flex max-h-[85%] min-h-0 flex-col rounded-t-2xl bg-white dark:bg-zinc-950"
+        className="sheet-panel flex max-h-[85%] min-h-0 flex-col rounded-t-2xl bg-white dark:bg-zinc-950"
       >
         <div className="flex touch-none flex-col gap-1 px-4 pt-4">
           <h2
@@ -167,7 +180,7 @@ export function PreWorkoutSheet({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={requestClose}
               className="min-h-11 flex-1 rounded-lg border border-zinc-300 px-4 text-base font-medium dark:border-zinc-700"
             >
               Cancel
