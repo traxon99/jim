@@ -1,5 +1,6 @@
 "use client";
 
+import { SupersetBadge, SupersetLinkToggle } from "@/components/supersets/superset-link-toggle";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -12,6 +13,11 @@ interface Props {
   /** Warm-ups (issue #59) only take sets plus reps or a hold time. */
   warmup?: { timed: boolean } | null;
   units: "lb" | "kg";
+  /** "A1"-style place in a superset (issue #228), or null. */
+  supersetLabel?: string | null;
+  /** Whether this is supersetted with the next exercise; null for the last one. */
+  linkedToNext?: boolean | null;
+  onToggleLinkToNext?: () => void;
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
   onRemove: () => void;
 }
@@ -40,6 +46,9 @@ export function RoutineExerciseRow({
   exerciseName,
   warmup = null,
   units,
+  supersetLabel = null,
+  linkedToNext = null,
+  onToggleLinkToNext,
   onUpdate,
   onRemove,
 }: Props) {
@@ -73,8 +82,8 @@ export function RoutineExerciseRow({
       ref={setNodeRef}
       style={style}
       className={`flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900 ${
-        isDragging ? "opacity-50" : ""
-      }`}
+        supersetLabel ? "border-l-4 border-l-accent" : ""
+      } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2">
@@ -88,7 +97,10 @@ export function RoutineExerciseRow({
             ⠿
           </button>
           <span className="flex flex-col pt-2">
-            <span className="text-base font-medium">{exerciseName}</span>
+            <span className="flex items-center gap-2">
+              {supersetLabel && <SupersetBadge label={supersetLabel} />}
+              <span className="text-base font-medium">{exerciseName}</span>
+            </span>
             {warmup && (
               <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
                 Warm-up
@@ -214,6 +226,12 @@ export function RoutineExerciseRow({
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
       </label>
+
+      {linkedToNext != null && onToggleLinkToNext && (
+        <div className="pl-8">
+          <SupersetLinkToggle linked={linkedToNext} onToggle={onToggleLinkToNext} />
+        </div>
+      )}
     </li>
   );
 }
