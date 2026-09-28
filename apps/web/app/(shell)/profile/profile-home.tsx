@@ -1,6 +1,7 @@
 import { AchievementsSection } from "@/components/profile/achievements-section";
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
+import { UsernameSection } from "@/components/profile/username-section";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +27,7 @@ export function ProfileHome() {
           </Link>
         </div>
       </div>
+      <UsernameSection />
       <AchievementsSection />
       <BodyStatsSection />
       <Link

@@ -96,7 +96,7 @@ Postgres is authoritative for schema shape; Dexie mirrors it. Every user table c
 and an RLS policy of `user_id = auth.uid()`.
 
 ```
-users              id, email, created_at
+users              id, email, username (unique, lowercase), created_at
                    settings: units(lb|kg), default_bar_weight, available_plates[],
                              default_rest_seconds, week_start
 
@@ -131,6 +131,9 @@ personal_records   id, user_id, exercise_id, kind(1rm|volume|weight|reps_at_weig
 body_measurements  id, user_id, kind, value, unit, measured_at   (v1: bodyweight only)
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
+
+friendships        id, requester_id, addressee_id, status(pending|accepted),
+                   created_at, accepted_at                 -- one row per pair; server-only (ADR-017)
 ```
 
 **Warm-ups** (`exercises.category = 'warmup'`) are ordinary exercises logged for reps or time.

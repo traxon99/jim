@@ -28,7 +28,9 @@ a session-scoped advisory lock that transaction-mode pooling doesn't support.
 
 A hand-authored migration (`drizzle/0001_sets_reject_update.sql`) adds a trigger
 that rejects any `UPDATE` on `sets` — `drizzle-kit generate` won't reproduce
-this from the schema DSL, so don't regenerate over it.
+this from the schema DSL, so don't regenerate over it. `drizzle/0023_friends_functions.sql` is
+hand-authored for the same reason: it backfills usernames and adds the username trigger and the
+SECURITY DEFINER friend functions (ADR-017).
 
 `drizzle/meta/_journal.json`'s `when` for `0007_last_starhawk` is deliberately earlier than
 when that file was generated. Drizzle's migrator only runs migrations whose `when` is later

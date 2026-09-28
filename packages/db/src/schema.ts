@@ -5,6 +5,7 @@ import {
   type PgColumn,
   bigint,
   boolean,
+  check,
   date,
   foreignKey,
   index,
@@ -112,6 +113,9 @@ export const dprBlockStatusEnum = pgEnum("dpr_block_status", ["active", "deload"
 // A DPR user's "how hard today?" pick for one session (issue #235). Mirrors
 // @jim/core's SessionIntensity.
 export const sessionIntensityEnum = pgEnum("session_intensity", ["light", "maintain", "push"]);
+// A friend request (issue #35) is "pending" until the addressee accepts it;
+// declining or unfriending deletes the row rather than keeping a status.
+export const friendshipStatusEnum = pgEnum("friendship_status", ["pending", "accepted"]);
 
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
@@ -124,6 +128,10 @@ export const users = pgTable(
       .primaryKey()
       .references(() => authUsers.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
+    // How friends find each other (issue #35): lowercase, unique, matched
+    // exactly. Filled from the email's local part by the users_default_username
+    // trigger (migration 0023) when a row is created without one.
+    username: text("username"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 
     // settings
@@ -175,6 +183,7 @@ export const users = pgTable(
     dprPromptDismissedAt: timestamp("dpr_prompt_dismissed_at", { withTimezone: true }),
   },
   (table) => [
+    uniqueIndex("users_username").on(table.username),
     pgPolicy("users_select_own", {
       for: "select",
       to: authenticatedRole,
@@ -778,4 +787,43 @@ export const restTimerPushes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [...ownRowPolicies("rest_timer_pushes", table.userId)],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// friendships — one row per pair of users (issue #35), in either direction:
+// the requester asked, the addressee accepts. Readable by both people in it;
+// never written directly. Every write, and every read of a friend's data, goes
+// through the SECURITY DEFINER functions in migration 0023, so the tables that
+// sync pulls keep their own-rows-only RLS and never start returning a friend's
+// rows into this user's IndexedDB.
+// ---------------------------------------------------------------------------
+
+export const friendships = pgTable(
+  "friendships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requesterId: uuid("requester_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    addresseeId: uuid("addressee_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: friendshipStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  },
+  (table) => [
+    // One row per pair, whichever of the two asked first.
+    uniqueIndex("friendships_pair").on(
+      sql`least(${table.requesterId}, ${table.addresseeId})`,
+      sql`greatest(${table.requesterId}, ${table.addresseeId})`,
+    ),
+    index("friendships_addressee").on(table.addresseeId),
+    check("friendships_not_self", sql`${table.requesterId} <> ${table.addresseeId}`),
+    pgPolicy("friendships_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${authUid} IN (${table.requesterId}, ${table.addresseeId})`,
+    }),
+  ],
 ).enableRLS();
