@@ -42,7 +42,8 @@ export function warmupRamp(
 }
 
 export interface StickyNoteSource {
-  stickyNote: string | null;
+  /** Undefined on local rows stored before the column existed. */
+  stickyNote: string | null | undefined;
   startedAt: Date;
 }
 
@@ -50,16 +51,17 @@ export interface StickyNoteSource {
  * The sticky note to show for an exercise in a workout: the workout's own
  * value when it has one (an empty string means it was cleared there),
  * otherwise the newest earlier workout's that set or cleared it. Returns
- * null when there's nothing to show.
+ * null when there's nothing to show. Undefined, from local rows stored before
+ * the column existed, counts as never set, like null.
  */
 export function resolveStickyNote(
-  own: string | null,
+  own: string | null | undefined,
   earlier: readonly StickyNoteSource[],
 ): string | null {
-  if (own !== null) return own.trim() === "" ? null : own;
+  if (own != null) return own.trim() === "" ? null : own;
   const newest = earlier
-    .filter((source) => source.stickyNote !== null)
+    .filter((source) => source.stickyNote != null)
     .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())[0];
   const note = newest?.stickyNote ?? null;
-  return note === null || note.trim() === "" ? null : note;
+  return note == null || note.trim() === "" ? null : note;
 }
