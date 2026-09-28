@@ -1,10 +1,10 @@
 "use client";
 
-import { SupersetBadge, SupersetLinkToggle } from "@/components/supersets/superset-link-toggle";
+import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { SupersetBadge } from "@/components/supersets/superset-badge";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -15,11 +15,9 @@ interface Props {
   units: "lb" | "kg";
   /** "A1"-style place in a superset (issue #228), or null. */
   supersetLabel?: string | null;
-  /** Whether this is supersetted with the next exercise; null for the last one. */
-  linkedToNext?: boolean | null;
-  onToggleLinkToNext?: () => void;
+  /** The ⋯ menu's items — superset options and Remove (issue #269). */
+  actions: readonly ExerciseAction[];
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
-  onRemove: () => void;
 }
 
 function toNumberOrNull(value: string): number | null {
@@ -47,10 +45,8 @@ export function RoutineExerciseRow({
   warmup = null,
   units,
   supersetLabel = null,
-  linkedToNext = null,
-  onToggleLinkToNext,
+  actions,
   onUpdate,
-  onRemove,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -108,14 +104,7 @@ export function RoutineExerciseRow({
             )}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remove exercise"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-red-600 dark:text-red-500"
-        >
-          <Trash2 className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <ExerciseActionsMenu actions={actions} />
       </div>
 
       <div className="flex flex-wrap gap-2 pl-10">
@@ -226,12 +215,6 @@ export function RoutineExerciseRow({
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
       </label>
-
-      {linkedToNext != null && onToggleLinkToNext && (
-        <div className="pl-8">
-          <SupersetLinkToggle linked={linkedToNext} onToggle={onToggleLinkToNext} />
-        </div>
-      )}
     </li>
   );
 }

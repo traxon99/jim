@@ -76,6 +76,28 @@ export function setSupersetLink(
 }
 
 /**
+ * Takes the item at `index` out of its superset by unlinking it from both
+ * neighbours. Returns only the items whose `supersetGroup` changes.
+ */
+export function leaveSuperset(items: readonly SupersetItem[], index: number): SupersetChange[] {
+  if (index < 0 || index >= items.length) return [];
+  const links = supersetLinks(items);
+  if (index > 0) links[index - 1] = false;
+  if (index < links.length) links[index] = false;
+  return changesFor(items, groupsFromLinks(links, items.length));
+}
+
+/**
+ * A group number no item uses yet, for exercises added together as a new
+ * superset (picked together in the exercise picker, issue #269).
+ */
+export function nextSupersetGroup(items: readonly SupersetItem[]): number {
+  let max = 0;
+  for (const item of items) max = Math.max(max, item.supersetGroup ?? 0);
+  return max + 1;
+}
+
+/**
  * Renumbers groups to match the current adjacency — after a reorder, a
  * superset split in two gets two groups and a lone leftover member is
  * cleared, so the stored numbers never claim a link the list doesn't show.

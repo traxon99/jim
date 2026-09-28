@@ -2,7 +2,7 @@
 
 import { ExercisePicker } from "@/components/exercise-picker";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
-import { SupersetLinkToggle } from "@/components/supersets/superset-link-toggle";
+import { removeExerciseAction, supersetActions } from "@/components/supersets/superset-actions";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
@@ -21,15 +21,14 @@ import {
   isWarmupComplete,
   isWarmupExercise,
   isWorkoutComplete,
+  nextSupersetGroup,
   normalizeSupersets,
   partitionWarmups,
   resolveCurrentRows,
   resolveFocusedExerciseIndex,
-  setSupersetLink,
   supersetBlocks,
   supersetFollowUp,
   supersetLabels,
-  supersetLinks,
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -106,7 +105,6 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const sessionExercises = useMemo(() => [...warmupItems, ...mainItems], [warmupItems, mainItems]);
   // Supersets (issue #228) are among the main exercises only — warm-ups
   // always sit in their own block.
-  const mainLinks = useMemo(() => supersetLinks(mainItems), [mainItems]);
   // Each superset's letter, keyed by its first exercise — where its heading goes.
   const supersetLetterByFirstId = useMemo(() => {
     const map = new Map<string, string>();
@@ -250,22 +248,26 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     if (notFound) router.replace("/workout");
   }, [notFound, router]);
 
-  async function handleAddExercise(exerciseId: string) {
+  // Picking several exercises at once adds them as one superset (issue #269).
+  async function handleAddExercises(exerciseIds: readonly string[]) {
     const deviceId = await getDeviceId();
     const now = new Date();
-    await mutate("sessionExercises", {
-      id: uuidv7(),
-      userId,
-      sessionId: id,
-      exerciseId,
-      position: sessionExercises.length,
-      supersetGroup: null,
-      notes: null,
-      updatedAt: now,
-      deviceId,
-      deletedAt: null,
-      serverSeq: 0,
-    });
+    const supersetGroup = exerciseIds.length > 1 ? nextSupersetGroup(mainItems) : null;
+    for (const [offset, exerciseId] of exerciseIds.entries()) {
+      await mutate("sessionExercises", {
+        id: uuidv7(),
+        userId,
+        sessionId: id,
+        exerciseId,
+        position: sessionExercises.length + offset,
+        supersetGroup,
+        notes: null,
+        updatedAt: now,
+        deviceId,
+        deletedAt: null,
+        serverSeq: 0,
+      });
+    }
     setPickerOpen(false);
   }
 
@@ -367,7 +369,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           exercise={exercise}
           target={target}
           large={large}
-          onRemove={() => void handleRemoveExercise(item.id)}
+          actions={[removeExerciseAction(() => void handleRemoveExercise(item.id))]}
         />
       );
     }
@@ -386,7 +388,15 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         onSetLogged={(restSeconds, remainingPlannedSets) =>
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
-        onRemove={() => void handleRemoveExercise(item.id)}
+        actions={[
+          // Supersets are among the main exercises only (warm-ups return above).
+          ...supersetActions(
+            mainItems,
+            mainItems.findIndex((se) => se.id === item.id),
+            (changes) => void applySupersetChanges(changes),
+          ),
+          removeExerciseAction(() => void handleRemoveExercise(item.id)),
+        ]}
       />
     );
   }
@@ -523,7 +533,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               {warmupItems.map((item) => renderExercise(item))}
             </WarmupBlock>
           )}
-          {mainItems.map((item, index) => {
+          {mainItems.map((item) => {
             // Flat and keyed by item so linking mid-workout doesn't remount
             // an exercise and drop what's typed into it.
             const label = supersetLabelById.get(item.id);
@@ -539,16 +549,6 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
                   </p>
                 )}
                 {renderExercise(item)}
-                {index < mainItems.length - 1 && (
-                  <SupersetLinkToggle
-                    linked={mainLinks[index] ?? false}
-                    onToggle={() =>
-                      void applySupersetChanges(
-                        setSupersetLink(mainItems, index, !mainLinks[index]),
-                      )
-                    }
-                  />
-                )}
               </div>
             );
           })}
@@ -594,7 +594,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         <ExercisePicker
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
-          onPick={(exerciseId) => void handleAddExercise(exerciseId)}
+          onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
         />
       )}

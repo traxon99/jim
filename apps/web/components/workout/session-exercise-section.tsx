@@ -1,6 +1,7 @@
 "use client";
 
-import { SupersetBadge } from "@/components/supersets/superset-link-toggle";
+import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { mutate } from "@/lib/db/mutate";
 import {
   type ExerciseRow,
@@ -39,7 +40,7 @@ import {
   suggestedWeightsByTier,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, RotateCcw, Trash2 } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
 import { RpeInfoMenu } from "./rpe-info-menu";
 import { SetKindMenu } from "./set-kind-menu";
@@ -63,7 +64,8 @@ interface Props {
    * of the workout means there's nothing to rest for).
    */
   onSetLogged: (restSeconds: number, remainingPlannedSets: number) => void;
-  onRemove: () => void;
+  /** The ⋯ menu's items — superset options and Remove (issue #269). */
+  actions: readonly ExerciseAction[];
 }
 
 function toNumberOrNull(value: string): number | null {
@@ -87,9 +89,6 @@ interface DraftValues {
 function sizesFor(large: boolean) {
   return {
     title: large ? "text-2xl font-bold" : "text-base font-semibold",
-    removeButton: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-red-600 dark:text-red-500"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-600 dark:text-red-500",
     meta: large
       ? "text-base text-zinc-500 dark:text-zinc-500"
       : "text-xs text-zinc-500 dark:text-zinc-500",
@@ -114,7 +113,6 @@ function sizesFor(large: boolean) {
     repeatButton:
       "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
     rowIcon: "h-4 w-4",
-    icon: large ? "h-5 w-5" : "h-4 w-4",
     notesLabel: large
       ? "flex flex-col gap-1 text-base font-medium"
       : "flex flex-col gap-1 text-xs font-medium",
@@ -135,7 +133,7 @@ export function SessionExerciseSection({
   large = false,
   supersetLabel = null,
   onSetLogged,
-  onRemove,
+  actions,
 }: Props) {
   const sizes = sizesFor(large);
   const fieldId = useId();
@@ -467,14 +465,7 @@ export function SessionExerciseSection({
             </span>
           )}
         </h2>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remove exercise"
-          className={sizes.removeButton}
-        >
-          <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <ExerciseActionsMenu actions={actions} large={large} />
       </div>
 
       {previous && (

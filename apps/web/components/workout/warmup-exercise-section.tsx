@@ -1,11 +1,12 @@
 "use client";
 
+import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
 import { resolveCurrentRows } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, Trash2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 
 interface Props {
@@ -14,7 +15,8 @@ interface Props {
   exercise: ExerciseRow | undefined;
   target: RoutineExerciseRow | undefined;
   large?: boolean;
-  onRemove: () => void;
+  /** The ⋯ menu's items (issue #269). */
+  actions: readonly ExerciseAction[];
 }
 
 function toPositiveIntOrNull(value: string): number | null {
@@ -36,7 +38,7 @@ export function WarmupExerciseSection({
   exercise,
   target,
   large = false,
-  onRemove,
+  actions,
 }: Props) {
   const fieldId = useId();
   const [value, setValue] = useState("");
@@ -97,14 +99,7 @@ export function WarmupExerciseSection({
             {sets.length > 0 && ` · ${sets.length} done`}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remove exercise"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-red-600 dark:text-red-500"
-        >
-          <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <ExerciseActionsMenu actions={actions} large={large} />
       </div>
 
       {instructions.length > 0 && (
