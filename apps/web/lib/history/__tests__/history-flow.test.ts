@@ -1,6 +1,7 @@
 import { deleteSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { completeSet } from "@/lib/sessions/set-actions";
 import { startEmptySession } from "@/lib/sessions/start-session";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import {
   buildTrainingCalendar,
   currentPersonalRecords,
@@ -16,6 +17,7 @@ import {
   type SessionExerciseRow,
   createTestDb,
 } from "../../db/schema";
+import { buildAchievementData } from "../achievement-data";
 import { buildMuscleVolumeSets } from "../muscle-volume-data";
 import { toPersonalRecordEntries } from "../pr-data";
 import { buildSessionDetailExercises } from "../session-detail-entries";
@@ -108,6 +110,52 @@ async function loggedAndFinishedSession(weight: number, reps: number): Promise<s
   await finalizeSession(session, testDb, NOOP_FETCH as unknown as typeof fetch);
   return sessionId;
 }
+
+async function achievementsNow() {
+  return buildAchievementData(
+    {
+      sessions: await testDb.sessions.toArray(),
+      sessionExercises: await testDb.sessionExercises.toArray(),
+      exercises: await testDb.exercises.toArray(),
+      sets: await testDb.sets.toArray(),
+      personalRecords: await testDb.personalRecords.toArray(),
+      programs: await testDb.programs.toArray(),
+      programRoutines: await testDb.programRoutines.toArray(),
+    },
+    { ...DEFAULT_SETTINGS, units: "lb" },
+    new Date(),
+  );
+}
+
+describe("achievements (against Dexie)", () => {
+  it("shows nothing before any workout is finished", async () => {
+    await testDb.exercises.put(bench());
+    const data = await achievementsNow();
+    expect(data.achievements).toEqual([]);
+    expect(data.streak.current).toBe(0);
+  });
+
+  it("derives milestones and the streak from finished workouts, and recalculates on delete", async () => {
+    await testDb.exercises.put(bench());
+    await loggedAndFinishedSession(95, 5);
+    const plateSessionId = await loggedAndFinishedSession(135, 5);
+
+    const before = await achievementsNow();
+    const earned = (data: typeof before, id: string) =>
+      data.achievements.find((achievement) => achievement.id === id);
+    expect(earned(before, "workouts-1")?.achievedAt).not.toBeNull();
+    expect(earned(before, "plates-1")?.sessionId).toBe(plateSessionId);
+    expect(before.streak).toMatchObject({ current: 1, thisWeek: 2, weeklyTarget: 1 });
+
+    const session = await testDb.sessions.get(plateSessionId);
+    if (!session) throw new Error("session missing");
+    await deleteSession(session, testDb);
+
+    const after = await achievementsNow();
+    expect(earned(after, "plates-1")?.achievedAt).toBeNull();
+    expect(after.streak.thisWeek).toBe(1);
+  });
+});
 
 describe("history read pipeline (against Dexie)", () => {
   it("builds a session list entry with volume, set count and PR count", async () => {

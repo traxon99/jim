@@ -7,5 +7,6 @@ export * from "./volume-by-muscle";
 export * from "./training-calendar";
 export * from "./calendar-month";
 export * from "./personal-records-list";
+export * from "./achievements";
 export * from "./deleted-sessions";
 export * from "./strength-analysis";
