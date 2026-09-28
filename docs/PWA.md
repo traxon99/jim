@@ -203,6 +203,25 @@ from the install gate and runs there) the same restrictions just feel broken, so
 - Tap targets are at least 44×44 (`min-h-11 min-w-11`), and primary workout controls go in the
   bottom third of the screen.
 
+### Transitions between screens
+
+A screen or overlay that just appears or disappears feels like a web page reloading, not an app
+(#275). Unlike the rules above, this applies in a browser tab too, so it isn't gated on `body.pwa`.
+Every new page, overlay, or sheet needs a transition in and out. Reuse the classes in `globals.css`
+rather than writing new keyframes:
+
+- **Tab switches:** `.page-fade` (120ms), already applied by `components/tabbed-shell.tsx`.
+- **Routes outside the tab bar and full-screen overlays** (e.g. `/workout/[id]`, focus view):
+  `.route-fade` (220ms). `TabbedShell` applies it to routed pages. Also put it on content that
+  replaces a "Loading…" placeholder, so the swap doesn't snap.
+- **Bottom sheets:** `.sheet-backdrop` on the backdrop and `.sheet-panel` on the sheet. The
+  backdrop fades while the sheet rises. To close, set `data-closing="true"` and unmount on the
+  backdrop's own `animationend`. Under reduced motion, skip straight to unmounting, because no
+  `animationend` fires (`components/workout/pre-workout-sheet.tsx`).
+- Keep transitions short (under ~250ms) and opacity/transform only. Put a `transform` animation on
+  the sheet itself, never on an ancestor of a `fixed` element: a transformed ancestor becomes the
+  containing block and breaks `fixed` positioning.
+
 ---
 
 ## 8. App lifecycle: suspended, not killed
