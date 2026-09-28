@@ -5,5 +5,5 @@ export default async function SettingsPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
-  return <SettingsHome email={data?.claims.email} />;
+  return <SettingsHome email={data?.claims.email} userId={data?.claims.sub} />;
 }
