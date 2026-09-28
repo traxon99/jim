@@ -1,20 +1,39 @@
 "use client";
 
+import { clearAuthCookies, clearLocalData, flushOutboxBeforeSignOut } from "@/lib/auth/sign-out";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function SignOutButton() {
-  const router = useRouter();
   const [pending, setPending] = useState(false);
 
   async function handleSignOut() {
     setPending(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+
+    const unsynced = await flushOutboxBeforeSignOut();
+    if (
+      unsynced > 0 &&
+      !confirm(
+        `${unsynced} change${unsynced === 1 ? " hasn't" : "s haven't"} synced yet and will be lost. Sign out anyway?`,
+      )
+    ) {
+      setPending(false);
+      return;
+    }
+
+    // If the revoke request fails, supabase-js keeps the session — clear the
+    // cookie by hand so /login doesn't bounce straight back into the app.
+    const { error } = await createClient()
+      .auth.signOut()
+      .catch((caught: unknown) => ({ error: caught }));
+    if (error) clearAuthCookies();
+    await clearLocalData();
+
+    // A full page load, not router.push: the shell's mounted tabs and live
+    // queries still hold the old account's state, and the Dexie instance
+    // was just deleted out from under them.
+    window.location.replace("/login");
   }
 
   return (
