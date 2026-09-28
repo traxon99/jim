@@ -13,7 +13,7 @@ export async function loadEarlierStickyNotes(
 ): Promise<StickyNoteSource[]> {
   const sessionExercises = (
     await database.sessionExercises.where("exerciseId").equals(exerciseId).toArray()
-  ).filter((se) => !se.deletedAt && se.sessionId !== currentSessionId && se.stickyNote !== null);
+  ).filter((se) => !se.deletedAt && se.sessionId !== currentSessionId && se.stickyNote != null);
   if (sessionExercises.length === 0) return [];
 
   const sessionIds = [...new Set(sessionExercises.map((se) => se.sessionId))];

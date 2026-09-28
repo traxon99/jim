@@ -37,6 +37,12 @@ describe("resolveStickyNote", () => {
   const older = { stickyNote: "Seat on 4", startedAt: new Date("2026-09-01") };
   const newer = { stickyNote: "Seat on 5", startedAt: new Date("2026-09-08") };
 
+  it("treats undefined, from rows stored before the column existed, as never set", () => {
+    const legacy = { stickyNote: undefined, startedAt: new Date("2026-09-10") };
+    expect(resolveStickyNote(undefined, [])).toBeNull();
+    expect(resolveStickyNote(undefined, [older, legacy])).toBe("Seat on 4");
+  });
+
   it("prefers the workout's own note", () => {
     expect(resolveStickyNote("Grip wide", [older, newer])).toBe("Grip wide");
   });
