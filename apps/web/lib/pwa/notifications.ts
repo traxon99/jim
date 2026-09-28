@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Import your history from Strong or Hevy, and export all your data as CSV or JSON, in Settings.";
+  "Exercise details now open as a card you can close to get back to the list.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

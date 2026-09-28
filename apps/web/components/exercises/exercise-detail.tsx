@@ -1,5 +1,6 @@
 "use client";
 
+import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
@@ -13,9 +14,12 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
 export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
+  const router = useRouter();
+  const closeToList = () => router.push("/exercises");
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
 
   // Every current (non-superseded, non-deleted) set logged against this
@@ -70,21 +74,27 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
   const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
 
   if (exercise === undefined) {
-    return (
-      <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
-      </main>
-    );
+    return null;
   }
 
   if (exercise === null) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <h1 className="text-xl font-semibold">Exercise not found</h1>
-        <Link href="/exercises" className="text-sm font-medium underline underline-offset-4">
-          Back to exercises
-        </Link>
-      </main>
+      <FloatingCard labelledBy="exercise-title" onClose={closeToList}>
+        {(close) => (
+          <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
+            <h1 id="exercise-title" className="text-xl font-semibold">
+              Exercise not found
+            </h1>
+            <button
+              type="button"
+              onClick={close}
+              className="min-h-11 rounded-lg border border-zinc-300 px-4 text-base font-medium dark:border-zinc-700"
+            >
+              Back to exercises
+            </button>
+          </div>
+        )}
+      </FloatingCard>
     );
   }
 
@@ -98,126 +108,147 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
   ].filter((tag): tag is string => Boolean(tag));
 
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold">{exercise.name}</h1>
-          {exercise.isArchived && (
-            <p className="text-xs text-amber-600 dark:text-amber-500">Archived</p>
-          )}
-        </div>
-        {canEdit && (
-          <Link
-            href={`/exercises/${exercise.id}/edit`}
-            aria-label="Edit exercise"
-            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
-          >
-            <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-          </Link>
-        )}
-      </div>
-
-      {exercise.imageUrls.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto">
-          {exercise.imageUrls.map((url) => (
-            <img
-              key={url}
-              src={url}
-              alt={exercise.name}
-              className="h-40 w-auto rounded-lg object-cover"
-            />
-          ))}
-        </div>
-      )}
-
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {exercise.instructions.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold">Instructions</h2>
-          <ol className="allow-pwa-select mt-1 list-decimal space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
-            {exercise.instructions.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {isWarmup && (
-        <section>
-          <h2 className="text-sm font-semibold">How often</h2>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
-            Warm-ups are tracked by how often you do them, not for PRs.
-          </p>
-          <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
-            {[
-              { label: "Last 30 days", value: String(frequency.recentSessionCount) },
-              { label: "All time", value: String(frequency.sessionCount) },
-              {
-                label: "Last done",
-                value: frequency.lastDoneAt ? frequency.lastDoneAt.toLocaleDateString() : "—",
-              },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-lg bg-zinc-100 px-2 py-2 dark:bg-zinc-900">
-                <dt className="text-xs text-zinc-500 dark:text-zinc-500">{stat.label}</dt>
-                <dd className="text-base font-semibold tabular-nums">{stat.value}</dd>
+    <FloatingCard labelledBy="exercise-title" onClose={closeToList}>
+      {(close) => (
+        <>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-4 pb-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h1 id="exercise-title" className="text-xl font-semibold">
+                  {exercise.name}
+                </h1>
+                {exercise.isArchived && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500">Archived</p>
+                )}
               </div>
-            ))}
-          </dl>
-        </section>
-      )}
+              {canEdit && (
+                <Link
+                  href={`/exercises/${exercise.id}/edit`}
+                  aria-label="Edit exercise"
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+                >
+                  <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                </Link>
+              )}
+            </div>
 
-      {!isWarmup && oneRepMaxPoints.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
-          <div className="mt-2">
-            <OneRepMaxChart points={oneRepMaxPoints} />
-          </div>
-        </section>
-      )}
+            {exercise.imageUrls.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {exercise.imageUrls.map((url) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt={exercise.name}
+                    className="h-40 w-auto rounded-lg object-cover"
+                  />
+                ))}
+              </div>
+            )}
 
-      <section>
-        <h2 className="text-sm font-semibold">Your history</h2>
-        {!isWarmup && resolvedSets && <RestStatsLine sets={resolvedSets} className="mt-1" />}
-        {!history || history.length === 0 ? (
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">No sets logged yet.</p>
-        ) : (
-          <ul className="allow-pwa-select mt-1 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-            {history.map((set) => (
-              <li key={set.id} className="flex justify-between gap-2 py-2">
-                <span className="flex items-center gap-2">
-                  <span>
-                    {set.weight != null && set.reps != null
-                      ? `${set.weight} × ${set.reps}`
-                      : set.reps != null
-                        ? `${set.reps} reps`
-                        : set.durationSeconds != null
-                          ? `${set.durationSeconds}s`
-                          : set.distance != null
-                            ? `${set.distance}`
-                            : "—"}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                  >
+                    {tag}
                   </span>
-                  <SetRestTag set={set} />
-                </span>
-                <span className="text-zinc-500 dark:text-zinc-500">
-                  {set.completedAt.toLocaleDateString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </main>
+                ))}
+              </div>
+            )}
+
+            {exercise.instructions.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold">Instructions</h2>
+                <ol className="allow-pwa-select mt-1 list-decimal space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+                  {exercise.instructions.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </section>
+            )}
+
+            {isWarmup && (
+              <section>
+                <h2 className="text-sm font-semibold">How often</h2>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                  Warm-ups are tracked by how often you do them, not for PRs.
+                </p>
+                <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
+                  {[
+                    { label: "Last 30 days", value: String(frequency.recentSessionCount) },
+                    { label: "All time", value: String(frequency.sessionCount) },
+                    {
+                      label: "Last done",
+                      value: frequency.lastDoneAt ? frequency.lastDoneAt.toLocaleDateString() : "—",
+                    },
+                  ].map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="rounded-lg bg-zinc-100 px-2 py-2 dark:bg-zinc-900"
+                    >
+                      <dt className="text-xs text-zinc-500 dark:text-zinc-500">{stat.label}</dt>
+                      <dd className="text-base font-semibold tabular-nums">{stat.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+
+            {!isWarmup && oneRepMaxPoints.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
+                <div className="mt-2">
+                  <OneRepMaxChart points={oneRepMaxPoints} />
+                </div>
+              </section>
+            )}
+
+            <section>
+              <h2 className="text-sm font-semibold">Your history</h2>
+              {!isWarmup && resolvedSets && <RestStatsLine sets={resolvedSets} className="mt-1" />}
+              {!history || history.length === 0 ? (
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">No sets logged yet.</p>
+              ) : (
+                <ul className="allow-pwa-select mt-1 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                  {history.map((set) => (
+                    <li key={set.id} className="flex justify-between gap-2 py-2">
+                      <span className="flex items-center gap-2">
+                        <span>
+                          {set.weight != null && set.reps != null
+                            ? `${set.weight} × ${set.reps}`
+                            : set.reps != null
+                              ? `${set.reps} reps`
+                              : set.durationSeconds != null
+                                ? `${set.durationSeconds}s`
+                                : set.distance != null
+                                  ? `${set.distance}`
+                                  : "—"}
+                        </span>
+                        <SetRestTag set={set} />
+                      </span>
+                      <span className="text-zinc-500 dark:text-zinc-500">
+                        {set.completedAt.toLocaleDateString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+
+          <div className="flex touch-none border-t border-zinc-200 px-4 pt-3 pb-4 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={close}
+              className="min-h-11 flex-1 rounded-lg border border-zinc-300 px-4 text-base font-medium dark:border-zinc-700"
+            >
+              Done
+            </button>
+          </div>
+        </>
+      )}
+    </FloatingCard>
   );
 }
