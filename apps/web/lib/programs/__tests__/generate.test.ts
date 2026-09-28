@@ -109,7 +109,7 @@ describe("saveGeneratedProgram", () => {
     const entries = await testDb.programRoutines
       .where("programId")
       .equals(result.programId)
-      .toArray();
+      .sortBy("position");
     expect(entries.map((e) => e.weekday)).toEqual(generated.template.days.map((d) => d.weekday));
     const routines = await testDb.routines.toArray();
     expect(routines.map((r) => r.folder)).toEqual(routines.map(() => generated.template.name));
