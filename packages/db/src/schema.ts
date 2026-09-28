@@ -512,6 +512,15 @@ export const sessionExercises = pgTable(
     position: integer("position").notNull().default(0),
     supersetGroup: integer("superset_group"),
     notes: text("notes"),
+    // The exercise's sticky note (issue #271), shown in every later workout
+    // with this exercise. Null means "inherit the latest earlier one"; an
+    // empty string means it was cleared here.
+    stickyNote: text("sticky_note"),
+    // This workout's rest override from the ⋯ menu; null falls back to the
+    // routine's target rest, then the user's default. 0 turns the timer off.
+    restSeconds: integer("rest_seconds"),
+    // Warm-up sets added from the ⋯ menu, planned ahead of the working sets.
+    warmupSets: integer("warmup_sets"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

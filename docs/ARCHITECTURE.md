@@ -116,7 +116,8 @@ routine_exercises  id, routine_id, exercise_id, position, superset_group,
 
 sessions           id, user_id, routine_id?, name, started_at, ended_at,
                    notes, bodyweight?, device_id, updated_at
-session_exercises  id, session_id, exercise_id, position, superset_group, notes
+session_exercises  id, session_id, exercise_id, position, superset_group, notes,
+                   sticky_note, rest_seconds, warmup_sets
 
 sets               id, session_exercise_id, set_index,
                    kind(warmup|working|drop|failure),

@@ -2,10 +2,21 @@
 
 import { ExercisePicker } from "@/components/exercise-picker";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
-import { removeExerciseAction, supersetActions } from "@/components/supersets/superset-actions";
+import {
+  preferencesAction,
+  removeExerciseAction,
+  replaceExerciseAction,
+  supersetActions,
+} from "@/components/supersets/superset-actions";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
-import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
+import {
+  type ExerciseRow,
+  type RoutineExerciseRow,
+  type SessionExerciseRow,
+  type SetRow,
+  db,
+} from "@/lib/db/schema";
 import { dprCallFor } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
@@ -43,9 +54,26 @@ import { SessionSummary } from "./session-summary";
 import { WarmupBlock } from "./warmup-block";
 import { WarmupExerciseSection } from "./warmup-exercise-section";
 
+/**
+ * How many sets an exercise plans: the routine's target plus any warm-up
+ * sets added from its ⋯ menu (issue #271). Null when there's neither, and
+ * with warm-ups but no target, at least one working set after them.
+ */
+function plannedSetCountFor(
+  item: SessionExerciseRow,
+  target: RoutineExerciseRow | undefined,
+): number | null {
+  const targetSets = target?.targetSets ?? null;
+  const warmupSets = item.warmupSets ?? 0;
+  if (targetSets == null) return warmupSets > 0 ? warmupSets + 1 : null;
+  return targetSets + warmupSets;
+}
+
 export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // The exercise whose ⋯ Replace Exercise opened the picker (issue #271).
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -158,7 +186,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         id: se.id,
         name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
         loggedSetCount: setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0,
-        targetSetCount: targetByExerciseId.get(se.exerciseId)?.targetSets ?? null,
+        targetSetCount: plannedSetCountFor(se, targetByExerciseId.get(se.exerciseId)),
       })),
     [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
   );
@@ -195,8 +223,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       mainItems.map((se) => {
         const target = targetByExerciseId.get(se.exerciseId);
         return {
-          targetSetCount: target?.targetSets ?? null,
-          restSeconds: target?.targetRestSeconds ?? defaultRestSeconds,
+          targetSetCount: plannedSetCountFor(se, target),
+          restSeconds: se.restSeconds ?? target?.targetRestSeconds ?? defaultRestSeconds,
           setCompletedAt: setCompletedAtBySessionExerciseId.get(se.id) ?? [],
         };
       }),
@@ -224,7 +252,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       const candidate = candidateById.get(id);
       return candidate != null && isFocusExerciseComplete(candidate);
     });
-    if (followUp.rest) restTimer.start(restSeconds);
+    // A rest of 0 is the ⋯ menu's "Off" (issue #271).
+    if (followUp.rest && restSeconds > 0) restTimer.start(restSeconds);
     else restTimer.skip();
     if (focusMode && followUp.nextId) {
       const nextIndex = sessionExercises.findIndex((se) => se.id === followUp.nextId);
@@ -262,6 +291,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         position: sessionExercises.length + offset,
         supersetGroup,
         notes: null,
+        stickyNote: null,
+        restSeconds: null,
+        warmupSets: null,
         updatedAt: now,
         deviceId,
         deletedAt: null,
@@ -285,6 +317,25 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         deviceId,
       });
     }
+  }
+
+  // Only offered before a set is logged: logged sets belong to the exercise
+  // they were lifted on, and they're append-only (ADR-003).
+  async function handleReplaceExercise(itemId: string, exerciseId: string) {
+    const item = rawSessionExercises?.find((se) => se.id === itemId);
+    setReplacingId(null);
+    if (!item) return;
+    const deviceId = await getDeviceId();
+    await mutate("sessionExercises", {
+      ...item,
+      exerciseId,
+      notes: null,
+      stickyNote: null,
+      restSeconds: null,
+      warmupSets: null,
+      updatedAt: new Date(),
+      deviceId,
+    });
   }
 
   async function handleRemoveExercise(itemId: string) {
@@ -357,6 +408,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   const excludeExerciseIds = new Set(sessionExercises.map((se) => se.exerciseId));
 
+  function hasLogged(itemId: string) {
+    return (setCompletedAtBySessionExerciseId.get(itemId)?.length ?? 0) > 0;
+  }
+
   function renderExercise(item: (typeof sessionExercises)[number], large = false) {
     const exercise = exerciseById.get(item.exerciseId);
     const target = targetByExerciseId.get(item.exerciseId);
@@ -369,7 +424,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           exercise={exercise}
           target={target}
           large={large}
-          actions={[removeExerciseAction(() => void handleRemoveExercise(item.id))]}
+          actions={[
+            preferencesAction(item.exerciseId, router.push),
+            removeExerciseAction(() => void handleRemoveExercise(item.id)),
+          ]}
         />
       );
     }
@@ -389,12 +447,14 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
         actions={[
+          ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
           // Supersets are among the main exercises only (warm-ups return above).
           ...supersetActions(
             mainItems,
             mainItems.findIndex((se) => se.id === item.id),
             (changes) => void applySupersetChanges(changes),
           ),
+          preferencesAction(item.exerciseId, router.push),
           removeExerciseAction(() => void handleRemoveExercise(item.id)),
         ]}
       />
@@ -596,6 +656,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           excludeExerciseIds={excludeExerciseIds}
           onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {replacingId && (
+        <ExercisePicker
+          userId={userId}
+          mode="replace"
+          excludeExerciseIds={excludeExerciseIds}
+          onPick={([exerciseId]) => {
+            if (exerciseId) void handleReplaceExercise(replacingId, exerciseId);
+          }}
+          onClose={() => setReplacingId(null)}
         />
       )}
 
