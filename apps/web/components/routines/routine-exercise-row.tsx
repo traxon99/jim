@@ -1,9 +1,10 @@
 "use client";
 
+import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { SupersetBadge } from "@/components/supersets/superset-badge";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -12,8 +13,11 @@ interface Props {
   /** Warm-ups (issue #59) only take sets plus reps or a hold time. */
   warmup?: { timed: boolean } | null;
   units: "lb" | "kg";
+  /** "A1"-style place in a superset (issue #228), or null. */
+  supersetLabel?: string | null;
+  /** The ⋯ menu's items — superset options and Remove (issue #269). */
+  actions: readonly ExerciseAction[];
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
-  onRemove: () => void;
 }
 
 function toNumberOrNull(value: string): number | null {
@@ -40,8 +44,9 @@ export function RoutineExerciseRow({
   exerciseName,
   warmup = null,
   units,
+  supersetLabel = null,
+  actions,
   onUpdate,
-  onRemove,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -73,8 +78,8 @@ export function RoutineExerciseRow({
       ref={setNodeRef}
       style={style}
       className={`flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900 ${
-        isDragging ? "opacity-50" : ""
-      }`}
+        supersetLabel ? "border-l-4 border-l-accent" : ""
+      } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2">
@@ -88,7 +93,10 @@ export function RoutineExerciseRow({
             ⠿
           </button>
           <span className="flex flex-col pt-2">
-            <span className="text-base font-medium">{exerciseName}</span>
+            <span className="flex items-center gap-2">
+              {supersetLabel && <SupersetBadge label={supersetLabel} />}
+              <span className="text-base font-medium">{exerciseName}</span>
+            </span>
             {warmup && (
               <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
                 Warm-up
@@ -96,14 +104,7 @@ export function RoutineExerciseRow({
             )}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remove exercise"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-red-600 dark:text-red-500"
-        >
-          <Trash2 className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <ExerciseActionsMenu actions={actions} />
       </div>
 
       <div className="flex flex-wrap gap-2 pl-10">

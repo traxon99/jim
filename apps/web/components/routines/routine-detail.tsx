@@ -1,6 +1,12 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import {
+  preferencesAction,
+  removeExerciseAction,
+  replaceExerciseAction,
+  supersetActions,
+} from "@/components/supersets/superset-actions";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -8,10 +14,14 @@ import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
+  type SupersetChange,
   duplicateRoutine,
   isWarmupExercise,
   isWarmupRoutine,
+  nextSupersetGroup,
+  normalizeSupersets,
   reorderRoutineExercises,
+  supersetLabels,
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -25,6 +35,8 @@ import { RoutineIcon } from "./routine-icon";
 export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // The row whose ⋯ Replace Exercise opened the picker (issue #271).
+  const [replacing, setReplacing] = useState<RoutineExerciseRow | null>(null);
 
   const routine = useLiveQuery(async () => (await db.routines.get(id)) ?? null, [id]);
   const rawItems = useLiveQuery(
@@ -70,6 +82,8 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     return map;
   }, [exercises]);
 
+  const labels = useMemo(() => supersetLabels(items), [items]);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -77,44 +91,74 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     if (!over || active.id === over.id) return;
 
     const reordered = reorderRoutineExercises(items, String(active.id), String(over.id));
+    // A move can split a superset or strand one member (issue #228).
+    const groups = new Map(
+      normalizeSupersets(reordered).map((change) => [change.id, change.supersetGroup]),
+    );
     const deviceId = await getDeviceId();
     const now = new Date();
 
     for (const reorderedItem of reordered) {
       const original = items.find((item) => item.id === reorderedItem.id);
-      if (!original || original.position === reorderedItem.position) continue;
+      if (!original) continue;
+      const supersetGroup = groups.has(original.id)
+        ? (groups.get(original.id) ?? null)
+        : original.supersetGroup;
+      if (original.position === reorderedItem.position && original.supersetGroup === supersetGroup)
+        continue;
       await mutate("routineExercises", {
         ...original,
         position: reorderedItem.position,
+        supersetGroup,
         updatedAt: now,
         deviceId,
       });
     }
   }
 
-  async function handleAddExercise(exerciseId: string) {
+  async function applySupersetChanges(changes: readonly SupersetChange[]) {
+    if (changes.length === 0) return;
     const deviceId = await getDeviceId();
     const now = new Date();
-    const entity: RoutineExerciseRow = {
-      id: uuidv7(),
-      userId,
-      routineId: id,
-      exerciseId,
-      position: items.length,
-      supersetGroup: null,
-      targetSets: null,
-      targetRepsLow: null,
-      targetRepsHigh: null,
-      targetRestSeconds: null,
-      targetDurationSeconds: null,
-      targetWeight: null,
-      notes: null,
-      updatedAt: now,
-      deviceId,
-      deletedAt: null,
-      serverSeq: 0,
-    };
-    await mutate("routineExercises", entity);
+    for (const change of changes) {
+      const original = items.find((item) => item.id === change.id);
+      if (!original) continue;
+      await mutate("routineExercises", {
+        ...original,
+        supersetGroup: change.supersetGroup,
+        updatedAt: now,
+        deviceId,
+      });
+    }
+  }
+
+  // Picking several exercises at once adds them as one superset (issue #269).
+  async function handleAddExercises(exerciseIds: readonly string[]) {
+    const deviceId = await getDeviceId();
+    const now = new Date();
+    const supersetGroup = exerciseIds.length > 1 ? nextSupersetGroup(items) : null;
+    for (const [offset, exerciseId] of exerciseIds.entries()) {
+      const entity: RoutineExerciseRow = {
+        id: uuidv7(),
+        userId,
+        routineId: id,
+        exerciseId,
+        position: items.length + offset,
+        supersetGroup,
+        targetSets: null,
+        targetRepsLow: null,
+        targetRepsHigh: null,
+        targetRestSeconds: null,
+        targetDurationSeconds: null,
+        targetWeight: null,
+        notes: null,
+        updatedAt: now,
+        deviceId,
+        deletedAt: null,
+        serverSeq: 0,
+      };
+      await mutate("routineExercises", entity);
+    }
     setPickerOpen(false);
   }
 
@@ -131,6 +175,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       updatedAt: new Date(),
       deviceId,
     });
+    await applySupersetChanges(normalizeSupersets(items.filter((other) => other.id !== item.id)));
   }
 
   async function handleDuplicate() {
@@ -257,15 +302,21 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           strategy={verticalListSortingStrategy}
         >
           <ul className="flex flex-col gap-2">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <RoutineExerciseRowItem
                 key={item.id}
                 item={item}
+                supersetLabel={labels.get(item.id) ?? null}
+                actions={[
+                  replaceExerciseAction(() => setReplacing(item)),
+                  ...supersetActions(items, index, (changes) => void applySupersetChanges(changes)),
+                  preferencesAction(item.exerciseId, router.push),
+                  removeExerciseAction(() => void handleRemoveItem(item)),
+                ]}
                 exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                 warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                 units={settings.units}
                 onUpdate={(patch) => handleUpdateItem(item, patch)}
-                onRemove={() => handleRemoveItem(item)}
               />
             ))}
           </ul>
@@ -308,8 +359,23 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
           initialCategory={isWarmupKind ? "warmup" : "all"}
-          onPick={(exerciseId) => handleAddExercise(exerciseId)}
+          onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {replacing && (
+        <ExercisePicker
+          userId={userId}
+          mode="replace"
+          excludeExerciseIds={excludeExerciseIds}
+          initialCategory={isWarmupKind ? "warmup" : "all"}
+          onPick={([exerciseId]) => {
+            setReplacing(null);
+            // The targets stay: they're this slot's plan, whichever lift fills it.
+            if (exerciseId) void handleUpdateItem(replacing, { exerciseId });
+          }}
+          onClose={() => setReplacing(null)}
         />
       )}
     </main>

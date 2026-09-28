@@ -85,9 +85,12 @@ const NO_REST: RestBefore = { restSeconds: null, restTargetSeconds: null };
 /**
  * Rest taken before a set about to be logged (issue #233): the time since
  * the session's latest set, against the rest the timer ran after that set —
- * its routine's target rest, else the default (the same rule
- * session-exercise-section uses to start the timer). Warm-up exercises have
- * no rest timer, so a set logged after one, or of one, has no rest.
+ * the exercise's own rest for this workout, else its routine's target rest,
+ * else the default (the same rule session-exercise-section uses to start
+ * the timer). Warm-up exercises have no rest timer, so a set logged after
+ * one, or of one, has no rest; nor does one after an exercise set to no rest,
+ * or one that follows its superset partner mid-round (issue #228: the rest
+ * comes after each round, not each set).
  */
 async function restBeforeNewSet(
   database: JimDatabase,
@@ -113,8 +116,16 @@ async function restBeforeNewSet(
   if (!previous) return NO_REST;
   const { sessionExerciseId: previousSessionExerciseId, completedAt } = previous;
 
-  const previousExerciseId = siblings.find((se) => se.id === previousSessionExerciseId)?.exerciseId;
-  if (!previousExerciseId) return NO_REST;
+  const previousItem = siblings.find((se) => se.id === previousSessionExerciseId);
+  if (!previousItem) return NO_REST;
+  // Moving on to a later member of the same superset is mid-round (no
+  // timer); coming back to an earlier one starts the next round, after rest.
+  const midRound =
+    previousItem.supersetGroup != null &&
+    previousItem.supersetGroup === sessionExercise.supersetGroup &&
+    sessionExercise.position > previousItem.position;
+  if (midRound) return NO_REST;
+  const previousExerciseId = previousItem.exerciseId;
   const previousExercise = await database.exercises.get(previousExerciseId);
   if (previousExercise && isWarmupExercise(previousExercise)) return NO_REST;
 
@@ -125,11 +136,12 @@ async function restBeforeNewSet(
       )
     : undefined;
   const settings = (await database.settings.get("me")) ?? DEFAULT_SETTINGS;
-  return {
-    restSeconds: restTakenSeconds(completedAt, now),
-    restTargetSeconds:
-      routineItem?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90),
-  };
+  const restTargetSeconds =
+    previousItem.restSeconds ??
+    routineItem?.targetRestSeconds ??
+    (Number(settings.defaultRestSeconds) || 90);
+  if (restTargetSeconds <= 0) return NO_REST;
+  return { restSeconds: restTakenSeconds(completedAt, now), restTargetSeconds };
 }
 
 export interface CompleteSetInput {

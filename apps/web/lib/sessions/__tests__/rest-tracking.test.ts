@@ -127,6 +127,9 @@ describe("rest before each set (issue #233)", () => {
       position: 0,
       supersetGroup: null,
       notes: null,
+      stickyNote: null,
+      restSeconds: null,
+      warmupSets: null,
       updatedAt: T0,
       deviceId: "d",
       deletedAt: null,
@@ -155,6 +158,50 @@ describe("rest before each set (issue #233)", () => {
     advance(60);
     const bench = await log(ids.get(BENCH) as string, BENCH, 0);
     expect(bench.restSeconds).toBeNull();
+  });
+
+  it("uses the exercise's own rest for this workout, and none when it's off", async () => {
+    const sessionId = await startSessionFromRoutine(
+      USER_ID,
+      { id: "routine", name: "Push" },
+      [routineItem(BENCH, 0, 120)],
+      testDb,
+    );
+    const ids = await sessionExerciseIds(sessionId);
+    const benchId = ids.get(BENCH) as string;
+    await testDb.sessionExercises.update(benchId, { restSeconds: 150 });
+    await log(benchId, BENCH, 0);
+    advance(100);
+    expect(await log(benchId, BENCH, 1)).toMatchObject({
+      restSeconds: 100,
+      restTargetSeconds: 150,
+    });
+
+    await testDb.sessionExercises.update(benchId, { restSeconds: 0 });
+    advance(20);
+    expect((await log(benchId, BENCH, 2)).restSeconds).toBeNull();
+  });
+
+  it("has no rest between superset partners mid-round, only after the round", async () => {
+    const items = [
+      { ...routineItem(BENCH, 0, 90), supersetGroup: 1 },
+      { ...routineItem(ROW, 1, 90), supersetGroup: 1 },
+    ];
+    const sessionId = await startSessionFromRoutine(
+      USER_ID,
+      { id: "routine", name: "Push" },
+      items,
+      testDb,
+    );
+    const ids = await sessionExerciseIds(sessionId);
+    await log(ids.get(BENCH) as string, BENCH, 0);
+    advance(15);
+    expect((await log(ids.get(ROW) as string, ROW, 0)).restSeconds).toBeNull();
+    advance(80);
+    expect(await log(ids.get(BENCH) as string, BENCH, 1)).toMatchObject({
+      restSeconds: 80,
+      restTargetSeconds: 90,
+    });
   });
 
   it("keeps a set's rest through an edit", async () => {

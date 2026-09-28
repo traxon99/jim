@@ -1,5 +1,7 @@
 "use client";
 
+import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { mutate } from "@/lib/db/mutate";
 import {
   type ExerciseRow,
@@ -20,6 +22,7 @@ import {
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet, updateSetKind } from "@/lib/sessions/set-actions";
 import { type SetKind, setNumberLabels } from "@/lib/sessions/set-kinds";
+import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -29,17 +32,21 @@ import {
   RPE_MAX,
   RPE_MIN,
   STRENGTH_STANDARD_TIERS,
+  WARMUP_RAMP_SET_COUNT,
   clampRpe,
   plannedSetIndices,
   prefillWeightForSet,
   remainingPlannedSetCount,
   resolveCurrentRows,
+  resolveStickyNote,
   standardLiftForSlug,
   suggestedWeightsByTier,
+  warmupRamp,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, RotateCcw, Trash2 } from "lucide-react";
-import { useEffect, useId, useMemo, useState } from "react";
+import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ExerciseDialog } from "./exercise-dialog";
 import { RpeInfoMenu } from "./rpe-info-menu";
 import { SetKindMenu } from "./set-kind-menu";
 import { SetRow } from "./set-row";
@@ -54,13 +61,19 @@ interface Props {
   /** DPR's call when this is a focused lift and DPR is on (issue #212); else null. */
   dpr?: DprCallInfo | null;
   large?: boolean;
+  /** "A1"-style place in a superset (issue #228), or null. */
+  supersetLabel?: string | null;
   /**
    * Called after a set is logged, with this exercise's rest and how many of
    * its planned sets are still unlogged (issue #231: zero on the final set
    * of the workout means there's nothing to rest for).
    */
   onSetLogged: (restSeconds: number, remainingPlannedSets: number) => void;
-  onRemove: () => void;
+  /**
+   * The ⋯ menu's items after this section's own (note, sticky note, warm-ups,
+   * rest): Replace, superset options, Preferences and Remove (#269, #271).
+   */
+  actions: readonly ExerciseAction[];
 }
 
 function toNumberOrNull(value: string): number | null {
@@ -74,6 +87,17 @@ function toRpeOrNull(value: string): number | null {
   return n == null ? null : clampRpe(n);
 }
 
+/** Rest choices in the ⋯ menu's Update Rest Timers; 0 turns it off. */
+const REST_PRESETS = [0, 30, 60, 90, 120, 180, 300] as const;
+
+function formatRest(seconds: number): string {
+  if (seconds <= 0) return "Off";
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
 interface DraftValues {
   weight: string;
   reps: string;
@@ -84,9 +108,6 @@ interface DraftValues {
 function sizesFor(large: boolean) {
   return {
     title: large ? "text-2xl font-bold" : "text-base font-semibold",
-    removeButton: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-red-600 dark:text-red-500"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-600 dark:text-red-500",
     meta: large
       ? "text-base text-zinc-500 dark:text-zinc-500"
       : "text-xs text-zinc-500 dark:text-zinc-500",
@@ -111,7 +132,6 @@ function sizesFor(large: boolean) {
     repeatButton:
       "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
     rowIcon: "h-4 w-4",
-    icon: large ? "h-5 w-5" : "h-4 w-4",
     notesLabel: large
       ? "flex flex-col gap-1 text-base font-medium"
       : "flex flex-col gap-1 text-xs font-medium",
@@ -130,8 +150,9 @@ export function SessionExerciseSection({
   settings,
   dpr = null,
   large = false,
+  supersetLabel = null,
   onSetLogged,
-  onRemove,
+  actions,
 }: Props) {
   const sizes = sizesFor(large);
   const fieldId = useId();
@@ -143,7 +164,29 @@ export function SessionExerciseSection({
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
   const [notes, setNotes] = useState(item.notes ?? "");
   const [notesOpen, setNotesOpen] = useState(!large || Boolean(item.notes));
+  const notesInputRef = useRef<HTMLInputElement>(null);
+  const [focusNotes, setFocusNotes] = useState(false);
   const [draftOverrides, setDraftOverrides] = useState<Map<number, DraftValues>>(new Map());
+  const [stickyEditing, setStickyEditing] = useState(false);
+  const [stickyDraft, setStickyDraft] = useState("");
+  const [restEditing, setRestEditing] = useState(false);
+  const [customRest, setCustomRest] = useState("");
+  const closeSticky = useCallback(() => setStickyEditing(false), []);
+  const closeRest = useCallback(() => setRestEditing(false), []);
+
+  // Issue #271: the newest sticky note from an earlier workout shows here
+  // until this workout sets or clears its own.
+  const earlierStickyNotes = useLiveQuery(
+    () => loadEarlierStickyNotes(item.exerciseId, sessionId),
+    [item.exerciseId, sessionId],
+  );
+  const stickyNote = resolveStickyNote(item.stickyNote, earlierStickyNotes ?? []);
+
+  useEffect(() => {
+    if (!focusNotes || !notesOpen) return;
+    notesInputRef.current?.focus();
+    setFocusNotes(false);
+  }, [focusNotes, notesOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,10 +204,19 @@ export function SessionExerciseSection({
       .sort((a, b) => a.setIndex - b.setIndex);
   }, [rawSets]);
 
+  // Warm-up sets added from the ⋯ menu (issue #271) are planned at the
+  // front, so the working sets' "last time" lookups shift back by as many.
+  const warmupCount = item.warmupSets ?? 0;
+  function previousFor(index: number): PreviousSet | undefined {
+    return index < warmupCount ? undefined : previousByIndex.get(index - warmupCount);
+  }
+  const plannedTotal = Math.max(target?.targetSets ?? 0, previousByIndex.size, 1) + warmupCount;
+
   const nextIndex = sets.length;
-  const previous = previousByIndex.get(nextIndex);
+  const previous = previousByIndex.get(Math.max(nextIndex - warmupCount, 0));
   const lastSet = sets[sets.length - 1];
-  const restSeconds = target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
+  const restSeconds =
+    item.restSeconds ?? target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
 
   const loggedIndices = useMemo(() => new Set(sets.map((set) => set.setIndex)), [sets]);
 
@@ -185,8 +237,8 @@ export function SessionExerciseSection({
   // everything else is computed fresh from the plan/history on every render,
   // so it stays current as `previousByIndex` loads in.
   const plannedIndices = useMemo(
-    () => plannedSetIndices(target?.targetSets ?? null, previousByIndex.size, loggedIndices),
-    [target?.targetSets, previousByIndex, loggedIndices],
+    () => plannedSetIndices(plannedTotal, 0, loggedIndices),
+    [plannedTotal, loggedIndices],
   );
 
   // Suggested weight/reps for a not-yet-logged row (issue #159): last time's
@@ -198,45 +250,57 @@ export function SessionExerciseSection({
   // (issue #212), DPR's weight — and after a change, the bottom of the rep
   // range — replaces both on working sets, still just a placeholder.
   function remainingAfterLogging(index: number): number {
-    return remainingPlannedSetCount(
-      target?.targetSets ?? null,
-      previousByIndex.size,
-      new Set([...loggedIndices, index]),
-    );
+    return remainingPlannedSetCount(plannedTotal, 0, new Set([...loggedIndices, index]));
   }
 
+  // The ramp aims at the first working set's suggested weight.
+  const firstWorkingWeight = toNumberOrNull(
+    dprWeightPlaceholder(dpr, "working") ??
+      prefillWeightForSet(0, previousFor(warmupCount), targetWeight),
+  );
+  const ramp = warmupRamp(
+    firstWorkingWeight,
+    Number(settings.defaultBarWeight) || 0,
+    settings.units === "kg" ? 2.5 : 5,
+  );
+
   function suggestedWeightFor(index: number): string {
+    if (index < warmupCount) {
+      const weight = ramp[index]?.weight;
+      return weight == null ? "" : String(weight);
+    }
     return (
       dprWeightPlaceholder(dpr, draftFor(index).kind) ??
-      prefillWeightForSet(index, previousByIndex.get(index), targetWeight)
+      prefillWeightForSet(index - warmupCount, previousFor(index), targetWeight)
     );
   }
   function suggestedRepsFor(index: number): string {
+    if (index < warmupCount) return String(ramp[index]?.reps ?? "");
     const dprReps = dprRepsPlaceholder(dpr, draftFor(index).kind);
     if (dprReps !== null) return dprReps;
-    const priorAtIndex = previousByIndex.get(index);
+    const priorAtIndex = previousFor(index);
     return priorAtIndex?.reps != null
       ? String(priorAtIndex.reps)
       : (target?.targetRepsLow?.toString() ?? "");
   }
 
-  function defaultDraft(): DraftValues {
+  function defaultDraft(index: number): DraftValues {
     return {
       weight: "",
       reps: "",
       rpe: "",
-      kind: "working",
+      kind: index < warmupCount ? "warmup" : "working",
     };
   }
 
   function draftFor(index: number): DraftValues {
-    return draftOverrides.get(index) ?? defaultDraft();
+    return draftOverrides.get(index) ?? defaultDraft(index);
   }
 
   function updateDraft(index: number, patch: Partial<DraftValues>) {
     setDraftOverrides((current) => {
       const next = new Map(current);
-      next.set(index, { ...(current.get(index) ?? defaultDraft()), ...patch });
+      next.set(index, { ...(current.get(index) ?? defaultDraft(index)), ...patch });
       return next;
     });
   }
@@ -308,15 +372,73 @@ export function SessionExerciseSection({
     await updateSetKind(original, kind);
   }
 
-  async function handleNotesBlur() {
+  async function saveItem(patch: Partial<SessionExerciseRow>) {
     const deviceId = await getDeviceId();
     await mutate("sessionExercises", {
       ...item,
-      notes: notes.trim() || null,
+      ...patch,
       updatedAt: new Date(),
       deviceId,
     });
   }
+
+  async function handleNotesBlur() {
+    await saveItem({ notes: notes.trim() || null });
+  }
+
+  async function saveStickyNote(value: string) {
+    // "" rather than null, so a cleared note stops earlier ones showing.
+    await saveItem({ stickyNote: value.trim() });
+    setStickyEditing(false);
+  }
+
+  async function saveRest(seconds: number) {
+    await saveItem({ restSeconds: Math.max(0, Math.round(seconds)) });
+    setRestEditing(false);
+  }
+
+  async function toggleWarmups() {
+    setDraftOverrides(new Map());
+    await saveItem({ warmupSets: warmupCount > 0 ? null : WARMUP_RAMP_SET_COUNT });
+  }
+
+  // This section's own ⋯ entries (issue #271) come first, in the order the
+  // menu shows them; warm-ups can only be planned before anything is logged.
+  const ownActions: ExerciseAction[] = [
+    {
+      label: notes.trim() ? "Edit Note" : "Add Note",
+      icon: File,
+      onSelect: () => {
+        setNotesOpen(true);
+        setFocusNotes(true);
+      },
+    },
+    {
+      label: stickyNote ? "Edit Sticky Note" : "Add Sticky Note",
+      icon: Pin,
+      onSelect: () => {
+        setStickyDraft(stickyNote ?? "");
+        setStickyEditing(true);
+      },
+    },
+    ...(sets.length === 0
+      ? [
+          {
+            label: warmupCount > 0 ? "Remove Warm-up Sets" : "Add Warm-up Sets",
+            icon: Diff,
+            onSelect: () => void toggleWarmups(),
+          },
+        ]
+      : []),
+    {
+      label: "Update Rest Timers",
+      icon: Timer,
+      onSelect: () => {
+        setCustomRest("");
+        setRestEditing(true);
+      },
+    },
+  ];
 
   function weightInputFor(index: number, draft: DraftValues) {
     return (
@@ -450,6 +572,7 @@ export function SessionExerciseSection({
     >
       <div className="flex items-start justify-between gap-2">
         <h2 className={`${sizes.title} flex min-w-0 items-center gap-2`}>
+          {supersetLabel && <SupersetBadge label={supersetLabel} />}
           <span className="min-w-0">{exercise?.name ?? "Exercise"}</span>
           {dpr && (
             <span
@@ -462,15 +585,30 @@ export function SessionExerciseSection({
             </span>
           )}
         </h2>
+        <ExerciseActionsMenu actions={[...ownActions, ...actions]} large={large} />
+      </div>
+
+      {stickyNote && (
         <button
           type="button"
-          onClick={onRemove}
-          aria-label="Remove exercise"
-          className={sizes.removeButton}
+          onClick={() => {
+            setStickyDraft(stickyNote);
+            setStickyEditing(true);
+          }}
+          className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
         >
-          <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
+          <Pin className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} aria-hidden="true" />
+          <span className="allow-pwa-select min-w-0 whitespace-pre-wrap">{stickyNote}</span>
         </button>
-      </div>
+      )}
+
+      {item.restSeconds != null && (
+        <p className={sizes.meta}>
+          {item.restSeconds > 0
+            ? `Rest ${formatRest(item.restSeconds)} this workout`
+            : "Rest timer off this workout"}
+        </p>
+      )}
 
       {previous && (
         <p className={sizes.meta}>
@@ -532,6 +670,7 @@ export function SessionExerciseSection({
         <label className={sizes.notesLabel}>
           Exercise notes
           <input
+            ref={notesInputRef}
             type="text"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
@@ -547,6 +686,111 @@ export function SessionExerciseSection({
         >
           + Add note
         </button>
+      )}
+
+      {stickyEditing && (
+        <ExerciseDialog title="Sticky note" onClose={closeSticky}>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Shows on {exercise?.name ?? "this exercise"} in every workout until you change it.
+          </p>
+          <textarea
+            value={stickyDraft}
+            onChange={(event) => setStickyDraft(event.target.value)}
+            rows={3}
+            // biome-ignore lint/a11y/noAutofocus: the dialog exists to type this note.
+            autoFocus
+            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+          />
+          <div className="flex justify-end gap-2">
+            {stickyNote && (
+              <button
+                type="button"
+                onClick={() => void saveStickyNote("")}
+                className="mr-auto min-h-11 px-2 text-sm font-medium text-red-600 dark:text-red-500"
+              >
+                Clear
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={closeSticky}
+              className="min-h-11 px-3 text-sm font-medium text-zinc-600 dark:text-zinc-400"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveStickyNote(stickyDraft)}
+              className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+            >
+              Save
+            </button>
+          </div>
+        </ExerciseDialog>
+      )}
+
+      {restEditing && (
+        <ExerciseDialog title="Rest timer" onClose={closeRest}>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Rest after each set of {exercise?.name ?? "this exercise"} in this workout. Now{" "}
+            {formatRest(restSeconds)}.
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {REST_PRESETS.map((seconds) => (
+              <button
+                key={seconds}
+                type="button"
+                aria-pressed={restSeconds === seconds}
+                onClick={() => void saveRest(seconds)}
+                className={`min-h-11 rounded-lg border text-sm font-medium tabular-nums ${
+                  restSeconds === seconds
+                    ? "border-accent bg-accent text-accent-foreground"
+                    : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                }`}
+              >
+                {formatRest(seconds)}
+              </button>
+            ))}
+          </div>
+          <form
+            className="flex items-end gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const seconds = toNumberOrNull(customRest);
+              if (seconds != null && seconds >= 0) void saveRest(seconds);
+            }}
+          >
+            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
+              Custom (seconds)
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={customRest}
+                onChange={(event) => setCustomRest(event.target.value)}
+                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+              />
+            </label>
+            <button
+              type="submit"
+              className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+            >
+              Set
+            </button>
+          </form>
+          {item.restSeconds != null && (
+            <button
+              type="button"
+              onClick={() => {
+                void saveItem({ restSeconds: null });
+                setRestEditing(false);
+              }}
+              className="self-start text-sm font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+            >
+              Use the routine's rest
+            </button>
+          )}
+        </ExerciseDialog>
       )}
     </section>
   );

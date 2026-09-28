@@ -1,6 +1,6 @@
 {
-  "id": "b5a8df63-d920-4408-8beb-f6b6828d5567",
-  "prevId": "384ce318-c27f-4d8c-ab56-56f255e9e214",
+  "id": "3a1cb378-ebac-44f4-930f-b63c78ef6275",
+  "prevId": "b5a8df63-d920-4408-8beb-f6b6828d5567",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2109,6 +2109,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "intensity": {
+          "name": "intensity",
+          "type": "session_intensity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "device_id": {
           "name": "device_id",
           "type": "text",
@@ -2278,6 +2285,18 @@
         },
         "rir": {
           "name": "rir",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rest_seconds": {
+          "name": "rest_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rest_target_seconds": {
+          "name": "rest_target_seconds",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -2764,6 +2783,11 @@
       "name": "routine_kind",
       "schema": "public",
       "values": ["strength", "warmup"]
+    },
+    "public.session_intensity": {
+      "name": "session_intensity",
+      "schema": "public",
+      "values": ["light", "maintain", "push"]
     },
     "public.set_kind": {
       "name": "set_kind",

@@ -8,3 +8,4 @@ export * from "./pace";
 export * from "./rpe";
 export * from "./last-set";
 export * from "./rest-compliance";
+export * from "./exercise-extras";

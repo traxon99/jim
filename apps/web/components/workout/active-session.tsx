@@ -2,9 +2,21 @@
 
 import { ExercisePicker } from "@/components/exercise-picker";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import {
+  preferencesAction,
+  removeExerciseAction,
+  replaceExerciseAction,
+  supersetActions,
+} from "@/components/supersets/superset-actions";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
-import { type ExerciseRow, type RoutineExerciseRow, type SetRow, db } from "@/lib/db/schema";
+import {
+  type ExerciseRow,
+  type RoutineExerciseRow,
+  type SessionExerciseRow,
+  type SetRow,
+  db,
+} from "@/lib/db/schema";
 import { dprCallFor } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
@@ -14,13 +26,20 @@ import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
 import {
   type PaceExercise,
+  type SupersetChange,
+  isFocusExerciseComplete,
   isLastRemainingSet,
   isWarmupComplete,
   isWarmupExercise,
   isWorkoutComplete,
+  nextSupersetGroup,
+  normalizeSupersets,
   partitionWarmups,
   resolveCurrentRows,
   resolveFocusedExerciseIndex,
+  supersetBlocks,
+  supersetFollowUp,
+  supersetLabels,
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -35,9 +54,26 @@ import { SessionSummary } from "./session-summary";
 import { WarmupBlock } from "./warmup-block";
 import { WarmupExerciseSection } from "./warmup-exercise-section";
 
+/**
+ * How many sets an exercise plans: the routine's target plus any warm-up
+ * sets added from its ⋯ menu (issue #271). Null when there's neither, and
+ * with warm-ups but no target, at least one working set after them.
+ */
+function plannedSetCountFor(
+  item: SessionExerciseRow,
+  target: RoutineExerciseRow | undefined,
+): number | null {
+  const targetSets = target?.targetSets ?? null;
+  const warmupSets = item.warmupSets ?? 0;
+  if (targetSets == null) return warmupSets > 0 ? warmupSets + 1 : null;
+  return targetSets + warmupSets;
+}
+
 export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // The exercise whose ⋯ Replace Exercise opened the picker (issue #271).
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -95,6 +131,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     return { warmupItems: warmups, mainItems: main };
   }, [rawSessionExercises, exerciseById]);
   const sessionExercises = useMemo(() => [...warmupItems, ...mainItems], [warmupItems, mainItems]);
+  // Supersets (issue #228) are among the main exercises only — warm-ups
+  // always sit in their own block.
+  // Each superset's letter, keyed by its first exercise — where its heading goes.
+  const supersetLetterByFirstId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const block of supersetBlocks(mainItems)) {
+      const first = block.items[0];
+      if (block.letter && first) map.set(first.id, block.letter);
+    }
+    return map;
+  }, [mainItems]);
+  const supersetLabelById = useMemo(() => supersetLabels(mainItems), [mainItems]);
   const warmupTargetMinutes = routine?.warmupMinutes ?? warmupRoutine?.warmupMinutes ?? null;
 
   const targetByExerciseId = useMemo(() => {
@@ -138,7 +186,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         id: se.id,
         name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
         loggedSetCount: setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0,
-        targetSetCount: targetByExerciseId.get(se.exerciseId)?.targetSets ?? null,
+        targetSetCount: plannedSetCountFor(se, targetByExerciseId.get(se.exerciseId)),
       })),
     [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
   );
@@ -175,8 +223,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       mainItems.map((se) => {
         const target = targetByExerciseId.get(se.exerciseId);
         return {
-          targetSetCount: target?.targetSets ?? null,
-          restSeconds: target?.targetRestSeconds ?? defaultRestSeconds,
+          targetSetCount: plannedSetCountFor(se, target),
+          restSeconds: se.restSeconds ?? target?.targetRestSeconds ?? defaultRestSeconds,
           setCompletedAt: setCompletedAtBySessionExerciseId.get(se.id) ?? [],
         };
       }),
@@ -184,7 +232,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   );
 
   // Issue #231: no rest after the workout's final set — there's no next set
-  // to rest for. Warm-ups don't count; they have their own timer.
+  // to rest for. Warm-ups don't count; they have their own timer. In a
+  // superset (issue #228) the rest comes after each round, not each set, and
+  // focus mode moves on to the next exercise in the round by itself.
   function handleSetLogged(itemId: string, restSeconds: number, remainingPlannedSets: number) {
     const mainIds = new Set(mainItems.map((se) => se.id));
     const others = focusCandidates.filter(
@@ -196,7 +246,19 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       restTimer.skip();
       return;
     }
-    restTimer.start(restSeconds);
+    const candidateById = new Map(focusCandidates.map((candidate) => [candidate.id, candidate]));
+    const followUp = supersetFollowUp(mainItems, itemId, (id) => {
+      if (id === itemId) return remainingPlannedSets === 0;
+      const candidate = candidateById.get(id);
+      return candidate != null && isFocusExerciseComplete(candidate);
+    });
+    // A rest of 0 is the ⋯ menu's "Off" (issue #271).
+    if (followUp.rest && restSeconds > 0) restTimer.start(restSeconds);
+    else restTimer.skip();
+    if (focusMode && followUp.nextId) {
+      const nextIndex = sessionExercises.findIndex((se) => se.id === followUp.nextId);
+      if (nextIndex !== -1) setFocusedIndex(nextIndex);
+    }
   }
 
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
@@ -215,23 +277,65 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     if (notFound) router.replace("/workout");
   }, [notFound, router]);
 
-  async function handleAddExercise(exerciseId: string) {
+  // Picking several exercises at once adds them as one superset (issue #269).
+  async function handleAddExercises(exerciseIds: readonly string[]) {
     const deviceId = await getDeviceId();
     const now = new Date();
-    await mutate("sessionExercises", {
-      id: uuidv7(),
-      userId,
-      sessionId: id,
-      exerciseId,
-      position: sessionExercises.length,
-      supersetGroup: null,
-      notes: null,
-      updatedAt: now,
-      deviceId,
-      deletedAt: null,
-      serverSeq: 0,
-    });
+    const supersetGroup = exerciseIds.length > 1 ? nextSupersetGroup(mainItems) : null;
+    for (const [offset, exerciseId] of exerciseIds.entries()) {
+      await mutate("sessionExercises", {
+        id: uuidv7(),
+        userId,
+        sessionId: id,
+        exerciseId,
+        position: sessionExercises.length + offset,
+        supersetGroup,
+        notes: null,
+        stickyNote: null,
+        restSeconds: null,
+        warmupSets: null,
+        updatedAt: now,
+        deviceId,
+        deletedAt: null,
+        serverSeq: 0,
+      });
+    }
     setPickerOpen(false);
+  }
+
+  async function applySupersetChanges(changes: readonly SupersetChange[]) {
+    if (changes.length === 0) return;
+    const deviceId = await getDeviceId();
+    const now = new Date();
+    for (const change of changes) {
+      const item = mainItems.find((se) => se.id === change.id);
+      if (!item) continue;
+      await mutate("sessionExercises", {
+        ...item,
+        supersetGroup: change.supersetGroup,
+        updatedAt: now,
+        deviceId,
+      });
+    }
+  }
+
+  // Only offered before a set is logged: logged sets belong to the exercise
+  // they were lifted on, and they're append-only (ADR-003).
+  async function handleReplaceExercise(itemId: string, exerciseId: string) {
+    const item = rawSessionExercises?.find((se) => se.id === itemId);
+    setReplacingId(null);
+    if (!item) return;
+    const deviceId = await getDeviceId();
+    await mutate("sessionExercises", {
+      ...item,
+      exerciseId,
+      notes: null,
+      stickyNote: null,
+      restSeconds: null,
+      warmupSets: null,
+      updatedAt: new Date(),
+      deviceId,
+    });
   }
 
   async function handleRemoveExercise(itemId: string) {
@@ -244,6 +348,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       updatedAt: new Date(),
       deviceId,
     });
+    await applySupersetChanges(normalizeSupersets(mainItems.filter((se) => se.id !== itemId)));
   }
 
   async function handleNotesBlur() {
@@ -303,6 +408,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   const excludeExerciseIds = new Set(sessionExercises.map((se) => se.exerciseId));
 
+  function hasLogged(itemId: string) {
+    return (setCompletedAtBySessionExerciseId.get(itemId)?.length ?? 0) > 0;
+  }
+
   function renderExercise(item: (typeof sessionExercises)[number], large = false) {
     const exercise = exerciseById.get(item.exerciseId);
     const target = targetByExerciseId.get(item.exerciseId);
@@ -315,7 +424,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           exercise={exercise}
           target={target}
           large={large}
-          onRemove={() => void handleRemoveExercise(item.id)}
+          actions={[
+            preferencesAction(item.exerciseId, router.push),
+            removeExerciseAction(() => void handleRemoveExercise(item.id)),
+          ]}
         />
       );
     }
@@ -332,10 +444,21 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
         }
         large={large}
+        supersetLabel={supersetLabelById.get(item.id) ?? null}
         onSetLogged={(restSeconds, remainingPlannedSets) =>
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
-        onRemove={() => void handleRemoveExercise(item.id)}
+        actions={[
+          ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
+          // Supersets are among the main exercises only (warm-ups return above).
+          ...supersetActions(
+            mainItems,
+            mainItems.findIndex((se) => se.id === item.id),
+            (changes) => void applySupersetChanges(changes),
+          ),
+          preferencesAction(item.exerciseId, router.push),
+          removeExerciseAction(() => void handleRemoveExercise(item.id)),
+        ]}
       />
     );
   }
@@ -472,7 +595,25 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               {warmupItems.map((item) => renderExercise(item))}
             </WarmupBlock>
           )}
-          {mainItems.map((item) => renderExercise(item))}
+          {mainItems.map((item) => {
+            // Flat and keyed by item so linking mid-workout doesn't remount
+            // an exercise and drop what's typed into it.
+            const label = supersetLabelById.get(item.id);
+            const startsSuperset = supersetLetterByFirstId.get(item.id);
+            return (
+              <div
+                key={item.id}
+                className={`flex flex-col gap-1 ${label ? "border-l-4 border-l-accent pl-2" : ""}`}
+              >
+                {startsSuperset && (
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                    Superset {startsSuperset} · rest after each round
+                  </p>
+                )}
+                {renderExercise(item)}
+              </div>
+            );
+          })}
           {allSetsLogged && (
             <button
               type="button"
@@ -515,8 +656,20 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         <ExercisePicker
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
-          onPick={(exerciseId) => void handleAddExercise(exerciseId)}
+          onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
+        />
+      )}
+
+      {replacingId && (
+        <ExercisePicker
+          userId={userId}
+          mode="replace"
+          excludeExerciseIds={excludeExerciseIds}
+          onPick={([exerciseId]) => {
+            if (exerciseId) void handleReplaceExercise(replacingId, exerciseId);
+          }}
+          onClose={() => setReplacingId(null)}
         />
       )}
 
