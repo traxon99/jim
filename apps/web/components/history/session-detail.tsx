@@ -1,6 +1,7 @@
 "use client";
 
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
@@ -177,6 +178,8 @@ export function SessionDetail({ id }: { id: string }) {
         </dl>
       )}
 
+      <RestStatsLine sets={groups.flatMap((group) => group.sets)} />
+
       {session.notes && <p className="text-sm text-zinc-700 dark:text-zinc-300">{session.notes}</p>}
 
       <div className="flex flex-col gap-5">
@@ -228,6 +231,7 @@ export function SessionDetail({ id }: { id: string }) {
                           {setKindLabel(set.kind)}
                         </span>
                       )}
+                      <SetRestTag set={set} />
                     </span>
                     {set.prKinds.length > 0 && (
                       <span className="flex gap-1">

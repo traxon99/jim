@@ -62,6 +62,17 @@ export const DPR_PRESET_NAMES: readonly DprPresetName[] = [
 /** A session whose average RPE reaches this is a miss, whatever the reps. */
 export const MISS_RPE = 9.5;
 
+/**
+ * Rest compliance (issue #233): a session with a set started on a short rest
+ * (see SHORT_REST_FRACTION) still qualifies for an increase this far over
+ * the preset's RPE cap — the same effort on less rest is the stronger
+ * performance.
+ */
+export const SHORT_REST_RPE_CREDIT = 0.5;
+
+/** "Go light" (issue #235) takes this off the day's weight, rounded down. */
+export const LIGHT_DAY_PCT = 0.1;
+
 /** How much a deload takes off, before rounding down to the increment. */
 export const DELOAD_PCT = 0.1;
 

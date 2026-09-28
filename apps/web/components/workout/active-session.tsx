@@ -328,7 +328,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         exercise={exercise}
         target={target}
         settings={settings}
-        dpr={dprContext ? dprCallFor(dprContext, item.exerciseId, target) : null}
+        dpr={
+          dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
+        }
         large={large}
         onSetLogged={(restSeconds, remainingPlannedSets) =>
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)

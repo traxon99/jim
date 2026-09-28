@@ -13,6 +13,7 @@ import {
   type DprUserSettings,
   type IncrementOverrides,
   type OnTrackStatus,
+  type SessionIntensity,
   callForLift,
   liftProgress,
 } from "@jim/core";
@@ -74,6 +75,8 @@ export function dprCallFor(
   ctx: DprContext,
   exerciseId: string,
   target?: RoutineTarget | null,
+  /** The session's "how hard today?" pick (issue #235). */
+  intensity?: SessionIntensity | null,
 ): DprCallInfo | null {
   if (!ctx.lifts.has(exerciseId)) return null;
   const fallback = target?.targetWeight == null ? null : Number(target.targetWeight);
@@ -85,6 +88,7 @@ export function dprCallFor(
     target: target ?? null,
     fallbackWeight: Number.isFinite(fallback) ? fallback : null,
     block: ctx.block,
+    intensity,
     now: ctx.now,
   });
 }
@@ -97,11 +101,12 @@ export function dprCallsForRoutine(
     position: number;
     deletedAt: Date | null;
   })[],
+  intensity?: SessionIntensity | null,
 ): DprCallInfo[] {
   return [...items]
     .filter((item) => !item.deletedAt)
     .sort((a, b) => a.position - b.position)
-    .map((item) => dprCallFor(ctx, item.exerciseId, item))
+    .map((item) => dprCallFor(ctx, item.exerciseId, item, intensity))
     .filter((info): info is DprCallInfo => info !== null);
 }
 
@@ -132,6 +137,11 @@ const BADGES: Record<DprCall, DprBadge> = {
     symbol: "↓",
     label: "DPR: easing back in",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
+  },
+  light: {
+    symbol: "↓",
+    label: "DPR: light day",
+    className: "border-sky-600 text-sky-700 dark:border-sky-500 dark:text-sky-400",
   },
   insufficient: {
     symbol: "?",
@@ -167,6 +177,7 @@ export function dprWhyLine(decision: DprDecision, units: string): string {
     case "reenter":
       return `DPR: ${lowerFirst(reason)}${weight === null ? "" : ` → ${formatWeight(weight)} ${units}`}`;
     case "hold":
+    case "light":
       return `DPR: ${lowerFirst(reason)}`;
     case "insufficient":
       return reason === "Add RPE for DPR"

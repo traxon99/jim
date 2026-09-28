@@ -161,6 +161,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             endedAt: excluded(sessions.endedAt),
             notes: excluded(sessions.notes),
             bodyweight: excluded(sessions.bodyweight),
+            intensity: excluded(sessions.intensity),
             updatedAt: excluded(sessions.updatedAt),
             deviceId: excluded(sessions.deviceId),
             deletedAt: excluded(sessions.deletedAt),

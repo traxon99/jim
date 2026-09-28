@@ -257,3 +257,91 @@ describe("decisionLog", () => {
     expect(log.map((e) => e.sessionDate)).toEqual([day(30), day(3), day(0)]);
   });
 });
+
+describe("decideNextWeight — rest compliance (issue #233)", () => {
+  /**
+   * 3 working sets, the 2nd and 3rd at `reps` after `rest` of a 120s target
+   * (the 1st, with no rest before it, hits the top of the range).
+   */
+  function rested(n: number, weight: number, reps: number, rpe: number, rest: number) {
+    return session(n, [
+      working(weight, 8, rpe),
+      { ...working(weight, reps, rpe), restSeconds: rest, restTargetSeconds: 120 },
+      { ...working(weight, reps, rpe), restSeconds: rest, restTargetSeconds: 120 },
+    ]);
+  }
+
+  it("lets a session on short rests qualify a little over the RPE cap", () => {
+    // Moderate caps at RPE 8; 8.5 on short rest still earns the increase.
+    const d = decide([rested(28, 185, 8, 8.5, 60)]);
+    expect(d.call).toBe("increase");
+    expect(d.reason).toBe("Hit 3×8 @ RPE 8.5 on short rest");
+    expect(d.weight).toBe(190);
+  });
+
+  it("gives no credit when the full rest was taken", () => {
+    expect(decide([rested(28, 185, 8, 8.5, 120)]).call).toBe("hold");
+  });
+
+  it("doesn't count a rep miss after a short rest toward a deload", () => {
+    const sessions = [
+      rested(28, 200, 5, 8, 45),
+      rested(25, 200, 5, 8, 45),
+      rested(22, 200, 5, 8, 45),
+    ];
+    const d = decide(sessions);
+    expect(d.call).toBe("hold");
+    expect(d.streak).toBe(0);
+  });
+
+  it("still counts a rep miss after a full rest", () => {
+    const sessions = [
+      rested(28, 200, 5, 8, 150),
+      rested(25, 200, 5, 8, 150),
+      rested(22, 200, 5, 8, 150),
+    ];
+    expect(decide(sessions).call).toBe("deload");
+  });
+});
+
+describe("decideNextWeight — light days (issue #235)", () => {
+  function light(s: DprSession): DprSession {
+    return { ...s, intensity: "light" };
+  }
+
+  it("ignores a light session when deciding", () => {
+    // Qualified at 185, then went light at 165: still an increase from 185.
+    const d = decide([light(s3(29, 165, 8, 6)), s3(28, 185, 8, 7.5)]);
+    expect(d.call).toBe("increase");
+    expect(d.previousWeight).toBe(185);
+    expect(d.weight).toBe(190);
+  });
+
+  it("doesn't break a conservative qualifying streak", () => {
+    const d = decide(
+      [s3(29, 185, 8, 7), light(s3(28, 165, 6, 9)), s3(25, 185, 8, 7)],
+      "conservative",
+    );
+    expect(d.call).toBe("increase");
+    expect(d.streak).toBe(2);
+  });
+
+  it("doesn't add to a miss streak", () => {
+    const sessions = [light(s3(29, 180, 4)), s3(28, 200, 5), s3(25, 200, 5)];
+    const d = decide(sessions);
+    expect(d.call).toBe("hold");
+    expect(d.streak).toBe(2);
+  });
+
+  it("still counts as training for layoff purposes", () => {
+    // 20 days since the last full session, but a light one 2 days ago.
+    const d = decide([light(s3(28, 165, 8)), s3(10, 185, 8)], "moderate", { now: day(30) });
+    expect(d.call).toBe("increase");
+  });
+
+  it("falls back to light sessions when that's all there is", () => {
+    const d = decide([light(s3(28, 165, 8, 7))]);
+    expect(d.call).toBe("increase");
+    expect(d.previousWeight).toBe(165);
+  });
+});

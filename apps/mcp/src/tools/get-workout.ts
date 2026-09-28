@@ -1,4 +1,4 @@
-import { resolveCurrentRows } from "@jim/core";
+import { isShortRest, resolveCurrentRows, restStats } from "@jim/core";
 import { exercises, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
@@ -68,6 +68,10 @@ export async function getWorkout(context: UserContext, sessionId: string) {
       endedAt: session.endedAt ? session.endedAt.toISOString() : null,
       notes: session.notes,
       bodyweight: session.bodyweight == null ? null : Number(session.bodyweight),
+      // The pre-workout "how hard today?" pick (issue #235); null when not asked.
+      intensity: session.intensity,
+      // Rest compliance across the session (issue #233).
+      rest: restStats(setRows),
       exercises: exerciseRows.map((row) => ({
         sessionExerciseId: row.id,
         exerciseId: row.exerciseId,
@@ -85,6 +89,9 @@ export async function getWorkout(context: UserContext, sessionId: string) {
             distance: set.distance == null ? null : Number(set.distance),
             rpe: set.rpe == null ? null : Number(set.rpe),
             rir: set.rir,
+            restSeconds: set.restSeconds,
+            restTargetSeconds: set.restTargetSeconds,
+            shortRest: isShortRest(set.restSeconds, set.restTargetSeconds),
             completedAt: set.completedAt.toISOString(),
             prKinds: prKindsBySetId.get(set.id) ?? [],
           })),

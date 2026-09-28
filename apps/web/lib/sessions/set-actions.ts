@@ -1,5 +1,6 @@
 import { mutate } from "@/lib/db/mutate";
 import { type JimDatabase, type PersonalRecordRow, type SetRow, db } from "@/lib/db/schema";
+import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
@@ -8,6 +9,7 @@ import {
   detectPersonalRecords,
   isWarmupExercise,
   resolveCurrentRows,
+  restTakenSeconds,
   uuidv7,
 } from "@jim/core";
 
@@ -73,6 +75,63 @@ async function detectAndRecordPrs(
   return prs;
 }
 
+interface RestBefore {
+  restSeconds: number | null;
+  restTargetSeconds: number | null;
+}
+
+const NO_REST: RestBefore = { restSeconds: null, restTargetSeconds: null };
+
+/**
+ * Rest taken before a set about to be logged (issue #233): the time since
+ * the session's latest set, against the rest the timer ran after that set —
+ * its routine's target rest, else the default (the same rule
+ * session-exercise-section uses to start the timer). Warm-up exercises have
+ * no rest timer, so a set logged after one, or of one, has no rest.
+ */
+async function restBeforeNewSet(
+  database: JimDatabase,
+  sessionExerciseId: string,
+  exerciseIsWarmup: boolean,
+  now: Date,
+): Promise<RestBefore> {
+  if (exerciseIsWarmup) return NO_REST;
+  const sessionExercise = await database.sessionExercises.get(sessionExerciseId);
+  if (!sessionExercise) return NO_REST;
+  const siblings = (
+    await database.sessionExercises.where("sessionId").equals(sessionExercise.sessionId).toArray()
+  ).filter((se) => !se.deletedAt);
+  const rawSets = await database.sets
+    .where("sessionExerciseId")
+    .anyOf(siblings.map((se) => se.id))
+    .toArray();
+  let previous: SetRow | null = null;
+  for (const set of resolveCurrentRows(rawSets)) {
+    if (set.deletedAt) continue;
+    if (!previous || set.completedAt > previous.completedAt) previous = set;
+  }
+  if (!previous) return NO_REST;
+  const { sessionExerciseId: previousSessionExerciseId, completedAt } = previous;
+
+  const previousExerciseId = siblings.find((se) => se.id === previousSessionExerciseId)?.exerciseId;
+  if (!previousExerciseId) return NO_REST;
+  const previousExercise = await database.exercises.get(previousExerciseId);
+  if (previousExercise && isWarmupExercise(previousExercise)) return NO_REST;
+
+  const session = await database.sessions.get(sessionExercise.sessionId);
+  const routineItem = session?.routineId
+    ? (await database.routineExercises.where("routineId").equals(session.routineId).toArray()).find(
+        (item) => !item.deletedAt && item.exerciseId === previousExerciseId,
+      )
+    : undefined;
+  const settings = (await database.settings.get("me")) ?? DEFAULT_SETTINGS;
+  return {
+    restSeconds: restTakenSeconds(completedAt, now),
+    restTargetSeconds:
+      routineItem?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90),
+  };
+}
+
 export interface CompleteSetInput {
   userId: string;
   sessionExerciseId: string;
@@ -102,6 +161,9 @@ export async function completeSet(
 ): Promise<CompleteSetResult> {
   const deviceId = await getDeviceId(database);
   const now = new Date();
+  const exercise = await database.exercises.get(input.exerciseId);
+  const exerciseIsWarmup = exercise != null && isWarmupExercise(exercise);
+  const rest = await restBeforeNewSet(database, input.sessionExerciseId, exerciseIsWarmup, now);
 
   const set: SetRow = {
     id: uuidv7(),
@@ -115,6 +177,8 @@ export async function completeSet(
     distance: null,
     rpe: input.rpe == null ? null : String(input.rpe),
     rir: null,
+    restSeconds: rest.restSeconds,
+    restTargetSeconds: rest.restTargetSeconds,
     completedAt: now,
     supersedesId: null,
     deletedAt: null,
@@ -122,8 +186,7 @@ export async function completeSet(
   };
   await mutate("sets", set, database);
 
-  const exercise = await database.exercises.get(input.exerciseId);
-  if (exercise && isWarmupExercise(exercise)) return { set, prs: [] };
+  if (exerciseIsWarmup) return { set, prs: [] };
 
   const prs = await detectAndRecordPrs(
     database,

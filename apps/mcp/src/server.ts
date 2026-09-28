@@ -66,7 +66,8 @@ export function createMcpServer(context: UserContext): McpServer {
     "get_workout",
     {
       title: "Get workout",
-      description: "Full detail for one workout session: every exercise, every set, PRs achieved.",
+      description:
+        "Full detail for one workout session: every exercise, every set (with rest taken vs target), PRs achieved, and the session's intensity pick.",
       inputSchema: { sessionId: z.string().describe("Session id") },
     },
     async ({ sessionId }) => {
@@ -82,7 +83,8 @@ export function createMcpServer(context: UserContext): McpServer {
     "exercise_history",
     {
       title: "Exercise history",
-      description: "Every set logged for one exercise over time, plus its estimated-1RM series.",
+      description:
+        "Every set logged for one exercise over time (with rest taken vs target), plus its estimated-1RM series.",
       inputSchema: {
         exercise: z.string().describe("Exercise name or id"),
         from: z.string().datetime().optional(),

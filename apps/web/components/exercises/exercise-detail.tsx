@@ -1,6 +1,7 @@
 "use client";
 
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
+import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
 import {
   deletedSessionExerciseIds,
@@ -188,22 +189,26 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
 
       <section>
         <h2 className="text-sm font-semibold">Your history</h2>
+        {!isWarmup && resolvedSets && <RestStatsLine sets={resolvedSets} className="mt-1" />}
         {!history || history.length === 0 ? (
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">No sets logged yet.</p>
         ) : (
           <ul className="allow-pwa-select mt-1 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
             {history.map((set) => (
-              <li key={set.id} className="flex justify-between py-2">
-                <span>
-                  {set.weight != null && set.reps != null
-                    ? `${set.weight} × ${set.reps}`
-                    : set.reps != null
-                      ? `${set.reps} reps`
-                      : set.durationSeconds != null
-                        ? `${set.durationSeconds}s`
-                        : set.distance != null
-                          ? `${set.distance}`
-                          : "—"}
+              <li key={set.id} className="flex justify-between gap-2 py-2">
+                <span className="flex items-center gap-2">
+                  <span>
+                    {set.weight != null && set.reps != null
+                      ? `${set.weight} × ${set.reps}`
+                      : set.reps != null
+                        ? `${set.reps} reps`
+                        : set.durationSeconds != null
+                          ? `${set.durationSeconds}s`
+                          : set.distance != null
+                            ? `${set.distance}`
+                            : "—"}
+                  </span>
+                  <SetRestTag set={set} />
                 </span>
                 <span className="text-zinc-500 dark:text-zinc-500">
                   {set.completedAt.toLocaleDateString()}

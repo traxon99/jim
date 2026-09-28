@@ -1,6 +1,7 @@
 "use client";
 
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { RestStatsLine } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
@@ -120,6 +121,8 @@ export function SessionSummary({ session, sessionExercises }: Props) {
           <dd className="text-2xl font-semibold">{summary.prCount}</dd>
         </div>
       </dl>
+
+      <RestStatsLine sets={sets} className="-mt-2" />
 
       <div className="flex gap-3">
         <ShareWorkoutButton

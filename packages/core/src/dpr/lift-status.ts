@@ -1,6 +1,7 @@
 import {
   type DprDecision,
   type RepRange,
+  type SessionIntensity,
   decideNextWeight,
   decisionLog,
   resolveRepRange,
@@ -13,6 +14,7 @@ import {
   roundToIncrement,
 } from "./equipment-increments";
 import { type OnTrackStatus, layoffDays, onTrackStatus } from "./goal";
+import { applyIntensity } from "./intensity";
 import { DELOAD_PCT, DPR_PRESETS, type DprPresetName } from "./presets";
 import { type DprSnapshot, e1rmSeries } from "./snapshot";
 
@@ -75,6 +77,8 @@ export function callForLift(input: {
   target?: { targetRepsLow: number | null; targetRepsHigh: number | null } | null;
   fallbackWeight?: number | null;
   block?: DprBlockInfo | null;
+  /** The session's "how hard today?" pick (issue #235); ignored in a deload week. */
+  intensity?: SessionIntensity | null;
   now: Date;
 }): DprLiftCall {
   const { snapshot, exerciseId, settings, now } = input;
@@ -105,6 +109,8 @@ export function callForLift(input: {
       reason: "Deload week",
       streak: 0,
     };
+  } else {
+    decision = applyIntensity(decision, input.intensity, increment);
   }
   return { exerciseId, decision, repRange, increment };
 }
