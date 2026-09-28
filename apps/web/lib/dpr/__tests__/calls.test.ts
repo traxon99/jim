@@ -12,10 +12,12 @@ import { completeSet } from "../../sessions/set-actions";
 import { DEFAULT_SETTINGS } from "../../settings/defaults";
 import { buildPreWorkoutRows, formatPlan } from "../../workout/pre-workout-preview";
 import {
+  type DprCallInfo,
   type DprContext,
   buildDprContext,
   dprBadge,
   dprCallFor,
+  dprCallSummary,
   dprCallsForRoutine,
   dprChipText,
   dprGoalLine,
@@ -23,7 +25,6 @@ import {
   dprWeightPlaceholder,
   dprWhyLine,
   needsRpeNudge,
-  splitChips,
 } from "../calls";
 import { loadDprSnapshot } from "../data";
 
@@ -303,9 +304,12 @@ describe("Workout tab chips (issue #213)", () => {
     ).toBeNull();
   });
 
-  it("folds extra chips into '+N more'", () => {
-    expect(splitChips([1, 2, 3, 4], 2)).toEqual({ shown: [1, 2], more: 2 });
-    expect(splitChips([1, 2], 2)).toEqual({ shown: [1, 2], more: 0 });
+  it("folds a routine's calls into one badge summary (issue #284)", () => {
+    const calls = (["hold", "increase", "increase", "light"] as const).map(
+      (call) => ({ decision: { call } }) as DprCallInfo,
+    );
+    expect(dprCallSummary(calls)).toBe("↑2 =1 ↓1");
+    expect(dprCallSummary([])).toBe("");
   });
 
   it("describes goal status for the chip popover", async () => {

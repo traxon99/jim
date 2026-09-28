@@ -1,6 +1,6 @@
 "use client";
 
-import { DprChips } from "@/components/dpr/dpr-chips";
+import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
@@ -112,7 +112,11 @@ export function UpNextCard({ starting, onStart }: Props) {
         </Link>
       </div>
       {dprContext && routineItems && (
-        <DprChips context={dprContext} calls={dprCallsForRoutine(dprContext, routineItems)} />
+        <DprWorkoutBadge
+          context={dprContext}
+          calls={dprCallsForRoutine(dprContext, routineItems)}
+          routineName={routine.name}
+        />
       )}
       <button
         type="button"
