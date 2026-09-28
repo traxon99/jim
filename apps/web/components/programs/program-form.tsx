@@ -6,6 +6,7 @@ import { setActiveProgram } from "@/lib/programs/set-active";
 import { getDeviceId } from "@/lib/sync/engine";
 import { PROGRAM_DURATION_OPTIONS, type ProgramMode, uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -111,6 +112,15 @@ export function ProgramForm({ userId, mode, programId }: Props) {
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
       <h1 className="text-xl font-semibold">{mode === "new" ? "New program" : "Edit program"}</h1>
+      {mode === "new" && (
+        <Link
+          href="/routines/programs/generate"
+          data-ripple
+          className="rounded-lg border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+        >
+          Not sure where to start? Answer a few questions and Jim will build one for you.
+        </Link>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm font-medium">
