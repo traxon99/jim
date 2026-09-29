@@ -26,11 +26,21 @@ export function isExpiredSubscriptionError(error: unknown): boolean {
   return status === 404 || status === 410;
 }
 
+/**
+ * Rows are unique per (user, endpoint), so one browser signed in to two
+ * accounts stores the same endpoint twice. A release push reads every row,
+ * so without this that device would be notified once per row.
+ */
+function uniqueByEndpoint(subscriptions: StoredSubscription[]): StoredSubscription[] {
+  return [...new Map(subscriptions.map((sub) => [sub.endpoint, sub])).values()];
+}
+
 export async function fanOutPush(
-  subscriptions: StoredSubscription[],
+  allSubscriptions: StoredSubscription[],
   message: PushMessage,
   send: PushSender,
 ): Promise<FanOutResult> {
+  const subscriptions = uniqueByEndpoint(allSubscriptions);
   const payload = JSON.stringify(message);
   const results = await Promise.allSettled(subscriptions.map((sub) => send(sub, payload)));
 
