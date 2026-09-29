@@ -18,7 +18,8 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * place the notification's content lives, and every production deploy
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
-export const LATEST_RELEASE_NOTE = "Workout, routine and program pages now have a back button.";
+export const LATEST_RELEASE_NOTE =
+  "Routines now open as a summary with a Start button; tap the pencil to edit.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

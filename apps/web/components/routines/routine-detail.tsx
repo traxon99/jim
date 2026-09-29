@@ -8,13 +8,19 @@ import {
   replaceExerciseAction,
   supersetActions,
 } from "@/components/supersets/superset-actions";
+import { SupersetBadge } from "@/components/supersets/superset-badge";
+import { PreWorkoutSheet } from "@/components/workout/pre-workout-sheet";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
+import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { routineItemSummary } from "@/lib/routines/summary";
+import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
+  type SessionIntensity,
   type SupersetChange,
   duplicateRoutine,
   isWarmupExercise,
@@ -26,10 +32,10 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Flame, Pencil } from "lucide-react";
+import { Flame, Pencil, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { RoutineExerciseRow as RoutineExerciseRowItem } from "./routine-exercise-row";
 import { RoutineIcon } from "./routine-icon";
 
@@ -38,6 +44,13 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   // The row whose ⋯ Replace Exercise opened the picker (issue #271).
   const [replacing, setReplacing] = useState<RoutineExerciseRow | null>(null);
+  // Issue #326: the page opens as a read-only preview with a Start button;
+  // the pencil switches it to the editor (targets, order, add, remove).
+  const [editing, setEditing] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const dprContext = useDprContext();
 
   const routine = useLiveQuery(async () => (await db.routines.get(id)) ?? null, [id]);
   const rawItems = useLiveQuery(
@@ -45,6 +58,18 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     [id],
   );
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
+  // Starting is blocked while another workout is open (it'd be left running),
+  // and the latest finished one from this routine shows as "last done".
+  const sessionInfo = useLiveQuery(async () => {
+    const sessions = (await db.sessions.toArray()).filter((session) => !session.deletedAt);
+    const active = sessions.find((session) => !session.endedAt) ?? null;
+    let lastDone: Date | null = null;
+    for (const session of sessions) {
+      if (session.routineId !== id || !session.endedAt) continue;
+      if (!lastDone || session.startedAt > lastDone) lastDone = session.startedAt;
+    }
+    return { activeId: active?.id ?? null, lastDone };
+  }, [id]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const warmupRoutineId = routine?.warmupRoutineId ?? null;
   const linkedWarmup = useLiveQuery(async () => {
@@ -179,6 +204,24 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     await applySupersetChanges(normalizeSupersets(items.filter((other) => other.id !== item.id)));
   }
 
+  async function startRoutine(intensity: SessionIntensity | null) {
+    setStarting(true);
+    try {
+      const sessionId = await startSessionFromRoutineId(userId, id, intensity);
+      router.push(`/workout/${sessionId}`);
+    } catch {
+      // Nothing was started; let the button be tapped again.
+      setStarting(false);
+    }
+  }
+
+  // DPR users pick today's intensity in the pre-workout sheet first, as on
+  // the Workout tab; everyone else starts straight away.
+  function handleStart() {
+    if (dprContext) setSheetOpen(true);
+    else void startRoutine(null);
+  }
+
   async function handleDuplicate() {
     if (!routine) return;
     const deviceId = await getDeviceId();
@@ -259,14 +302,66 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
             <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{routine.notes}</p>
           )}
         </div>
+        {editing ? (
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+          >
+            Done
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            aria-label="Edit routine"
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+          >
+            <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
+      {!editing && (
+        <div className="flex flex-col gap-2">
+          {sessionInfo?.activeId ? (
+            <Link
+              href={`/workout/${sessionInfo.activeId}`}
+              className="flex min-h-14 items-center justify-center rounded-xl border border-zinc-300 px-4 text-base font-semibold dark:border-zinc-700"
+            >
+              Resume workout in progress
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={starting || items.length === 0}
+              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-lg font-semibold text-accent-foreground disabled:opacity-50"
+            >
+              <Play className="h-5 w-5 fill-current" strokeWidth={2} aria-hidden="true" />
+              Start routine
+            </button>
+          )}
+          <p className="text-center text-xs text-zinc-500 dark:text-zinc-500">
+            {sessionInfo?.lastDone
+              ? `Last done ${sessionInfo.lastDone.toLocaleDateString([], {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}`
+              : "Not done yet"}
+          </p>
+        </div>
+      )}
+
+      {editing && (
         <Link
           href={`/routines/${routine.id}/edit`}
-          aria-label="Edit routine"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+          className="self-start text-sm font-medium underline underline-offset-4"
         >
-          <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+          Edit name, icon and warm-up
         </Link>
-      </div>
+      )}
 
       {!isWarmupKind && (linkedWarmup || warmupMinutes != null) && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-orange-200 bg-orange-50/50 px-3 py-2 dark:border-orange-900/60 dark:bg-orange-950/20">
@@ -300,32 +395,62 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         </div>
       )}
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <SortableContext
-          items={items.map((item) => item.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <ul className="flex flex-col gap-2">
-            {items.map((item, index) => (
-              <RoutineExerciseRowItem
-                key={item.id}
-                item={item}
-                supersetLabel={labels.get(item.id) ?? null}
-                actions={[
-                  replaceExerciseAction(() => setReplacing(item)),
-                  ...supersetActions(items, index, (changes) => void applySupersetChanges(changes)),
-                  preferencesAction(item.exerciseId, router.push),
-                  removeExerciseAction(() => void handleRemoveItem(item)),
-                ]}
-                exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
-                warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
-                units={settings.units}
-                onUpdate={(patch) => handleUpdateItem(item, patch)}
-              />
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
+      {!editing && (
+        <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+          {items.map((item) => {
+            const info = exercisesById.get(item.exerciseId);
+            const label = labels.get(item.id);
+            const summary = routineItemSummary(item, settings.units, info?.warmup?.timed ?? false);
+            return (
+              <li key={item.id} className="flex flex-col gap-0.5 py-3">
+                <span className="flex items-center gap-2 text-base font-medium">
+                  {label && <SupersetBadge label={label} />}
+                  {info?.name ?? "Unknown exercise"}
+                </span>
+                <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-500">
+                  {summary ?? "No targets set"}
+                </span>
+                {item.notes && (
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">{item.notes}</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {editing && (
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={items.map((item) => item.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="flex flex-col gap-2">
+              {items.map((item, index) => (
+                <RoutineExerciseRowItem
+                  key={item.id}
+                  item={item}
+                  supersetLabel={labels.get(item.id) ?? null}
+                  actions={[
+                    replaceExerciseAction(() => setReplacing(item)),
+                    ...supersetActions(
+                      items,
+                      index,
+                      (changes) => void applySupersetChanges(changes),
+                    ),
+                    preferencesAction(item.exerciseId, router.push),
+                    removeExerciseAction(() => void handleRemoveItem(item)),
+                  ]}
+                  exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
+                  warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
+                  units={settings.units}
+                  onUpdate={(patch) => handleUpdateItem(item, patch)}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
+      )}
 
       {items.length === 0 && (
         <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-500">
@@ -333,30 +458,45 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => setPickerOpen(true)}
-        className="rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-      >
-        Add exercise
-      </button>
+      {editing && (
+        <>
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+          >
+            Add exercise
+          </button>
 
-      <div className="mt-4 flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={handleDuplicate}
-          className="rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-        >
-          Duplicate
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          className="rounded-lg border border-red-300 px-4 py-3 text-base font-medium text-red-600 dark:border-red-900 dark:text-red-500"
-        >
-          Delete
-        </button>
-      </div>
+          <div className="mt-4 flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={handleDuplicate}
+              className="rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+            >
+              Duplicate
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-lg border border-red-300 px-4 py-3 text-base font-medium text-red-600 dark:border-red-900 dark:text-red-500"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+
+      {sheetOpen && (
+        <PreWorkoutSheet
+          context={dprContext}
+          routineId={routine.id}
+          routineName={routine.name}
+          starting={starting}
+          onStart={(intensity) => void startRoutine(intensity)}
+          onCancel={closeSheet}
+        />
+      )}
 
       {pickerOpen && (
         <ExercisePicker

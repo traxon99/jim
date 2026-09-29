@@ -9,7 +9,7 @@ import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { startSmartSession } from "@/lib/sessions/smart-workout";
-import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
+import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Play } from "lucide-react";
@@ -94,7 +94,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
   // everyone else starts straight away.
   function handleChooseRoutine(routineId: string, routineName: string) {
     if (dprContext) setPreview({ id: routineId, name: routineName });
-    else void handleStartFromRoutine(routineId, routineName, null);
+    else void handleStartFromRoutine(routineId, null);
   }
 
   // Tapping a routine previews it in the sheet, DPR or not (issue #282).
@@ -102,22 +102,9 @@ export function WorkoutHome({ userId }: { userId: string }) {
     if (!starting) setPreview({ id: routineId, name: routineName });
   }
 
-  async function handleStartFromRoutine(
-    routineId: string,
-    routineName: string,
-    intensity: SessionIntensity | null,
-  ) {
+  async function handleStartFromRoutine(routineId: string, intensity: SessionIntensity | null) {
     setStarting(true);
-    const items = await db.routineExercises.where("routineId").equals(routineId).toArray();
-    const live = items.filter((item) => !item.deletedAt);
-    const routine = await db.routines.get(routineId);
-    const sessionId = await startSessionFromRoutine(
-      userId,
-      { id: routineId, name: routineName, warmupRoutineId: routine?.warmupRoutineId },
-      live,
-      undefined,
-      intensity,
-    );
+    const sessionId = await startSessionFromRoutineId(userId, routineId, intensity);
     router.push(`/workout/${sessionId}`);
   }
 
@@ -219,9 +206,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
             routineId={preview.id}
             routineName={preview.name}
             starting={starting}
-            onStart={(intensity) =>
-              void handleStartFromRoutine(preview.id, preview.name, intensity)
-            }
+            onStart={(intensity) => void handleStartFromRoutine(preview.id, intensity)}
             onCancel={closePreview}
           />
         )}
