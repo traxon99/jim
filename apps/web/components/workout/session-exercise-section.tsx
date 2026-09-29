@@ -179,7 +179,9 @@ export function SessionExerciseSection({
   const [previousByIndex, setPreviousByIndex] = useState<Map<number, PreviousSet>>(new Map());
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
   const [notes, setNotes] = useState(item.notes ?? "");
-  const [notesOpen, setNotesOpen] = useState(!large || Boolean(item.notes));
+  // Both views collapse an empty note to "+ Add note" (issue #322); a note
+  // that's already there shows without an extra tap.
+  const [notesOpen, setNotesOpen] = useState(Boolean(item.notes));
   const notesInputRef = useRef<HTMLInputElement>(null);
   const [focusNotes, setFocusNotes] = useState(false);
   const [draftOverrides, setDraftOverrides] = useState<Map<number, DraftValues>>(new Map());
@@ -438,6 +440,7 @@ export function SessionExerciseSection({
   }
 
   async function handleNotesBlur() {
+    if (!notes.trim()) setNotesOpen(false);
     await saveItem({ notes: notes.trim() || null });
   }
 
@@ -764,7 +767,10 @@ export function SessionExerciseSection({
       ) : (
         <button
           type="button"
-          onClick={() => setNotesOpen(true)}
+          onClick={() => {
+            setNotesOpen(true);
+            setFocusNotes(true);
+          }}
           className="self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
         >
           + Add note
