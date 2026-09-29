@@ -41,6 +41,7 @@ import {
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   clampRpe,
+  nearestLoadableWeight,
   plannedSetIndices,
   prefillWeightForSet,
   remainingPlannedSetCount,
@@ -187,6 +188,7 @@ export function SessionExerciseSection({
   const [restEditing, setRestEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [customRest, setCustomRest] = useState("");
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // The tombstone of the set just deleted, while its Undo is offered (issue #318).
   const [undoableDelete, setUndoableDelete] = useState<SetRowEntity | null>(null);
   const closeSticky = useCallback(() => setStickyEditing(false), []);
@@ -334,10 +336,25 @@ export function SessionExerciseSection({
   const nextLabel = setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ?? "1";
   const suggestionReps =
     toNumberOrNull(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
+  const barWeight = Number(settings.defaultBarWeight) || 0;
+  const plates = useMemo(
+    () => settings.availablePlates.map(Number).filter((plate) => plate > 0),
+    [settings.availablePlates],
+  );
+  // The standard lifts are all barbell lifts, so each tier's weight is
+  // rounded to one the bar and plates can make (issue #320).
   const suggestedWeights = useMemo(() => {
     if (!standardLift || !strengthProfile) return null;
-    return suggestedWeightsByTier(standardLift, strengthProfile, suggestionReps);
-  }, [standardLift, strengthProfile, suggestionReps]);
+    const raw = suggestedWeightsByTier(standardLift, strengthProfile, suggestionReps);
+    const loadable = { ...raw };
+    for (const tier of STRENGTH_STANDARD_TIERS) {
+      loadable[tier] = nearestLoadableWeight(raw[tier], barWeight, plates);
+    }
+    return loadable;
+  }, [standardLift, strengthProfile, suggestionReps, barWeight, plates]);
+  // With history for the lift (last time's sets, or a set already logged
+  // today) the tiers are noise, so they wait behind "Suggest weight".
+  const hasHistory = previousByIndex.size > 0 || sets.length > 0;
 
   async function logRow(index: number) {
     const draft = draftFor(index);
@@ -668,7 +685,16 @@ export function SessionExerciseSection({
 
       {dpr && <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>}
 
-      {suggestedWeights && (
+      {suggestedWeights && hasHistory && !suggestionsOpen && (
+        <button
+          type="button"
+          onClick={() => setSuggestionsOpen(true)}
+          className="self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+        >
+          Suggest weight
+        </button>
+      )}
+      {suggestedWeights && (!hasHistory || suggestionsOpen) && (
         <div className="flex flex-col gap-1.5">
           <p className={sizes.meta}>Suggested for {suggestionReps} reps, by strength standard:</p>
           <div className="flex flex-wrap gap-1.5">

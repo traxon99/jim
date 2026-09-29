@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculatePlateBreakdown } from "../plate-math";
+import { calculatePlateBreakdown, nearestLoadableWeight } from "../plate-math";
 
 const STANDARD_PLATES = [45, 35, 25, 10, 5, 2.5];
 
@@ -44,5 +44,40 @@ describe("calculatePlateBreakdown", () => {
     expect(calculatePlateBreakdown(110, 20, [20, 15, 10, 5, 2.5, 1.25]).perSide).toEqual([
       20, 20, 5,
     ]);
+  });
+});
+
+describe("nearestLoadableWeight", () => {
+  const LB_PLATES = [45, 35, 25, 10, 5, 2.5];
+
+  it("rounds a computed suggestion to the nearest weight the plates can make", () => {
+    expect(nearestLoadableWeight(231.43, 45, LB_PLATES)).toBe(230);
+    expect(nearestLoadableWeight(51.08, 45, LB_PLATES)).toBe(50);
+    expect(nearestLoadableWeight(109.46, 45, LB_PLATES)).toBe(110);
+    expect(nearestLoadableWeight(182.43, 45, LB_PLATES)).toBe(180);
+  });
+
+  it("rounds up when the next load is closer", () => {
+    expect(nearestLoadableWeight(143.9, 45, LB_PLATES)).toBe(145);
+  });
+
+  it("leaves an already-loadable weight alone", () => {
+    expect(nearestLoadableWeight(225, 45, LB_PLATES)).toBe(225);
+  });
+
+  it("goes to the lighter load on a tie", () => {
+    expect(nearestLoadableWeight(50, 45, [5])).toBe(45);
+  });
+
+  it("never suggests less than the empty bar", () => {
+    expect(nearestLoadableWeight(30, 45, LB_PLATES)).toBe(45);
+  });
+
+  it("uses the plates it's given (kg)", () => {
+    expect(nearestLoadableWeight(77.14, 20, [25, 20, 15, 10, 5, 2.5, 1.25])).toBe(77.5);
+  });
+
+  it("only tidies float noise when there are no plates", () => {
+    expect(nearestLoadableWeight(77.144, 20, [])).toBe(77.14);
   });
 });
