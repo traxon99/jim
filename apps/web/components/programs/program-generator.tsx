@@ -1,6 +1,7 @@
 "use client";
 
 import { EXPERIENCE_LABELS } from "@/components/dpr/labels";
+import { BackLink } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { currentBlock } from "@/lib/dpr/block";
 import { generateProgramFromDb, saveGeneratedProgram } from "@/lib/programs/generate";
@@ -182,6 +183,9 @@ export function ProgramGenerator({ userId }: { userId: string }) {
   if (generated) {
     return (
       <main className="flex flex-1 flex-col gap-4 px-4 py-4">
+        <div className="self-start">
+          <BackLink href="/routines" label="Routines" />
+        </div>
         <h1 className="text-xl font-semibold">Your program</h1>
 
         <label className="flex flex-col gap-1 text-sm font-medium">
@@ -298,6 +302,9 @@ export function ProgramGenerator({ userId }: { userId: string }) {
 
   return (
     <main className="flex flex-1 flex-col gap-5 px-4 py-4">
+      <div className="self-start">
+        <BackLink href="/routines" label="Routines" />
+      </div>
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">Build me a program</h1>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">

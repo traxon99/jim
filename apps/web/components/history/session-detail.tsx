@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
@@ -134,6 +135,9 @@ export function SessionDetail({ id }: { id: string }) {
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
+      <div className="self-start">
+        <BackLink href="/history" label="History" />
+      </div>
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">

@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineRow, db } from "@/lib/db/schema";
 import { addWarmupTemplate } from "@/lib/routines/warmup-templates";
@@ -195,6 +196,13 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
+      <div className="self-start">
+        {mode === "edit" && routineId ? (
+          <BackLink href={`/routines/${routineId}`} label="routine" />
+        ) : (
+          <BackLink href="/routines" label="Routines" />
+        )}
+      </div>
       <h1 className="text-xl font-semibold">{mode === "new" ? "New routine" : "Edit routine"}</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">

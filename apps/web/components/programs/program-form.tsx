@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type ProgramRow, db } from "@/lib/db/schema";
 import { setActiveProgram } from "@/lib/programs/set-active";
@@ -111,6 +112,13 @@ export function ProgramForm({ userId, mode, programId }: Props) {
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
+      <div className="self-start">
+        {mode === "edit" && programId ? (
+          <BackLink href={`/routines/programs/${programId}`} label="program" />
+        ) : (
+          <BackLink href="/routines" label="Routines" />
+        )}
+      </div>
       <h1 className="text-xl font-semibold">{mode === "new" ? "New program" : "Edit program"}</h1>
       {mode === "new" && (
         <Link

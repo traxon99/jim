@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { BackLink } from "@/components/page-header";
 import {
   preferencesAction,
   removeExerciseAction,
@@ -234,6 +235,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
+      <div className="self-start">
+        <BackLink href="/routines" label="Routines" />
+      </div>
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
