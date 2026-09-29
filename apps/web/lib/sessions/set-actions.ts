@@ -256,8 +256,12 @@ export async function updateSetKind(
   return updated;
 }
 
-/** Also append-only: "deleting" a set inserts a superseding row carrying a `deletedAt` tombstone. */
-export async function deleteSet(original: SetRow, database: JimDatabase = db): Promise<void> {
+/**
+ * Also append-only: "deleting" a set inserts a superseding row carrying a
+ * `deletedAt` tombstone. Returns the tombstone so the delete can be undone
+ * (issue #318) with `restoreSet`.
+ */
+export async function deleteSet(original: SetRow, database: JimDatabase = db): Promise<SetRow> {
   const tombstone: SetRow = {
     ...original,
     id: uuidv7(),
@@ -265,4 +269,20 @@ export async function deleteSet(original: SetRow, database: JimDatabase = db): P
     deletedAt: new Date(),
   };
   await mutate("sets", tombstone, database);
+  return tombstone;
+}
+
+/**
+ * Undoes a `deleteSet` (issue #318): one more superseding row, this time
+ * clearing the tombstone, so the set comes back with its logged values.
+ */
+export async function restoreSet(tombstone: SetRow, database: JimDatabase = db): Promise<SetRow> {
+  const restored: SetRow = {
+    ...tombstone,
+    id: uuidv7(),
+    supersedesId: tombstone.id,
+    deletedAt: null,
+  };
+  await mutate("sets", restored, database);
+  return restored;
 }

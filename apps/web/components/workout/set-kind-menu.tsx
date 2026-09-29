@@ -10,6 +10,11 @@ interface Props {
   label: string;
   kind: SetRow["kind"];
   onChange: (kind: SetKind) => void;
+  /**
+   * Given for a logged set: deleting lives here, behind a deliberate
+   * two-tap gesture, rather than where the Log ✓ was (issue #318).
+   */
+  onDelete?: () => void;
   large?: boolean;
 }
 
@@ -18,7 +23,7 @@ interface Props {
  * old always-visible "Kind" column/field. Warm-ups show a yellow W instead of
  * a number (issue #220).
  */
-export function SetKindMenu({ label, kind, onChange, large = false }: Props) {
+export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +114,19 @@ export function SetKindMenu({ label, kind, onChange, large = false }: Props) {
               {setKindLabel(option)}
             </button>
           ))}
+          {onDelete && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onDelete();
+              }}
+              className="mt-1 border-t border-zinc-200 px-3 py-2 text-left text-sm text-red-600 dark:border-zinc-700 dark:text-red-500"
+            >
+              Delete set
+            </button>
+          )}
         </div>
       )}
     </div>
