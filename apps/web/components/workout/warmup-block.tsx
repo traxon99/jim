@@ -72,7 +72,7 @@ export function WarmupBlock({ startedAt, targetMinutes, endedAt, complete, child
             <CircleCheck className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             Warm-up complete — time to lift
           </span>
-          <span className="flex items-center gap-1 font-mono text-sm font-semibold tabular-nums text-zinc-700 dark:text-zinc-300">
+          <span className="flex items-center gap-1 text-sm font-semibold tabular-nums text-zinc-700 dark:text-zinc-300">
             {formatClock(timer.elapsedSeconds)}
             <ChevronDown className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
           </span>
@@ -94,7 +94,7 @@ export function WarmupBlock({ startedAt, targetMinutes, endedAt, complete, child
           )}
         </h2>
         <span
-          className={`font-mono text-sm font-semibold tabular-nums ${
+          className={`text-sm font-semibold tabular-nums ${
             timer.isOver && !endedAt
               ? "text-orange-700 dark:text-orange-400"
               : "text-zinc-700 dark:text-zinc-300"

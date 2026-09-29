@@ -171,7 +171,7 @@ export function PaceTracker({
             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
             {style.label}
             {pace.status !== "done" && (
-              <span className="font-mono font-medium tabular-nums opacity-80">
+              <span className="font-medium tabular-nums opacity-80">
                 {formatDelta(pace.deltaSeconds)}
               </span>
             )}
@@ -187,7 +187,7 @@ export function PaceTracker({
             <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
               {pace.status === "done" ? "Wrapped at" : "Est. finish"}
             </p>
-            <p className="font-mono text-sm font-semibold tabular-nums">{finishLabel}</p>
+            <p className="text-sm font-semibold tabular-nums">{finishLabel}</p>
           </div>
           <ChevronDown
             className={`mt-0.5 h-4 w-4 shrink-0 text-zinc-400 transition-transform dark:text-zinc-500 ${expanded ? "rotate-180" : ""}`}
