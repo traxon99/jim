@@ -137,8 +137,13 @@ function sizesFor(large: boolean) {
     // iPhone 16.
     input:
       "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+    // Only the next set's ✓ is the filled, primary button (issue #319); the
+    // sets after it get a quiet outline, so the eye lands on what's next
+    // rather than on everything left to do.
     logButton:
       "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
+    laterLogButton:
+      "flex min-h-11 min-w-11 items-center justify-center rounded-md border border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500",
     repeatButton:
       "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
     rowIcon: "h-4 w-4",
@@ -527,7 +532,7 @@ export function SessionExerciseSection({
         type="button"
         onClick={() => void logRow(index)}
         aria-label={`Log set ${index + 1}`}
-        className={sizes.logButton}
+        className={index === nextIndex ? sizes.logButton : sizes.laterLogButton}
       >
         <Check className={sizes.rowIcon} strokeWidth={2.25} aria-hidden="true" />
       </button>

@@ -174,7 +174,9 @@ export function SetRow({
   }
 
   return (
-    <tr className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+    // A tinted row marks the set done at a glance (issue #319), like Strong's
+    // and Hevy's completed rows.
+    <tr className="border-b border-zinc-100 bg-accent/10 last:border-0 dark:border-zinc-800">
       <td className={sizes.indexCell}>
         <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
       </td>
