@@ -1,6 +1,7 @@
 "use client";
 
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
@@ -43,6 +44,7 @@ export function WarmupExerciseSection({
   const fieldId = useId();
   const [value, setValue] = useState("");
   const [showHowTo, setShowHowTo] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const rawSets = useLiveQuery(
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
@@ -88,7 +90,13 @@ export function WarmupExerciseSection({
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className={large ? "text-2xl font-bold" : "text-base font-semibold"}>
-            {exercise?.name ?? "Warm-up"}
+            {exercise ? (
+              <button type="button" onClick={() => setDetailOpen(true)} className="text-left">
+                {exercise.name}
+              </button>
+            ) : (
+              "Warm-up"
+            )}
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
             {targetValue != null
@@ -170,6 +178,9 @@ export function WarmupExerciseSection({
           Log set {sets.length + 1}
         </button>
       </div>
+      {detailOpen && (
+        <ExerciseDetail id={item.exerciseId} userId={userId} onClose={() => setDetailOpen(false)} />
+      )}
     </div>
   );
 }
