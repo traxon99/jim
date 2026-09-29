@@ -9,10 +9,10 @@ export type BaseTab = (typeof BASE_TABS)[number];
 /**
  * Screens that aren't tabs themselves but are reached from one, so that
  * tab stays highlighted while they're open. Profile (and its settings)
- * lives behind the button in Home's top-right corner.
+ * and Friends live behind the buttons in Home's header.
  */
 const NESTED_UNDER: Partial<Record<BaseTab, readonly string[]>> = {
-  "/home": ["/profile", "/progression"],
+  "/home": ["/profile", "/progression", "/friends"],
 };
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
