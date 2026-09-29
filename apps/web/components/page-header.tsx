@@ -48,7 +48,11 @@ export function PageHeader({
     <header className="sticky top-[env(safe-area-inset-top)] z-10 isolate flex w-full items-center gap-3 px-4 pt-3 pb-3 text-left">
       <div aria-hidden="true" className="floating-header-backdrop" />
       {back && <BackLink href={back.href} label={back.label} />}
-      <h1 className="shrink-0 text-3xl font-bold tracking-tight">{title}</h1>
+      {/* Beside actions the title keeps its width and they shrink; alone, a
+          long title wraps rather than running off the edge (issue #327). */}
+      <h1 className={`${actions ? "shrink-0" : "min-w-0"} text-3xl font-bold tracking-tight`}>
+        {title}
+      </h1>
       {actions && (
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">{actions}</div>
       )}

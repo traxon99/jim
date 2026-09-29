@@ -34,7 +34,7 @@ const SHORTCUTS: readonly { href: string; label: string; Icon: LucideIcon }[] = 
   { href: "/routines", label: "Routines", Icon: ClipboardList },
   { href: "/history/prs", label: "PRs", Icon: Trophy },
   { href: "/history/volume", label: "Volume", Icon: BarChart3 },
-  { href: "/progression", label: "Progression", Icon: TrendingUp },
+  { href: "/progression", label: "Progress", Icon: TrendingUp },
 ];
 
 /**
@@ -153,8 +153,9 @@ export function HomeSummary({ username }: { username: string | null }) {
         ))}
       </div>
 
-      {/* min-w-0 + overflow-x-auto: the cards scroll within the row instead of widening the page (issue #182). */}
-      <div className="flex min-w-0 gap-2 overflow-x-auto px-4 pt-3 pb-5" key={range}>
+      {/* All five cards fit on screen as a 3-column grid (issue #327): a row
+          that scrolled sideways clipped the fourth card mid-word. */}
+      <div className="grid grid-cols-3 gap-2 px-4 pt-3 pb-5" key={range}>
         <StatCard
           label="Active days"
           value={String(stats.current.activeDays)}
@@ -186,16 +187,19 @@ export function HomeSummary({ username }: { username: string | null }) {
   );
 }
 
-/** Shortcuts into the rest of the app, as a row of cards that scrolls sideways. */
+/**
+ * Shortcuts into the rest of the app: five icon-over-label cards that all fit
+ * at 393px (issue #327), rather than a sideways row that clipped the last.
+ */
 export function HomeShortcuts() {
   return (
-    <nav aria-label="Shortcuts" className="flex min-w-0 gap-2 overflow-x-auto px-4">
+    <nav aria-label="Shortcuts" className="grid grid-cols-5 gap-2 px-4">
       {SHORTCUTS.map(({ href, label, Icon }) => (
         <Link
           key={href}
           href={href}
           data-ripple
-          className="flex min-h-14 shrink-0 items-center gap-2.5 rounded-lg border border-zinc-200 bg-white px-4 text-base font-semibold dark:border-zinc-800 dark:bg-zinc-950"
+          className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-white px-1 text-[11px] font-semibold dark:border-zinc-800 dark:bg-zinc-950"
         >
           <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
           {label}
@@ -227,16 +231,18 @@ function StatCard({
   delta: { direction: "up" | "down"; text: string } | null;
 }) {
   return (
-    <div className="flex shrink-0 flex-col gap-1 rounded-lg bg-zinc-100 px-3 py-2.5 dark:bg-zinc-900">
+    // Sized so the longest values ("12h 30m", "123.4k lb") fit a third of
+    // the row at 393px (issue #327); the change sits on its own line below.
+    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg bg-zinc-100 px-2.5 py-2.5 dark:bg-zinc-900">
       <span className="text-sm text-zinc-500 dark:text-zinc-500">{label}</span>
-      <span className="allow-pwa-select flex items-baseline gap-2 whitespace-nowrap">
-        <span className="text-3xl font-semibold tabular-nums tracking-tight">
+      <span className="allow-pwa-select flex flex-col">
+        <span className="text-xl font-semibold tabular-nums tracking-tight">
           {value}
-          {unit && <span className="ml-0.5 text-base font-medium">{unit}</span>}
+          {unit && <span className="ml-0.5 text-sm font-medium">{unit}</span>}
         </span>
         {delta && (
           <span
-            className={`flex items-center gap-1 text-sm tabular-nums ${
+            className={`flex items-center gap-1 whitespace-nowrap text-xs tabular-nums ${
               delta.direction === "up"
                 ? "text-emerald-600 dark:text-emerald-500"
                 : "text-red-600 dark:text-red-500"

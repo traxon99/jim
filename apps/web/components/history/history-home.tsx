@@ -86,36 +86,32 @@ export function HistoryHome() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader
-        title="History"
-        actions={
-          // min-w-0 lets this row shrink below its content width so it scrolls
-          // within itself instead of forcing the page wider (issue #182).
-          <nav className="flex min-w-0 gap-2 overflow-x-auto">
-            <Link
-              href="/history/prs"
-              className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
-            >
-              <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-              PRs
-            </Link>
-            <Link
-              href="/history/volume"
-              className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
-            >
-              <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-              Volume
-            </Link>
-            <Link
-              href="/portal"
-              className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
-            >
-              <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-              Analysis
-            </Link>
-          </nav>
-        }
-      />
+      <PageHeader title="History" />
+      {/* Beside the title these ran off the right edge (issue #327); as their
+          own row of three equal pills they all fit at 393px. */}
+      <nav className="grid grid-cols-3 gap-2 px-4">
+        <Link
+          href="/history/prs"
+          className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
+        >
+          <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          PRs
+        </Link>
+        <Link
+          href="/history/volume"
+          className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
+        >
+          <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          Volume
+        </Link>
+        <Link
+          href="/portal"
+          className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
+        >
+          <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          Analysis
+        </Link>
+      </nav>
       <div className={PAGE_BODY}>
         <section>
           <TrainingCalendarMonth
