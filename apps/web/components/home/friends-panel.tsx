@@ -3,14 +3,26 @@
 import {
   fetchFriendWorkouts,
   fetchFriends,
+  fetchReceivedReactions,
   friendRequestMessage,
   removeFriend,
   respondToFriendRequest,
   sendFriendRequest,
+  toggleReaction,
 } from "@/lib/friends/client";
-import { describeExercise, workoutMinutes } from "@/lib/friends/format";
-import type { FriendEntry, FriendWorkout } from "@/lib/friends/types";
-import { normalizeUsername } from "@jim/core";
+import {
+  describeExercise,
+  reactionButtons,
+  withReaction,
+  workoutMinutes,
+} from "@/lib/friends/format";
+import type {
+  FriendEntry,
+  FriendWorkout,
+  ReceivedReaction,
+  WorkoutReaction,
+} from "@/lib/friends/types";
+import { REACTION_EMOJI, REACTION_LABELS, type ReactionKind, normalizeUsername } from "@jim/core";
 import { Check, UserPlus, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
@@ -18,14 +30,24 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 type Load =
   | { status: "loading" }
   | { status: "error"; error: string }
-  | { status: "ready"; username: string | null; friends: FriendEntry[]; workouts: FriendWorkout[] };
+  | {
+      status: "ready";
+      username: string | null;
+      friends: FriendEntry[];
+      workouts: FriendWorkout[];
+      received: ReceivedReaction[];
+    };
 
 const SECTION_HEADING =
   "text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
 
+/** How many of the latest reactions to your own workouts Home lists. */
+const RECEIVED_SHOWN = 5;
+
 /**
  * Friends on the Home tab (issue #35): add someone by their exact username,
- * answer requests, and follow friends' finished workouts. Server data, not
+ * answer requests, follow friends' finished workouts and react to them
+ * (issue #303), and see who reacted to yours. Server data, not
  * IndexedDB — it refreshes whenever the app comes back to the foreground.
  */
 export function FriendsPanel() {
@@ -34,7 +56,11 @@ export function FriendsPanel() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [friends, workouts] = await Promise.all([fetchFriends(), fetchFriendWorkouts()]);
+    const [friends, workouts, received] = await Promise.all([
+      fetchFriends(),
+      fetchFriendWorkouts(),
+      fetchReceivedReactions(),
+    ]);
     if (!friends.ok) {
       setLoad((current) =>
         current.status === "ready" ? current : { status: "error", error: friends.error },
@@ -46,6 +72,7 @@ export function FriendsPanel() {
       username: friends.value.username,
       friends: friends.value.friends,
       workouts: workouts.ok ? workouts.value : [],
+      received: received.ok ? received.value : [],
     });
   }, []);
 
@@ -65,6 +92,33 @@ export function FriendsPanel() {
     if (!result.ok) setActionError(result.error ?? "Something went wrong");
     await refresh();
     setBusyUserId(null);
+  }
+
+  function setReactions(sessionId: string, update: (r: WorkoutReaction[]) => WorkoutReaction[]) {
+    setLoad((current) =>
+      current.status === "ready"
+        ? {
+            ...current,
+            workouts: current.workouts.map((w) =>
+              w.sessionId === sessionId ? { ...w, reactions: update(w.reactions) } : w,
+            ),
+          }
+        : current,
+    );
+  }
+
+  // Shown straight away, then reconciled with what the server says happened.
+  async function react(workout: FriendWorkout, kind: ReactionKind) {
+    const wasMine = workout.reactions.some((r) => r.kind === kind && r.mine);
+    setActionError(null);
+    setReactions(workout.sessionId, (reactions) => withReaction(reactions, kind, !wasMine));
+    const result = await toggleReaction(workout.sessionId, kind);
+    if (result.ok) {
+      setReactions(workout.sessionId, (reactions) => withReaction(reactions, kind, result.value));
+    } else {
+      setReactions(workout.sessionId, (reactions) => withReaction(reactions, kind, wasMine));
+      setActionError(result.error);
+    }
   }
 
   if (load.status === "loading") {
@@ -145,6 +199,20 @@ export function FriendsPanel() {
         </section>
       )}
 
+      {load.received.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className={SECTION_HEADING}>Reactions to your workouts</h2>
+          <ul className="flex flex-col gap-1">
+            {load.received.slice(0, RECEIVED_SHOWN).map((reaction) => (
+              <ReceivedReactionRow
+                key={`${reaction.sessionId}:${reaction.userId}:${reaction.kind}`}
+                reaction={reaction}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="flex flex-col gap-3">
         <h2 className={SECTION_HEADING}>Friends&apos; workouts</h2>
         {load.workouts.length === 0 ? (
@@ -161,7 +229,13 @@ export function FriendsPanel() {
             </p>
           </div>
         ) : (
-          load.workouts.map((workout) => <WorkoutCard key={workout.sessionId} workout={workout} />)
+          load.workouts.map((workout) => (
+            <WorkoutCard
+              key={workout.sessionId}
+              workout={workout}
+              onReact={(kind) => void react(workout, kind)}
+            />
+          ))
         )}
       </section>
 
@@ -291,12 +365,40 @@ function PersonRow({
   );
 }
 
-function WorkoutCard({ workout }: { workout: FriendWorkout }) {
-  const date = new Date(workout.startedAt).toLocaleDateString(undefined, {
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
+}
+
+function ReceivedReactionRow({ reaction }: { reaction: ReceivedReaction }) {
+  return (
+    <li className="flex items-center gap-2 text-sm">
+      <span className="text-lg leading-none" aria-hidden="true">
+        {REACTION_EMOJI[reaction.kind]}
+      </span>
+      <span className="allow-pwa-select min-w-0 flex-1 truncate text-zinc-700 dark:text-zinc-300">
+        <span className="font-medium text-zinc-950 dark:text-zinc-50">@{reaction.username}</span>
+        <span className="sr-only"> reacted {REACTION_LABELS[reaction.kind]}</span> to{" "}
+        {reaction.sessionName ?? "your workout"}
+      </span>
+      <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+        {shortDate(reaction.startedAt)}
+      </span>
+    </li>
+  );
+}
+
+function WorkoutCard({
+  workout,
+  onReact,
+}: {
+  workout: FriendWorkout;
+  onReact: (kind: ReactionKind) => void;
+}) {
+  const date = shortDate(workout.startedAt);
   const minutes = workoutMinutes(workout);
 
   return (
@@ -327,6 +429,29 @@ function WorkoutCard({ workout }: { workout: FriendWorkout }) {
           ))}
         </ul>
       )}
+      <div className="flex gap-2">
+        {reactionButtons(workout.reactions).map((reaction) => (
+          <button
+            key={reaction.kind}
+            type="button"
+            aria-pressed={reaction.mine}
+            aria-label={`${REACTION_LABELS[reaction.kind]}${
+              reaction.count > 0 ? `, ${reaction.count}` : ""
+            }`}
+            onClick={() => onReact(reaction.kind)}
+            className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border px-3 text-sm ${
+              reaction.mine
+                ? "border-accent text-accent"
+                : "border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
+            }`}
+          >
+            <span className="text-base leading-none" aria-hidden="true">
+              {REACTION_EMOJI[reaction.kind]}
+            </span>
+            {reaction.count > 0 && <span className="tabular-nums">{reaction.count}</span>}
+          </button>
+        ))}
+      </div>
     </article>
   );
 }

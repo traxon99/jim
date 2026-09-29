@@ -20,6 +20,7 @@ vi.mock("@/lib/supabase/server", () => ({
 const friends = await import("../route");
 const workouts = await import("../workouts/route");
 const username = await import("../../username/route");
+const reactions = await import("../reactions/route");
 
 function jsonRequest(method: string, body: unknown, path = "/api/friends") {
   return new Request(`http://localhost${path}`, { method, body: JSON.stringify(body) });
@@ -83,8 +84,43 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
         name: "Leg Day",
         startedAt: "2026-09-28T10:00:00.000Z",
         exercises: [],
+        reactions: [],
       }),
     ]);
+  });
+
+  it("reacts to a friend's workout and shows it to its owner", async () => {
+    signInAs(USER_A, "alice@example.com");
+    const [workout] = (await (await workouts.GET()).json()).workouts;
+    const path = "/api/friends/reactions";
+
+    const bad = await reactions.POST(
+      jsonRequest("POST", { sessionId: workout.sessionId, kind: "nope" }, path),
+    );
+    expect(bad.status).toBe(400);
+
+    const added = await reactions.POST(
+      jsonRequest("POST", { sessionId: workout.sessionId, kind: "fire" }, path),
+    );
+    expect(await added.json()).toEqual({ reacted: true });
+    const feed = await (await workouts.GET()).json();
+    expect(feed.workouts[0].reactions).toEqual([{ kind: "fire", count: 1, mine: true }]);
+
+    signInAs(USER_B, "bob@example.com");
+    const own = await reactions.POST(
+      jsonRequest("POST", { sessionId: workout.sessionId, kind: "fire" }, path),
+    );
+    expect(own.status).toBe(404);
+    const received = await (await reactions.GET()).json();
+    expect(received.reactions).toEqual([
+      expect.objectContaining({ username: "ally", kind: "fire", sessionName: "Leg Day" }),
+    ]);
+
+    signInAs(USER_A, "alice@example.com");
+    const removed = await reactions.POST(
+      jsonRequest("POST", { sessionId: workout.sessionId, kind: "fire" }, path),
+    );
+    expect(await removed.json()).toEqual({ reacted: false });
   });
 
   it("404s answering a request that doesn't exist", async () => {

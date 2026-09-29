@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { friendRequestMessage, sendFriendRequest, updateUsername } from "../client";
+import { friendRequestMessage, sendFriendRequest, toggleReaction, updateUsername } from "../client";
 
 function respond(status: number, body: unknown) {
   return vi.fn(
@@ -14,6 +14,18 @@ describe("friends client", () => {
     expect(fetchImpl).toHaveBeenCalledWith(
       "/api/friends",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ username: "bob" }) }),
+    );
+  });
+
+  it("toggles a reaction", async () => {
+    const fetchImpl = respond(200, { reacted: true });
+    expect(await toggleReaction("s1", "fire", fetchImpl)).toEqual({ ok: true, value: true });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/friends/reactions",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionId: "s1", kind: "fire" }),
+      }),
     );
   });
 

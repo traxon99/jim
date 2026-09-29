@@ -134,6 +134,9 @@ sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency 
 
 friendships        id, requester_id, addressee_id, status(pending|accepted),
                    created_at, accepted_at                 -- one row per pair; server-only (ADR-017)
+
+workout_reactions  session_id, user_id, kind(strong|fire|clap|party), created_at
+                                                           -- a friend's reaction; server-only (ADR-017)
 ```
 
 **Warm-ups** (`exercises.category = 'warmup'`) are ordinary exercises logged for reps or time.

@@ -1,5 +1,7 @@
 /** Shapes /api/friends and /api/friends/workouts return (issue #35). */
 
+import type { ReactionKind } from "@jim/core";
+
 export interface FriendEntry {
   userId: string;
   username: string;
@@ -41,4 +43,24 @@ export interface FriendWorkout {
   startedAt: string;
   endedAt: string;
   exercises: FriendWorkoutExercise[];
+  /** Kinds anyone has reacted with (issue #303); kinds with no reactions are left out. */
+  reactions: WorkoutReaction[];
+}
+
+export interface WorkoutReaction {
+  kind: ReactionKind;
+  count: number;
+  /** Whether the signed-in user is one of those who reacted. */
+  mine: boolean;
+}
+
+/** A reaction someone left on one of the signed-in user's own workouts. */
+export interface ReceivedReaction {
+  sessionId: string;
+  sessionName: string | null;
+  startedAt: string;
+  userId: string;
+  username: string;
+  kind: ReactionKind;
+  createdAt: string;
 }
