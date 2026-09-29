@@ -78,7 +78,7 @@ export function MuscleVolume() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Volume by muscle group" back={{ href: "/history", label: "History" }} />
+      <PageHeader title="Volume by muscle" back={{ href: "/history", label: "History" }} />
       <div className={PAGE_BODY}>
         {weeks.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
