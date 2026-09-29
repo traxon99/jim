@@ -12,6 +12,8 @@ interface Props {
   set: SetRowEntity;
   /** The Set column's label: the set's number, or "W" for a warm-up. */
   label: string;
+  /** The Prev column's cell (issue #323): last session's same set. */
+  previous: React.ReactNode;
   isPr: boolean;
   /** A focused lift's working set logged without RPE doesn't count for DPR (issue #212). */
   rpeNudge?: boolean;
@@ -140,6 +142,7 @@ function EditableValue({
 export function SetRow({
   set,
   label,
+  previous,
   isPr,
   rpeNudge = false,
   large = false,
@@ -180,6 +183,7 @@ export function SetRow({
       <td className={sizes.indexCell}>
         <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
       </td>
+      {previous}
       <td className={sizes.cell}>
         <div className="flex items-center justify-center gap-1 font-medium">
           {editable("weight", "weight", set.weight)}
