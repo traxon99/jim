@@ -15,11 +15,26 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 
-export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
+/**
+ * `onClose` opens the card in place (e.g. over an active workout, issue
+ * #301) instead of as the /exercises/[id] route: closing calls it rather than
+ * navigating back to the Exercises tab, and the Edit link is hidden so a tap
+ * can't navigate away mid-workout.
+ */
+export function ExerciseDetail({
+  id,
+  userId,
+  onClose,
+}: {
+  id: string;
+  userId: string;
+  onClose?: () => void;
+}) {
   const router = useRouter();
-  const closeToList = () => router.push("/exercises");
+  const closeToList = onClose ?? (() => router.push("/exercises"));
+  const titleId = useId();
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
 
   // Every current (non-superseded, non-deleted) set logged against this
@@ -79,10 +94,10 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
 
   if (exercise === null) {
     return (
-      <FloatingCard labelledBy="exercise-title" onClose={closeToList}>
+      <FloatingCard labelledBy={titleId} onClose={closeToList}>
         {(close) => (
           <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
-            <h1 id="exercise-title" className="text-xl font-semibold">
+            <h1 id={titleId} className="text-xl font-semibold">
               Exercise not found
             </h1>
             <button
@@ -90,7 +105,7 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
               onClick={close}
               className="min-h-11 rounded-lg border border-zinc-300 px-4 text-base font-medium dark:border-zinc-700"
             >
-              Back to exercises
+              {onClose ? "Close" : "Back to exercises"}
             </button>
           </div>
         )}
@@ -98,7 +113,7 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
     );
   }
 
-  const canEdit = exercise.ownerId === null || exercise.ownerId === userId;
+  const canEdit = !onClose && (exercise.ownerId === null || exercise.ownerId === userId);
   const isWarmup = isWarmupExercise(exercise);
   const tags = [
     isWarmup ? "warm-up" : null,
@@ -108,13 +123,13 @@ export function ExerciseDetail({ id, userId }: { id: string; userId: string }) {
   ].filter((tag): tag is string => Boolean(tag));
 
   return (
-    <FloatingCard labelledBy="exercise-title" onClose={closeToList}>
+    <FloatingCard labelledBy={titleId} onClose={closeToList}>
       {(close) => (
         <>
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-4 pb-2">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h1 id="exercise-title" className="text-xl font-semibold">
+                <h1 id={titleId} className="text-xl font-semibold">
                   {exercise.name}
                 </h1>
                 {exercise.isArchived && (

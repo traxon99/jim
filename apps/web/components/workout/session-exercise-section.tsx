@@ -1,6 +1,7 @@
 "use client";
 
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { mutate } from "@/lib/db/mutate";
 import {
@@ -170,6 +171,7 @@ export function SessionExerciseSection({
   const [stickyEditing, setStickyEditing] = useState(false);
   const [stickyDraft, setStickyDraft] = useState("");
   const [restEditing, setRestEditing] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [customRest, setCustomRest] = useState("");
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
@@ -573,7 +575,13 @@ export function SessionExerciseSection({
       <div className="flex items-start justify-between gap-2">
         <h2 className={`${sizes.title} flex min-w-0 items-center gap-2`}>
           {supersetLabel && <SupersetBadge label={supersetLabel} />}
-          <span className="min-w-0">{exercise?.name ?? "Exercise"}</span>
+          {exercise ? (
+            <button type="button" onClick={() => setDetailOpen(true)} className="min-w-0 text-left">
+              {exercise.name}
+            </button>
+          ) : (
+            <span className="min-w-0">Exercise</span>
+          )}
           {dpr && (
             <span
               title={dprBadge(dpr.decision.call).label}
@@ -791,6 +799,9 @@ export function SessionExerciseSection({
             </button>
           )}
         </ExerciseDialog>
+      )}
+      {detailOpen && (
+        <ExerciseDetail id={item.exerciseId} userId={userId} onClose={() => setDetailOpen(false)} />
       )}
     </section>
   );
