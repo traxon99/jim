@@ -93,9 +93,9 @@ export function useRestTimer(sessionId: string) {
     };
   }, []);
 
-  const start = useCallback(
-    (durationSeconds: number) => {
-      const end = restEndsAt(new Date(), durationSeconds);
+  // Runs the rest to `end`, and moves the server push there with it.
+  const runUntil = useCallback(
+    (end: Date) => {
       setEndsAt(end);
       setAlerted(false);
       writeStored(storageKey(sessionId), end.toISOString());
@@ -114,6 +114,11 @@ export function useRestTimer(sessionId: string) {
     [sessionId, enqueuePush, markPushed],
   );
 
+  const start = useCallback(
+    (durationSeconds: number) => runUntil(restEndsAt(new Date(), durationSeconds)),
+    [runUntil],
+  );
+
   const skip = useCallback(() => {
     setEndsAt(null);
     writeStored(storageKey(sessionId), null);
@@ -123,6 +128,20 @@ export function useRestTimer(sessionId: string) {
       await cancelRestCompletePush();
     });
   }, [sessionId, enqueuePush, markPushed]);
+
+  /**
+   * −15s / +15s (issue #324): moves the end time, and the scheduled push with
+   * it. Taking off more than is left just ends the rest, like Skip.
+   */
+  const adjust = useCallback(
+    (deltaSeconds: number) => {
+      if (endsAt === null) return;
+      const end = new Date(endsAt.getTime() + deltaSeconds * 1000);
+      if (end.getTime() <= Date.now()) skip();
+      else runUntil(end);
+    },
+    [endsAt, runUntil, skip],
+  );
 
   const complete = endsAt !== null && isRestComplete(endsAt, now);
   const remaining = endsAt !== null ? remainingRestSeconds(endsAt, now) : 0;
@@ -142,5 +161,5 @@ export function useRestTimer(sessionId: string) {
     }
   }, [complete, endsAt, alerted, pushedFor]);
 
-  return { active: endsAt !== null && !complete, remaining, start, skip };
+  return { active: endsAt !== null && !complete, remaining, start, skip, adjust };
 }
