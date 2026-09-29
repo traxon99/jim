@@ -1,5 +1,6 @@
 "use client";
 
+import { PAGE_BODY } from "@/components/page-header";
 import {
   fetchFriendWorkouts,
   fetchFriends,
@@ -147,7 +148,7 @@ export function FriendsPanel() {
   const accepted = load.friends.filter((f) => f.status === "accepted");
 
   return (
-    <div className="route-fade flex w-full flex-col gap-6 px-4 py-4 text-left">
+    <div className={`route-fade text-left ${PAGE_BODY}`}>
       {load.username && (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Friends can add you as{" "}

@@ -1,12 +1,11 @@
 "use client";
 
+import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { type WeeklyMuscleVolume, weeklyVolumeByMuscle } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
 import { useMemo } from "react";
 
 const WEEKS_SHOWN = 6;
@@ -78,34 +77,26 @@ export function MuscleVolume() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div className="flex items-center gap-2">
-        <Link
-          href="/history"
-          className="flex min-h-11 items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-500"
-        >
-          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          History
-        </Link>
+    <main className="flex flex-1 flex-col">
+      <PageHeader title="Volume by muscle group" back={{ href: "/history", label: "History" }} />
+      <div className={PAGE_BODY}>
+        {weeks.length === 0 ? (
+          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+            No workouts finished yet.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {weeks.map((week) => (
+              <section key={week.weekStart.toISOString()} className="flex flex-col gap-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                  Week of {week.weekStart.toLocaleDateString()}
+                </h2>
+                <WeekVolumeBars week={week} units={settings.units} />
+              </section>
+            ))}
+          </div>
+        )}
       </div>
-      <h1 className="text-xl font-semibold">Volume by muscle group</h1>
-
-      {weeks.length === 0 ? (
-        <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-          No workouts finished yet.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {weeks.map((week) => (
-            <section key={week.weekStart.toISOString()} className="flex flex-col gap-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                Week of {week.weekStart.toLocaleDateString()}
-              </h2>
-              <WeekVolumeBars week={week} units={settings.units} />
-            </section>
-          ))}
-        </div>
-      )}
     </main>
   );
 }

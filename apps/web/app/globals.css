@@ -117,7 +117,7 @@ body {
   background: rgb(0 0 0 / 0.55);
 }
 
-/* The backdrop behind Home's floating header (components/home/home-screen.tsx).
+/* The backdrop behind the floating page header (components/page-header.tsx).
    There's no solid bar: the title and buttons float, and whatever scrolls
    under them is blurred and softened, reaching up over the status-bar
    inset and fading out below the header so there's no hard edge
