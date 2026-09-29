@@ -18,8 +18,9 @@ interface Props {
   onIndexChange: (index: number) => void;
   onExit: () => void;
   /**
-   * Right side of the top bar — the workout's Finish (or Cancel) button while
-   * sets remain. Omitted once `finishAction` is shown (issue #261).
+   * Right side of the top bar — the workout's Finish button while sets
+   * remain. Omitted once `finishAction` is shown (issue #261), and before
+   * anything is logged: discarding never sits beside the ✕ (issue #321).
    */
   headerAction?: ReactNode;
   /** Pinned just above the prev/next controls — the rest timer. */

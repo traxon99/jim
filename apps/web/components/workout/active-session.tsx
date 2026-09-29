@@ -379,8 +379,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   async function handleCancel() {
     if (!session) return;
     const message = hasLoggedSets
-      ? "Cancel this workout? Logged sets will not be saved."
-      : "Cancel this workout?";
+      ? "Discard this workout? Logged sets will not be saved."
+      : "Discard this workout?";
     if (!confirm(message)) return;
     setCancelling(true);
     try {
@@ -480,15 +480,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             {session.startedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
           </p>
         </div>
+        {/* Issue #321: Finish is the header's only action; discarding the
+            workout lives at the bottom of the page, away from it. */}
         <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => void handleCancel()}
-            disabled={finalizing || cancelling}
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-950 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
-          >
-            Cancel
-          </button>
           {hasLoggedSets && (
             <button
               type="button"
@@ -547,8 +541,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           onExit={exitFocusMode}
           headerAction={
             // Issue #261: once everything is logged, Finish lives in the
-            // "Up next" spot at the bottom instead of the top bar.
-            allSetsLogged ? undefined : hasLoggedSets ? (
+            // "Up next" spot at the bottom instead of the top bar. Discard
+            // isn't offered here at all (issue #321): it would share a bar
+            // with the ✕ that only closes Focus.
+            hasLoggedSets && !allSetsLogged ? (
               <button
                 type="button"
                 onClick={() => void handleFinalize()}
@@ -557,16 +553,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               >
                 Finish
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleCancel()}
-                disabled={finalizing || cancelling}
-                className="min-h-11 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-950 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
-              >
-                Cancel
-              </button>
-            )
+            ) : undefined
           }
           footer={<RestTimerBar timer={restTimer} />}
           finishAction={
@@ -652,6 +639,15 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
       </label>
+
+      <button
+        type="button"
+        onClick={() => void handleCancel()}
+        disabled={finalizing || cancelling}
+        className="min-h-11 self-center px-4 text-sm font-medium text-red-600 disabled:opacity-50 dark:text-red-500"
+      >
+        Discard workout
+      </button>
 
       {pickerOpen && (
         <ExercisePicker
