@@ -6,13 +6,21 @@ import { useMemo } from "react";
 const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 
+/** Shading from lightest to darkest, by a day's share of your biggest day's volume. */
+const INTENSITY_LEVELS = [
+  "bg-emerald-300/60 dark:bg-emerald-500/35",
+  "bg-emerald-400/60 dark:bg-emerald-500/60",
+  "bg-emerald-500/80 text-white dark:bg-emerald-500/70",
+  "bg-emerald-600 text-white dark:bg-emerald-500",
+] as const;
+
 function intensityClass(volume: number, maxVolume: number): string {
   if (volume <= 0) return "";
   const ratio = maxVolume > 0 ? volume / maxVolume : 0;
-  if (ratio > 0.75) return "bg-emerald-600 text-white dark:bg-emerald-500";
-  if (ratio > 0.5) return "bg-emerald-500/80 text-white dark:bg-emerald-500/70";
-  if (ratio > 0.25) return "bg-emerald-400/60 dark:bg-emerald-500/60";
-  return "bg-emerald-300/60 dark:bg-emerald-500/35";
+  if (ratio > 0.75) return INTENSITY_LEVELS[3];
+  if (ratio > 0.5) return INTENSITY_LEVELS[2];
+  if (ratio > 0.25) return INTENSITY_LEVELS[1];
+  return INTENSITY_LEVELS[0];
 }
 
 interface Props {
@@ -118,6 +126,15 @@ export function TrainingCalendarMonth({
             })}
           </div>
         ))}
+      </div>
+
+      {/* What the shading means (issue #328). */}
+      <div className="flex items-center justify-end gap-1 text-[11px] text-zinc-500 dark:text-zinc-500">
+        <span className="mr-0.5">Less volume</span>
+        {INTENSITY_LEVELS.map((level) => (
+          <span key={level} aria-hidden="true" className={`h-3 w-3 rounded-sm ${level}`} />
+        ))}
+        <span className="ml-0.5">More</span>
       </div>
     </div>
   );

@@ -3,7 +3,9 @@
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
+import { buildSessionHighlights, formatHighlightSet } from "@/lib/history/session-highlights";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
+import { formatMinutes } from "@/lib/home/stats";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -18,14 +20,24 @@ const DAY_FORMAT = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
 });
 
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
+const CARD_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
+/** Recent workouts shown at a time; "Show more" adds this many again. */
+const PAGE_SIZE = 20;
+/** Exercises listed on a card before "+N more". */
+const CARD_EXERCISES = 4;
 
 export function HistoryHome() {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
-  const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  // Issue #328: History opens on recent workouts; tapping a day narrows the
+  // list to that day rather than being the only way in.
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [shown, setShown] = useState(PAGE_SIZE);
 
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
@@ -60,12 +72,18 @@ export function HistoryHome() {
 
   const calendarDays = useMemo(() => buildTrainingCalendar(entries), [entries]);
 
-  const selectedDaySessions = useMemo(() => {
-    const key = dateKey(selectedDate);
+  const highlightsBySession = useMemo(
+    () => buildSessionHighlights(rawSessionExercises ?? [], rawExercises ?? [], rawSets ?? []),
+    [rawSessionExercises, rawExercises, rawSets],
+  );
+
+  const listedSessions = useMemo(() => {
+    const key = selectedDate ? dateKey(selectedDate) : null;
     return entries
-      .filter((session) => dateKey(session.startedAt) === key)
+      .filter((session) => key === null || dateKey(session.startedAt) === key)
       .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
   }, [entries, selectedDate]);
+  const visibleSessions = selectedDate ? listedSessions : listedSessions.slice(0, shown);
 
   const loading =
     rawSessions === undefined ||
@@ -81,8 +99,6 @@ export function HistoryHome() {
       </main>
     );
   }
-
-  const isToday = dateKey(selectedDate) === dateKey(new Date());
 
   return (
     <main className="flex flex-1 flex-col">
@@ -120,7 +136,9 @@ export function HistoryHome() {
             days={calendarDays}
             selectedDate={selectedDate}
             onSelectDate={(date) => {
-              setSelectedDate(date);
+              // Tapping the selected day again goes back to all workouts.
+              const same = selectedDate !== null && dateKey(selectedDate) === dateKey(date);
+              setSelectedDate(same ? null : date);
               setVisibleMonth(startOfMonth(date));
             }}
             onPrevMonth={() =>
@@ -132,51 +150,93 @@ export function HistoryHome() {
           />
         </section>
 
-        <section className="flex flex-col gap-1">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            {isToday ? "Today" : DAY_FORMAT.format(selectedDate)}
-          </h2>
-          {selectedDaySessions.length === 0 ? (
+        <section className="flex flex-col gap-2">
+          <div className="flex min-h-11 items-center justify-between gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+              {selectedDate ? DAY_FORMAT.format(selectedDate) : "Recent workouts"}
+            </h2>
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate(null)}
+                className="min-h-11 px-2 text-sm font-medium underline underline-offset-4"
+              >
+                Show all
+              </button>
+            )}
+          </div>
+          {visibleSessions.length === 0 ? (
             <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
               {entries.length === 0 ? "No workouts finished yet." : "No workouts on this day."}
             </p>
           ) : (
-            <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-              {selectedDaySessions.map((session) => {
+            <ul className="flex flex-col gap-2">
+              {visibleSessions.map((session) => {
                 const routine = routineBySessionId.get(session.id);
+                const highlights = highlightsBySession.get(session.id) ?? [];
+                const minutes = session.endedAt
+                  ? (session.endedAt.getTime() - session.startedAt.getTime()) / 60_000
+                  : null;
                 return (
                   <li key={session.id}>
                     <Link
                       href={`/history/${session.id}`}
                       data-ripple
-                      className="flex items-center justify-between gap-2 py-3"
+                      className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800"
                     >
                       <div className="flex flex-col gap-0.5">
-                        <span className="flex items-center gap-2 text-base font-medium">
+                        <span className="flex min-w-0 items-center gap-2 text-base font-semibold">
                           {routine && (
                             <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
                           )}
-                          {session.name}
+                          <span className="truncate">{session.name}</span>
                         </span>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                          {session.startedAt.toLocaleTimeString(undefined, {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}{" "}
-                          · {session.setCount} sets
+                        <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-500">
+                          {CARD_DATE_FORMAT.format(session.startedAt)}
+                          {minutes !== null && ` · ${formatMinutes(minutes)}`} ·{" "}
+                          {Math.round(session.totalVolume).toLocaleString()} {settings.units}
                           {session.prCount > 0
                             ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
                             : ""}
                         </span>
                       </div>
-                      <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                        {Math.round(session.totalVolume).toLocaleString()} {settings.units}
-                      </span>
+                      {highlights.length > 0 && (
+                        <ul className="flex flex-col gap-0.5 text-sm">
+                          {highlights.slice(0, CARD_EXERCISES).map((highlight, index) => (
+                            <li
+                              // biome-ignore lint/suspicious/noArrayIndexKey: an exercise can repeat in a workout
+                              key={index}
+                              className="flex justify-between gap-3"
+                            >
+                              <span className="min-w-0 truncate text-zinc-700 dark:text-zinc-300">
+                                {highlight.exerciseName}
+                              </span>
+                              <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-500">
+                                {formatHighlightSet(highlight)}
+                              </span>
+                            </li>
+                          ))}
+                          {highlights.length > CARD_EXERCISES && (
+                            <li className="text-xs text-zinc-500 dark:text-zinc-500">
+                              +{highlights.length - CARD_EXERCISES} more
+                            </li>
+                          )}
+                        </ul>
+                      )}
                     </Link>
                   </li>
                 );
               })}
             </ul>
+          )}
+          {!selectedDate && listedSessions.length > shown && (
+            <button
+              type="button"
+              onClick={() => setShown((count) => count + PAGE_SIZE)}
+              className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+            >
+              Show more
+            </button>
           )}
         </section>
       </div>
