@@ -1,6 +1,7 @@
 "use client";
 
 import { PrSparkline } from "@/components/history/pr-sparkline";
+import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { toPersonalRecordEntries } from "@/lib/history/pr-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -20,7 +21,7 @@ import {
   tierForOneRepMax,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, Medal, Sparkles } from "lucide-react";
+import { Medal, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -180,97 +181,89 @@ export function PrList() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div className="flex items-center gap-2">
-        <Link
-          href="/history"
-          className="flex min-h-11 items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-500"
-        >
-          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          History
-        </Link>
-      </div>
-      <h1 className="text-xl font-semibold">Personal records</h1>
+    <main className="flex flex-1 flex-col">
+      <PageHeader title="Personal records" back={{ href: "/history", label: "History" }} />
+      <div className={PAGE_BODY}>
+        {byExercise.length > 0 && (
+          <div className="allow-pwa-select grid grid-cols-3 gap-2">
+            <StatTile label="Current PRs" value={stats.current} />
+            <StatTile label="This month" value={stats.thisMonth} />
+            <StatTile label="Last 7 days" value={stats.recent} />
+          </div>
+        )}
 
-      {byExercise.length > 0 && (
-        <div className="allow-pwa-select grid grid-cols-3 gap-2">
-          <StatTile label="Current PRs" value={stats.current} />
-          <StatTile label="This month" value={stats.thisMonth} />
-          <StatTile label="Last 7 days" value={stats.recent} />
-        </div>
-      )}
-
-      {byExercise.length === 0 ? (
-        <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-          No PRs yet — log a set to get started.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {byExercise.map((group, index) => (
-            <section
-              key={group.exerciseId}
-              className={`card-rise flex flex-col gap-1 rounded-lg border px-3 py-2 ${
-                group.hasRecent
-                  ? "border-amber-400 shadow-[0_0_0_3px_rgba(251,191,36,0.18)] dark:border-amber-500"
-                  : "border-zinc-200 dark:border-zinc-800"
-              }`}
-              style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                  <Link
-                    href={`/exercises/${group.exerciseId}`}
-                    className="text-base font-semibold underline-offset-4 hover:underline"
-                  >
-                    {group.name}
-                  </Link>
-                  {group.plates > 0 && <PlateMedal plates={group.plates} />}
-                  {group.standard && (
-                    <span
-                      className={
-                        group.standard.tier
-                          ? "rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-                          : "rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                      }
+        {byExercise.length === 0 ? (
+          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+            No PRs yet — log a set to get started.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {byExercise.map((group, index) => (
+              <section
+                key={group.exerciseId}
+                className={`card-rise flex flex-col gap-1 rounded-lg border px-3 py-2 ${
+                  group.hasRecent
+                    ? "border-amber-400 shadow-[0_0_0_3px_rgba(251,191,36,0.18)] dark:border-amber-500"
+                    : "border-zinc-200 dark:border-zinc-800"
+                }`}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <Link
+                      href={`/exercises/${group.exerciseId}`}
+                      className="text-base font-semibold underline-offset-4 hover:underline"
                     >
-                      {tierBadgeLabel(group.standard.tier)}
-                    </span>
-                  )}
-                </div>
-                <PrSparkline points={group.progression} />
-              </div>
-              {group.standard && (
-                <p className="allow-pwa-select text-xs text-zinc-500 dark:text-zinc-500">
-                  {group.standard.tier
-                    ? nextTierHint(group.standard)
-                    : `Beginner standard: ${group.standard.thresholds.beginner}`}
-                </p>
-              )}
-              <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                {group.records.map((record) => (
-                  <li key={record.id} className="flex items-center justify-between gap-2 py-2">
-                    <span className="flex items-center gap-1.5">
-                      {PR_KIND_LABELS[record.kind]}
-                      {isRecentPersonalRecord(record, now) && (
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                          <Sparkles className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
-                          New
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex flex-col items-end">
-                      <span className="font-medium">{Math.round(record.value * 100) / 100}</span>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                        {record.achievedAt.toLocaleDateString()}
+                      {group.name}
+                    </Link>
+                    {group.plates > 0 && <PlateMedal plates={group.plates} />}
+                    {group.standard && (
+                      <span
+                        className={
+                          group.standard.tier
+                            ? "rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
+                            : "rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                        }
+                      >
+                        {tierBadgeLabel(group.standard.tier)}
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+                    )}
+                  </div>
+                  <PrSparkline points={group.progression} />
+                </div>
+                {group.standard && (
+                  <p className="allow-pwa-select text-xs text-zinc-500 dark:text-zinc-500">
+                    {group.standard.tier
+                      ? nextTierHint(group.standard)
+                      : `Beginner standard: ${group.standard.thresholds.beginner}`}
+                  </p>
+                )}
+                <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                  {group.records.map((record) => (
+                    <li key={record.id} className="flex items-center justify-between gap-2 py-2">
+                      <span className="flex items-center gap-1.5">
+                        {PR_KIND_LABELS[record.kind]}
+                        {isRecentPersonalRecord(record, now) && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            <Sparkles className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
+                            New
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex flex-col items-end">
+                        <span className="font-medium">{Math.round(record.value * 100) / 100}</span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                          {record.achievedAt.toLocaleDateString()}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
     </main>
   );
 }

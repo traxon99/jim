@@ -1,43 +1,41 @@
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { AchievementsSection } from "@/components/profile/achievements-section";
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { UsernameSection } from "@/components/profile/username-section";
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { ChevronRight, Settings } from "lucide-react";
 import Link from "next/link";
 
 export function ProfileHome() {
   return (
-    <main className="flex flex-1 flex-col items-center gap-6 px-4 py-4 text-center">
-      <div className="flex w-full flex-col items-start gap-2">
-        <Link
-          href="/home"
-          className="flex min-h-11 items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-500"
-        >
-          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          Home
-        </Link>
-        <div className="flex w-full items-center justify-between">
-          <h1 className="text-xl font-semibold">Profile</h1>
+    <main className="flex flex-1 flex-col">
+      <PageHeader
+        title="Profile"
+        back={{ href: "/home", label: "Home" }}
+        actions={
           <Link
             href="/profile/settings"
             aria-label="Settings"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-zinc-300 dark:border-zinc-700"
+            data-ripple
+            className={FLOATING_BUTTON}
           >
-            <Settings className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+            <Settings className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </Link>
-        </div>
+        }
+      />
+      <div className={`items-center text-center ${PAGE_BODY}`}>
+        <UsernameSection />
+        <AchievementsSection />
+        <BodyStatsSection />
+        <Link
+          href="/progression"
+          className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+        >
+          Progression
+          <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+        </Link>
+        <FeedbackSection />
       </div>
-      <UsernameSection />
-      <AchievementsSection />
-      <BodyStatsSection />
-      <Link
-        href="/progression"
-        className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
-      >
-        Progression
-        <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-      </Link>
-      <FeedbackSection />
     </main>
   );
 }

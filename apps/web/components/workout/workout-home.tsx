@@ -3,6 +3,7 @@
 import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
+import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
@@ -129,99 +130,102 @@ export function WorkoutHome({ userId }: { userId: string }) {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <h1 className="text-xl font-semibold">Workout</h1>
+    <main className="flex flex-1 flex-col">
+      <PageHeader title="Workout" />
+      <div className={PAGE_BODY}>
+        <TryDprCard completedSessionCount={completedSessionCount} />
+        <BlockEndCard context={dprContext} />
 
-      <TryDprCard completedSessionCount={completedSessionCount} />
-      <BlockEndCard context={dprContext} />
+        <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
-      <UpNextCard starting={starting} onStart={handleChooseRoutine} />
-
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => void handleStartEmpty()}
-          disabled={starting}
-          className="min-h-11 rounded-lg border border-zinc-300 px-3 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-        >
-          Start empty workout
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleStartSmart()}
-          disabled={starting}
-          className="flex min-h-11 flex-col items-center justify-center rounded-lg border border-zinc-300 px-3 py-2 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-        >
-          Smart workout
-          <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
-            Balances recent volume
-          </span>
-        </button>
-      </div>
-
-      {routineGroups.length > 0 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            Start from a routine
-          </h2>
-          {routineGroups.map((group) => (
-            <section key={group.folder ?? "__ungrouped"} className="flex flex-col gap-1">
-              {group.folder && (
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                  {group.folder}
-                </h3>
-              )}
-              <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                {group.routines.map((routine) => (
-                  <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
-                    <button
-                      type="button"
-                      onClick={() => handlePreviewRoutine(routine.id, routine.name)}
-                      data-ripple
-                      className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
-                    >
-                      <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                      <span className="truncate text-base font-medium">{routine.name}</span>
-                    </button>
-                    {/* One badge instead of inline chips; the details open
-                        in a floating card (issue #284). */}
-                    {dprContext && (
-                      <DprWorkoutBadge
-                        context={dprContext}
-                        calls={dprCallsForRoutine(
-                          dprContext,
-                          itemsByRoutine?.get(routine.id) ?? [],
-                        )}
-                        routineName={routine.name}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleChooseRoutine(routine.id, routine.name)}
-                      disabled={starting}
-                      aria-label={`Start ${routine.name}`}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-300 disabled:opacity-50 dark:border-zinc-700"
-                    >
-                      <Play className="h-4 w-4 fill-current" strokeWidth={2} aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => void handleStartEmpty()}
+            disabled={starting}
+            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
+          >
+            Start empty workout
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleStartSmart()}
+            disabled={starting}
+            className="flex min-h-11 flex-col items-center justify-center rounded-lg border border-zinc-300 px-3 py-2 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
+          >
+            Smart workout
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              Balances recent volume
+            </span>
+          </button>
         </div>
-      )}
 
-      {preview && (
-        <PreWorkoutSheet
-          context={dprContext}
-          routineId={preview.id}
-          routineName={preview.name}
-          starting={starting}
-          onStart={(intensity) => void handleStartFromRoutine(preview.id, preview.name, intensity)}
-          onCancel={closePreview}
-        />
-      )}
+        {routineGroups.length > 0 && (
+          <div className="flex flex-col gap-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+              Start from a routine
+            </h2>
+            {routineGroups.map((group) => (
+              <section key={group.folder ?? "__ungrouped"} className="flex flex-col gap-1">
+                {group.folder && (
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                    {group.folder}
+                  </h3>
+                )}
+                <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {group.routines.map((routine) => (
+                    <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewRoutine(routine.id, routine.name)}
+                        data-ripple
+                        className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+                      >
+                        <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                        <span className="truncate text-base font-medium">{routine.name}</span>
+                      </button>
+                      {/* One badge instead of inline chips; the details open
+                        in a floating card (issue #284). */}
+                      {dprContext && (
+                        <DprWorkoutBadge
+                          context={dprContext}
+                          calls={dprCallsForRoutine(
+                            dprContext,
+                            itemsByRoutine?.get(routine.id) ?? [],
+                          )}
+                          routineName={routine.name}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleChooseRoutine(routine.id, routine.name)}
+                        disabled={starting}
+                        aria-label={`Start ${routine.name}`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-300 disabled:opacity-50 dark:border-zinc-700"
+                      >
+                        <Play className="h-4 w-4 fill-current" strokeWidth={2} aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {preview && (
+          <PreWorkoutSheet
+            context={dprContext}
+            routineId={preview.id}
+            routineName={preview.name}
+            starting={starting}
+            onStart={(intensity) =>
+              void handleStartFromRoutine(preview.id, preview.name, intensity)
+            }
+            onCancel={closePreview}
+          />
+        )}
+      </div>
     </main>
   );
 }

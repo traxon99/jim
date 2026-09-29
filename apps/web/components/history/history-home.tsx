@@ -1,5 +1,6 @@
 "use client";
 
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
@@ -84,102 +85,105 @@ export function HistoryHome() {
   const isToday = dateKey(selectedDate) === dateKey(new Date());
 
   return (
-    <main className="flex flex-1 flex-col gap-6 px-4 py-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="shrink-0 text-xl font-semibold">History</h1>
-        {/* min-w-0 lets this row shrink below its content width so it scrolls
-            within itself instead of forcing the page wider (issue #182). */}
-        <nav className="flex min-w-0 gap-2 overflow-x-auto">
-          <Link
-            href="/history/prs"
-            className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
-          >
-            <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-            PRs
-          </Link>
-          <Link
-            href="/history/volume"
-            className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
-          >
-            <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-            Volume
-          </Link>
-          <Link
-            href="/portal"
-            className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
-          >
-            <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-            Analysis
-          </Link>
-        </nav>
+    <main className="flex flex-1 flex-col">
+      <PageHeader
+        title="History"
+        actions={
+          // min-w-0 lets this row shrink below its content width so it scrolls
+          // within itself instead of forcing the page wider (issue #182).
+          <nav className="flex min-w-0 gap-2 overflow-x-auto">
+            <Link
+              href="/history/prs"
+              className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
+            >
+              <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              PRs
+            </Link>
+            <Link
+              href="/history/volume"
+              className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
+            >
+              <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              Volume
+            </Link>
+            <Link
+              href="/portal"
+              className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
+            >
+              <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              Analysis
+            </Link>
+          </nav>
+        }
+      />
+      <div className={PAGE_BODY}>
+        <section>
+          <TrainingCalendarMonth
+            month={visibleMonth}
+            weekStart={settings.weekStart}
+            days={calendarDays}
+            selectedDate={selectedDate}
+            onSelectDate={(date) => {
+              setSelectedDate(date);
+              setVisibleMonth(startOfMonth(date));
+            }}
+            onPrevMonth={() =>
+              setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))
+            }
+            onNextMonth={() =>
+              setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))
+            }
+          />
+        </section>
+
+        <section className="flex flex-col gap-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+            {isToday ? "Today" : DAY_FORMAT.format(selectedDate)}
+          </h2>
+          {selectedDaySessions.length === 0 ? (
+            <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+              {entries.length === 0 ? "No workouts finished yet." : "No workouts on this day."}
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+              {selectedDaySessions.map((session) => {
+                const routine = routineBySessionId.get(session.id);
+                return (
+                  <li key={session.id}>
+                    <Link
+                      href={`/history/${session.id}`}
+                      data-ripple
+                      className="flex items-center justify-between gap-2 py-3"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="flex items-center gap-2 text-base font-medium">
+                          {routine && (
+                            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                          )}
+                          {session.name}
+                        </span>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                          {session.startedAt.toLocaleTimeString(undefined, {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}{" "}
+                          · {session.setCount} sets
+                          {session.prCount > 0
+                            ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
+                            : ""}
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        {Math.round(session.totalVolume).toLocaleString()} {settings.units}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
-
-      <section>
-        <TrainingCalendarMonth
-          month={visibleMonth}
-          weekStart={settings.weekStart}
-          days={calendarDays}
-          selectedDate={selectedDate}
-          onSelectDate={(date) => {
-            setSelectedDate(date);
-            setVisibleMonth(startOfMonth(date));
-          }}
-          onPrevMonth={() =>
-            setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))
-          }
-          onNextMonth={() =>
-            setVisibleMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))
-          }
-        />
-      </section>
-
-      <section className="flex flex-col gap-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-          {isToday ? "Today" : DAY_FORMAT.format(selectedDate)}
-        </h2>
-        {selectedDaySessions.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-            {entries.length === 0 ? "No workouts finished yet." : "No workouts on this day."}
-          </p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-            {selectedDaySessions.map((session) => {
-              const routine = routineBySessionId.get(session.id);
-              return (
-                <li key={session.id}>
-                  <Link
-                    href={`/history/${session.id}`}
-                    data-ripple
-                    className="flex items-center justify-between gap-2 py-3"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-2 text-base font-medium">
-                        {routine && (
-                          <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                        )}
-                        {session.name}
-                      </span>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                        {session.startedAt.toLocaleTimeString(undefined, {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}{" "}
-                        · {session.setCount} sets
-                        {session.prCount > 0
-                          ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
-                          : ""}
-                      </span>
-                    </div>
-                    <span className="shrink-0 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                      {Math.round(session.totalVolume).toLocaleString()} {settings.units}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
     </main>
   );
 }
