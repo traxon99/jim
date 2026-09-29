@@ -15,6 +15,20 @@ export const FLOATING_BUTTON =
 export const PAGE_BODY = "flex w-full flex-1 flex-col gap-5 px-4 pt-2 pb-6";
 
 /**
+ * The round ‹ pill back to a page's parent. PageHeader shows it before the
+ * title; pages with their own header put it above (issue #325), so every
+ * pushed page has a way out in the installed PWA, which has no browser
+ * chrome or swipe-back.
+ */
+export function BackLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} aria-label={`Back to ${label}`} data-ripple className={FLOATING_BUTTON}>
+      <ChevronLeft className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+    </Link>
+  );
+}
+
+/**
  * The header every top-level page shares. There's no solid bar: the title and
  * any buttons float, pinned below the status bar, and content scrolling under
  * them is blurred and softened by the backdrop (issues #311, #313).
@@ -33,16 +47,7 @@ export function PageHeader({
   return (
     <header className="sticky top-[env(safe-area-inset-top)] z-10 isolate flex w-full items-center gap-3 px-4 pt-3 pb-3 text-left">
       <div aria-hidden="true" className="floating-header-backdrop" />
-      {back && (
-        <Link
-          href={back.href}
-          aria-label={`Back to ${back.label}`}
-          data-ripple
-          className={FLOATING_BUTTON}
-        >
-          <ChevronLeft className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
-        </Link>
-      )}
+      {back && <BackLink href={back.href} label={back.label} />}
       <h1 className="shrink-0 text-3xl font-bold tracking-tight">{title}</h1>
       {actions && (
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">{actions}</div>

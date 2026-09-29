@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -182,6 +183,16 @@ export function ExerciseForm({
 
   return (
     <Container className="flex flex-1 flex-col gap-4 px-4 py-4">
+      {/* As its own page; inside the exercise picker it has "Back" instead. */}
+      {!onCancel && !onSaved && (
+        <div className="self-start">
+          {mode === "edit" && exerciseId ? (
+            <BackLink href={`/exercises/${exerciseId}`} label="exercise" />
+          ) : (
+            <BackLink href="/exercises" label="Exercises" />
+          )}
+        </div>
+      )}
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">
           {mode === "new" ? "New exercise" : "Edit exercise"}

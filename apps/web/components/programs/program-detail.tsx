@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type ProgramRoutineRow, type RoutineRow, db } from "@/lib/db/schema";
 import { pairWarmup } from "@/lib/programs/pair-warmup";
@@ -162,6 +163,9 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
 
   return (
     <main className="flex flex-1 flex-col gap-4 px-4 py-4">
+      <div className="self-start">
+        <BackLink href="/routines" label="Routines" />
+      </div>
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold">
