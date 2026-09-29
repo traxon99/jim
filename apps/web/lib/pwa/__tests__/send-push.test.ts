@@ -29,6 +29,19 @@ describe("isExpiredSubscriptionError", () => {
 });
 
 describe("fanOutPush", () => {
+  it("sends once per endpoint when two accounts share a browser", async () => {
+    const sent: string[] = [];
+    const result = await fanOutPush(
+      [sub("shared"), sub("other"), sub("shared")],
+      releasePushMessage("Faster sync."),
+      async (subscription) => {
+        sent.push(subscription.endpoint);
+      },
+    );
+    expect(sent).toEqual(["https://push.example/shared", "https://push.example/other"]);
+    expect(result.sent).toBe(2);
+  });
+
   it("sends the message as JSON to every subscription and tallies the outcomes", async () => {
     const payloads: string[] = [];
     const result = await fanOutPush(
