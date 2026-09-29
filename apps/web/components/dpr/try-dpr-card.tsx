@@ -27,33 +27,24 @@ export function TryDprCard({ completedSessionCount }: { completedSessionCount: n
     await patchSettings({ dprPromptDismissedAt: new Date() });
   }
 
+  // A single row below the user's routines, not a half-screen card above
+  // them (issue #329); the Progression page explains the rest.
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-accent px-4 py-4">
-      <div className="flex items-start gap-3">
-        <TrendingUp className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">Try Dynamic Progression</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Pick up to 5 lifts and Jim will suggest when to add weight, hold, or back off, based on
-            your reps and RPE — with a strength goal for each training block.
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <Link
-          href="/progression"
-          className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
-        >
-          Set up
-        </Link>
-        <button
-          type="button"
-          onClick={() => void dismiss()}
-          className="min-h-11 flex-1 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
-        >
-          Not now
-        </button>
-      </div>
+    <section className="flex items-center gap-2 rounded-lg border border-accent py-1 pr-1 pl-3">
+      <TrendingUp className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+      <Link href="/progression" className="flex min-h-11 min-w-0 flex-1 flex-col justify-center">
+        <span className="text-sm font-semibold">Try Dynamic Progression</span>
+        <span className="truncate text-xs text-zinc-600 dark:text-zinc-400">
+          Jim suggests when to add weight, hold or back off
+        </span>
+      </Link>
+      <button
+        type="button"
+        onClick={() => void dismiss()}
+        className="min-h-11 shrink-0 px-3 text-sm font-medium text-zinc-500 dark:text-zinc-400"
+      >
+        Not now
+      </button>
     </section>
   );
 }

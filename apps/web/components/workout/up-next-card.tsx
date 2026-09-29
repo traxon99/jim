@@ -53,19 +53,9 @@ export function UpNextCard({ starting, onStart }: Props) {
   const exerciseCount = routineItems?.length;
   const dprContext = useDprContext();
 
-  if (suggestion === undefined) return null;
-
-  if (suggestion === null) {
-    return (
-      <Link
-        href="/routines/programs/new"
-        data-ripple
-        className="rounded-lg border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
-      >
-        Set up a program to get your next workout suggested here.
-      </Link>
-    );
-  }
+  // Without a program there's nothing to suggest; the invite to set one up
+  // lives on the Routines tab, not above your routines here (issue #329).
+  if (!suggestion) return null;
 
   const { program, next, routine } = suggestion;
 
