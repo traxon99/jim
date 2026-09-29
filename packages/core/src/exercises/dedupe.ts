@@ -32,3 +32,30 @@ export function preferOwnedExercises<T extends CatalogExercise>(
 
   return [...bySlug.values(), ...other];
 }
+
+/**
+ * The global catalog has a few exact-name duplicates (issue #330), e.g.
+ * "Ankle Circles" from both the free-exercise-db stretches and the curated
+ * warm-ups. Among global rows sharing a name (case-insensitively), this
+ * keeps one: the one the user has logged, else a curated warm-up
+ * (`warmup-` slug), else the first. The user's own exercises are never
+ * folded away.
+ */
+export function dedupeCatalogNames<T extends CatalogExercise>(
+  exercises: readonly T[],
+  usedIds: ReadonlySet<string> = new Set(),
+): T[] {
+  const rank = (exercise: T) =>
+    (usedIds.has(exercise.id) ? 2 : 0) + (exercise.slug.startsWith("warmup-") ? 1 : 0);
+  const keptByName = new Map<string, T>();
+  for (const exercise of exercises) {
+    if (exercise.ownerId !== null) continue;
+    const key = exercise.name.trim().toLowerCase();
+    const kept = keptByName.get(key);
+    if (!kept || rank(exercise) > rank(kept)) keptByName.set(key, exercise);
+  }
+  return exercises.filter(
+    (exercise) =>
+      exercise.ownerId !== null || keptByName.get(exercise.name.trim().toLowerCase()) === exercise,
+  );
+}
