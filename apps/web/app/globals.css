@@ -117,6 +117,27 @@ body {
   background: rgb(0 0 0 / 0.55);
 }
 
+/* The backdrop behind Home's floating header (components/home/home-screen.tsx).
+   There's no solid bar: the title and buttons float, and whatever scrolls
+   under them is blurred and softened, reaching up over the status-bar
+   inset and fading out below the header so there's no hard edge
+   (issue #311). */
+.floating-header-backdrop {
+  position: absolute;
+  inset: calc(-1 * env(safe-area-inset-top)) 0 -1.25rem 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.55));
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
+  mask-image: linear-gradient(to bottom, #000 65%, transparent);
+}
+
+:root.dark .floating-header-backdrop {
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.45));
+}
+
 /* Global iOS hygiene (docs/ARCHITECTURE.md §6) */
 * {
   touch-action: manipulation;
