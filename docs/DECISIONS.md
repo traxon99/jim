@@ -396,6 +396,12 @@ functions are the only way to change it. They're executable by `authenticated` o
   Home is shown, like the portal (ADR-015). Nothing about a friend is written to IndexedDB, so
   offline the panel says it can't load rather than showing stale data.
 
+- **Reactions** (issue #303) follow the same rule. `workout_reactions` is readable only by the
+  person who reacted and has no write policies. Migration 0025's `toggle_workout_reaction` only
+  accepts an accepted friend's finished, undeleted session; `friend_workouts` now returns each
+  workout's per-kind counts and whether you reacted; and `workout_reactions_received` shows a
+  session's owner who reacted to which of their workouts.
+
 **Rejected: friend-aware RLS on `sessions`/`session_exercises`/`sets`.** Simpler SQL, but every pull
 would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
 server, the portal) silently merges someone else's training into yours.

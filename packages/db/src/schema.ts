@@ -1,4 +1,4 @@
-import { MUSCLES, ROUTINE_ICON_COLORS, ROUTINE_ICON_SHAPES } from "@jim/core";
+import { MUSCLES, REACTION_KINDS, ROUTINE_ICON_COLORS, ROUTINE_ICON_SHAPES } from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -116,6 +116,10 @@ export const sessionIntensityEnum = pgEnum("session_intensity", ["light", "maint
 // A friend request (issue #35) is "pending" until the addressee accepts it;
 // declining or unfriending deletes the row rather than keeping a status.
 export const friendshipStatusEnum = pgEnum("friendship_status", ["pending", "accepted"]);
+
+// What a friend can react to a finished workout with (issue #303); the UI
+// shows each as an emoji (@jim/core's REACTION_EMOJI).
+export const reactionKindEnum = pgEnum("reaction_kind", [...REACTION_KINDS]);
 
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
@@ -824,6 +828,37 @@ export const friendships = pgTable(
       for: "select",
       to: authenticatedRole,
       using: sql`${authUid} IN (${table.requesterId}, ${table.addresseeId})`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// workout_reactions — a friend's reaction to someone's finished session
+// (issue #303). One row per (session, reactor, kind), so each kind toggles.
+// Like friendships, readable only by the reactor and never written directly:
+// migration 0025's SECURITY DEFINER functions check the friendship on write
+// and hand the session's owner counts and names rather than rows (ADR-017).
+// ---------------------------------------------------------------------------
+
+export const workoutReactions = pgTable(
+  "workout_reactions",
+  {
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: reactionKindEnum("kind").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("workout_reactions_unique").on(table.sessionId, table.userId, table.kind),
+    index("workout_reactions_user").on(table.userId),
+    pgPolicy("workout_reactions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
     }),
   ],
 ).enableRLS();

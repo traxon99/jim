@@ -169,6 +169,20 @@
       "when": 1790638269119,
       "tag": "0023_friends_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790701683882,
+      "tag": "0024_add_workout_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790701690813,
+      "tag": "0025_workout_reactions_functions",
+      "breakpoints": true
     }
   ]
 }

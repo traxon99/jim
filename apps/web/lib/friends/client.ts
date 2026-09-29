@@ -1,4 +1,5 @@
-import type { FriendRequestResult, FriendWorkout, FriendsPayload } from "./types";
+import type { ReactionKind } from "@jim/core";
+import type { FriendRequestResult, FriendWorkout, FriendsPayload, ReceivedReaction } from "./types";
 
 // Friends are server data (issue #35): unlike training, nothing here is
 // written to IndexedDB first, so each call can fail offline and says so.
@@ -42,6 +43,33 @@ export async function fetchFriendWorkouts(
     fetchImpl,
   );
   return result.ok ? { ok: true, value: result.value.workouts } : result;
+}
+
+export async function fetchReceivedReactions(
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<ReceivedReaction[]>> {
+  const result = await request<{ reactions: ReceivedReaction[] }>(
+    "/api/friends/reactions",
+    undefined,
+    "Couldn't load reactions",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.reactions } : result;
+}
+
+/** Adds or takes back a reaction; the value is whether it's now there. */
+export async function toggleReaction(
+  sessionId: string,
+  kind: ReactionKind,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<boolean>> {
+  const result = await request<{ reacted: boolean }>(
+    "/api/friends/reactions",
+    { method: "POST", body: JSON.stringify({ sessionId, kind }) },
+    "Couldn't save your reaction",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.reacted } : result;
 }
 
 export async function sendFriendRequest(
