@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { preferOwnedExercises } from "../dedupe";
+import { dedupeCatalogNames, preferOwnedExercises } from "../dedupe";
 import type { CatalogExercise } from "../types";
 
 const USER_A = "user-a";
@@ -49,5 +49,32 @@ describe("preferOwnedExercises", () => {
     const a = exercise({ id: "a", slug: "bench-press" });
     const b = exercise({ id: "b", slug: "squat" });
     expect(preferOwnedExercises([a, b], USER_A)).toHaveLength(2);
+  });
+});
+
+describe("dedupeCatalogNames", () => {
+  const stretch = exercise({ id: "fedb", slug: "ankle-circles", name: "Ankle Circles" });
+  const warmup = exercise({ id: "wu", slug: "warmup-ankle-circles", name: "Ankle Circles" });
+  const bench = exercise({ id: "bench", slug: "bench-press", name: "Bench Press" });
+
+  it("keeps one global row per name, preferring the curated warm-up", () => {
+    expect(dedupeCatalogNames([stretch, bench, warmup]).map((e) => e.id)).toEqual(["bench", "wu"]);
+  });
+
+  it("prefers the row the user has logged", () => {
+    expect(dedupeCatalogNames([stretch, warmup], new Set(["fedb"])).map((e) => e.id)).toEqual([
+      "fedb",
+    ]);
+  });
+
+  it("matches names case-insensitively and never folds away the user's own", () => {
+    const mine = exercise({
+      id: "mine",
+      slug: "my-ankle-circles",
+      name: "ankle circles",
+      ownerId: USER_A,
+    });
+    const shouty = exercise({ id: "shouty", slug: "ankle-circles-2", name: "ANKLE CIRCLES" });
+    expect(dedupeCatalogNames([stretch, shouty, mine]).map((e) => e.id)).toEqual(["fedb", "mine"]);
   });
 });
