@@ -130,11 +130,15 @@ function sizesFor(large: boolean) {
     headerCell: "py-1 pr-2 font-medium",
     indexCell: "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
     cell: "py-2 pr-2 align-middle",
+    // Last session's weight over ×reps for the same set (issue #323), stacked
+    // in small grey type so the column stays ~40px wide at 393px.
+    prevCell:
+      "py-2 pr-2 align-middle text-center text-xs leading-tight tabular-nums text-zinc-400 dark:text-zinc-500",
     actionCell: "py-2 pl-1 align-middle text-right whitespace-nowrap",
     // Values are centered and sized as large as the row allows (issue #186):
     // the input is pinned to h-11, the same height as the log/repeat buttons
     // beside it, so the row doesn't grow; text-xl is the largest size where a
-    // five-character weight ("315.5") still fits the ~60px column on an
+    // five-character weight ("315.5") still fits the ~70px column on an
     // iPhone 16.
     input:
       "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
@@ -324,6 +328,16 @@ export function SessionExerciseSection({
       const next = new Map(current);
       next.set(index, { ...(current.get(index) ?? defaultDraft(index)), ...patch });
       return next;
+    });
+  }
+
+  // Tapping a Prev value copies last time's set into that row (issue #323).
+  function fillFromPrevious(index: number) {
+    const prior = previousFor(index);
+    if (!prior) return;
+    updateDraft(index, {
+      weight: prior.weight == null ? "" : String(prior.weight),
+      reps: prior.reps == null ? "" : String(prior.reps),
     });
   }
 
@@ -573,21 +587,35 @@ export function SessionExerciseSection({
     <thead>
       <tr className={sizes.headerRow}>
         <th className={`w-8 ${sizes.headerCell}`}>Set</th>
+        <th className={`text-center ${sizes.headerCell}`}>Prev</th>
         <th className={`text-center ${sizes.headerCell}`}>Weight</th>
-        <th className={`text-center ${sizes.headerCell}`}>Reps</th>
-        <th className={`text-center ${sizes.headerCell}`}>
+        {/* Reps and RPE are pinned narrow (issue #323) so, beside the Prev
+            column, Weight still fits "315.5" at text-xl on a ~325px table. */}
+        <th className={`w-11 text-center ${sizes.headerCell}`}>Reps</th>
+        <th className={`w-12 text-center ${sizes.headerCell}`}>
           <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
         </th>
         <th className={sizes.headerCell} />
       </tr>
     </thead>
   );
+  function previousValues(index: number) {
+    const prior = previousFor(index);
+    if (!prior || (prior.weight == null && prior.reps == null)) return <span>—</span>;
+    return (
+      <span className="flex flex-col items-center">
+        <span>{prior.weight ?? "—"}</span>
+        <span>×{prior.reps ?? "—"}</span>
+      </span>
+    );
+  }
   function loggedRow(set: SetRowEntity, label: string) {
     return (
       <SetRow
         key={set.id}
         set={set}
         label={label}
+        previous={<td className={sizes.prevCell}>{previousValues(set.setIndex)}</td>}
         isPr={prsBySetId.has(set.id)}
         rpeNudge={needsRpeNudge(dpr !== null, set)}
         onEdit={(patch) => void handleEdit(set, patch)}
@@ -606,6 +634,20 @@ export function SessionExerciseSection({
             kind={draft.kind}
             onChange={(kind) => updateDraft(index, { kind })}
           />
+        </td>
+        <td className={sizes.prevCell}>
+          {previousFor(index) ? (
+            <button
+              type="button"
+              onClick={() => fillFromPrevious(index)}
+              aria-label={`Use last time's set ${index + 1}`}
+              className="min-h-11 w-full"
+            >
+              {previousValues(index)}
+            </button>
+          ) : (
+            previousValues(index)
+          )}
         </td>
         <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
         <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
@@ -674,11 +716,6 @@ export function SessionExerciseSection({
         </p>
       )}
 
-      {previous && (
-        <p className={sizes.meta}>
-          Last time: {previous.weight ?? "—"} × {previous.reps ?? "—"} — the number to beat
-        </p>
-      )}
       {!previous && target && (
         <p className={sizes.meta}>
           Target: {target.targetSets ?? "—"} × {target.targetRepsLow ?? "—"}–
