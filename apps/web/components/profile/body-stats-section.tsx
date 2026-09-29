@@ -4,7 +4,6 @@ import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { cmToFeetInches, feetInchesToCm } from "@/lib/settings/height";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /**
@@ -64,16 +63,19 @@ export function BodyStatsSection() {
     setBodyweight(formatNumericField(cached.bodyweight));
   }, [cached]);
 
-  // A successful save otherwise leaves no trace — the button just goes back
-  // to reading "Save" — which reads as "did that actually do anything?". Show
-  // a confirmation for a couple seconds instead of silence.
+  // A save as you go otherwise leaves no trace, which reads as "did that
+  // actually do anything?". Show a confirmation for a couple seconds.
   useEffect(() => {
     if (status !== "saved") return;
     const id = setTimeout(() => setStatus("idle"), 2000);
     return () => clearTimeout(id);
   }, [status]);
 
-  async function handleSave() {
+  // Saves as you go (issue #331): pickers on change, typed fields on blur.
+  // `next` carries a just-picked value the state hasn't caught up to yet.
+  async function handleSave(next: { sex?: "male" | "female" | ""; birthdate?: string } = {}) {
+    const sexValue = next.sex ?? sex;
+    const birthdateValue = next.birthdate ?? birthdate;
     const heightBlank = heightFeet.trim() === "" && heightInches.trim() === "";
     const heightCm = heightBlank
       ? null
@@ -95,8 +97,8 @@ export function BodyStatsSection() {
     setStatus("saving");
     setError(null);
     const result = await patchSettings({
-      sex: sex === "" ? null : sex,
-      birthdate: birthdate === "" ? null : birthdate,
+      sex: sexValue === "" ? null : sexValue,
+      birthdate: birthdateValue === "" ? null : birthdateValue,
       heightCm: heightCm === null ? null : String(heightCm),
       bodyweight: bodyweight.trim() === "" ? null : String(Number(bodyweight)),
     });
@@ -122,7 +124,11 @@ export function BodyStatsSection() {
         Sex
         <select
           value={sex}
-          onChange={(event) => setSex(event.target.value as "male" | "female" | "")}
+          onChange={(event) => {
+            const value = event.target.value as "male" | "female" | "";
+            setSex(value);
+            void handleSave({ sex: value });
+          }}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         >
           <option value="">Not set</option>
@@ -136,7 +142,10 @@ export function BodyStatsSection() {
         <input
           type="date"
           value={birthdate}
-          onChange={(event) => setBirthdate(event.target.value)}
+          onChange={(event) => {
+            setBirthdate(event.target.value);
+            void handleSave({ birthdate: event.target.value });
+          }}
           max={new Date().toISOString().slice(0, 10)}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
@@ -152,6 +161,7 @@ export function BodyStatsSection() {
               min={0}
               value={heightFeet}
               onChange={(event) => setHeightFeet(event.target.value)}
+              onBlur={() => void handleSave()}
               aria-label="Height, feet"
               className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             />
@@ -165,6 +175,7 @@ export function BodyStatsSection() {
               max={11}
               value={heightInches}
               onChange={(event) => setHeightInches(event.target.value)}
+              onBlur={() => void handleSave()}
               aria-label="Height, inches"
               className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             />
@@ -180,21 +191,18 @@ export function BodyStatsSection() {
           inputMode="decimal"
           value={bodyweight}
           onChange={(event) => setBodyweight(event.target.value)}
+          onBlur={() => void handleSave()}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
       </label>
 
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
 
-      <button
-        type="button"
-        onClick={() => void handleSave()}
-        disabled={status === "saving"}
-        className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-      >
-        <Check className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-        {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : "Save"}
-      </button>
+      {(status === "saving" || status === "saved") && (
+        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+          {status === "saving" ? "Saving…" : "Saved"}
+        </p>
+      )}
     </div>
   );
 }
