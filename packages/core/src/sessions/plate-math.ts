@@ -46,3 +46,32 @@ export function calculatePlateBreakdown(
     remainderPerSide: perSideRemaining < EPSILON ? 0 : Math.round(perSideRemaining * 100) / 100,
   };
 }
+
+/**
+ * The weight closest to `targetWeight` that the bar and plates can actually
+ * make (issue #320), so a computed suggestion like 231.43 shows as 230. Ties
+ * go to the lighter load; a target at or below the bar is just the bar.
+ * Without plates there's nothing to round to, so the target only loses its
+ * float noise.
+ */
+export function nearestLoadableWeight(
+  targetWeight: number,
+  barWeight: number,
+  availablePlates: readonly number[],
+): number {
+  const plates = availablePlates.filter((p) => p > 0);
+  if (!Number.isFinite(targetWeight)) return barWeight;
+  if (targetWeight <= barWeight) return barWeight;
+  if (plates.length === 0) return Math.round(targetWeight * 100) / 100;
+
+  const loaded = (target: number) => {
+    const { perSide } = calculatePlateBreakdown(target, barWeight, plates);
+    return Math.round((barWeight + 2 * perSide.reduce((sum, p) => sum + p, 0)) * 100) / 100;
+  };
+  // With every plate size unlimited, one more pair of the smallest plate
+  // always reaches past the target, so this is the next load up.
+  const below = loaded(targetWeight);
+  if (below >= targetWeight - EPSILON) return below;
+  const above = loaded(targetWeight + 2 * Math.min(...plates));
+  return targetWeight - below <= above - targetWeight ? below : above;
+}
