@@ -54,9 +54,11 @@ interface Props {
   userId: string;
   mode: "new" | "edit";
   routineId?: string;
+  /** What a new routine starts as; edit mode loads the routine's own. */
+  initialKind?: RoutineKind;
 }
 
-export function RoutineForm({ userId, mode, routineId }: Props) {
+export function RoutineForm({ userId, mode, routineId, initialKind = "strength" }: Props) {
   const router = useRouter();
   const existing = useLiveQuery(
     () => (routineId ? db.routines.get(routineId) : undefined),
@@ -67,7 +69,7 @@ export function RoutineForm({ userId, mode, routineId }: Props) {
   const [folder, setFolder] = useState("");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
-  const [kind, setKind] = useState<RoutineKind>("strength");
+  const [kind, setKind] = useState<RoutineKind>(initialKind);
   // "" = no warm-up, "routine:<id>" = one of the user's warm-up routines,
   // "template:<key>" = a built-in template, added as a routine on save.
   const [warmupChoice, setWarmupChoice] = useState("");

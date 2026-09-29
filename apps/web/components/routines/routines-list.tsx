@@ -19,6 +19,9 @@ import { RoutineIcon } from "./routine-icon";
 
 type View = "mine" | "explore";
 
+/** Routines (warm-ups included) before the search box shows (issue #329). */
+const SEARCH_THRESHOLD = 8;
+
 const VIEWS: { value: View; label: string }[] = [
   { value: "mine", label: "Your Routines" },
   { value: "explore", label: "Explore" },
@@ -90,6 +93,10 @@ export function RoutinesList({ userId }: { userId: string }) {
     return searchRoutines(ordered, query, exerciseNamesByRoutineId);
   }, [searching, allRoutines, query, exerciseNamesByRoutineId]);
 
+  // Search earns its space once the list is long (issue #329).
+  const liveRoutineCount = (allRoutines ?? []).filter((routine) => !routine.deletedAt).length;
+  const showSearch = liveRoutineCount > SEARCH_THRESHOLD || searching;
+
   const programs = useMemo(
     () =>
       (allPrograms ?? [])
@@ -145,7 +152,7 @@ export function RoutinesList({ userId }: { userId: string }) {
           ))}
         </div>
 
-        {view === "mine" && (
+        {view === "mine" && showSearch && (
           <input
             type="search"
             inputMode="search"
@@ -208,113 +215,6 @@ export function RoutinesList({ userId }: { userId: string }) {
           )
         ) : (
           <>
-            <section className="flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                  Programs
-                </h2>
-                <div className="flex items-center gap-4">
-                  <Link
-                    href="/routines/programs/generate"
-                    className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
-                  >
-                    Build me one
-                  </Link>
-                  <Link
-                    href="/routines/programs/new"
-                    className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
-                  >
-                    New program
-                  </Link>
-                </div>
-              </div>
-              {programs.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-500">
-                  Group routines into a program to get your next workout suggested on launch.
-                </p>
-              ) : (
-                <ul className="flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/40">
-                  {programs.map((program) => (
-                    <li key={program.id}>
-                      <Link
-                        href={`/routines/programs/${program.id}`}
-                        data-ripple
-                        className="-mx-3 flex items-center justify-between gap-2 px-3 py-3"
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <Layers
-                            className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500"
-                            strokeWidth={1.75}
-                            aria-hidden="true"
-                          />
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            <span className="truncate text-base font-medium">{program.name}</span>
-                            <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                              {program.mode === "weekly" ? "Weekly schedule" : "Sequence"}
-                              {program.isActive &&
-                                (() => {
-                                  const progress = programWeekProgress(program, new Date());
-                                  return progress ? ` · ${formatProgramWeek(progress)}` : "";
-                                })()}
-                            </span>
-                          </span>
-                        </span>
-                        {program.isActive && (
-                          <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                            Active
-                          </span>
-                        )}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <CollapsibleSection title="Warm-ups">
-              {warmupRoutines.length === 0 && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-500">
-                  Attach a warm-up to any routine and it runs as a timed block at the start of the
-                  workout. Find ready-made warm-ups and stretches under Explore.
-                </p>
-              )}
-              {warmupRoutines.length > 0 && (
-                <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {warmupRoutines.map((routine) => {
-                    const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
-                    return (
-                      <li key={routine.id}>
-                        <Link
-                          href={`/routines/${routine.id}`}
-                          data-ripple
-                          className="flex items-center justify-between gap-2 py-3"
-                        >
-                          <span className="flex min-w-0 items-center gap-2">
-                            <Flame
-                              className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
-                              strokeWidth={1.75}
-                              aria-hidden="true"
-                            />
-                            <span className="truncate text-base font-medium">{routine.name}</span>
-                          </span>
-                          <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-                            {[
-                              routine.warmupMinutes != null ? `${routine.warmupMinutes} min` : null,
-                              exerciseCount > 0
-                                ? `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`
-                                : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CollapsibleSection>
-
             <CollapsibleSection title="Routines">
               {groups.length === 0 ? (
                 <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
@@ -370,6 +270,140 @@ export function RoutinesList({ userId }: { userId: string }) {
                 </div>
               )}
             </CollapsibleSection>
+
+            {programs.length > 0 && (
+              <section className="flex flex-col gap-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                    Programs
+                  </h2>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href="/routines/programs/generate"
+                      className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                    >
+                      Build me one
+                    </Link>
+                    <Link
+                      href="/routines/programs/new"
+                      className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                    >
+                      New program
+                    </Link>
+                  </div>
+                </div>
+                <ul className="flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/40">
+                  {programs.map((program) => (
+                    <li key={program.id}>
+                      <Link
+                        href={`/routines/programs/${program.id}`}
+                        data-ripple
+                        className="-mx-3 flex items-center justify-between gap-2 px-3 py-3"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <Layers
+                            className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500"
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                          />
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            <span className="truncate text-base font-medium">{program.name}</span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                              {program.mode === "weekly" ? "Weekly schedule" : "Sequence"}
+                              {program.isActive &&
+                                (() => {
+                                  const progress = programWeekProgress(program, new Date());
+                                  return progress ? ` · ${formatProgramWeek(progress)}` : "";
+                                })()}
+                            </span>
+                          </span>
+                        </span>
+                        {program.isActive && (
+                          <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+                            Active
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {warmupRoutines.length > 0 && (
+              <CollapsibleSection title="Warm-ups">
+                {warmupRoutines.length > 0 && (
+                  <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+                    {warmupRoutines.map((routine) => {
+                      const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
+                      return (
+                        <li key={routine.id}>
+                          <Link
+                            href={`/routines/${routine.id}`}
+                            data-ripple
+                            className="flex items-center justify-between gap-2 py-3"
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Flame
+                                className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
+                                strokeWidth={1.75}
+                                aria-hidden="true"
+                              />
+                              <span className="truncate text-base font-medium">{routine.name}</span>
+                            </span>
+                            <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
+                              {[
+                                routine.warmupMinutes != null
+                                  ? `${routine.warmupMinutes} min`
+                                  : null,
+                                exerciseCount > 0
+                                  ? `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </CollapsibleSection>
+            )}
+
+            {/* Empty Programs and Warm-ups sections fold into one row of
+                ways to start them (issue #329). */}
+            {(programs.length === 0 || warmupRoutines.length === 0) && (
+              <div className="flex flex-wrap items-center gap-x-4">
+                {programs.length === 0 && (
+                  <>
+                    <Link
+                      href="/routines/programs/new"
+                      className="flex min-h-11 items-center gap-1 text-sm font-medium underline underline-offset-4"
+                    >
+                      <Layers className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                      New program
+                    </Link>
+                    <Link
+                      href="/routines/programs/generate"
+                      className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                    >
+                      Build me one
+                    </Link>
+                  </>
+                )}
+                {warmupRoutines.length === 0 && (
+                  <Link
+                    href="/routines/new?kind=warmup"
+                    className="flex min-h-11 items-center gap-1 text-sm font-medium underline underline-offset-4"
+                  >
+                    <Flame className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                    New warm-up
+                  </Link>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

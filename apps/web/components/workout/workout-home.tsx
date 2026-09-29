@@ -8,6 +8,7 @@ import { RoutineIcon } from "@/components/routines/routine-icon";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { formatLastDone, lastDoneByRoutine } from "@/lib/routines/last-done";
 import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
@@ -70,6 +71,8 @@ export function WorkoutHome({ userId }: { userId: string }) {
     [rawSessions],
   );
 
+  const lastDone = useMemo(() => lastDoneByRoutine(rawSessions ?? []), [rawSessions]);
+
   const routineGroups = useMemo(
     () => groupRoutinesByFolder((rawRoutines ?? []).filter((routine) => !routine.deletedAt)),
     [rawRoutines],
@@ -120,33 +123,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col">
       <PageHeader title="Workout" />
       <div className={PAGE_BODY}>
-        <TryDprCard completedSessionCount={completedSessionCount} />
         <BlockEndCard context={dprContext} />
 
         <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => void handleStartEmpty()}
-            disabled={starting}
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-          >
-            Start empty workout
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleStartSmart()}
-            disabled={starting}
-            className="flex min-h-11 flex-col items-center justify-center rounded-lg border border-zinc-300 px-3 py-2 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-          >
-            Smart workout
-            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
-              Balances recent volume
-            </span>
-          </button>
-        </div>
-
+        {/* Your routines come first (issue #329); the ways to start without
+          one and the DPR invite follow. */}
         {routineGroups.length > 0 && (
           <div className="flex flex-col gap-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
@@ -169,7 +151,15 @@ export function WorkoutHome({ userId }: { userId: string }) {
                         className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                       >
                         <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                        <span className="truncate text-base font-medium">{routine.name}</span>
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate text-base font-medium">{routine.name}</span>
+                          <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                            {(() => {
+                              const done = lastDone.get(routine.id);
+                              return done ? formatLastDone(done) : "Not done yet";
+                            })()}
+                          </span>
+                        </span>
                       </button>
                       {/* One badge instead of inline chips; the details open
                         in a floating card (issue #284). */}
@@ -199,6 +189,30 @@ export function WorkoutHome({ userId }: { userId: string }) {
             ))}
           </div>
         )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => void handleStartEmpty()}
+            disabled={starting}
+            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
+          >
+            Start empty workout
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleStartSmart()}
+            disabled={starting}
+            className="flex min-h-11 flex-col items-center justify-center rounded-lg border border-zinc-300 px-3 py-2 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
+          >
+            Smart workout
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              Balances recent volume
+            </span>
+          </button>
+        </div>
+
+        <TryDprCard completedSessionCount={completedSessionCount} />
 
         {preview && (
           <PreWorkoutSheet
