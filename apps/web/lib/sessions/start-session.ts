@@ -110,3 +110,29 @@ export async function startSessionFromRoutine(
 
   return sessionId;
 }
+
+/**
+ * Starts a routine by id: its live exercises and linked warm-up, loaded here
+ * so every Start button (Workout home, the routine's own page — issue #326)
+ * starts it the same way.
+ */
+export async function startSessionFromRoutineId(
+  userId: string,
+  routineId: string,
+  intensity: SessionIntensity | null = null,
+  database: JimDatabase = db,
+): Promise<string> {
+  const routine = await database.routines.get(routineId);
+  const items = await database.routineExercises.where("routineId").equals(routineId).toArray();
+  return startSessionFromRoutine(
+    userId,
+    {
+      id: routineId,
+      name: routine?.name ?? "Workout",
+      warmupRoutineId: routine?.warmupRoutineId,
+    },
+    items.filter((item) => !item.deletedAt),
+    database,
+    intensity,
+  );
+}
