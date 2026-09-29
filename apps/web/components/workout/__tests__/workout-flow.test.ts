@@ -1,6 +1,6 @@
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
-import { completeSet, deleteSet, editSet } from "@/lib/sessions/set-actions";
+import { completeSet, deleteSet, editSet, restoreSet } from "@/lib/sessions/set-actions";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { calculatePlateBreakdown, resolveCurrentRows, summarizeSession, uuidv7 } from "@jim/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -308,6 +308,35 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
 
     const current = resolveCurrentRows(allRows).filter((row) => !row.deletedAt);
     expect(current).toHaveLength(0);
+  });
+
+  it("undoing a delete brings the set back with its logged values (issue #318)", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId, BENCH_ID);
+    const { set } = await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 135,
+        reps: 5,
+      },
+      testDb,
+    );
+
+    const tombstone = await deleteSet(set, testDb);
+    await restoreSet(tombstone, testDb);
+
+    const allRows = await testDb.sets
+      .where("sessionExerciseId")
+      .equals(sessionExercise.id)
+      .toArray();
+    expect(allRows).toHaveLength(3);
+    const current = resolveCurrentRows(allRows).filter((row) => !row.deletedAt);
+    expect(current).toHaveLength(1);
+    expect(current[0]).toMatchObject({ weight: "135", reps: 5, setIndex: 0, deletedAt: null });
   });
 });
 

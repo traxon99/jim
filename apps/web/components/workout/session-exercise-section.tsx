@@ -21,7 +21,13 @@ import {
   needsRpeNudge,
 } from "@/lib/dpr/calls";
 import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
-import { completeSet, deleteSet, editSet, updateSetKind } from "@/lib/sessions/set-actions";
+import {
+  completeSet,
+  deleteSet,
+  editSet,
+  restoreSet,
+  updateSetKind,
+} from "@/lib/sessions/set-actions";
 import { type SetKind, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
@@ -106,6 +112,9 @@ interface DraftValues {
   kind: SetKind;
 }
 
+/** How long the Undo for a deleted set stays up (issue #318). */
+const UNDO_DELETE_MS = 8000;
+
 function sizesFor(large: boolean) {
   return {
     title: large ? "text-2xl font-bold" : "text-base font-semibold",
@@ -173,6 +182,8 @@ export function SessionExerciseSection({
   const [restEditing, setRestEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [customRest, setCustomRest] = useState("");
+  // The tombstone of the set just deleted, while its Undo is offered (issue #318).
+  const [undoableDelete, setUndoableDelete] = useState<SetRowEntity | null>(null);
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
 
@@ -363,6 +374,12 @@ export function SessionExerciseSection({
     onSetLogged(restSeconds, remainingAfterLogging(nextIndex));
   }
 
+  useEffect(() => {
+    if (!undoableDelete) return;
+    const timer = setTimeout(() => setUndoableDelete(null), UNDO_DELETE_MS);
+    return () => clearTimeout(timer);
+  }, [undoableDelete]);
+
   async function handleEdit(
     original: SetRowEntity,
     patch: { weight: number | null; reps: number | null; rpe: number | null },
@@ -372,6 +389,20 @@ export function SessionExerciseSection({
 
   async function handleChangeKind(original: SetRowEntity, kind: SetKind) {
     await updateSetKind(original, kind);
+  }
+
+  async function handleDelete(original: SetRowEntity) {
+    setUndoableDelete(await deleteSet(original));
+  }
+
+  async function handleUndoDelete() {
+    if (!undoableDelete) return;
+    const tombstone = undoableDelete;
+    setUndoableDelete(null);
+    const restored = await restoreSet(tombstone);
+    // The restored row has a new id; keep the 🎉 of the set it brings back.
+    const prs = tombstone.supersedesId ? prsBySetId.get(tombstone.supersedesId) : undefined;
+    if (prs) setPrsBySetId((map) => new Map(map).set(restored.id, prs));
   }
 
   async function saveItem(patch: Partial<SessionExerciseRow>) {
@@ -536,7 +567,7 @@ export function SessionExerciseSection({
         rpeNudge={needsRpeNudge(dpr !== null, set)}
         onEdit={(patch) => void handleEdit(set, patch)}
         onChangeKind={(kind) => void handleChangeKind(set, kind)}
-        onDelete={() => void deleteSet(set)}
+        onDelete={() => void handleDelete(set)}
       />
     );
   }
@@ -672,6 +703,19 @@ export function SessionExerciseSection({
             {plannedRow(nextIndex, nextLabel)}
           </tbody>
         </table>
+      )}
+
+      {undoableDelete && (
+        <output className="flex items-center justify-between gap-2 rounded-lg bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+          <span>Set deleted</span>
+          <button
+            type="button"
+            onClick={() => void handleUndoDelete()}
+            className="min-h-11 px-2 font-semibold text-accent"
+          >
+            Undo
+          </button>
+        </output>
       )}
 
       {notesOpen ? (

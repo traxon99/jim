@@ -4,7 +4,7 @@ import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import type { SetKind } from "@/lib/sessions/set-kinds";
 import { type SetField, setFieldEditPatch } from "@/lib/workout/set-field-edit";
 import { RPE_MAX, RPE_MIN } from "@jim/core";
-import { Trash2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { useRef, useState } from "react";
 import { SetKindMenu } from "./set-kind-menu";
 
@@ -50,9 +50,12 @@ function sizesFor(large: boolean) {
     valueButton: large
       ? "min-h-12 w-full rounded-md tabular-nums"
       : "min-h-11 w-full rounded-md tabular-nums",
-    deleteButton: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-red-600 dark:text-red-500"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-red-600 dark:text-red-500",
+    // The Log ✓ stays put once the set is logged (issue #318), in a quieter
+    // "done" state and not a button: a second tap in the same spot does
+    // nothing, rather than landing on a delete button.
+    doneMark: large
+      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-accent"
+      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
     icon: large ? "h-5 w-5" : "h-4 w-4",
   };
 }
@@ -173,7 +176,7 @@ export function SetRow({
   return (
     <tr className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
       <td className={sizes.indexCell}>
-        <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} />
+        <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
       </td>
       <td className={sizes.cell}>
         <div className="flex items-center justify-center gap-1 font-medium">
@@ -198,14 +201,9 @@ export function SetRow({
       </td>
       <td className={sizes.actionCell}>
         <div className={sizes.actionGroup}>
-          <button
-            type="button"
-            onClick={onDelete}
-            aria-label="Remove set"
-            className={sizes.deleteButton}
-          >
-            <Trash2 className={sizes.icon} strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <span role="img" aria-label="Logged" className={sizes.doneMark}>
+            <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
+          </span>
         </div>
       </td>
     </tr>
