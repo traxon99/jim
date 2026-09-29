@@ -87,6 +87,36 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
+/* The app shell ((shell)/layout.tsx) draws edge to edge instead: its scroller
+   pads itself by the safe-area inset, so content scrolls up underneath the
+   status bar, where .status-bar-scrim blurs and darkens it rather than it
+   disappearing behind a solid band (issue #305). */
+:root:has([data-edge-to-edge]) body {
+  padding-top: 0;
+}
+
+/* The translucent band over the status bar / notch (components/status-bar-scrim.tsx).
+   Zero height wherever there's no top inset (a browser tab), and its lower
+   part fades out so it has no hard bottom edge. z-40: above every
+   overlay (z-20/z-30) — their content can scroll under the notch too — but
+   below the boot splash (z-50). */
+.status-bar-scrim {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 40;
+  height: env(safe-area-inset-top);
+  pointer-events: none;
+  background: rgb(0 0 0 / 0.35);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+:root.dark .status-bar-scrim {
+  background: rgb(0 0 0 / 0.55);
+}
+
 /* Global iOS hygiene (docs/ARCHITECTURE.md §6) */
 * {
   touch-action: manipulation;

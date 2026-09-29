@@ -5,6 +5,7 @@ import { LoadingScreen } from "@/components/loading-screen";
 import { PwaChrome } from "@/components/pwa-chrome";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import { RippleEffect } from "@/components/ripple-effect";
+import { StatusBarScrim } from "@/components/status-bar-scrim";
 import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppReveal>
           <InstallGate>{children}</InstallGate>
         </AppReveal>
+        <StatusBarScrim />
       </body>
     </html>
   );

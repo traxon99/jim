@@ -27,10 +27,15 @@ export default async function ShellLayout({ children }: { children: React.ReactN
     : { workout: null, routines: null, history: null, exercises: null, home: null };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    // data-edge-to-edge drops body's safe-area padding (globals.css): the
+    // scroller below starts at the very top of the screen, so content scrolls
+    // up under the status bar scrim instead of into a solid band (issue #305).
+    <div data-edge-to-edge className="flex min-h-0 flex-1 flex-col">
       <SyncEngineBoot />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <TabbedShell {...tabs}>{children}</TabbedShell>
+        <div className="flex flex-1 flex-col" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <TabbedShell {...tabs}>{children}</TabbedShell>
+        </div>
       </div>
       <SyncStatusIndicator />
       <BottomTabBar />
