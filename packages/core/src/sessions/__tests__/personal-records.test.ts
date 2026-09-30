@@ -66,4 +66,20 @@ describe("detectPersonalRecords", () => {
     const prior = computePriorBests([{ weight: 225, reps: 5 }]);
     expect(detectPersonalRecords({ weight: 225, reps: 5 }, prior)).toEqual([]);
   });
+
+  it("does not flag a lighter, never-used weight when a heavier set already did as many reps", () => {
+    const prior = computePriorBests([
+      { weight: 45, reps: 5 },
+      { weight: 160, reps: 8 },
+    ]);
+    // Issue #352: 150×8 after 160×8, and a 55×2 warm-up weight, aren't PRs.
+    expect(detectPersonalRecords({ weight: 150, reps: 8 }, prior)).toEqual([]);
+    expect(detectPersonalRecords({ weight: 55, reps: 2 }, prior)).toEqual([]);
+  });
+
+  it("still flags reps at a lighter weight that beat every heavier set", () => {
+    const prior = computePriorBests([{ weight: 160, reps: 8 }]);
+    const kinds = detectPersonalRecords({ weight: 150, reps: 12 }, prior).map((c) => c.kind);
+    expect(kinds).toContain("reps_at_weight");
+  });
 });

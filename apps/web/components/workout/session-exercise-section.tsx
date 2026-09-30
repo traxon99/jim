@@ -646,7 +646,7 @@ export function SessionExerciseSection({
         set={set}
         label={label}
         previous={<td className={sizes.prevCell}>{previousValues(set.setIndex)}</td>}
-        isPr={prsBySetId.has(set.id)}
+        isPr={set.kind !== "warmup" && prsBySetId.has(set.id)}
         rpeNudge={needsRpeNudge(dpr !== null, set)}
         onEdit={(patch) => void handleEdit(set, patch)}
         onChangeKind={(kind) => void handleChangeKind(set, kind)}

@@ -38,7 +38,7 @@ async function historicalWeightReps(
     .anyOf(sessionExerciseIds)
     .toArray();
   return resolveCurrentRows(rawSets)
-    .filter((set) => !set.deletedAt && set.id !== excludeSetId)
+    .filter((set) => !set.deletedAt && set.kind !== "warmup" && set.id !== excludeSetId)
     .map((set) => ({ weight: set.weight == null ? null : Number(set.weight), reps: set.reps }));
 }
 
@@ -165,7 +165,8 @@ export interface CompleteSetResult {
 /**
  * Logs a brand-new set and checks it against this exercise's history for a
  * PR, live (STORIES.md S6). Warm-ups are tracked for frequency, not
- * progress (issue #59), so they never produce PRs.
+ * progress (issue #59), so they never produce PRs — nor do warm-up sets of
+ * a working exercise (issue #352).
  */
 export async function completeSet(
   input: CompleteSetInput,
@@ -198,7 +199,7 @@ export async function completeSet(
   };
   await mutate("sets", set, database);
 
-  if (exerciseIsWarmup) return { set, prs: [] };
+  if (exerciseIsWarmup || set.kind === "warmup") return { set, prs: [] };
 
   const prs = await detectAndRecordPrs(
     database,

@@ -205,7 +205,8 @@ interface DatedSet {
 /**
  * PRs the imported sets set, walking each exercise's history — what was
  * already logged plus what's being imported — in date order, the way live
- * logging would have found them. Warm-up exercises never produce PRs.
+ * logging would have found them. Warm-up exercises and warm-up sets never
+ * produce PRs.
  */
 async function importedPersonalRecords(
   database: JimDatabase,
@@ -238,7 +239,8 @@ async function importedPersonalRecords(
   };
   for (const set of resolveCurrentRows(rawSets)) {
     const exerciseId = exerciseOf.get(set.sessionExerciseId);
-    if (set.deletedAt || !exerciseId || !exerciseIds.includes(exerciseId)) continue;
+    if (set.deletedAt || set.kind === "warmup" || !exerciseId || !exerciseIds.includes(exerciseId))
+      continue;
     add(exerciseId, {
       id: null,
       weight: set.weight == null ? null : Number(set.weight),
@@ -247,6 +249,7 @@ async function importedPersonalRecords(
     });
   }
   for (const { set, exerciseId } of newSets) {
+    if (set.kind === "warmup") continue;
     add(exerciseId, {
       id: set.id,
       weight: set.weight == null ? null : Number(set.weight),

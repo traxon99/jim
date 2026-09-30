@@ -166,7 +166,8 @@ describe("commitWorkoutImport", () => {
       .filter((pr) => pr.exerciseId === "bench" && pr.kind === "weight")
       .map((pr) => Number(pr.value))
       .sort((a, b) => a - b);
-    expect(weightPrs).toEqual([60, 100, 105]);
+    // The 60 warm-up set isn't a PR (issue #352).
+    expect(weightPrs).toEqual([100, 105]);
   });
 
   it("adds nothing when the same file is imported again", async () => {
