@@ -188,6 +188,7 @@ standing full-database credential sitting in a network-exposed process.
 | `create_routine(name, exercises[])` | Build a program |
 | `update_routine(routine_id, ...)` | Amend a program |
 | `schedule_workout(routine_id, date)` | Plan a session |
+| `log_past_workout(started_at, exercises[], ...)` | Record an already-finished workout, with PRs |
 | `upsert_exercise(...)` / `merge_exercises(keep_id, merge_id)` | Catalog management |
 
 Writes land in Postgres and reach the phone on the next pull.
@@ -198,7 +199,8 @@ differ). `merge_exercises` defaults to `dry_run: true` because a merge repoints 
 to undo; the others default to `false`.
 
 **Explicitly excluded: mutating an in-progress session.** The phone owns the live session. A second
-writer there would force real conflict resolution for almost no benefit. Revisit once the sync
+writer there would force real conflict resolution for almost no benefit. `log_past_workout` doesn't
+conflict with this: it only inserts a new session that has already ended (ADR-007 amendment). Revisit once the sync
 engine has proven itself in use.
 
 ---
