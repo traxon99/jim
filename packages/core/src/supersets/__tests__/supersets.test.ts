@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isFocusExerciseComplete } from "../../sessions/focus-exercise";
 import {
+  formSuperset,
   leaveSuperset,
   nextSupersetGroup,
   normalizeSupersets,
@@ -191,5 +192,43 @@ describe("supersetFollowUp", () => {
       rest: true,
       nextId: null,
     });
+  });
+});
+
+describe("formSuperset", () => {
+  const shape = (list: { id: string; supersetGroup: number | null }[]) =>
+    list.map((item) => `${item.id}${item.supersetGroup ?? "-"}`).join(" ");
+
+  it("groups neighbouring picks in place", () => {
+    expect(shape(formSuperset(items(null, null, null), ["a", "b"]))).toBe("a1 b1 c-");
+  });
+
+  it("moves later picks up to sit after the first one, in order", () => {
+    expect(shape(formSuperset(items(null, null, null, null, null), ["b", "e", "d"]))).toBe(
+      "a- b1 d1 e1 c-",
+    );
+  });
+
+  it("takes a pick out of another superset, clearing a stranded member", () => {
+    expect(shape(formSuperset(items(1, 1, null, null), ["b", "d"]))).toBe("a- b1 d1 c-");
+  });
+
+  it("splits a superset the new one lands inside", () => {
+    expect(shape(formSuperset(items(1, 1, 1, 1, null), ["b", "e"]))).toBe("a- b1 e1 c2 d2");
+  });
+
+  it("leaves other supersets alone, renumbered", () => {
+    expect(shape(formSuperset(items(5, 5, null, null), ["c", "d"]))).toBe("a1 b1 c2 d2");
+  });
+
+  it("drops unpicked members of the superset being edited", () => {
+    expect(
+      shape(formSuperset(items(1, 1, 1, 1, null), ["a", "b", "e"], ["a", "b", "c", "d"])),
+    ).toBe("a1 b1 e1 c- d-");
+  });
+
+  it("changes nothing with fewer than two picked", () => {
+    const list = items(null, 1, 1);
+    expect(formSuperset(list, ["a"])).toEqual(list);
   });
 });

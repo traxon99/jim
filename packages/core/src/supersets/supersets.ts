@@ -106,6 +106,45 @@ export function normalizeSupersets(items: readonly SupersetItem[]): SupersetChan
   return changesFor(items, groupsFromLinks(supersetLinks(items), items.length));
 }
 
+/**
+ * Makes the picked items one superset (issue #360): they move together to
+ * where the first of them sits, keeping their order, and everything else
+ * keeps its order around them. `editingIds` are the members of the superset
+ * being edited, if any — the ones no longer picked leave it. Groups are
+ * renumbered to match the new adjacency, so a superset the move splits or
+ * strands is cleaned up too. Returns every item in its new order; fewer
+ * than two picked changes nothing.
+ */
+export function formSuperset<T extends SupersetItem>(
+  items: readonly T[],
+  selectedIds: readonly string[],
+  editingIds: readonly string[] = [],
+): T[] {
+  const selected = new Set(selectedIds);
+  const picked = items.filter((item) => selected.has(item.id));
+  if (picked.length < 2) return [...items];
+  const editing = new Set(editingIds);
+  const group = nextSupersetGroup(items);
+  const firstIndex = items.findIndex((item) => selected.has(item.id));
+  const before: T[] = [];
+  const after: T[] = [];
+  items.forEach((item, i) => {
+    if (selected.has(item.id)) return;
+    const kept = editing.has(item.id) ? { ...item, supersetGroup: null } : item;
+    (i < firstIndex ? before : after).push(kept);
+  });
+  const ordered = [
+    ...before,
+    ...picked.map((item) => ({ ...item, supersetGroup: group })),
+    ...after,
+  ];
+  const groups = groupsFromLinks(supersetLinks(ordered), ordered.length);
+  return ordered.map((item, i) => {
+    const supersetGroup = groups[i] ?? null;
+    return item.supersetGroup === supersetGroup ? item : { ...item, supersetGroup };
+  });
+}
+
 /** Splits items into display blocks: each superset together, everything else alone. */
 export function supersetBlocks<T extends SupersetItem>(items: readonly T[]): SupersetBlock<T>[] {
   const links = supersetLinks(items);

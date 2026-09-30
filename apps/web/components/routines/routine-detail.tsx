@@ -7,8 +7,10 @@ import {
   removeExerciseAction,
   replaceExerciseAction,
   supersetActions,
+  supersetMemberIds,
 } from "@/components/supersets/superset-actions";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
+import { SupersetPickerCard } from "@/components/supersets/superset-picker-card";
 import { PreWorkoutSheet } from "@/components/workout/pre-workout-sheet";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
@@ -23,6 +25,7 @@ import {
   type SessionIntensity,
   type SupersetChange,
   duplicateRoutine,
+  formSuperset,
   isWarmupExercise,
   isWarmupRoutine,
   nextSupersetGroup,
@@ -44,6 +47,8 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   // The row whose ⋯ Replace Exercise opened the picker (issue #271).
   const [replacing, setReplacing] = useState<RoutineExerciseRow | null>(null);
+  // The exercise whose Create/Edit Superset card is open (issue #360).
+  const [supersetFromId, setSupersetFromId] = useState<string | null>(null);
   // Issue #326: the page opens as a read-only preview with a Start button;
   // the pencil switches it to the editor (targets, order, add, remove).
   const [editing, setEditing] = useState(false);
@@ -152,6 +157,27 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
       await mutate("routineExercises", {
         ...original,
         supersetGroup: change.supersetGroup,
+        updatedAt: now,
+        deviceId,
+      });
+    }
+  }
+
+  // The card's picks become one superset, moved together (issue #360).
+  async function handleFormSuperset(selectedIds: readonly string[], editingIds: readonly string[]) {
+    const positions = items.map((item) => item.position);
+    const formed = formSuperset(items, selectedIds, editingIds);
+    const deviceId = await getDeviceId();
+    const now = new Date();
+    for (const [index, item] of formed.entries()) {
+      const original = items.find((other) => other.id === item.id);
+      const position = positions[index] ?? item.position;
+      if (!original) continue;
+      if (original.position === position && original.supersetGroup === item.supersetGroup) continue;
+      await mutate("routineExercises", {
+        ...original,
+        position,
+        supersetGroup: item.supersetGroup,
         updatedAt: now,
         deviceId,
       });
@@ -437,6 +463,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                       items,
                       index,
                       (changes) => void applySupersetChanges(changes),
+                      () => setSupersetFromId(item.id),
                     ),
                     preferencesAction(item.exerciseId, router.push),
                     removeExerciseAction(() => void handleRemoveItem(item)),
@@ -507,6 +534,24 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           onClose={() => setPickerOpen(false)}
         />
       )}
+
+      {supersetFromId &&
+        (() => {
+          const memberIds = supersetMemberIds(items, supersetFromId);
+          const editing = memberIds.length > 1;
+          return (
+            <SupersetPickerCard
+              exercises={items.map((item) => ({
+                id: item.id,
+                name: exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise",
+              }))}
+              initialSelectedIds={memberIds}
+              editing={editing}
+              onSave={(ids) => void handleFormSuperset(ids, editing ? memberIds : [])}
+              onClose={() => setSupersetFromId(null)}
+            />
+          );
+        })()}
 
       {replacing && (
         <ExercisePicker

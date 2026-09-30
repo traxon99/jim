@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "The tab bar is now frosted glass, so your screen shows through it as you scroll.";
+  "Create Superset now opens a card where you pick every exercise for the superset at once.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
