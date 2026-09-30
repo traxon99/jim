@@ -4,6 +4,8 @@ import {
   currentPersonalRecords,
   personalRecordProgression,
   personalRecordStats,
+  recentPersonalRecords,
+  sortPersonalRecordGroups,
 } from "../personal-records-list";
 
 function record(overrides: Partial<PersonalRecordEntry> = {}): PersonalRecordEntry {
@@ -88,5 +90,87 @@ describe("personalRecordProgression", () => {
       "1rm",
     );
     expect(points.map((point) => point.value)).toEqual([100, 120]);
+  });
+});
+
+describe("recentPersonalRecords", () => {
+  const now = new Date("2026-03-31T00:00:00.000Z");
+
+  it("keeps current PRs from the window, newest first", () => {
+    const recent = recentPersonalRecords(
+      [
+        record({
+          id: "old",
+          exerciseId: "squat",
+          achievedAt: new Date("2026-01-01T00:00:00.000Z"),
+        }),
+        record({ id: "a", exerciseId: "bench", achievedAt: new Date("2026-03-10T00:00:00.000Z") }),
+        record({ id: "b", exerciseId: "row", achievedAt: new Date("2026-03-20T00:00:00.000Z") }),
+      ],
+      now,
+    );
+    expect(recent.map((r) => r.id)).toEqual(["b", "a"]);
+  });
+
+  it("drops a recent row that has since been beaten", () => {
+    const recent = recentPersonalRecords(
+      [
+        record({ id: "first", value: 200, achievedAt: new Date("2026-03-10T00:00:00.000Z") }),
+        record({ id: "second", value: 210, achievedAt: new Date("2026-03-12T00:00:00.000Z") }),
+      ],
+      now,
+    );
+    expect(recent.map((r) => r.id)).toEqual(["second"]);
+  });
+
+  it("honours a custom window", () => {
+    const recent = recentPersonalRecords(
+      [record({ achievedAt: new Date("2026-03-20T00:00:00.000Z") })],
+      now,
+      7,
+    );
+    expect(recent).toEqual([]);
+  });
+});
+
+describe("sortPersonalRecordGroups", () => {
+  const groups = [
+    { name: "Squat", latestAt: new Date("2026-01-01"), headline: 300 },
+    { name: "Pull-Up", latestAt: new Date("2026-03-01"), headline: null },
+    { name: "Bench Press", latestAt: new Date("2026-02-01"), headline: 225 },
+    { name: "Dips", latestAt: new Date("2026-02-01"), headline: null },
+  ];
+
+  it("sorts alphabetically", () => {
+    expect(sortPersonalRecordGroups(groups, "name").map((g) => g.name)).toEqual([
+      "Bench Press",
+      "Dips",
+      "Pull-Up",
+      "Squat",
+    ]);
+  });
+
+  it("sorts by most recent PR, ties by name", () => {
+    expect(sortPersonalRecordGroups(groups, "recent").map((g) => g.name)).toEqual([
+      "Pull-Up",
+      "Bench Press",
+      "Dips",
+      "Squat",
+    ]);
+  });
+
+  it("sorts heaviest first with rep-only lifts last", () => {
+    expect(sortPersonalRecordGroups(groups, "heaviest").map((g) => g.name)).toEqual([
+      "Squat",
+      "Bench Press",
+      "Dips",
+      "Pull-Up",
+    ]);
+  });
+
+  it("does not mutate its input", () => {
+    const copy = [...groups];
+    sortPersonalRecordGroups(groups, "heaviest");
+    expect(groups).toEqual(copy);
   });
 });
