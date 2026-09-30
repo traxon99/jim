@@ -7,7 +7,9 @@ import {
   removeExerciseAction,
   replaceExerciseAction,
   supersetActions,
+  supersetMemberIds,
 } from "@/components/supersets/superset-actions";
+import { SupersetPickerCard } from "@/components/supersets/superset-picker-card";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import {
@@ -27,6 +29,7 @@ import { useWakeLock } from "@/lib/wake-lock";
 import {
   type PaceExercise,
   type SupersetChange,
+  formSuperset,
   isFocusExerciseComplete,
   isLastRemainingSet,
   isWarmupComplete,
@@ -74,6 +77,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   // The exercise whose ⋯ Replace Exercise opened the picker (issue #271).
   const [replacingId, setReplacingId] = useState<string | null>(null);
+  // The exercise whose Create/Edit Superset card is open (issue #360).
+  const [supersetFromId, setSupersetFromId] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -319,6 +324,28 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
   }
 
+  // The card's picks become one superset, moved together (issue #360). The
+  // main exercises reuse their own positions, so warm-ups stay put.
+  async function handleFormSuperset(selectedIds: readonly string[], editingIds: readonly string[]) {
+    const positions = mainItems.map((se) => se.position);
+    const formed = formSuperset(mainItems, selectedIds, editingIds);
+    const deviceId = await getDeviceId();
+    const now = new Date();
+    for (const [index, item] of formed.entries()) {
+      const original = mainItems.find((se) => se.id === item.id);
+      const position = positions[index] ?? item.position;
+      if (!original) continue;
+      if (original.position === position && original.supersetGroup === item.supersetGroup) continue;
+      await mutate("sessionExercises", {
+        ...original,
+        position,
+        supersetGroup: item.supersetGroup,
+        updatedAt: now,
+        deviceId,
+      });
+    }
+  }
+
   // Only offered before a set is logged: logged sets belong to the exercise
   // they were lifted on, and they're append-only (ADR-003).
   async function handleReplaceExercise(itemId: string, exerciseId: string) {
@@ -455,6 +482,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             mainItems,
             mainItems.findIndex((se) => se.id === item.id),
             (changes) => void applySupersetChanges(changes),
+            () => setSupersetFromId(item.id),
           ),
           preferencesAction(item.exerciseId, router.push),
           removeExerciseAction(() => void handleRemoveExercise(item.id)),
@@ -669,6 +697,24 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           onClose={() => setReplacingId(null)}
         />
       )}
+
+      {supersetFromId &&
+        (() => {
+          const memberIds = supersetMemberIds(mainItems, supersetFromId);
+          const editing = memberIds.length > 1;
+          return (
+            <SupersetPickerCard
+              exercises={mainItems.map((se) => ({
+                id: se.id,
+                name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
+              }))}
+              initialSelectedIds={memberIds}
+              editing={editing}
+              onSave={(ids) => void handleFormSuperset(ids, editing ? memberIds : [])}
+              onClose={() => setSupersetFromId(null)}
+            />
+          );
+        })()}
 
       {!(focusMode && focusedItem) && <RestTimerBar timer={restTimer} aboveTabBar />}
     </main>
