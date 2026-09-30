@@ -7,6 +7,7 @@ import { exerciseHistory } from "./tools/exercise-history.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getWorkout } from "./tools/get-workout.js";
 import { listWorkouts } from "./tools/list-workouts.js";
+import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
 import { mergeExercises } from "./tools/merge-exercises.js";
 import { scheduleWorkout } from "./tools/schedule-workout.js";
 import { searchExercisesTool } from "./tools/search-exercises.js";
@@ -247,6 +248,58 @@ export function createMcpServer(context: UserContext): McpServer {
     async ({ dry_run, ...input }) => {
       try {
         return json(await scheduleWorkout(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "log_past_workout",
+    {
+      title: "Log past workout",
+      description: `Record a workout that has already finished (e.g. one done without the phone), with its exercises and sets. The session is created already finished, so it shows up in History after the phone's next sync and counts toward PRs, volume and Dynamic Progression like any other workout. It can never start, change or end a workout that is in progress on the phone. PRs are detected against every set logged before this workout.${PREVIEW_HINT}`,
+      inputSchema: {
+        startedAt: z.string().datetime({ offset: true }).describe("When the workout started"),
+        durationMinutes: z
+          .number()
+          .positive()
+          .max(24 * 60)
+          .optional()
+          .describe(
+            `How long it lasted (default ${DEFAULT_DURATION_MINUTES}). Must end in the past.`,
+          ),
+        name: z.string().optional().describe("Defaults to the routine's name, if one is given"),
+        routineId: z.string().optional().describe("The routine this workout followed, if any"),
+        notes: z.string().optional(),
+        bodyweight: z.number().positive().optional(),
+        exercises: z
+          .array(
+            z.object({
+              exercise: z.string().describe("Exercise name or id"),
+              notes: z.string().optional(),
+              sets: z
+                .array(
+                  z.object({
+                    weight: z.number().nonnegative().optional().describe("In the user's units"),
+                    reps: z.number().int().nonnegative().optional(),
+                    rpe: z.number().min(1).max(10).optional(),
+                    rir: z.number().int().nonnegative().optional(),
+                    durationSeconds: z.number().int().positive().optional(),
+                    distance: z.number().nonnegative().optional(),
+                    kind: z.enum(["warmup", "working", "drop", "failure"]).optional(),
+                  }),
+                )
+                .min(1),
+            }),
+          )
+          .min(1),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await logPastWorkout(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }

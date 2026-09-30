@@ -146,6 +146,12 @@ workout in progress. The benefit is marginal: the phone is already in hand durin
 the backlog as "multi-device live session handoff," to be revisited once the sync engine has proven
 itself in real use.
 
+**Amendment (2026-09-30, #244): logging a finished workout.** `log_past_workout` lets an agent
+record a workout that is already over ("I forgot my phone, here's what I did"). It only ever inserts
+a new session whose `ended_at` is set and in the past, together with its exercises, sets and PRs.
+It never reads or writes an in-progress session, so there is still only one writer for the live
+workout, and the reasoning above is unchanged.
+
 ---
 
 ## ADR-008 — Seeded exercise catalog with copy-on-write user edits
