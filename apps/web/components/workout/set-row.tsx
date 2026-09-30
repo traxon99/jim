@@ -7,6 +7,7 @@ import { RPE_MAX, RPE_MIN } from "@jim/core";
 import { Check } from "lucide-react";
 import { useRef, useState } from "react";
 import { SetKindMenu } from "./set-kind-menu";
+import { SwipeDeleteReveal, useSwipeToDelete } from "./use-swipe-to-delete";
 
 interface Props {
   set: SetRowEntity;
@@ -40,9 +41,10 @@ function sizesFor(large: boolean) {
     metaCell: large
       ? "py-3 pr-3 align-middle text-center text-3xl tabular-nums text-zinc-500 dark:text-zinc-500"
       : "py-2 pr-2 align-middle text-center text-xl tabular-nums text-zinc-500 dark:text-zinc-500",
+    // `relative` anchors the swipe-to-delete strip (issue #350).
     actionCell: large
-      ? "py-3 pl-1 align-middle text-right whitespace-nowrap"
-      : "py-2 pl-1 align-middle text-right whitespace-nowrap",
+      ? "relative py-3 pl-1 align-middle text-right whitespace-nowrap"
+      : "relative py-2 pl-1 align-middle text-right whitespace-nowrap",
     // The buttons are block-level flex boxes, so without a row wrapper two of
     // them stack and the row doubles in height the moment a set is logged
     // (issue #157) — keep them side by side so logging happens in place.
@@ -152,6 +154,7 @@ export function SetRow({
 }: Props) {
   const sizes = sizesFor(large);
   const [editingField, setEditingField] = useState<SetField | null>(null);
+  const swipe = useSwipeToDelete(onDelete);
 
   function commit(field: SetField, raw: string) {
     // Empty, invalid or unchanged input just reverts to the logged value.
@@ -179,7 +182,10 @@ export function SetRow({
   return (
     // A tinted row marks the set done at a glance (issue #319), like Strong's
     // and Hevy's completed rows.
-    <tr className="border-b border-zinc-100 bg-accent/10 last:border-0 dark:border-zinc-800">
+    <tr
+      {...swipe.rowProps}
+      className={`border-b border-zinc-100 bg-accent/10 last:border-0 dark:border-zinc-800 ${swipe.rowProps.className}`}
+    >
       <td className={sizes.indexCell}>
         <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
       </td>
@@ -211,6 +217,7 @@ export function SetRow({
             <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
           </span>
         </div>
+        <SwipeDeleteReveal reveal={swipe.reveal} armed={swipe.armed} />
       </td>
     </tr>
   );

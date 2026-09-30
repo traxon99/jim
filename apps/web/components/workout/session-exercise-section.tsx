@@ -58,6 +58,7 @@ import { ExerciseDialog } from "./exercise-dialog";
 import { RpeInfoMenu } from "./rpe-info-menu";
 import { SetKindMenu } from "./set-kind-menu";
 import { SetRow } from "./set-row";
+import { SwipeToDeleteRow } from "./use-swipe-to-delete";
 
 interface Props {
   sessionId: string;
@@ -134,7 +135,8 @@ function sizesFor(large: boolean) {
     // in small grey type so the column stays ~40px wide at 393px.
     prevCell:
       "py-2 pr-2 align-middle text-center text-xs leading-tight tabular-nums text-zinc-400 dark:text-zinc-500",
-    actionCell: "py-2 pl-1 align-middle text-right whitespace-nowrap",
+    // `relative` anchors the swipe-to-delete strip (issue #350).
+    actionCell: "relative py-2 pl-1 align-middle text-right whitespace-nowrap",
     // Values are centered and sized as large as the row allows (issue #186):
     // the input is pinned to h-11, the same height as the log/repeat buttons
     // beside it, so the row doesn't grow; text-xl is the largest size where a
@@ -197,6 +199,9 @@ export function SessionExerciseSection({
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // The tombstone of the set just deleted, while its Undo is offered (issue #318).
   const [undoableDelete, setUndoableDelete] = useState<SetRowEntity | null>(null);
+  // Planned rows swiped away (issue #350), by set index. They're only a
+  // plan, so dropping one is kept to this screen rather than saved.
+  const [skippedIndices, setSkippedIndices] = useState<ReadonlySet<number>>(new Set());
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
 
@@ -266,6 +271,7 @@ export function SessionExerciseSection({
     () => plannedSetIndices(plannedTotal, 0, loggedIndices),
     [plannedTotal, loggedIndices],
   );
+  const visiblePlannedIndices = plannedIndices.filter((index) => !skippedIndices.has(index));
 
   // Suggested weight/reps for a not-yet-logged row (issue #159): last time's
   // numbers at this position, or the routine's target, same source as before
@@ -276,7 +282,11 @@ export function SessionExerciseSection({
   // (issue #212), DPR's weight — and after a change, the bottom of the rep
   // range — replaces both on working sets, still just a placeholder.
   function remainingAfterLogging(index: number): number {
-    return remainingPlannedSetCount(plannedTotal, 0, new Set([...loggedIndices, index]));
+    return remainingPlannedSetCount(
+      plannedTotal,
+      0,
+      new Set([...loggedIndices, ...skippedIndices, index]),
+    );
   }
 
   // The ramp aims at the first working set's suggested weight.
@@ -347,7 +357,7 @@ export function SessionExerciseSection({
   // #220), across logged rows followed by the planned rows still to log.
   const rowLabels = setNumberLabels([
     ...sets.map((set) => set.kind),
-    ...plannedIndices.map((index) => draftFor(index).kind),
+    ...visiblePlannedIndices.map((index) => draftFor(index).kind),
   ]);
   const nextLabel = setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ?? "1";
   const suggestionReps =
@@ -443,6 +453,25 @@ export function SessionExerciseSection({
     if (prs) setPrsBySetId((map) => new Map(map).set(restored.id, prs));
   }
 
+  function skipPlannedRow(index: number) {
+    setSkippedIndices((current) => new Set(current).add(index));
+    setDraftOverrides((current) => {
+      if (!current.has(index)) return current;
+      const next = new Map(current);
+      next.delete(index);
+      return next;
+    });
+  }
+
+  // Brings back the first planned row swiped away.
+  function restorePlannedRow() {
+    setSkippedIndices((current) => {
+      const next = new Set(current);
+      next.delete(Math.min(...current));
+      return next;
+    });
+  }
+
   async function saveItem(patch: Partial<SessionExerciseRow>) {
     const deviceId = await getDeviceId();
     await mutate("sessionExercises", {
@@ -471,6 +500,7 @@ export function SessionExerciseSection({
 
   async function toggleWarmups() {
     setDraftOverrides(new Map());
+    setSkippedIndices(new Set());
     await saveItem({ warmupSets: warmupCount > 0 ? null : WARMUP_RAMP_SET_COUNT });
   }
 
@@ -624,41 +654,50 @@ export function SessionExerciseSection({
       />
     );
   }
-  function plannedRow(index: number, label: string) {
+  // In the list, a planned row swipes away like a logged one (issue #350);
+  // the focus view's single next row always stays.
+  function plannedRow(index: number, label: string, removable: boolean) {
     const draft = draftFor(index);
+    const remove = removable ? () => skipPlannedRow(index) : undefined;
     return (
-      <tr key={index}>
-        <td className={sizes.indexCell}>
-          <SetKindMenu
-            label={label}
-            kind={draft.kind}
-            onChange={(kind) => updateDraft(index, { kind })}
-          />
-        </td>
-        <td className={sizes.prevCell}>
-          {previousFor(index) ? (
-            <button
-              type="button"
-              onClick={() => fillFromPrevious(index)}
-              aria-label={`Use last time's set ${index + 1}`}
-              className="min-h-11 w-full"
-            >
-              {previousValues(index)}
-            </button>
-          ) : (
-            previousValues(index)
-          )}
-        </td>
-        <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
-        <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
-        <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
-        <td className={sizes.actionCell}>
-          <div className="flex min-w-22 items-center justify-end">
-            {index === nextIndex && repeatButton}
-            {logButtonFor(index)}
-          </div>
-        </td>
-      </tr>
+      <SwipeToDeleteRow key={index} onDelete={remove}>
+        {(reveal) => (
+          <>
+            <td className={sizes.indexCell}>
+              <SetKindMenu
+                label={label}
+                kind={draft.kind}
+                onChange={(kind) => updateDraft(index, { kind })}
+                onDelete={remove}
+              />
+            </td>
+            <td className={sizes.prevCell}>
+              {previousFor(index) ? (
+                <button
+                  type="button"
+                  onClick={() => fillFromPrevious(index)}
+                  aria-label={`Use last time's set ${index + 1}`}
+                  className="min-h-11 w-full"
+                >
+                  {previousValues(index)}
+                </button>
+              ) : (
+                previousValues(index)
+              )}
+            </td>
+            <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
+            <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
+            <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
+            <td className={sizes.actionCell}>
+              <div className="flex min-w-22 items-center justify-end">
+                {index === nextIndex && repeatButton}
+                {logButtonFor(index)}
+              </div>
+              {reveal}
+            </td>
+          </>
+        )}
+      </SwipeToDeleteRow>
     );
   }
 
@@ -753,27 +792,42 @@ export function SessionExerciseSection({
       )}
 
       {!large && (
-        <table className="w-full border-collapse text-left">
-          {tableHead}
-          <tbody>
-            {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
-            {plannedIndices.map((index, i) =>
-              plannedRow(index, rowLabels[sets.length + i] ?? String(index + 1)),
-            )}
-          </tbody>
-        </table>
+        // Clips a row sliding left to delete (issue #350) so it can't widen the page.
+        <div className="overflow-x-clip">
+          <table className="w-full border-collapse text-left">
+            {tableHead}
+            <tbody>
+              {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
+              {visiblePlannedIndices.map((index, i) =>
+                plannedRow(index, rowLabels[sets.length + i] ?? String(index + 1), true),
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {!large && skippedIndices.size > 0 && (
+        <button
+          type="button"
+          onClick={restorePlannedRow}
+          className="min-h-11 self-start text-sm font-medium text-accent"
+        >
+          + Add set
+        </button>
       )}
 
       {/* Focus view shows the set just logged (issue #257) above the one to
           log next, as list-view rows with the Log button beside the inputs. */}
       {large && (
-        <table className="w-full border-collapse text-left">
-          {tableHead}
-          <tbody>
-            {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
-            {plannedRow(nextIndex, nextLabel)}
-          </tbody>
-        </table>
+        // Clips a row sliding left to delete (issue #350) so it can't widen the page.
+        <div className="overflow-x-clip">
+          <table className="w-full border-collapse text-left">
+            {tableHead}
+            <tbody>
+              {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
+              {plannedRow(nextIndex, nextLabel, false)}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {undoableDelete && (
