@@ -19,6 +19,7 @@ import {
   platesPerSide,
   standardLiftForSlug,
   tierForOneRepMax,
+  tracksRepsAtWeight,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Medal, Sparkles } from "lucide-react";
@@ -88,16 +89,19 @@ export function PrList() {
 
   // Every live PR row, not just the current bests: the stat tiles count
   // them and the sparklines trace them.
-  const entries = useMemo(
-    () =>
-      toPersonalRecordEntries(
-        rawPersonalRecords ?? [],
-        rawSessions ?? [],
-        rawSessionExercises ?? [],
-        rawSets ?? [],
-      ),
-    [rawPersonalRecords, rawSessions, rawSessionExercises, rawSets],
-  );
+  // "Most reps at a weight" rows logged for loaded exercises before issue
+  // #354 stopped recording them are left out too.
+  const entries = useMemo(() => {
+    const repsAtWeightIds = new Set(
+      (exercises ?? []).filter((e) => tracksRepsAtWeight(e.trackingType)).map((e) => e.id),
+    );
+    return toPersonalRecordEntries(
+      rawPersonalRecords ?? [],
+      rawSessions ?? [],
+      rawSessionExercises ?? [],
+      rawSets ?? [],
+    ).filter((entry) => entry.kind !== "reps_at_weight" || repsAtWeightIds.has(entry.exerciseId));
+  }, [rawPersonalRecords, rawSessions, rawSessionExercises, rawSets, exercises]);
   const current = useMemo(() => currentPersonalRecords(entries), [entries]);
   // Captured once per load: "New" means set in the last week as of opening the page.
   const now = useMemo(() => new Date(), []);

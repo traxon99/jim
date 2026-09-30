@@ -38,6 +38,21 @@ export interface WeightRepsSet {
   reps: number | null;
 }
 
+/**
+ * Whether an exercise's tracking type earns "most reps at a weight" PRs.
+ * Only bodyweight movements do: for anything loaded, reps top out well
+ * before the count means much, so a new rep best at some weight is noise
+ * next to 1RM, weight and volume (issue #354).
+ */
+export function tracksRepsAtWeight(trackingType: string | null | undefined): boolean {
+  return trackingType === "bodyweight" || trackingType === "weighted_bodyweight";
+}
+
+export interface DetectOptions {
+  /** Also consider `reps_at_weight` PRs — see `tracksRepsAtWeight`. */
+  repsAtWeight: boolean;
+}
+
 function weightKey(weight: number): string {
   return weight.toFixed(2);
 }
@@ -72,8 +87,13 @@ export function computePriorBests(history: readonly WeightRepsSet[]): PriorBests
  * Which PR kinds a just-completed set achieves against `prior` — the bests
  * from every earlier set for this exercise, this session's included (a set
  * can beat a PR that an earlier set in the same workout just set).
+ * `reps_at_weight` is only considered when `options.repsAtWeight` is set.
  */
-export function detectPersonalRecords(set: WeightRepsSet, prior: PriorBests): PrCandidate[] {
+export function detectPersonalRecords(
+  set: WeightRepsSet,
+  prior: PriorBests,
+  options: DetectOptions,
+): PrCandidate[] {
   const { weight, reps: setReps } = set;
   if (weight == null || setReps == null || weight <= 0 || setReps <= 0) return [];
 
@@ -86,6 +106,8 @@ export function detectPersonalRecords(set: WeightRepsSet, prior: PriorBests): Pr
 
   const volume = weight * setReps;
   if (volume > prior.volume) candidates.push({ kind: "volume", value: volume });
+
+  if (!options.repsAtWeight) return candidates;
 
   // A reps PR at this weight only counts if no earlier set was at least as
   // heavy for at least as many reps (issue #352) — otherwise any lighter

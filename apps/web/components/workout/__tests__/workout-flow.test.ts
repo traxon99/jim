@@ -108,7 +108,7 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
     return sessionExercise;
   }
 
-  it("the first set ever logged for an exercise is a PR across every kind", async () => {
+  it("the first set ever logged for a loaded exercise is a PR across every kind it tracks", async () => {
     const sessionId = await startEmptySession(USER_ID, testDb);
     const sessionExercise = await makeSessionExercise(sessionId, BENCH_ID);
 
@@ -126,13 +126,55 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
     );
 
     expect(set.weight).toBe("135");
-    expect(prs.map((pr) => pr.kind).sort()).toEqual(
-      ["1rm", "reps_at_weight", "volume", "weight"].sort(),
-    );
+    // No "most reps at a weight" for a loaded lift (issue #354).
+    expect(prs.map((pr) => pr.kind).sort()).toEqual(["1rm", "volume", "weight"].sort());
 
     const records = await testDb.personalRecords.where("exerciseId").equals(BENCH_ID).toArray();
-    expect(records).toHaveLength(4);
+    expect(records).toHaveLength(3);
     expect(records.every((r) => r.setId === set.id)).toBe(true);
+  });
+
+  it("a bodyweight exercise still earns most-reps-at-a-weight PRs", async () => {
+    const DIP_ID = "44444444-4444-4444-4444-444444444444";
+    await testDb.exercises.put({
+      id: DIP_ID,
+      ownerId: null,
+      slug: "weighted-dip",
+      name: "Weighted Dip",
+      aliases: [],
+      primaryMuscles: ["chest"],
+      secondaryMuscles: ["triceps"],
+      equipment: "body only",
+      mechanic: "compound",
+      force: "push",
+      level: "intermediate",
+      trackingType: "weighted_bodyweight",
+      category: "strength",
+      instructions: [],
+      imageUrls: [],
+      isArchived: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deviceId: "device-a",
+      serverSeq: 0,
+    });
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId, DIP_ID);
+
+    const { prs } = await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: DIP_ID,
+        setIndex: 0,
+        kind: "working",
+        weight: 25,
+        reps: 10,
+      },
+      testDb,
+    );
+
+    expect(prs.map((pr) => pr.kind)).toContain("reps_at_weight");
   });
 
   it("a weaker set right after doesn't re-trigger any PR", async () => {
