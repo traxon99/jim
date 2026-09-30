@@ -670,7 +670,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         />
       )}
 
-      {!(focusMode && focusedItem) && <RestTimerBar timer={restTimer} />}
+      {!(focusMode && focusedItem) && <RestTimerBar timer={restTimer} aboveTabBar />}
     </main>
   );
 }
