@@ -168,6 +168,30 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
     expect(prs).toEqual([]);
   });
 
+  it("warm-up sets never set a PR, and a lighter working set after a heavier one isn't a PR", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId, BENCH_ID);
+    const log = (setIndex: number, kind: "warmup" | "working", weight: number, reps: number) =>
+      completeSet(
+        {
+          userId: USER_ID,
+          sessionExerciseId: sessionExercise.id,
+          exerciseId: BENCH_ID,
+          setIndex,
+          kind,
+          weight,
+          reps,
+        },
+        testDb,
+      );
+
+    // Issue #352: warm-ups at 45×5 and 55×2, then 160×8 and 150×8.
+    expect((await log(0, "warmup", 45, 5)).prs).toEqual([]);
+    expect((await log(1, "warmup", 55, 2)).prs).toEqual([]);
+    expect((await log(2, "working", 160, 8)).prs).not.toEqual([]);
+    expect((await log(3, "working", 150, 8)).prs).toEqual([]);
+  });
+
   it("shows last session's sets as 'the number to beat' for the next session", async () => {
     const firstSessionId = await startEmptySession(USER_ID, testDb);
     const firstSessionExercise = await makeSessionExercise(firstSessionId, BENCH_ID);

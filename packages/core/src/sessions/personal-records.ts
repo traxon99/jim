@@ -74,22 +74,26 @@ export function computePriorBests(history: readonly WeightRepsSet[]): PriorBests
  * can beat a PR that an earlier set in the same workout just set).
  */
 export function detectPersonalRecords(set: WeightRepsSet, prior: PriorBests): PrCandidate[] {
-  if (set.weight == null || set.reps == null || set.weight <= 0 || set.reps <= 0) return [];
+  const { weight, reps: setReps } = set;
+  if (weight == null || setReps == null || weight <= 0 || setReps <= 0) return [];
 
   const candidates: PrCandidate[] = [];
 
-  const oneRepMax = estimateOneRepMax(set.weight, set.reps);
+  const oneRepMax = estimateOneRepMax(weight, setReps);
   if (oneRepMax > prior.oneRepMax) candidates.push({ kind: "1rm", value: oneRepMax });
 
-  if (set.weight > prior.weight) candidates.push({ kind: "weight", value: set.weight });
+  if (weight > prior.weight) candidates.push({ kind: "weight", value: weight });
 
-  const volume = set.weight * set.reps;
+  const volume = weight * setReps;
   if (volume > prior.volume) candidates.push({ kind: "volume", value: volume });
 
-  const bestRepsAtThisWeight = prior.repsAtWeight[weightKey(set.weight)] ?? 0;
-  if (set.reps > bestRepsAtThisWeight) {
-    candidates.push({ kind: "reps_at_weight", value: set.reps });
-  }
+  // A reps PR at this weight only counts if no earlier set was at least as
+  // heavy for at least as many reps (issue #352) — otherwise any lighter
+  // weight never used before, like 150×8 after 160×8, reads as a PR.
+  const outdone = Object.entries(prior.repsAtWeight).some(
+    ([key, reps]) => Number(key) >= weight && reps >= setReps,
+  );
+  if (!outdone) candidates.push({ kind: "reps_at_weight", value: setReps });
 
   return candidates;
 }
