@@ -138,6 +138,25 @@ body {
   background: linear-gradient(to bottom, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.45));
 }
 
+/* The bottom tab bar (components/bottom-tab-bar.tsx), Liquid Glass style:
+   it floats over the shell's scroller, so content blurs through it. A dark
+   fade deepens toward the screen edge, echoing the status-bar scrim, but
+   unlike the header it keeps a hard hairline on top, with a faint sheen
+   just under it. */
+.tab-bar-glass {
+  border-top: 1px solid rgb(0 0 0 / 0.1);
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.85));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+:root.dark .tab-bar-glass {
+  border-top-color: rgb(255 255 255 / 0.12);
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.75));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
 /* Global iOS hygiene (docs/ARCHITECTURE.md §6) */
 * {
   touch-action: manipulation;
