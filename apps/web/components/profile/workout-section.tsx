@@ -1,5 +1,6 @@
 "use client";
 
+import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
@@ -99,9 +100,11 @@ export function WorkoutSection() {
         Show pace tracker
         <input
           type="checkbox"
+          role="switch"
+          aria-checked={showPaceTracker}
           checked={showPaceTracker}
           onChange={(event) => void save({ showPaceTracker: event.target.checked })}
-          className="h-5 w-5 accent-accent"
+          className={SWITCH_CLASS}
         />
       </label>
 

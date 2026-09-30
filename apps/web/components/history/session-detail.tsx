@@ -145,7 +145,17 @@ export function SessionDetail({ id }: { id: string }) {
             {displayName}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-500">
-            {session.startedAt.toLocaleString()}
+            {/* "Mon, Sep 28 · 5:30 PM" rather than toLocaleString's seconds (issue #333). */}
+            {session.startedAt.toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })}{" "}
+            ·{" "}
+            {session.startedAt.toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
           </p>
         </div>
         {session.endedAt && shareText && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { SWITCH_CLASS } from "@/components/switch-class";
 import { VAPID_PUBLIC_KEY } from "@/lib/pwa/notifications";
 import { currentPushSupport, subscribeToPush, unsubscribeFromPush } from "@/lib/pwa/push-client";
 import { useEffect, useState } from "react";
@@ -122,10 +123,12 @@ export function PushNotificationsSection() {
             </span>
             <input
               type="checkbox"
+              role="switch"
+              aria-checked={enabled}
               checked={enabled}
               disabled={busy}
               onChange={(event) => void handleToggle(event.target.checked)}
-              className="h-5 w-5 shrink-0 accent-accent"
+              className={SWITCH_CLASS}
             />
           </label>
 

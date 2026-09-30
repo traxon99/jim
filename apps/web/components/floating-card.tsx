@@ -6,6 +6,11 @@ interface Props {
   /** Id of the card's heading, for aria-labelledby. */
   labelledBy: string;
   onClose: () => void;
+  /**
+   * "bottom" anchors the card to the bottom of the screen, as a sheet, so
+   * its main action is in thumb reach (the pre-workout sheet, issue #333).
+   */
+  placement?: "center" | "bottom";
   /** Gets `close`, which plays the exit fade before calling onClose. */
   children: (close: () => void) => ReactNode;
 }
@@ -15,7 +20,7 @@ interface Props {
  * the pre-workout sheet and the DPR details card (issue #284). Tapping the
  * backdrop or pressing Escape closes it.
  */
-export function FloatingCard({ labelledBy, onClose, children }: Props) {
+export function FloatingCard({ labelledBy, onClose, placement = "center", children }: Props) {
   // Closing plays the exit fade (globals.css .sheet-backdrop) before handing
   // control back; reduced motion skips straight to onClose, since no
   // animationend would ever fire.
@@ -57,7 +62,9 @@ export function FloatingCard({ labelledBy, onClose, children }: Props) {
     <div
       data-closing={closing}
       onAnimationEnd={handleAnimationEnd}
-      className="sheet-backdrop fixed inset-0 z-20 flex items-center justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm"
+      className={`sheet-backdrop fixed inset-0 z-20 flex justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm ${
+        placement === "bottom" ? "items-end" : "items-center"
+      }`}
       style={{
         paddingTop: "max(16px, env(safe-area-inset-top))",
         paddingBottom: "max(16px, env(safe-area-inset-bottom))",
