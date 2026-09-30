@@ -10,6 +10,7 @@ import {
   isWarmupExercise,
   resolveCurrentRows,
   restTakenSeconds,
+  tracksRepsAtWeight,
   uuidv7,
 } from "@jim/core";
 
@@ -47,13 +48,14 @@ async function detectAndRecordPrs(
   userId: string,
   exerciseId: string,
   set: SetRow,
+  repsAtWeight: boolean,
   deviceId: string,
   now: Date,
 ): Promise<PrCandidate[]> {
   const history = await historicalWeightReps(database, exerciseId, set.id);
   const prior = computePriorBests(history);
   const candidate = { weight: set.weight == null ? null : Number(set.weight), reps: set.reps };
-  const prs = detectPersonalRecords(candidate, prior);
+  const prs = detectPersonalRecords(candidate, prior, { repsAtWeight });
 
   for (const pr of prs) {
     const record: PersonalRecordRow = {
@@ -206,6 +208,7 @@ export async function completeSet(
     input.userId,
     input.exerciseId,
     set,
+    tracksRepsAtWeight(exercise?.trackingType),
     deviceId,
     now,
   );

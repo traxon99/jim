@@ -175,7 +175,7 @@ describe("history read pipeline (against Dexie)", () => {
       id: sessionId,
       totalVolume: 135 * 5,
       setCount: 1,
-      prCount: 4, // first-ever set: 1rm, weight, volume, reps_at_weight
+      prCount: 3, // first-ever set: 1rm, weight, volume (no reps PRs for a loaded lift)
     });
   });
 
@@ -233,9 +233,7 @@ describe("history read pipeline (against Dexie)", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0]?.exerciseName).toBe("Barbell Bench Press");
     expect(groups[0]?.sets).toHaveLength(1);
-    expect(groups[0]?.sets[0]?.prKinds.sort()).toEqual(
-      ["1rm", "reps_at_weight", "volume", "weight"].sort(),
-    );
+    expect(groups[0]?.sets[0]?.prKinds.sort()).toEqual(["1rm", "volume", "weight"].sort());
   });
 
   it("attributes weekly volume to the exercise's primary and secondary muscles", async () => {
@@ -314,9 +312,7 @@ describe("history read pipeline (against Dexie)", () => {
       testDb,
     );
 
-    expect(prs.map((pr) => pr.kind).sort()).toEqual(
-      ["1rm", "reps_at_weight", "volume", "weight"].sort(),
-    );
+    expect(prs.map((pr) => pr.kind).sort()).toEqual(["1rm", "volume", "weight"].sort());
   });
 
   it("leaves a deleted workout's sets out of weekly muscle volume (issue #200)", async () => {

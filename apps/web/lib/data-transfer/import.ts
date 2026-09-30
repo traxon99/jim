@@ -29,6 +29,7 @@ import {
   resolveCurrentRows,
   searchExercises,
   slugify,
+  tracksRepsAtWeight,
   uuidv7,
 } from "@jim/core";
 
@@ -220,6 +221,9 @@ async function importedPersonalRecords(
   const warmups = new Set(
     exercises.filter((e) => e != null && isWarmupExercise(e)).map((e) => e?.id),
   );
+  const repsAtWeightIds = new Set(
+    exercises.filter((e) => e != null && tracksRepsAtWeight(e.trackingType)).map((e) => e?.id),
+  );
   const [sessions, sessionExercises, rawSets] = await Promise.all([
     database.sessions.toArray(),
     database.sessionExercises.toArray(),
@@ -264,7 +268,9 @@ async function importedPersonalRecords(
     let bests = EMPTY_PRIOR_BESTS;
     for (const entry of entries) {
       if (entry.id) {
-        for (const pr of detectPersonalRecords(entry, bests)) {
+        for (const pr of detectPersonalRecords(entry, bests, {
+          repsAtWeight: repsAtWeightIds.has(exerciseId),
+        })) {
           records.push({
             id: uuidv7(),
             userId,
