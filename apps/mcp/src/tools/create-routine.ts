@@ -1,7 +1,7 @@
 import { uuidv7 } from "@jim/core";
 import { routineExercises, routines } from "@jim/db";
 import type { UserContext } from "../context.js";
-import { withUser } from "../context.js";
+import { withUserWrite } from "../context.js";
 import { resolveExercise } from "./resolve-exercise.js";
 
 /** Distinguishes MCP-authored rows in `device_id` the same way the phone stamps its own device id. */
@@ -21,10 +21,12 @@ export interface CreateRoutineInput {
   name: string;
   folder?: string;
   exercises: CreateRoutineExerciseInput[];
+  /** Preview only: run every check and return the result, then roll back (#245). */
+  dryRun?: boolean;
 }
 
 export async function createRoutine(context: UserContext, input: CreateRoutineInput) {
-  return withUser(context, async (tx) => {
+  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
     const now = new Date();
     const routineId = uuidv7();
 

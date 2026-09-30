@@ -23,6 +23,18 @@ function toolError(error: unknown) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
 }
 
+/** Shared by every write tool (#245). `merge_exercises` overrides the default to `true`. */
+function dryRunParam(defaultValue: boolean) {
+  return z
+    .boolean()
+    .default(defaultValue)
+    .describe(
+      "When true, runs every check and returns exactly what would be written (ids are provisional), then rolls back without writing anything. Call with true first, show the user the preview, then call again with false to commit.",
+    );
+}
+
+const PREVIEW_HINT = " Preview with dry_run: true before committing.";
+
 const routineExerciseSchema = z.object({
   exercise: z.string().describe("Exercise name or id"),
   targetSets: z.number().int().positive().optional(),
@@ -180,16 +192,17 @@ export function createMcpServer(context: UserContext): McpServer {
     "create_routine",
     {
       title: "Create routine",
-      description: "Build a new routine (program) with an ordered list of exercises and targets.",
+      description: `Build a new routine (program) with an ordered list of exercises and targets.${PREVIEW_HINT}`,
       inputSchema: {
         name: z.string(),
         folder: z.string().optional(),
         exercises: z.array(routineExerciseSchema),
+        dry_run: dryRunParam(false),
       },
     },
-    async (input) => {
+    async ({ dry_run, ...input }) => {
       try {
-        return json(await createRoutine(context, input));
+        return json(await createRoutine(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }
@@ -200,18 +213,19 @@ export function createMcpServer(context: UserContext): McpServer {
     "update_routine",
     {
       title: "Update routine",
-      description: "Amend a routine's name/folder/notes, and/or replace its entire exercise list.",
+      description: `Amend a routine's name/folder/notes, and/or replace its entire exercise list (the result counts how many existing exercises were replaced).${PREVIEW_HINT}`,
       inputSchema: {
         routineId: z.string(),
         name: z.string().optional(),
         folder: z.string().nullable().optional(),
         notes: z.string().nullable().optional(),
         exercises: z.array(routineExerciseSchema).optional(),
+        dry_run: dryRunParam(false),
       },
     },
-    async (input) => {
+    async ({ dry_run, ...input }) => {
       try {
-        return json(await updateRoutine(context, input));
+        return json(await updateRoutine(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }
@@ -222,16 +236,17 @@ export function createMcpServer(context: UserContext): McpServer {
     "schedule_workout",
     {
       title: "Schedule workout",
-      description: "Plan a future session from a routine, for a given date.",
+      description: `Plan a future session from a routine, for a given date.${PREVIEW_HINT}`,
       inputSchema: {
         routineId: z.string(),
         date: z.string().datetime(),
         notes: z.string().optional(),
+        dry_run: dryRunParam(false),
       },
     },
-    async (input) => {
+    async ({ dry_run, ...input }) => {
       try {
-        return json(await scheduleWorkout(context, input));
+        return json(await scheduleWorkout(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }
@@ -242,8 +257,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "upsert_exercise",
     {
       title: "Upsert exercise",
-      description:
-        "Create a custom exercise, or edit one (editing a global catalog exercise clones it into your own copy, ADR-008).",
+      description: `Create a custom exercise, or edit one (editing a global catalog exercise clones it into your own copy, ADR-008).${PREVIEW_HINT}`,
       inputSchema: {
         id: z.string().optional().describe("Omit to create a new exercise"),
         name: z.string().optional(),
@@ -259,11 +273,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional(),
         instructions: z.array(z.string()).optional(),
         isArchived: z.boolean().optional(),
+        dry_run: dryRunParam(false),
       },
     },
-    async (input) => {
+    async ({ dry_run, ...input }) => {
       try {
-        return json(await upsertExercise(context, input));
+        return json(await upsertExercise(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }
@@ -275,12 +290,12 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Merge exercises",
       description:
-        "Repoints every historical reference from mergeId to keepId and archives mergeId, without orphaning any set.",
-      inputSchema: { keepId: z.string(), mergeId: z.string() },
+        "Repoints every historical reference from mergeId to keepId and archives mergeId, without orphaning any set. Hard to undo, so dry_run defaults to true: the first call only reports how many session exercises, routine exercises and PRs would be repointed. Show that to the user and call again with dry_run: false to actually merge.",
+      inputSchema: { keepId: z.string(), mergeId: z.string(), dry_run: dryRunParam(true) },
     },
-    async (input) => {
+    async ({ dry_run, ...input }) => {
       try {
-        return json(await mergeExercises(context, input));
+        return json(await mergeExercises(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }

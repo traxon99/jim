@@ -193,6 +193,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - User-scoped token under RLS — **no service-role key** (ADR-006)
 - Read tools: `list_workouts`, `get_workout`, `exercise_history`, `get_prs`, `volume_report`, `search_exercises`
 - Write tools: `create_routine`, `update_routine`, `schedule_workout`, `upsert_exercise`, `merge_exercises`
+- Every write tool accepts `dry_run` to preview without writing; `merge_exercises` previews by default (#245)
 - All computation via `packages/core`, so MCP numbers and phone numbers cannot drift
 - Deployed and reachable
 

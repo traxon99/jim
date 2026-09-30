@@ -1,13 +1,15 @@
 import { exercises, personalRecords, routineExercises, sessionExercises, sessions } from "@jim/db";
 import { and, eq, isNull, notInArray, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
-import { withUser } from "../context.js";
+import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
 import { ExerciseNotFoundError } from "./resolve-exercise.js";
 
 export interface MergeExercisesInput {
   keepId: string;
   mergeId: string;
+  /** Preview only: run every check and return the result, then roll back (#245). */
+  dryRun?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
     throw new Error("keepId and mergeId must be different exercises");
   }
 
-  return withUser(context, async (tx) => {
+  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
     const [keep] = await tx.select().from(exercises).where(eq(exercises.id, input.keepId));
     if (!keep) throw new ExerciseNotFoundError(input.keepId);
 
@@ -75,7 +77,7 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
       .where(eq(routineExercises.exerciseId, input.mergeId))
       .returning({ id: routineExercises.id });
 
-    await tx
+    const repointedPersonalRecords = await tx
       .update(personalRecords)
       .set({
         exerciseId: input.keepId,
@@ -83,7 +85,8 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
         deviceId: MCP_DEVICE_ID,
         serverSeq: sql`nextval('sync_seq')`,
       })
-      .where(eq(personalRecords.exerciseId, input.mergeId));
+      .where(eq(personalRecords.exerciseId, input.mergeId))
+      .returning({ id: personalRecords.id });
 
     await tx
       .update(exercises)
@@ -100,6 +103,8 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
       mergeId: input.mergeId,
       repointedSessionExercises: repointedSessionExercises.length,
       repointedRoutineExercises: repointedRoutineExercises.length,
+      repointedPersonalRecords: repointedPersonalRecords.length,
+      archived: { id: merge.id, name: merge.name },
     };
   });
 }
