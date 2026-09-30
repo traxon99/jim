@@ -32,6 +32,13 @@ export function FloatingCard({ labelledBy, onClose, placement = "center", childr
   const handleAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
     if (closing && event.target === event.currentTarget) onClose();
   };
+  // Backstop: a missed animationend (iOS drops it when the animation is
+  // interrupted) left the card up until a second tap. The exit is 160ms.
+  useEffect(() => {
+    if (!closing) return;
+    const timer = setTimeout(onClose, 400);
+    return () => clearTimeout(timer);
+  }, [closing, onClose]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -74,7 +81,10 @@ export function FloatingCard({ labelledBy, onClose, placement = "center", childr
         type="button"
         aria-label="Close"
         onClick={requestClose}
-        className="absolute inset-0 touch-none"
+        // `absolute!`: globals.css gives every enabled button `position: relative`
+        // (for the tap ripple), and unlayered CSS beats the utilities layer, so
+        // plain `absolute` left this a zero-size flex item and backdrop taps did nothing.
+        className="absolute! inset-0 touch-none"
       />
       <section
         aria-labelledby={labelledBy}
