@@ -74,7 +74,8 @@ export function HomeSummary({ username }: { username: string | null }) {
   const headline = !streak
     ? " "
     : streak.current > 0
-      ? `You have a ${streak.current}-week streak going.`
+      ? // "an 8-week", "an 11-week": reworded so no a/an is needed (issue #333).
+        `${streak.current}-week streak — keep it going.`
       : "Train this week to start a streak.";
 
   return (
@@ -233,7 +234,10 @@ function StatCard({
   return (
     // Sized so the longest values ("12h 30m", "123.4k lb") fit a third of
     // the row at 393px (issue #327); the change sits on its own line below.
-    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg bg-zinc-100 px-2.5 py-2.5 dark:bg-zinc-900">
+    // Outlined on the white band in light mode rather than filled grey, which
+    // blended into the grey section below and cut the band off mid-tile
+    // (issue #333).
+    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-2.5 dark:border-transparent dark:bg-zinc-900">
       <span className="text-sm text-zinc-500 dark:text-zinc-500">{label}</span>
       <span className="allow-pwa-select flex flex-col">
         <span className="text-xl font-semibold tabular-nums tracking-tight">

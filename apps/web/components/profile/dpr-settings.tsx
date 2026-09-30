@@ -1,5 +1,6 @@
 "use client";
 
+import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { DEFAULT_INCREMENTS, type EquipmentBucket } from "@jim/core";
 import { ChevronRight } from "lucide-react";
@@ -61,9 +62,11 @@ export function DprSettings({
         </span>
         <input
           type="checkbox"
+          role="switch"
+          aria-checked={settings.dprEnabled}
           checked={settings.dprEnabled}
           onChange={(event) => void onSave({ dprEnabled: event.target.checked })}
-          className="h-5 w-5 accent-accent"
+          className={SWITCH_CLASS}
         />
       </label>
 

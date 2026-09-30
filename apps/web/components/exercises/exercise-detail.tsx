@@ -23,6 +23,9 @@ import { useId, useMemo } from "react";
  * navigating back to the Exercises tab, and the Edit link is hidden so a tap
  * can't navigate away mid-workout.
  */
+/** Workouts shown under "Your history" (issue #333). */
+const HISTORY_WORKOUTS = 5;
+
 export function ExerciseDetail({
   id,
   userId,
@@ -71,7 +74,22 @@ export function ExerciseDetail({
       .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
   }, [id]);
 
-  const history = useMemo(() => resolvedSets?.slice(0, 10), [resolvedSets]);
+  // The last few workouts' sets, grouped under one date each (issue #333)
+  // rather than a date repeated on every set; sets in the order they were done.
+  const history = useMemo(() => {
+    if (!resolvedSets) return undefined;
+    const groups: { sessionId: string; date: Date; sets: typeof resolvedSets }[] = [];
+    for (const set of resolvedSets) {
+      const group = groups.find((candidate) => candidate.sessionId === set.sessionId);
+      if (group) group.sets.push(set);
+      else if (groups.length < HISTORY_WORKOUTS)
+        groups.push({ sessionId: set.sessionId, date: set.completedAt, sets: [set] });
+    }
+    for (const group of groups) {
+      group.sets.sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
+    }
+    return groups;
+  }, [resolvedSets]);
 
   const oneRepMaxPoints = useMemo(
     () =>
@@ -226,29 +244,40 @@ export function ExerciseDetail({
               {!history || history.length === 0 ? (
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">No sets logged yet.</p>
               ) : (
-                <ul className="allow-pwa-select mt-1 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                  {history.map((set) => (
-                    <li key={set.id} className="flex justify-between gap-2 py-2">
-                      <span className="flex items-center gap-2">
-                        <span>
-                          {set.weight != null && set.reps != null
-                            ? `${set.weight} × ${set.reps}`
-                            : set.reps != null
-                              ? `${set.reps} reps`
-                              : set.durationSeconds != null
-                                ? `${set.durationSeconds}s`
-                                : set.distance != null
-                                  ? `${set.distance}`
-                                  : "—"}
-                        </span>
-                        <SetRestTag set={set} />
-                      </span>
-                      <span className="text-zinc-500 dark:text-zinc-500">
-                        {set.completedAt.toLocaleDateString()}
-                      </span>
-                    </li>
+                <div className="allow-pwa-select mt-1 flex flex-col gap-3 text-sm">
+                  {history.map((group) => (
+                    <section key={group.sessionId} className="flex flex-col">
+                      <h3 className="text-xs font-medium text-zinc-500 dark:text-zinc-500">
+                        {group.date.toLocaleDateString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </h3>
+                      <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        {group.sets.map((set) => (
+                          <li key={set.id} className="flex justify-between gap-2 py-2">
+                            <span className="flex items-center gap-2">
+                              <span className="tabular-nums">
+                                {set.weight != null && set.reps != null
+                                  ? // Numeric columns come back as "195.00" (issue #333).
+                                    `${Number(set.weight)} × ${set.reps}`
+                                  : set.reps != null
+                                    ? `${set.reps} reps`
+                                    : set.durationSeconds != null
+                                      ? `${set.durationSeconds}s`
+                                      : set.distance != null
+                                        ? `${set.distance}`
+                                        : "—"}
+                              </span>
+                              <SetRestTag set={set} />
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
+                </div>
               )}
             </section>
           </div>
