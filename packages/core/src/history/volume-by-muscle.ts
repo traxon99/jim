@@ -21,6 +21,12 @@ export interface MuscleVolumeSet {
 export interface WeeklyMuscleVolume {
   weekStart: Date;
   volumeByMuscle: Readonly<Record<string, number>>;
+  /**
+   * Hard sets per muscle (issue #332), the measure lifters and RP-style
+   * apps track, weighted like volume: a secondary muscle counts half a set.
+   * Unlike volume, a set counts with reps but no weight (bodyweight work).
+   */
+  setsByMuscle: Readonly<Record<string, number>>;
 }
 
 /**
@@ -40,9 +46,18 @@ export function weeklyVolumeByMuscle(
 
   return groups.map((group) => {
     const volumeByMuscle: Record<string, number> = {};
+    const setsByMuscle: Record<string, number> = {};
 
     for (const set of group.items) {
-      if (set.weight == null || set.reps == null || set.weight <= 0 || set.reps <= 0) continue;
+      if (set.reps == null || set.reps <= 0) continue;
+      for (const muscle of set.primaryMuscles) {
+        setsByMuscle[muscle] = (setsByMuscle[muscle] ?? 0) + PRIMARY_MUSCLE_VOLUME_WEIGHT;
+      }
+      for (const muscle of set.secondaryMuscles) {
+        setsByMuscle[muscle] = (setsByMuscle[muscle] ?? 0) + SECONDARY_MUSCLE_VOLUME_WEIGHT;
+      }
+
+      if (set.weight == null || set.weight <= 0) continue;
       const volume = set.weight * set.reps;
 
       for (const muscle of set.primaryMuscles) {
@@ -55,6 +70,6 @@ export function weeklyVolumeByMuscle(
       }
     }
 
-    return { weekStart: group.weekStart, volumeByMuscle };
+    return { weekStart: group.weekStart, volumeByMuscle, setsByMuscle };
   });
 }
