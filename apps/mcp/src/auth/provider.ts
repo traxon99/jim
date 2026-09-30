@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isAccessToken } from "@jim/core";
 import {
   InvalidClientError,
   InvalidGrantError,
@@ -14,6 +15,8 @@ import type {
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import type { Response } from "express";
+import { getDb } from "../db.js";
+import { resolveAccessToken } from "./access-token.js";
 import { clients, issuedAuthorizationCodes, pendingAuthorizations } from "./store.js";
 import { getSupabase } from "./supabase.js";
 
@@ -97,6 +100,21 @@ export class SupabaseOAuthProvider implements OAuthServerProvider {
   }
 
   async verifyAccessToken(token: string): Promise<AuthInfo> {
+    // A personal access token (issue #246), for clients without OAuth.
+    if (isAccessToken(token)) {
+      const resolved = await resolveAccessToken(getDb(), token);
+      if (!resolved) {
+        throw new InvalidTokenError("access token is invalid, revoked or expired");
+      }
+      return {
+        token,
+        clientId: "personal-access-token",
+        scopes: [],
+        expiresAt: resolved.expiresAt,
+        extra: { userId: resolved.userId, email: "" },
+      };
+    }
+
     const { data, error } = await getSupabase().auth.getClaims(token);
     if (error || !data?.claims) {
       throw new InvalidTokenError("access token is invalid or expired");

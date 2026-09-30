@@ -128,6 +128,12 @@ service-role key bypasses RLS entirely — it is a standing, full-database crede
 network-exposed process, and any flaw in the MCP layer becomes total data compromise. Authenticating
 as the user means an MCP bug is bounded by that user's own data.
 
+**Amendment (2026-09-30, #246): personal access tokens.** A client may also authenticate with a
+personal access token the user created in Settings. The token stands in for the user's sign-in, not
+for a service-role key. The server stores only its hash, resolves it to one user id through a
+narrow SECURITY DEFINER function, and then runs under that user's RLS as before. A revoked or
+expired token stops working on the next request.
+
 ---
 
 ## ADR-007 — MCP cannot mutate an in-progress session

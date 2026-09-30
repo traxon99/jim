@@ -20,6 +20,18 @@ in an email/password sign-in page this server renders itself — the same
 Supabase Auth account as the web app (Supabase has no hosted authorize page of
 its own — see `src/auth/`).
 
+A client that can't do OAuth can use a personal access token instead. Create
+one in the web app under Settings → Connect Claude, then send it as a bearer
+header:
+
+```
+claude mcp add --transport http jim https://jim-mcp.fly.dev/mcp \
+  --header "Authorization: Bearer jim_pat_…"
+```
+
+Tokens start with `jim_pat_`, so `verifyAccessToken` can tell them apart from
+Supabase access tokens without a lookup (`src/auth/access-token.ts`).
+
 ## Tests
 
 `pnpm --filter @jim/mcp test` runs the unit suites. The write-tool integration

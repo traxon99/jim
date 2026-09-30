@@ -862,3 +862,37 @@ export const workoutReactions = pgTable(
     }),
   ],
 ).enableRLS();
+
+// ---------------------------------------------------------------------------
+// personal_access_tokens — long-lived bearer tokens for MCP clients that
+// can't do OAuth (issue #246). Only a SHA-256 hash of each token is stored;
+// the plaintext is shown once, when it's created. Managed from Settings via
+// /api/access-tokens under RLS, and never synced to the phone. The MCP server
+// resolves a presented token to its owner through migration 0027's SECURITY
+// DEFINER function, then runs every tool as that user under RLS, the same
+// as an OAuth session (ADR-006).
+// ---------------------------------------------------------------------------
+
+export const personalAccessTokens = pgTable(
+  "personal_access_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    // The token's first few characters, to tell tokens apart in the list.
+    tokenPrefix: text("token_prefix").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Null never expires.
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("personal_access_tokens_hash").on(table.tokenHash),
+    index("personal_access_tokens_user").on(table.userId),
+    ...ownRowPolicies("personal_access_tokens", table.userId),
+  ],
+).enableRLS();
