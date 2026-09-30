@@ -96,3 +96,57 @@ export function personalRecordProgression(
   }
   return points;
 }
+
+/** The window for the PR page's "Recent PRs" section (issue #236). */
+export const RECENT_PR_SECTION_DAYS = 30;
+
+/**
+ * PR rows set in the last `days` days, newest first — the PR page's
+ * "Recent PRs" section. Only rows that are still the current best for
+ * their exercise and kind count, so a PR beaten again the same week shows
+ * once, at its latest value.
+ */
+export function recentPersonalRecords(
+  records: readonly PersonalRecordEntry[],
+  now: Date,
+  days: number = RECENT_PR_SECTION_DAYS,
+): PersonalRecordEntry[] {
+  const cutoff = now.getTime() - days * DAY_MS;
+  return currentPersonalRecords(records)
+    .filter((record) => record.achievedAt.getTime() >= cutoff)
+    .sort((a, b) => b.achievedAt.getTime() - a.achievedAt.getTime());
+}
+
+export type PersonalRecordSortKey = "recent" | "heaviest" | "name";
+
+export interface PersonalRecordGroupSortable {
+  name: string;
+  /** When this exercise's newest current PR was set. */
+  latestAt: Date;
+  /** The headline number: estimated 1RM, else heaviest weight; null for rep-only lifts. */
+  headline: number | null;
+}
+
+/**
+ * Orders the PR page's per-exercise cards (issue #236). "heaviest" puts
+ * lifts without a weight-based headline last; every key falls back to
+ * name so the order is stable.
+ */
+export function sortPersonalRecordGroups<T extends PersonalRecordGroupSortable>(
+  groups: readonly T[],
+  key: PersonalRecordSortKey,
+): T[] {
+  const byName = (a: T, b: T) => a.name.localeCompare(b.name);
+  return [...groups].sort((a, b) => {
+    if (key === "recent") {
+      return b.latestAt.getTime() - a.latestAt.getTime() || byName(a, b);
+    }
+    if (key === "heaviest") {
+      if (a.headline == null && b.headline == null) return byName(a, b);
+      if (a.headline == null) return 1;
+      if (b.headline == null) return -1;
+      return b.headline - a.headline || byName(a, b);
+    }
+    return byName(a, b);
+  });
+}
