@@ -49,4 +49,19 @@ describe("weeklyVolumeByMuscle", () => {
   it("returns an empty array for no sets", () => {
     expect(weeklyVolumeByMuscle([], 0)).toEqual([]);
   });
+
+  it("counts sets per muscle, secondary at half, including bodyweight sets (issue #332)", () => {
+    const [week] = weeklyVolumeByMuscle(
+      [
+        set(),
+        set({ weight: 135, reps: 8 }),
+        set({ weight: null, reps: 12, primaryMuscles: ["lats"], secondaryMuscles: ["biceps"] }),
+        set({ reps: 0 }),
+      ],
+      0,
+    );
+    expect(week?.setsByMuscle).toEqual({ chest: 2, triceps: 1, lats: 1, biceps: 0.5 });
+    // The bodyweight set adds sets but no volume.
+    expect(week?.volumeByMuscle.lats).toBeUndefined();
+  });
 });

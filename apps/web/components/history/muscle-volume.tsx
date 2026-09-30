@@ -4,15 +4,46 @@ import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { type WeeklyMuscleVolume, weeklyVolumeByMuscle } from "@jim/core";
+import { type WeeklyMuscleVolume, startOfWeek, weeklyVolumeByMuscle } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const WEEKS_SHOWN = 6;
 
-function WeekVolumeBars({ week, units }: { week: WeeklyMuscleVolume; units: string }) {
-  const entries = Object.entries(week.volumeByMuscle).sort((a, b) => b[1] - a[1]);
-  const max = entries[0]?.[1] ?? 0;
+type Metric = "sets" | "volume";
+
+const METRICS: { value: Metric; label: string }[] = [
+  { value: "sets", label: "Sets" },
+  { value: "volume", label: "Volume" },
+];
+
+function valuesFor(week: WeeklyMuscleVolume, metric: Metric) {
+  return metric === "sets" ? week.setsByMuscle : week.volumeByMuscle;
+}
+
+/** Half sets come from secondary muscles; show "4.5", not "4.50". */
+function formatValue(value: number, metric: Metric, units: string): string {
+  if (metric === "sets") return String(Math.round(value * 2) / 2);
+  return `${Math.round(value).toLocaleString()} ${units}`;
+}
+
+/**
+ * One week's bars, scaled to `max` — the largest value across every week
+ * shown (issue #332) — so a muscle's bar can be compared week to week
+ * instead of each week's leader always filling the row.
+ */
+function WeekVolumeBars({
+  week,
+  metric,
+  max,
+  units,
+}: {
+  week: WeeklyMuscleVolume;
+  metric: Metric;
+  max: number;
+  units: string;
+}) {
+  const entries = Object.entries(valuesFor(week, metric)).sort((a, b) => b[1] - a[1]);
 
   if (entries.length === 0) {
     return <p className="text-sm text-zinc-500 dark:text-zinc-500">No sets logged this week.</p>;
@@ -31,8 +62,8 @@ function WeekVolumeBars({ week, units }: { week: WeeklyMuscleVolume; units: stri
               style={{ width: `${max > 0 ? (volume / max) * 100 : 0}%` }}
             />
           </div>
-          <span className="w-14 shrink-0 text-right text-xs text-zinc-500 dark:text-zinc-500">
-            {Math.round(volume).toLocaleString()} {units}
+          <span className="w-16 shrink-0 text-right text-xs tabular-nums text-zinc-500 dark:text-zinc-500">
+            {formatValue(volume, metric, units)}
           </span>
         </li>
       ))}
@@ -47,6 +78,8 @@ function WeekVolumeBars({ week, units }: { week: WeeklyMuscleVolume; units: stri
  */
 export function MuscleVolume() {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  // Sets per muscle is what lifters program by, so it's the default.
+  const [metric, setMetric] = useState<Metric>("sets");
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
@@ -61,6 +94,9 @@ export function MuscleVolume() {
     );
     return weeklyVolumeByMuscle(sets, settings.weekStart).slice(0, WEEKS_SHOWN);
   }, [rawSessions, rawSessionExercises, exercises, rawSets, settings.weekStart]);
+
+  const max = Math.max(0, ...weeks.flatMap((week) => Object.values(valuesFor(week, metric))));
+  const currentWeekStart = startOfWeek(new Date(), settings.weekStart).getTime();
 
   const loading =
     rawSessions === undefined ||
@@ -86,14 +122,49 @@ export function MuscleVolume() {
           </p>
         ) : (
           <div className="flex flex-col gap-6">
-            {weeks.map((week) => (
-              <section key={week.weekStart.toISOString()} className="flex flex-col gap-2">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                  Week of {week.weekStart.toLocaleDateString()}
-                </h2>
-                <WeekVolumeBars week={week} units={settings.units} />
-              </section>
-            ))}
+            <div className="flex flex-col gap-2">
+              <div
+                role="tablist"
+                aria-label="Measure"
+                className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                {METRICS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={metric === option.value}
+                    onClick={() => setMetric(option.value)}
+                    className={`min-h-9 rounded-md text-sm font-medium ${
+                      metric === option.value
+                        ? "bg-white shadow-sm dark:bg-zinc-800"
+                        : "text-zinc-500 dark:text-zinc-500"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                {metric === "sets"
+                  ? "Sets per muscle each week; a muscle worked secondarily counts half a set."
+                  : `Weight × reps per muscle each week, in ${settings.units}; secondary muscles count half.`}{" "}
+                Bars share one scale across weeks.
+              </p>
+            </div>
+            {weeks.map((week) => {
+              const current = week.weekStart.getTime() === currentWeekStart;
+              return (
+                <section key={week.weekStart.toISOString()} className="flex flex-col gap-2">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                    {current
+                      ? "This week · so far"
+                      : `Week of ${week.weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+                  </h2>
+                  <WeekVolumeBars week={week} metric={metric} max={max} units={settings.units} />
+                </section>
+              );
+            })}
           </div>
         )}
       </div>
