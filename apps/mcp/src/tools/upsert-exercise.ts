@@ -2,7 +2,7 @@ import { applyExerciseEdit, slugify, uuidv7 } from "@jim/core";
 import { exercises } from "@jim/db";
 import { eq, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
-import { withUser } from "../context.js";
+import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
 import { ExerciseNotFoundError } from "./resolve-exercise.js";
 import type { ExerciseRow } from "./resolve-exercise.js";
@@ -21,10 +21,12 @@ export interface UpsertExerciseInput {
   trackingType?: ExerciseRow["trackingType"];
   instructions?: string[];
   isArchived?: boolean;
+  /** Preview only: run every check and return the result, then roll back (#245). */
+  dryRun?: boolean;
 }
 
 export async function upsertExercise(context: UserContext, input: UpsertExerciseInput) {
-  return withUser(context, async (tx) => {
+  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
     const now = new Date();
 
     if (!input.id) {

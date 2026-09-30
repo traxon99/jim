@@ -20,6 +20,13 @@ in an email/password sign-in page this server renders itself — the same
 Supabase Auth account as the web app (Supabase has no hosted authorize page of
 its own — see `src/auth/`).
 
+## Tests
+
+`pnpm --filter @jim/mcp test` runs the unit suites. The write-tool integration
+suites (`src/tools/__tests__/dry-run.test.ts` and friends) are skipped unless
+`TEST_DATABASE_URL` points at a disposable Postgres database. They drop and
+recreate its schemas, the same as `@jim/db`'s suites.
+
 ## Deploying
 
 This process holds OAuth/session state in memory (registered clients, pending

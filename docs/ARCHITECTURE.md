@@ -192,6 +192,11 @@ standing full-database credential sitting in a network-exposed process.
 
 Writes land in Postgres and reach the phone on the next pull.
 
+Every write tool takes `dry_run`. A dry run executes the write inside its RLS transaction and then
+rolls it back, so the preview is exactly what a committed call would write (only ids and timestamps
+differ). `merge_exercises` defaults to `dry_run: true` because a merge repoints history and is hard
+to undo; the others default to `false`.
+
 **Explicitly excluded: mutating an in-progress session.** The phone owns the live session. A second
 writer there would force real conflict resolution for almost no benefit. Revisit once the sync
 engine has proven itself in use.
