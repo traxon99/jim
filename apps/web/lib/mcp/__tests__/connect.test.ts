@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claudeCodeAddCommand, mcpEndpointUrl } from "../connect";
+import { claudeCodeAddCommand, claudeCodeAddCommandWithToken, mcpEndpointUrl } from "../connect";
 
 describe("mcpEndpointUrl", () => {
   it("appends /mcp to a bare origin", () => {
@@ -32,6 +32,14 @@ describe("claudeCodeAddCommand", () => {
   it("builds the Claude Code add command", () => {
     expect(claudeCodeAddCommand("https://mcp.example.com/mcp")).toBe(
       "claude mcp add --transport http jim https://mcp.example.com/mcp",
+    );
+  });
+});
+
+describe("claudeCodeAddCommandWithToken", () => {
+  it("passes the token as a bearer header", () => {
+    expect(claudeCodeAddCommandWithToken("https://mcp.example.com/mcp", "jim_pat_x")).toBe(
+      'claude mcp add --transport http jim https://mcp.example.com/mcp --header "Authorization: Bearer jim_pat_x"',
     );
   });
 });

@@ -169,6 +169,12 @@ TypeScript SDK's `authProvider`. It reaches Postgres through `packages/db` and i
 same RLS — **it holds a user token, not a service-role key.** A service-role key here would be a
 standing full-database credential sitting in a network-exposed process.
 
+Clients that can't do OAuth (scripts, cron jobs) can instead send a personal access token as
+`Authorization: Bearer jim_pat_…`, created and revoked in Settings → Connect Claude. Only a SHA-256
+hash is stored (`personal_access_tokens`). The server resolves a presented token to its owner through
+one SECURITY DEFINER function (migration 0027), run as `anon`, and then runs every tool as that user
+under RLS, the same as an OAuth session.
+
 **Read tools**
 
 | Tool | Purpose |

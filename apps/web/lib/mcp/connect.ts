@@ -33,3 +33,8 @@ export function mcpEndpointUrl(configured: string = MCP_SERVER_ORIGIN): string |
 export function claudeCodeAddCommand(endpoint: string): string {
   return `claude mcp add --transport http jim ${endpoint}`;
 }
+
+/** The same, authenticating with a personal access token instead of OAuth (issue #246). */
+export function claudeCodeAddCommandWithToken(endpoint: string, token: string): string {
+  return `${claudeCodeAddCommand(endpoint)} --header "Authorization: Bearer ${token}"`;
+}
