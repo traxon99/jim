@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Track your bodyweight over time on Profile → Bodyweight, and import your weight history from Strong.";
+  "Warm-up sets no longer eat into your working sets or shift last time's numbers, and a finished exercise shows a + Add Set button instead of an extra row.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

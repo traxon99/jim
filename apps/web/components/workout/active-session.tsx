@@ -185,16 +185,43 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     [setCompletedAtBySessionExerciseId],
   );
 
-  const focusCandidates = useMemo<FocusViewExercise[]>(
-    () =>
-      sessionExercises.map((se) => ({
+  const workingSetCountBySessionExerciseId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const set of resolveCurrentRows(rawSets ?? [])) {
+      if (set.deletedAt || set.kind === "warmup") continue;
+      map.set(set.sessionExerciseId, (map.get(set.sessionExerciseId) ?? 0) + 1);
+    }
+    return map;
+  }, [rawSets]);
+
+  // A main exercise is done once its working sets are: warm-up sets, from
+  // the ⋯ menu or a set switched to one, ride on top of the routine's
+  // target rather than counting toward it. A warm-up block's exercises log
+  // nothing but warm-ups, so there every set counts.
+  const focusCandidates = useMemo<FocusViewExercise[]>(() => {
+    const warmupIds = new Set(warmupItems.map((se) => se.id));
+    return sessionExercises.map((se) => {
+      const target = targetByExerciseId.get(se.exerciseId);
+      const isWarmupItem = warmupIds.has(se.id);
+      return {
         id: se.id,
         name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
-        loggedSetCount: setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0,
-        targetSetCount: plannedSetCountFor(se, targetByExerciseId.get(se.exerciseId)),
-      })),
-    [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
-  );
+        loggedSetCount: isWarmupItem
+          ? (setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0)
+          : (workingSetCountBySessionExerciseId.get(se.id) ?? 0),
+        targetSetCount: isWarmupItem
+          ? plannedSetCountFor(se, target)
+          : (target?.targetSets ?? null),
+      };
+    });
+  }, [
+    sessionExercises,
+    warmupItems,
+    exerciseById,
+    setCompletedAtBySessionExerciseId,
+    workingSetCountBySessionExerciseId,
+    targetByExerciseId,
+  ]);
 
   // Issue #232: once every planned set is logged the lifter is at the bottom
   // of the page, so Finish is offered there too. Warm-ups don't count, same

@@ -20,7 +20,7 @@ import {
   dprWhyLine,
   needsRpeNudge,
 } from "@/lib/dpr/calls";
-import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
+import { NO_PREVIOUS_SETS, loadPreviousSets } from "@/lib/sessions/previous-set-lookup";
 import {
   completeSet,
   deleteSet,
@@ -36,17 +36,19 @@ import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
   type PreviousSet,
+  type PreviousSetsByKind,
   RPE_MAX,
   RPE_MIN,
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   clampRpe,
   nearestLoadableWeight,
-  plannedSetIndices,
+  plannedSetRowCount,
   prefillWeightForSet,
   remainingPlannedSetCount,
   resolveCurrentRows,
   resolveStickyNote,
+  setKindOrdinals,
   standardLiftForSlug,
   suggestedWeightsByTier,
   warmupRamp,
@@ -182,7 +184,7 @@ export function SessionExerciseSection({
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
     [item.id],
   );
-  const [previousByIndex, setPreviousByIndex] = useState<Map<number, PreviousSet>>(new Map());
+  const [previousSets, setPreviousSets] = useState<PreviousSetsByKind>(NO_PREVIOUS_SETS);
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
   const [notes, setNotes] = useState(item.notes ?? "");
   // Both views collapse an empty note to "+ Add note" (issue #322); a note
@@ -202,6 +204,8 @@ export function SessionExerciseSection({
   // Planned rows swiped away (issue #350), by set index. They're only a
   // plan, so dropping one is kept to this screen rather than saved.
   const [skippedIndices, setSkippedIndices] = useState<ReadonlySet<number>>(new Set());
+  // Sets added past the plan with "+ Add Set", also kept to this screen.
+  const [addedSets, setAddedSets] = useState(0);
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
 
@@ -221,8 +225,8 @@ export function SessionExerciseSection({
 
   useEffect(() => {
     let cancelled = false;
-    void loadPreviousSetsByIndex(item.exerciseId, sessionId).then((map) => {
-      if (!cancelled) setPreviousByIndex(map);
+    void loadPreviousSets(item.exerciseId, sessionId).then((previous) => {
+      if (!cancelled) setPreviousSets(previous);
     });
     return () => {
       cancelled = true;
@@ -236,20 +240,16 @@ export function SessionExerciseSection({
   }, [rawSets]);
 
   // Warm-up sets added from the ⋯ menu (issue #271) are planned at the
-  // front, so the working sets' "last time" lookups shift back by as many.
+  // front. They ride on top of the working sets, as does a row switched to
+  // a warm-up from its set-type menu: a 3×10 still plans three working sets.
   const warmupCount = item.warmupSets ?? 0;
-  function previousFor(index: number): PreviousSet | undefined {
-    return index < warmupCount ? undefined : previousByIndex.get(index - warmupCount);
-  }
-  const plannedTotal = Math.max(target?.targetSets ?? 0, previousByIndex.size, 1) + warmupCount;
+  const workingTarget =
+    Math.max(target?.targetSets ?? 0, previousSets.working.length, 1) + addedSets;
 
-  const nextIndex = sets.length;
-  const previous = previousByIndex.get(Math.max(nextIndex - warmupCount, 0));
-  const lastSet = sets[sets.length - 1];
+  const loggedByIndex = useMemo(() => new Map(sets.map((set) => [set.setIndex, set])), [sets]);
+  const loggedIndices = useMemo(() => new Set(loggedByIndex.keys()), [loggedByIndex]);
   const restSeconds =
     item.restSeconds ?? target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
-
-  const loggedIndices = useMemo(() => new Set(sets.map((set) => set.setIndex)), [sets]);
 
   // The routine's target weight is the starting point for an exercise with
   // no history yet (the weekly auto-increment it once drove is replaced by
@@ -262,16 +262,58 @@ export function SessionExerciseSection({
   const standardLift = useMemo(() => standardLiftForSlug(exercise?.slug), [exercise?.slug]);
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
+  function defaultDraft(index: number): DraftValues {
+    return {
+      weight: "",
+      reps: "",
+      rpe: "",
+      kind: index < warmupCount ? "warmup" : "working",
+    };
+  }
+
+  function draftFor(index: number): DraftValues {
+    return draftOverrides.get(index) ?? defaultDraft(index);
+  }
+
+  // A row's kind: its logged set's, else the one picked for the row to log.
+  function kindAt(index: number): string {
+    return loggedByIndex.get(index)?.kind ?? draftFor(index).kind;
+  }
+
   // Preloaded sets (issue #121): every not-yet-logged set the routine or last
   // time's workout calls for gets its own row, ready to log one tap at a
   // time. `draftOverrides` holds only rows the lifter has actually edited;
   // everything else is computed fresh from the plan/history on every render,
-  // so it stays current as `previousByIndex` loads in.
-  const plannedIndices = useMemo(
-    () => plannedSetIndices(plannedTotal, 0, loggedIndices),
-    [plannedTotal, loggedIndices],
+  // so it stays current as `previousSets` loads in. Once the plan is logged
+  // there's no extra row, just "+ Add Set".
+  const lastLoggedIndex = sets.reduce((max, set) => Math.max(max, set.setIndex), -1);
+  const plannedTotal = plannedSetRowCount(
+    workingTarget,
+    Math.max(warmupCount, lastLoggedIndex + 1),
+    kindAt,
   );
+  const allIndices = Array.from({ length: plannedTotal }, (_, index) => index);
+  const plannedIndices = allIndices.filter((index) => !loggedIndices.has(index));
   const visiblePlannedIndices = plannedIndices.filter((index) => !skippedIndices.has(index));
+
+  // "Last time" for a row is last time's set of the same kind at the same
+  // position among its kind: working set 1 against working set 1, however
+  // many warm-ups either workout put in front.
+  const ordinals = setKindOrdinals(allIndices.map(kindAt));
+  function previousFor(index: number): PreviousSet | undefined {
+    const ordinal = ordinals[index];
+    if (ordinal === undefined) return undefined;
+    return kindAt(index) === "warmup"
+      ? previousSets.warmups[ordinal]
+      : previousSets.working[ordinal];
+  }
+
+  const nextIndex = visiblePlannedIndices[0] ?? lastLoggedIndex + 1;
+  // Last time's working set to beat next (warm-ups aside).
+  const previous =
+    (kindAt(nextIndex) === "warmup" ? undefined : previousFor(nextIndex)) ??
+    previousSets.working[0];
+  const lastSet = loggedByIndex.get(lastLoggedIndex);
 
   // Suggested weight/reps for a not-yet-logged row (issue #159): last time's
   // numbers at this position, or the routine's target, same source as before
@@ -292,7 +334,7 @@ export function SessionExerciseSection({
   // The ramp aims at the first working set's suggested weight.
   const firstWorkingWeight = toNumberOrNull(
     dprWeightPlaceholder(dpr, "working") ??
-      prefillWeightForSet(0, previousFor(warmupCount), targetWeight),
+      prefillWeightForSet(0, previousSets.working[0], targetWeight),
   );
   const ramp = warmupRamp(
     firstWorkingWeight,
@@ -300,37 +342,29 @@ export function SessionExerciseSection({
     settings.units === "kg" ? 2.5 : 5,
   );
 
+  // A warm-up row suggests its step of the ramp, or past the ramp's end,
+  // last time's warm-up at the same spot.
   function suggestedWeightFor(index: number): string {
-    if (index < warmupCount) {
-      const weight = ramp[index]?.weight;
+    const ordinal = ordinals[index] ?? 0;
+    if (kindAt(index) === "warmup") {
+      const weight = ramp[ordinal]?.weight ?? previousFor(index)?.weight;
       return weight == null ? "" : String(weight);
     }
     return (
       dprWeightPlaceholder(dpr, draftFor(index).kind) ??
-      prefillWeightForSet(index - warmupCount, previousFor(index), targetWeight)
+      prefillWeightForSet(ordinal, previousFor(index), targetWeight)
     );
   }
   function suggestedRepsFor(index: number): string {
-    if (index < warmupCount) return String(ramp[index]?.reps ?? "");
+    if (kindAt(index) === "warmup") {
+      return String(ramp[ordinals[index] ?? 0]?.reps ?? previousFor(index)?.reps ?? "");
+    }
     const dprReps = dprRepsPlaceholder(dpr, draftFor(index).kind);
     if (dprReps !== null) return dprReps;
     const priorAtIndex = previousFor(index);
     return priorAtIndex?.reps != null
       ? String(priorAtIndex.reps)
       : (target?.targetRepsLow?.toString() ?? "");
-  }
-
-  function defaultDraft(index: number): DraftValues {
-    return {
-      weight: "",
-      reps: "",
-      rpe: "",
-      kind: index < warmupCount ? "warmup" : "working",
-    };
-  }
-
-  function draftFor(index: number): DraftValues {
-    return draftOverrides.get(index) ?? defaultDraft(index);
   }
 
   function updateDraft(index: number, patch: Partial<DraftValues>) {
@@ -359,7 +393,10 @@ export function SessionExerciseSection({
     ...sets.map((set) => set.kind),
     ...visiblePlannedIndices.map((index) => draftFor(index).kind),
   ]);
-  const nextLabel = setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ?? "1";
+  const nextLabel =
+    rowLabels[sets.length] ??
+    setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ??
+    "1";
   const suggestionReps =
     toNumberOrNull(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
   const barWeight = Number(settings.defaultBarWeight) || 0;
@@ -380,7 +417,8 @@ export function SessionExerciseSection({
   }, [standardLift, strengthProfile, suggestionReps, barWeight, plates]);
   // With history for the lift (last time's sets, or a set already logged
   // today) the tiers are noise, so they wait behind "Suggest weight".
-  const hasHistory = previousByIndex.size > 0 || sets.length > 0;
+  const hasHistory =
+    previousSets.working.length > 0 || previousSets.warmups.length > 0 || sets.length > 0;
 
   async function logRow(index: number) {
     const draft = draftFor(index);
@@ -463,8 +501,13 @@ export function SessionExerciseSection({
     });
   }
 
-  // Brings back the first planned row swiped away.
-  function restorePlannedRow() {
+  // "+ Add Set" brings back the first planned row swiped away, if any,
+  // else plans one more working set past the program's.
+  function addSet() {
+    if (skippedIndices.size === 0) {
+      setAddedSets((count) => count + 1);
+      return;
+    }
     setSkippedIndices((current) => {
       const next = new Set(current);
       next.delete(Math.min(...current));
@@ -610,6 +653,18 @@ export function SessionExerciseSection({
       className={sizes.repeatButton}
     >
       <RotateCcw className={sizes.rowIcon} strokeWidth={1.75} aria-hidden="true" />
+    </button>
+  );
+
+  // No row waits past the program's last set; another set is one tap away,
+  // labeled with the rest it starts once logged.
+  const addSetButton = (
+    <button
+      type="button"
+      onClick={addSet}
+      className="min-h-11 self-start text-sm font-medium text-accent"
+    >
+      + Add Set{restSeconds > 0 ? ` (${formatRest(restSeconds)})` : ""}
     </button>
   );
 
@@ -805,15 +860,7 @@ export function SessionExerciseSection({
           </table>
         </div>
       )}
-      {!large && skippedIndices.size > 0 && (
-        <button
-          type="button"
-          onClick={restorePlannedRow}
-          className="min-h-11 self-start text-sm font-medium text-accent"
-        >
-          + Add set
-        </button>
-      )}
+      {!large && addSetButton}
 
       {/* Focus view shows the set just logged (issue #257) above the one to
           log next, as list-view rows with the Log button beside the inputs. */}
@@ -824,11 +871,12 @@ export function SessionExerciseSection({
             {tableHead}
             <tbody>
               {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
-              {plannedRow(nextIndex, nextLabel, false)}
+              {visiblePlannedIndices.length > 0 && plannedRow(nextIndex, nextLabel, false)}
             </tbody>
           </table>
         </div>
       )}
+      {large && visiblePlannedIndices.length === 0 && addSetButton}
 
       {undoableDelete && (
         <output className="flex items-center justify-between gap-2 rounded-lg bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">

@@ -1,5 +1,5 @@
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
-import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
+import { loadPreviousSets } from "@/lib/sessions/previous-set-lookup";
 import { completeSet, deleteSet, editSet, restoreSet } from "@/lib/sessions/set-actions";
 import { startEmptySession, startSessionFromRoutine } from "@/lib/sessions/start-session";
 import { calculatePlateBreakdown, resolveCurrentRows, summarizeSession, uuidv7 } from "@jim/core";
@@ -243,6 +243,18 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
         sessionExerciseId: firstSessionExercise.id,
         exerciseId: BENCH_ID,
         setIndex: 0,
+        kind: "warmup",
+        weight: 95,
+        reps: 5,
+      },
+      testDb,
+    );
+    await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: firstSessionExercise.id,
+        exerciseId: BENCH_ID,
+        setIndex: 1,
         kind: "working",
         weight: 135,
         reps: 5,
@@ -264,8 +276,11 @@ describe("logging sets and detecting PRs (against Dexie)", () => {
     const secondSessionId = await startEmptySession(USER_ID, testDb);
     const secondSessionExercise = await makeSessionExercise(secondSessionId, BENCH_ID);
 
-    const previousByIndex = await loadPreviousSetsByIndex(BENCH_ID, secondSessionId, testDb);
-    expect(previousByIndex.get(0)).toMatchObject({ weight: 135, reps: 5 });
+    // A warm-up in front doesn't shift working set 1's "last time" back.
+    const previous = await loadPreviousSets(BENCH_ID, secondSessionId, testDb);
+    expect(previous.working).toHaveLength(1);
+    expect(previous.working[0]).toMatchObject({ weight: 135, reps: 5 });
+    expect(previous.warmups[0]).toMatchObject({ weight: 95, reps: 5 });
 
     // sanity: the second session_exercise is real and distinct from the first
     expect(secondSessionExercise.sessionId).toBe(secondSessionId);

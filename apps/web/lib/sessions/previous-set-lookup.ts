@@ -1,26 +1,30 @@
 import { type JimDatabase, db } from "@/lib/db/schema";
 import {
   type PreviousSet,
+  type PreviousSetsByKind,
   findPreviousSessionExerciseId,
-  mapPreviousSetsByIndex,
   resolveCurrentRows,
+  splitPreviousSets,
 } from "@jim/core";
+
+export const NO_PREVIOUS_SETS: PreviousSetsByKind = { warmups: [], working: [] };
 
 /**
  * "Previous-session values shown inline on each row as the number to beat"
  * (STORIES.md S6) — finds the most recent session (other than the one in
- * progress) that trained this exercise, and indexes its sets by position so
- * a row can show what happened at the same spot last time.
+ * progress) that trained this exercise, and splits its sets into warm-ups
+ * and working sets so a row can show what happened at the same spot last
+ * time.
  */
-export async function loadPreviousSetsByIndex(
+export async function loadPreviousSets(
   exerciseId: string,
   currentSessionId: string,
   database: JimDatabase = db,
-): Promise<Map<number, PreviousSet>> {
+): Promise<PreviousSetsByKind> {
   const sessionExercises = (
     await database.sessionExercises.where("exerciseId").equals(exerciseId).toArray()
   ).filter((se) => !se.deletedAt);
-  if (sessionExercises.length === 0) return new Map();
+  if (sessionExercises.length === 0) return NO_PREVIOUS_SETS;
 
   const sessionIds = [...new Set(sessionExercises.map((se) => se.sessionId))];
   const sessions = await database.sessions.bulkGet(sessionIds);
@@ -33,7 +37,7 @@ export async function loadPreviousSetsByIndex(
   });
 
   const previousSessionExerciseId = findPreviousSessionExerciseId(candidates, currentSessionId);
-  if (!previousSessionExerciseId) return new Map();
+  if (!previousSessionExerciseId) return NO_PREVIOUS_SETS;
 
   const rawSets = await database.sets
     .where("sessionExerciseId")
@@ -50,5 +54,5 @@ export async function loadPreviousSetsByIndex(
       completedAt: set.completedAt,
     }));
 
-  return mapPreviousSetsByIndex(previousSets);
+  return splitPreviousSets(previousSets);
 }
