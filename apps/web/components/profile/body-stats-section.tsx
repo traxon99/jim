@@ -1,9 +1,13 @@
 "use client";
 
+import { logBodyweight } from "@/lib/bodyweight";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { cmToFeetInches, feetInchesToCm } from "@/lib/settings/height";
+import { runSyncCycle } from "@/lib/sync/engine";
 import { useLiveQuery } from "dexie-react-hooks";
+import { ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 /**
@@ -40,7 +44,7 @@ function inchesField(heightCm: string | null | undefined): string {
  * future feature, not read by strength-standards today. Every field is
  * optional: leaving them blank just means no standard is shown.
  */
-export function BodyStatsSection() {
+export function BodyStatsSection({ userId }: { userId?: string }) {
   const cached = useLiveQuery(() => db.settings.get("me"), []);
   const settings = cached ?? DEFAULT_SETTINGS;
 
@@ -96,6 +100,7 @@ export function BodyStatsSection() {
 
     setStatus("saving");
     setError(null);
+    const previousBodyweight = settings.bodyweight == null ? null : Number(settings.bodyweight);
     const result = await patchSettings({
       sex: sexValue === "" ? null : sexValue,
       birthdate: birthdateValue === "" ? null : birthdateValue,
@@ -103,6 +108,18 @@ export function BodyStatsSection() {
       bodyweight: bodyweight.trim() === "" ? null : String(Number(bodyweight)),
     });
     if (result.ok) {
+      // A changed bodyweight is also today's weigh-in (issue #377), so the
+      // history on the Bodyweight page picks it up.
+      const nextBodyweight = bodyweight.trim() === "" ? null : Number(bodyweight);
+      if (userId && nextBodyweight != null && nextBodyweight !== previousBodyweight) {
+        await logBodyweight({
+          userId,
+          value: nextBodyweight,
+          unit: settings.units,
+          measuredAt: new Date(),
+        });
+        void runSyncCycle();
+      }
       setStatus("saved");
     } else {
       setStatus("error");
@@ -195,6 +212,13 @@ export function BodyStatsSection() {
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
       </label>
+      <Link
+        href="/profile/weight"
+        className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+      >
+        Bodyweight history
+        <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+      </Link>
 
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
 

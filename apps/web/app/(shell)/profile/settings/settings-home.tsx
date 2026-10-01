@@ -23,7 +23,7 @@ export function SettingsHome({ email, userId }: { email?: string; userId?: strin
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
         {/* Moved from Profile (issue #331); every section here saves as you go. */}
         <UsernameSection />
-        <BodyStatsSection />
+        <BodyStatsSection userId={userId} />
         <WorkoutSection />
         <Link
           href="/progression"

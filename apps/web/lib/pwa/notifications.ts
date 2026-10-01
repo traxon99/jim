@@ -18,7 +18,8 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * place the notification's content lives, and every production deploy
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
-export const LATEST_RELEASE_NOTE = "The workout preview card now sits in the middle of the screen.";
+export const LATEST_RELEASE_NOTE =
+  "Track your bodyweight over time on Profile → Bodyweight, and import your weight history from Strong.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
