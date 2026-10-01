@@ -156,7 +156,7 @@ export function PreWorkoutSheet({
                 type="button"
                 onClick={() => onStart(context ? intensity : null)}
                 disabled={starting}
-                className="min-h-11 flex-[2] rounded-lg bg-accent px-4 text-base font-medium text-accent-foreground disabled:opacity-50"
+                className="tinted-action min-h-11 flex-[2] rounded-lg bg-accent px-4 text-base font-medium text-accent-foreground disabled:opacity-50"
               >
                 Start workout
               </button>
