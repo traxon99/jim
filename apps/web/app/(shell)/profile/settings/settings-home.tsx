@@ -1,6 +1,7 @@
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
+import { CardStyleSection } from "@/components/profile/card-style-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { ConnectClaudeSection } from "@/components/profile/connect-claude-section";
 import { DataSection } from "@/components/profile/data-section";
@@ -34,6 +35,7 @@ export function SettingsHome({ email, userId }: { email?: string; userId?: strin
         <ColorSchemeSection />
         <AccentColorSection />
         <FontFamilySection />
+        <CardStyleSection />
         <PushNotificationsSection />
         <ConnectClaudeSection />
         <FeedbackSection />

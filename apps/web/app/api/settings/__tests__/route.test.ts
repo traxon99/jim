@@ -52,6 +52,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "system",
       accentColor: "zinc",
       fontFamily: "sans",
+      cardStyle: "plain",
       showPaceTracker: true,
       sex: null,
       birthdate: null,
@@ -88,6 +89,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
 
   it("rejects an invalid font family", async () => {
     const response = await patch({ fontFamily: "comic-sans" });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects an invalid card style", async () => {
+    const response = await patch({ cardStyle: "neon" });
     expect(response.status).toBe(400);
   });
 
@@ -156,6 +162,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "dark",
       accentColor: "blue",
       fontFamily: "serif",
+      cardStyle: "glass",
       showPaceTracker: false,
       sex: "female",
       birthdate: "1990-06-15",
@@ -169,6 +176,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(body.colorScheme).toBe("dark");
     expect(body.accentColor).toBe("blue");
     expect(body.fontFamily).toBe("serif");
+    expect(body.cardStyle).toBe("glass");
     expect(body.showPaceTracker).toBe(false);
     expect(body.sex).toBe("female");
     expect(body.birthdate).toBe("1990-06-15");
@@ -180,6 +188,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.colorScheme).toBe("dark");
     expect(again.accentColor).toBe("blue");
     expect(again.fontFamily).toBe("serif");
+    expect(again.cardStyle).toBe("glass");
     expect(again.showPaceTracker).toBe(false);
     expect(again.sex).toBe("female");
     expect(again.birthdate).toBe("1990-06-15");
