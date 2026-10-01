@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Warm-up sets no longer eat into your working sets or shift last time's numbers, and a finished exercise shows a + Add Set button instead of an extra row.";
+  "DPR now builds your working sets up to a top set, shrugs off RPEs that look off for the weight, and programs bigger jumps when you beat its suggestion with room to spare.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

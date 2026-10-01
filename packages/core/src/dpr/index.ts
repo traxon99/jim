@@ -7,3 +7,4 @@ export * from "./lift-status";
 export * from "./presets";
 export * from "./snapshot";
 export * from "./intensity";
+export * from "./ramp";
