@@ -9,6 +9,7 @@ import { buildSessionDetailExercises } from "@/lib/history/session-detail-entrie
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
+import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import { achievementsEarnedInSession, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
@@ -89,6 +90,8 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [session.name, session.startedAt, settings.units, summary, exerciseGroups],
   );
 
+  const exerciseRows = useMemo(() => buildSummaryExerciseRows(exerciseGroups), [exerciseGroups]);
+
   const achievementData = useAchievements();
   const earned = useMemo(
     () =>
@@ -132,6 +135,36 @@ export function SessionSummary({ session, sessionExercises }: Props) {
       </dl>
 
       <RestStatsLine sets={sets} className="-mt-2" />
+
+      {exerciseRows.length > 0 && (
+        <section aria-label="Exercises" className="flex w-full max-w-sm flex-col gap-2 text-left">
+          <h2 className="text-sm font-semibold">Exercises</h2>
+          <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-300 px-3 text-sm dark:divide-zinc-800 dark:border-zinc-700">
+            {exerciseRows.map((row) => (
+              <li key={row.sessionExerciseId} className="flex flex-col gap-1 py-2">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate font-medium">{row.exerciseName}</span>
+                  <span className="shrink-0 text-zinc-600 tabular-nums dark:text-zinc-400">
+                    {row.setCount} {row.setCount === 1 ? "set" : "sets"} · {row.bestSet}
+                  </span>
+                </div>
+                {row.prKinds.length > 0 && (
+                  <span className="flex flex-wrap gap-1">
+                    {row.prKinds.map((kind) => (
+                      <span
+                        key={kind}
+                        className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
+                      >
+                        PR · {PR_KIND_LABELS[kind] ?? kind}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {earned.length > 0 && (
         <section
