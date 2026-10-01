@@ -1,0 +1,30 @@
+# Redeploys the MCP server to Fly (app jim-mcp, see fly.toml) whenever a change
+# that goes into its image lands on main. Needs the FLY_API_TOKEN repo secret.
+name: Deploy MCP server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/mcp/**
+      - packages/**
+      - fly.toml
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits rather than racing the running one.
+concurrency:
+  group: deploy-mcp
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

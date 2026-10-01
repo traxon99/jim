@@ -59,8 +59,11 @@ Docker): `@jim/core` and `@jim/db` ship raw `.ts` with no build step, so there
 is no compiled output to run.
 
 The official server runs on Fly.io as the `jim-mcp` app
-(https://jim-mcp.fly.dev), configured by `fly.toml` at the repo root. Redeploy
-with `fly deploy` from the repo root; set runtime config with `fly secrets set`.
+(https://jim-mcp.fly.dev), configured by `fly.toml` at the repo root. Merges to `main` that
+touch the server's image redeploy it automatically
+(`.github/workflows/deploy-mcp.yml`, using the `FLY_API_TOKEN` repo secret);
+to redeploy by hand, run `fly deploy` from the repo root or trigger that
+workflow from the Actions tab. Set runtime config with `fly secrets set`.
 
 To bring up the official server:
 
