@@ -254,7 +254,7 @@ export async function updateBlockFocus(
   }
 }
 
-export const DPR_PROMPT_MIN_SESSIONS = 6;
+const DPR_PROMPT_MIN_SESSIONS = 6;
 
 /** The one-time "Try DPR" card: 6+ completed sessions, DPR off, not dismissed. */
 export function shouldShowDprPrompt(

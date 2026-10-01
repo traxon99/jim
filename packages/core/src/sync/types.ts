@@ -22,8 +22,6 @@ export type SyncTable = (typeof SYNC_TABLES)[number];
 
 // Sets are append-only and immutable (ADR-003); every other table is
 // last-write-wins, tie-broken on (updatedAt, deviceId).
-export const APPEND_ONLY_TABLES: ReadonlySet<SyncTable> = new Set(["sets"]);
-
 export interface SupersedableRow {
   id: string;
   supersedesId: string | null;

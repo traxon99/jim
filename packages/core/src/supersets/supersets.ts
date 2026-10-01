@@ -60,22 +60,6 @@ function changesFor(
 }
 
 /**
- * Links (or unlinks) the item at `index` with the one after it, renumbering
- * every superset so each run gets its own group. Returns only the items
- * whose `supersetGroup` actually changes.
- */
-export function setSupersetLink(
-  items: readonly SupersetItem[],
-  index: number,
-  linked: boolean,
-): SupersetChange[] {
-  if (index < 0 || index >= items.length - 1) return [];
-  const links = supersetLinks(items);
-  links[index] = linked;
-  return changesFor(items, groupsFromLinks(links, items.length));
-}
-
-/**
  * Takes the item at `index` out of its superset by unlinking it from both
  * neighbours. Returns only the items whose `supersetGroup` changes.
  */

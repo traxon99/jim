@@ -33,10 +33,3 @@ export const STANDARD_LIFT_BODYWEIGHT_MULTIPLIERS: Record<
     female: { beginner: 0.2, novice: 0.3, intermediate: 0.45, advanced: 0.65, elite: 0.85 },
   },
 };
-
-export const STANDARD_LIFT_LABELS: Record<StandardLift, string> = {
-  squat: "Squat",
-  benchPress: "Bench press",
-  deadlift: "Deadlift",
-  overheadPress: "Overhead press",
-};

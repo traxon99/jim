@@ -4,7 +4,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 
-export class WorkoutNotFoundError extends Error {
+class WorkoutNotFoundError extends Error {
   constructor(sessionId: string) {
     super(`No workout found with id ${sessionId}.`);
   }

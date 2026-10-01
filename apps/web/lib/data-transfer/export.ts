@@ -123,7 +123,7 @@ function live<T extends { deletedAt?: Date | null }>(rows: readonly T[]) {
   return rows.filter((row) => !row.deletedAt).map(withoutSyncFields);
 }
 
-export const JSON_EXPORT_VERSION = 1;
+const JSON_EXPORT_VERSION = 1;
 
 /**
  * Everything the user owns: workouts (with each exercise's name alongside

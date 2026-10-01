@@ -6,7 +6,7 @@ import type { CreateRoutineExerciseInput } from "./create-routine.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export class RoutineLookupError extends Error {}
+class RoutineLookupError extends Error {}
 
 export interface GetRoutineInput {
   /** A routine id, or its name (case-insensitive exact match). */

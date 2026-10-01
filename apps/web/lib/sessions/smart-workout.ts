@@ -19,7 +19,7 @@ export const SMART_WORKOUT_NAME = "Smart workout";
  * working sets per muscle, the user's exercise catalog, and how often
  * they've done each exercise. Reads only IndexedDB, so it works offline.
  */
-export async function planSmartWorkoutFromDb(
+async function planSmartWorkoutFromDb(
   userId: string,
   database: JimDatabase = db,
   now: Date = new Date(),

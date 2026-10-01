@@ -117,7 +117,7 @@ export function parseDurationSeconds(value: string): number | null {
   );
 }
 
-export function formatStrongDuration(seconds: number): string {
+function formatStrongDuration(seconds: number): string {
   const minutes = Math.round(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -352,7 +352,7 @@ export interface ExportWorkout {
   exercises: { name: string; notes: string | null; sets: ExportSet[] }[];
 }
 
-export const STRONG_CSV_HEADER = [
+const STRONG_CSV_HEADER = [
   "Date",
   "Workout Name",
   "Duration",
@@ -370,7 +370,7 @@ export const STRONG_CSV_HEADER = [
 const pad = (value: number) => String(value).padStart(2, "0");
 
 /** Local time, the way Strong writes it. */
-export function formatStrongDate(date: Date): string {
+function formatStrongDate(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
     date.getHours(),
   )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;

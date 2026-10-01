@@ -12,7 +12,7 @@ import {
  * sets than small ones; muscles left out here (neck, forearms, traps…) are
  * worked as secondaries and never picked as a focus.
  */
-export const SMART_WORKOUT_WEEKLY_SET_TARGETS: Readonly<Partial<Record<Muscle, number>>> = {
+const SMART_WORKOUT_WEEKLY_SET_TARGETS: Readonly<Partial<Record<Muscle, number>>> = {
   chest: 10,
   lats: 10,
   "middle back": 8,
@@ -27,12 +27,12 @@ export const SMART_WORKOUT_WEEKLY_SET_TARGETS: Readonly<Partial<Record<Muscle, n
 };
 
 /** How far back "recent volume" looks. */
-export const SMART_WORKOUT_LOOKBACK_DAYS = 7;
+const SMART_WORKOUT_LOOKBACK_DAYS = 7;
 /** A muscle hit as a primary this recently is still recovering, so it's picked last. */
-export const SMART_WORKOUT_RECOVERY_HOURS = 48;
-export const SMART_WORKOUT_DEFAULT_EXERCISE_COUNT = 5;
+const SMART_WORKOUT_RECOVERY_HOURS = 48;
+const SMART_WORKOUT_DEFAULT_EXERCISE_COUNT = 5;
 /** Sets each picked exercise is assumed to add, while choosing the rest. */
-export const SMART_WORKOUT_SETS_PER_EXERCISE = 3;
+const SMART_WORKOUT_SETS_PER_EXERCISE = 3;
 
 /**
  * Well-known lifts per muscle, used to break ties between exercises the

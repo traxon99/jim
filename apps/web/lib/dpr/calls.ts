@@ -186,13 +186,6 @@ export function dprWhyLine(decision: DprDecision, units: string): string {
   }
 }
 
-/** Compact chip text for the Workout tab, e.g. "Bench ↑ 190" or "OHP ? add RPE". */
-export function dprChipText(name: string, decision: DprDecision): string {
-  const { symbol } = dprBadge(decision.call);
-  if (decision.call === "insufficient" || decision.weight === null) return `${name} ? add RPE`;
-  return `${name} ${symbol} ${formatWeight(decision.weight)}`;
-}
-
 /**
  * The weight placeholder for a not-yet-logged row: DPR's weight for working
  * sets of a focused lift, else null (use the usual "last time" suggestion).
@@ -252,8 +245,6 @@ export function liftGoal(lift: DprBlockLiftRow): {
     goalE1rm: lift.goalE1rm === null ? null : Number(lift.goalE1rm),
   };
 }
-
-export const ON_TRACK_LABELS = STATUS_TEXT;
 
 /**
  * A routine's calls folded into one badge's text (issue #284), e.g.

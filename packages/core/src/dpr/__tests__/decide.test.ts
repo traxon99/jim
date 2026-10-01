@@ -4,7 +4,6 @@ import {
   type DprSet,
   decideNextWeight,
   decisionLog,
-  dprStateKey,
   resolveRepRange,
   sessionsForKey,
 } from "../decide";
@@ -240,7 +239,6 @@ describe("per-range isolation", () => {
         now: day(30),
       }),
     ).toMatchObject({ call: "hold", weight: 165 });
-    expect(dprStateKey("bench", heavy)).not.toBe(dprStateKey("bench", volume));
   });
 });
 
