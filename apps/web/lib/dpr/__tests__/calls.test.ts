@@ -190,6 +190,20 @@ describe("in-session DPR (issue #212)", () => {
     expect(dprWeightPlaceholder(info, "warmup")).toBeNull();
   });
 
+  it("ramps the working sets up to DPR's weight as the top set (issue #385)", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await context();
+    if (!ctx) throw new Error("expected a DPR context");
+
+    const info = dprCallFor(ctx, BENCH, target(BENCH, 0));
+    const weights = [0, 1, 2].map((ordinal) =>
+      dprWeightPlaceholder(info, "working", { ordinal, count: 3 }),
+    );
+    expect(weights).toEqual(["170", "180", "190"]);
+    // A set added past the plan stays at the top weight.
+    expect(dprWeightPlaceholder(info, "working", { ordinal: 3, count: 3 })).toBe("190");
+  });
+
   it("logs the DPR weight for a blank field, and the typed weight for an override", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();

@@ -16,6 +16,7 @@ import {
   type SessionIntensity,
   callForLift,
   liftProgress,
+  workingSetWeights,
 } from "@jim/core";
 import { currentBlock, liveBlockLifts } from "./block";
 import { type DprSnapshot, defaultRepRange } from "./data";
@@ -189,10 +190,18 @@ export function dprWhyLine(decision: DprDecision, units: string): string {
 /**
  * The weight placeholder for a not-yet-logged row: DPR's weight for working
  * sets of a focused lift, else null (use the usual "last time" suggestion).
+ * Given the row's place among `count` working sets, the sets ramp up to
+ * DPR's weight as the top set (issue #385); a set past the plan, or no
+ * place given, gets the top weight.
  */
-export function dprWeightPlaceholder(info: DprCallInfo | null, kind: string): string | null {
+export function dprWeightPlaceholder(
+  info: DprCallInfo | null,
+  kind: string,
+  set?: { ordinal: number; count: number },
+): string | null {
   if (!info || kind !== "working" || info.decision.weight === null) return null;
-  return formatWeight(info.decision.weight);
+  const ramp = set ? workingSetWeights(info.decision, set.count, info.increment) : [];
+  return formatWeight(ramp[set?.ordinal ?? -1] ?? info.decision.weight);
 }
 
 /** After any weight change, aim for the bottom of the range; else null ("last time" reps). */

@@ -331,9 +331,11 @@ export function SessionExerciseSection({
     );
   }
 
-  // The ramp aims at the first working set's suggested weight.
+  // The ramp aims at the first working set's suggested weight. For a DPR
+  // lift the working sets themselves build up to DPR's weight (issue #385),
+  // so that's the lightest of them.
   const firstWorkingWeight = toNumberOrNull(
-    dprWeightPlaceholder(dpr, "working") ??
+    dprWeightPlaceholder(dpr, "working", { ordinal: 0, count: workingTarget }) ??
       prefillWeightForSet(0, previousSets.working[0], targetWeight),
   );
   const ramp = warmupRamp(
@@ -351,7 +353,7 @@ export function SessionExerciseSection({
       return weight == null ? "" : String(weight);
     }
     return (
-      dprWeightPlaceholder(dpr, draftFor(index).kind) ??
+      dprWeightPlaceholder(dpr, draftFor(index).kind, { ordinal, count: workingTarget }) ??
       prefillWeightForSet(ordinal, previousFor(index), targetWeight)
     );
   }
