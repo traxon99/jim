@@ -28,6 +28,8 @@ function heading(next: NextWorkout): string {
   switch (next.reason) {
     case "sequence":
       return "Up next";
+    case "rest":
+      return `Rest day · Next: ${next.date ? dayLabel(next.date) : "Next"}`;
     case "scheduled-today":
       return "Today";
     case "next-scheduled": {
@@ -114,7 +116,9 @@ export function UpNextCard({ starting, onStart }: Props) {
         disabled={starting}
         className="min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
       >
-        {next.reason === "next-scheduled" ? "Start it now" : `Start ${routine.name}`}
+        {next.reason === "next-scheduled" || next.reason === "rest"
+          ? "Start it now"
+          : `Start ${routine.name}`}
       </button>
     </section>
   );

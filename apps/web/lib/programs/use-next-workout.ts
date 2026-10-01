@@ -28,10 +28,13 @@ export function useNextWorkout(programId?: string): ProgramSuggestion | null | u
     ]);
     // A routine deleted out from under the program just drops out of it, and
     // a warm-up is never a workout of its own — it's paired with a routine.
+    // Rest days (no routine) stay in.
     const liveRoutineIds = new Set(
       routines.filter((r) => !r.deletedAt && !isWarmupRoutine(r)).map((r) => r.id),
     );
-    const items = allItems.filter((item) => liveRoutineIds.has(item.routineId));
+    const items = allItems.filter(
+      (item) => item.routineId === null || liveRoutineIds.has(item.routineId),
+    );
 
     const next = suggestNextWorkout({ mode: program.mode, items, sessions, now: new Date() });
     const routine = next ? (routines.find((r) => r.id === next.routineId) ?? null) : null;

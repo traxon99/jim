@@ -120,7 +120,7 @@ describe("addProgramTemplate (against Dexie)", () => {
     const entries = (
       await testDb.programRoutines.where("programId").equals(programId).toArray()
     ).sort((a, b) => a.position - b.position);
-    const routines = await testDb.routines.bulkGet(entries.map((e) => e.routineId));
+    const routines = await testDb.routines.bulkGet(entries.map((e) => e.routineId ?? ""));
     expect(entries.map((e, i) => [e.weekday, routines[i]?.name])).toEqual(
       MADDYS_WORKOUT_SPLIT.days.map((d) => [d.weekday, d.routine.name]),
     );

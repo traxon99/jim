@@ -59,7 +59,10 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
   const items = useMemo(
     () =>
       (rawItems ?? [])
-        .filter((item) => !item.deletedAt && routinesById.has(item.routineId))
+        .filter(
+          (item) =>
+            !item.deletedAt && (item.routineId === null || routinesById.has(item.routineId)),
+        )
         .sort((a, b) => a.position - b.position),
     [rawItems, routinesById],
   );
@@ -85,8 +88,9 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
     }
   }
 
-  async function handleAddRoutine(routineId: string) {
-    if (!routineId) return;
+  /** `routineId` null adds a rest day (issue #366). */
+  async function handleAddRoutine(routineId: string | null) {
+    if (routineId === "") return;
     const deviceId = await getDeviceId();
     const entity: ProgramRoutineRow = {
       id: uuidv7(),
@@ -158,7 +162,15 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
 
   const weekly = program.mode === "weekly";
   const weekProgress = program.isActive ? programWeekProgress(program, new Date()) : null;
-  const nextItemId = suggestion?.next?.item.id;
+  // On a sequence rest day the suggestion names the workout after the rest;
+  // the rest day itself is what's up next in the list.
+  const next = suggestion?.next;
+  const nextIndex = next ? items.findIndex((item) => item.id === next.item.id) : -1;
+  const restBefore =
+    next?.reason === "rest" && nextIndex !== -1
+      ? items[(nextIndex - 1 + items.length) % items.length]
+      : undefined;
+  const nextItemId = restBefore?.routineId === null ? restBefore.id : next?.item.id;
   let step = 0;
 
   return (
@@ -196,8 +208,8 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         {weekly
-          ? "Pick a day for each routine. The Workout tab suggests today's, or the next one coming up."
-          : "Routines run in this order. The Workout tab suggests the one after your last completed, looping back to the start."}{" "}
+          ? "Pick a day for each routine. The Workout tab suggests today's, or the next one coming up. Pin rest days to keep them free."
+          : "Routines run in this order. The Workout tab suggests the one after your last completed, looping back to the start. A rest day takes one day off before carrying on."}{" "}
         Pair a warm-up with any routine to run it at the start of that workout.
       </p>
 
@@ -208,9 +220,9 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
         >
           <ul className="flex flex-col gap-2">
             {items.map((item) => {
-              const routine = routinesById.get(item.routineId);
-              if (!routine) return null;
-              const isWarmup = isWarmupRoutine(routine);
+              const routine = item.routineId ? routinesById.get(item.routineId) : null;
+              if (routine === undefined) return null;
+              const isWarmup = routine !== null && isWarmupRoutine(routine);
               if (!isWarmup) step += 1;
               return (
                 <ProgramRoutineRowItem
@@ -219,7 +231,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
                   routine={routine}
                   isWarmup={isWarmup}
                   warmupName={
-                    routine.warmupRoutineId
+                    routine?.warmupRoutineId
                       ? routinesById.get(routine.warmupRoutineId)?.name
                       : undefined
                   }
@@ -229,7 +241,9 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
                   weekdayOrder={weekdaysFrom(settings.weekStart)}
                   isNext={item.id === nextItemId}
                   onWeekdayChange={(weekday) => handleUpdateItem(item, { weekday })}
-                  onWarmupChange={(choice) => void handleWarmupChange(routine, choice)}
+                  onWarmupChange={(choice) => {
+                    if (routine) void handleWarmupChange(routine, choice);
+                  }}
                   onRemove={() => handleRemoveItem(item)}
                 />
               );
@@ -257,10 +271,13 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
           Add routine
           <select
             value=""
-            onChange={(event) => void handleAddRoutine(event.target.value)}
+            onChange={(event) =>
+              void handleAddRoutine(event.target.value === "rest" ? null : event.target.value)
+            }
             className="min-h-11 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
             <option value="">Choose a routine…</option>
+            <option value="rest">Rest day</option>
             {routines.map((routine) => (
               <option key={routine.id} value={routine.id}>
                 {routine.name}

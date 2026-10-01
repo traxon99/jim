@@ -20,7 +20,8 @@ import { startOfWeek } from "./week-grouping";
 
 export interface StreakProgram {
   mode: "sequence" | "weekly";
-  items: readonly { weekday: number | null; deletedAt: Date | null }[];
+  /** `routineId: null` is a rest day (issue #366), which plans no workout. */
+  items: readonly { routineId?: string | null; weekday: number | null; deletedAt: Date | null }[];
 }
 
 /**
@@ -32,7 +33,7 @@ export interface StreakProgram {
  */
 export function weeklyStreakTarget(program: StreakProgram | null): number {
   if (!program) return 1;
-  const items = program.items.filter((item) => !item.deletedAt);
+  const items = program.items.filter((item) => !item.deletedAt && item.routineId !== null);
   if (program.mode === "weekly") {
     const weekdays = new Set(items.flatMap((item) => (item.weekday == null ? [] : [item.weekday])));
     return Math.max(1, weekdays.size);

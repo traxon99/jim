@@ -1,0 +1,1 @@
+ALTER TABLE "program_routines" ALTER COLUMN "routine_id" DROP NOT NULL;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type ProgramItemLike, type SessionLike, suggestNextWorkout } from "../next-workout";
 
-function items(...routineIds: string[]): ProgramItemLike[] {
+/** `null` entries are rest days. */
+function items(...routineIds: (string | null)[]): ProgramItemLike[] {
   return routineIds.map((routineId, position) => ({
     routineId,
     position,
@@ -10,7 +11,7 @@ function items(...routineIds: string[]): ProgramItemLike[] {
   }));
 }
 
-function weekly(...entries: [string, number][]): ProgramItemLike[] {
+function weekly(...entries: [string | null, number][]): ProgramItemLike[] {
   return entries.map(([routineId, weekday], position) => ({
     routineId,
     position,
@@ -97,6 +98,84 @@ describe("suggestNextWorkout — sequence", () => {
   it("returns null for an empty program", () => {
     expect(suggestNextWorkout({ ...base, items: [], sessions: [] })).toBeNull();
   });
+
+  describe("rest days", () => {
+    const program = items("a", null, "b", "c");
+
+    it("starts on the first workout, skipping a leading rest day", () => {
+      const result = suggestNextWorkout({ ...base, items: items(null, "a"), sessions: [] });
+      expect(result?.routineId).toBe("a");
+      expect(result?.reason).toBe("sequence");
+    });
+
+    it("rests the day after the workout before it, naming what comes next", () => {
+      const result = suggestNextWorkout({
+        ...base,
+        items: program,
+        sessions: [done("a", "2026-09-21T18:00")],
+      });
+      expect(result).toMatchObject({
+        routineId: "b",
+        reason: "rest",
+        date: new Date(2026, 8, 23),
+        doneToday: false,
+      });
+    });
+
+    it("already shows the rest day on the evening of the workout", () => {
+      const result = suggestNextWorkout({
+        ...base,
+        items: program,
+        sessions: [done("a", "2026-09-22T07:00")],
+      });
+      expect(result?.reason).toBe("rest");
+      expect(result?.date).toEqual(new Date(2026, 8, 24));
+    });
+
+    it("continues the program once the rest day has passed", () => {
+      const result = suggestNextWorkout({
+        ...base,
+        items: program,
+        sessions: [done("a", "2026-09-20T10:00")],
+      });
+      expect(result).toMatchObject({ routineId: "b", reason: "sequence", date: null });
+    });
+
+    it("spends one day per rest day in a row", () => {
+      const twoRests = items("a", null, null, "b");
+      const sessions = [done("a", "2026-09-20T10:00")];
+      expect(suggestNextWorkout({ ...base, items: twoRests, sessions })).toMatchObject({
+        routineId: "b",
+        reason: "rest",
+        date: new Date(2026, 8, 23),
+      });
+    });
+
+    it("moves on if you train through the rest day", () => {
+      const sessions = [done("a", "2026-09-21T10:00"), done("b", "2026-09-22T08:00")];
+      const result = suggestNextWorkout({ ...base, items: program, sessions });
+      expect(result).toMatchObject({ routineId: "c", reason: "sequence" });
+    });
+
+    it("rests after the last routine before wrapping around", () => {
+      const result = suggestNextWorkout({
+        ...base,
+        items: items("a", "b", null),
+        sessions: [done("b", "2026-09-21T10:00")],
+      });
+      expect(result).toMatchObject({ routineId: "a", reason: "rest" });
+    });
+
+    it("tells repeated routines apart across a rest day", () => {
+      const abRestA = items("a", "b", null, "a", "c");
+      const sessions = [done("b", "2026-09-15T10:00"), done("a", "2026-09-17T10:00")];
+      expect(suggestNextWorkout({ ...base, items: abRestA, sessions })?.routineId).toBe("c");
+    });
+
+    it("returns null for a program of only rest days", () => {
+      expect(suggestNextWorkout({ ...base, items: items(null, null), sessions: [] })).toBeNull();
+    });
+  });
 });
 
 describe("suggestNextWorkout — weekly", () => {
@@ -148,6 +227,20 @@ describe("suggestNextWorkout — weekly", () => {
     });
     expect(result?.routineId).toBe("abs");
     expect(result?.reason).toBe("scheduled-today");
+  });
+
+  it("treats a pinned rest day like an unscheduled one", () => {
+    const result = suggestNextWorkout({
+      ...base,
+      items: weekly(["push", 1], [null, 2], ["legs", 4]),
+      sessions: [],
+    });
+    expect(result).toMatchObject({
+      routineId: "legs",
+      reason: "next-scheduled",
+      date: new Date(2026, 8, 24),
+      doneToday: false,
+    });
   });
 
   it("returns null when nothing has a weekday", () => {
