@@ -52,6 +52,10 @@ export const accentColorEnum = pgEnum("accent_color", [
 
 export const fontFamilyEnum = pgEnum("font_family", ["sans", "serif", "mono"]);
 
+// How the routine cards (Up next, the pre-workout sheet) are drawn: "plain" is the
+// original flat card, "glass" a frosted card over blurred routine-colored gradients.
+export const cardStyleEnum = pgEnum("card_style", ["plain", "glass"]);
+
 // Biological sex, used to select the correct strength-standards table (see
 // packages/core's strength-standards module) — not a broader identity field.
 export const sexEnum = pgEnum("sex", ["male", "female"]);
@@ -157,6 +161,8 @@ export const users = pgTable(
     accentColor: accentColorEnum("accent_color").notNull().default("zinc"),
     // The app's body typeface. "sans" keeps the original system sans-serif look.
     fontFamily: fontFamilyEnum("font_family").notNull().default("sans"),
+    // The routine cards' look (issue #374). "plain" keeps the original flat cards.
+    cardStyle: cardStyleEnum("card_style").notNull().default("plain"),
     // Whether the live pace tracker card shows during a workout.
     showPaceTracker: boolean("show_pace_tracker").notNull().default(true),
 

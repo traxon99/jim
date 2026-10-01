@@ -64,7 +64,12 @@ export function PreWorkoutSheet({
   const units = context?.settings.units;
 
   return (
-    <FloatingCard labelledBy="pre-workout-title" onClose={onCancel} placement="bottom">
+    <FloatingCard
+      labelledBy="pre-workout-title"
+      onClose={onCancel}
+      placement="bottom"
+      tint={routine?.iconColor}
+    >
       {(requestClose) => (
         <>
           <div className="flex touch-none flex-col gap-1 px-4 pt-4">

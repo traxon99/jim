@@ -75,6 +75,7 @@ export type SettingsRow = Pick<
   | "colorScheme"
   | "accentColor"
   | "fontFamily"
+  | "cardStyle"
   | "showPaceTracker"
   | "sex"
   | "birthdate"

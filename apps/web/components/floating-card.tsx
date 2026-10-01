@@ -1,5 +1,6 @@
 "use client";
 
+import type { RoutineIconColor } from "@jim/core";
 import { type AnimationEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 
 interface Props {
@@ -11,6 +12,11 @@ interface Props {
    * its main action is in thumb reach (the pre-workout sheet, issue #333).
    */
   placement?: "center" | "bottom";
+  /**
+   * A routine icon color to glow under the card when the frosted glass card
+   * style is on (globals.css `.tinted-card`, issue #374).
+   */
+  tint?: RoutineIconColor;
   /** Gets `close`, which plays the exit fade before calling onClose. */
   children: (close: () => void) => ReactNode;
 }
@@ -20,7 +26,7 @@ interface Props {
  * the pre-workout sheet and the DPR details card (issue #284). Tapping the
  * backdrop or pressing Escape closes it.
  */
-export function FloatingCard({ labelledBy, onClose, placement = "center", children }: Props) {
+export function FloatingCard({ labelledBy, onClose, placement = "center", tint, children }: Props) {
   // Closing plays the exit fade (globals.css .sheet-backdrop) before handing
   // control back; reduced motion skips straight to onClose, since no
   // animationend would ever fire.
@@ -88,7 +94,10 @@ export function FloatingCard({ labelledBy, onClose, placement = "center", childr
       />
       <section
         aria-labelledby={labelledBy}
-        className="sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+        data-tint={tint}
+        className={`sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 ${
+          tint ? "tinted-card" : ""
+        }`}
       >
         {children(requestClose)}
       </section>

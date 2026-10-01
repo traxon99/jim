@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   colorScheme: "system",
   accentColor: "zinc",
   fontFamily: "sans",
+  cardStyle: "plain",
   showPaceTracker: true,
   sex: null,
   birthdate: null,
