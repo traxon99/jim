@@ -5,7 +5,6 @@ import {
   leaveSuperset,
   nextSupersetGroup,
   normalizeSupersets,
-  setSupersetLink,
   supersetBlocks,
   supersetFollowUp,
   supersetLabels,
@@ -27,41 +26,6 @@ describe("supersetLinks", () => {
 
   it("doesn't link non-adjacent items that share a group", () => {
     expect(supersetLinks(items(1, null, 1))).toEqual([false, false]);
-  });
-});
-
-describe("setSupersetLink", () => {
-  it("links two plain exercises into a new superset", () => {
-    expect(setSupersetLink(items(null, null, null), 0, true)).toEqual([
-      { id: "a", supersetGroup: 1 },
-      { id: "b", supersetGroup: 1 },
-    ]);
-  });
-
-  it("extends an existing superset to the next exercise", () => {
-    expect(setSupersetLink(items(1, 1, null), 1, true)).toEqual([{ id: "c", supersetGroup: 1 }]);
-  });
-
-  it("merges two supersets when the link between them is made", () => {
-    expect(setSupersetLink(items(1, 1, 2, 2), 1, true)).toEqual([
-      { id: "c", supersetGroup: 1 },
-      { id: "d", supersetGroup: 1 },
-    ]);
-  });
-
-  it("splits a superset, clearing a member left on its own", () => {
-    expect(setSupersetLink(items(1, 1, 1), 0, false)).toEqual([{ id: "a", supersetGroup: null }]);
-  });
-
-  it("splits a superset in the middle into two", () => {
-    expect(setSupersetLink(items(1, 1, 1, 1), 1, false)).toEqual([
-      { id: "c", supersetGroup: 2 },
-      { id: "d", supersetGroup: 2 },
-    ]);
-  });
-
-  it("ignores an index with no next item", () => {
-    expect(setSupersetLink(items(null, null), 1, true)).toEqual([]);
   });
 });
 

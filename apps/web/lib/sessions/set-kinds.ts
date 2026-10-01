@@ -20,7 +20,7 @@ export function setKindLabel(kind: string): string {
 }
 
 /** What a warm-up set shows in place of a set number (issue #220). */
-export const WARMUP_SET_LABEL = "W";
+const WARMUP_SET_LABEL = "W";
 
 /**
  * The label each set shows in its Set column, in display order (issue #220):

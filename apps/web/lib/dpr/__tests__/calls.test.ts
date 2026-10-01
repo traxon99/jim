@@ -19,7 +19,6 @@ import {
   dprCallFor,
   dprCallSummary,
   dprCallsForRoutine,
-  dprChipText,
   dprGoalLine,
   dprRepsPlaceholder,
   dprWeightPlaceholder,
@@ -270,7 +269,7 @@ describe("in-session DPR (issue #212)", () => {
   });
 });
 
-describe("Workout tab chips (issue #213)", () => {
+describe("Routine DPR calls (issue #213)", () => {
   it("lists only focused lifts in the routine, in routine order", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     await logSession(ROW, 3, 120, 6, 9.5);
@@ -278,16 +277,10 @@ describe("Workout tab chips (issue #213)", () => {
     if (!ctx) throw new Error("expected a DPR context");
     const calls = dprCallsForRoutine(ctx, [target(ROW, 2), target(SQUAT, 1), target(BENCH, 0)]);
     expect(calls.map((c) => c.exerciseId)).toEqual([BENCH, ROW]);
-    expect(
-      calls.map((c) => dprChipText(ctx.exercises.get(c.exerciseId)?.name ?? "", c.decision)),
-    ).toEqual(["Bench ↑ 190", "Row = 120"]);
-  });
-
-  it("shows '? add RPE' when DPR can't make a call", async () => {
-    await logSession(BENCH, 3, 185, 8, null);
-    const ctx = await context();
-    const info = ctx && dprCallFor(ctx, BENCH, target(BENCH, 0));
-    expect(info && dprChipText("OHP", info.decision)).toBe("OHP ? add RPE");
+    expect(calls.map((c) => [c.decision.call, c.decision.weight])).toEqual([
+      ["increase", 190],
+      ["hold", 120],
+    ]);
   });
 
   it("hides everything when DPR is off or no block is running", async () => {

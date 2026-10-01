@@ -161,11 +161,11 @@ export interface Achievement {
   progress: { current: number; target: number } | null;
 }
 
-export const WORKOUT_MILESTONES = [1, 10, 25, 50, 100, 250, 500, 1000] as const;
-export const VOLUME_MILESTONES = [10_000, 100_000, 500_000, 1_000_000, 5_000_000] as const;
+const WORKOUT_MILESTONES = [1, 10, 25, 50, 100, 250, 500, 1000] as const;
+const VOLUME_MILESTONES = [10_000, 100_000, 500_000, 1_000_000, 5_000_000] as const;
 /** Plates per side on a standard bar: 20 kg / 45 lb bar and plates. */
-export const PLATE_MILESTONES = [1, 2, 3, 4] as const;
-export const BODYWEIGHT_MULTIPLES = [1, 1.5, 2] as const;
+const PLATE_MILESTONES = [1, 2, 3, 4] as const;
+const BODYWEIGHT_MULTIPLES = [1, 1.5, 2] as const;
 
 const PLATE_WEIGHT = { kg: 20, lb: 45 } as const;
 

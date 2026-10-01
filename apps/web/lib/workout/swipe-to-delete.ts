@@ -6,9 +6,9 @@
  */
 
 /** How far a finger moves before the drag counts as a swipe or a scroll. */
-export const SWIPE_SLOP_PX = 10;
+const SWIPE_SLOP_PX = 10;
 /** A release this far across the row (as a fraction of its width) deletes. */
-export const SWIPE_DELETE_FRACTION = 0.35;
+const SWIPE_DELETE_FRACTION = 0.35;
 /** …or this far, whichever is shorter, so wide rows don't need a long drag. */
 export const SWIPE_DELETE_MAX_PX = 140;
 

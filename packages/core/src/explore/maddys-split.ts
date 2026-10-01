@@ -155,7 +155,7 @@ const saturday: RoutineTemplate = {
   ],
 };
 
-export const MADDYS_ABS: RoutineTemplate = {
+const MADDYS_ABS: RoutineTemplate = {
   key: "maddy-abs",
   name: "Abs (pick 2)",
   notes: `${FOLDER} · Pick 2 of these to finish a session.`,

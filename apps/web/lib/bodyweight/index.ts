@@ -19,7 +19,7 @@ import {
  * readers convert to the user's current units.
  */
 
-export const BODYWEIGHT_KIND = "bodyweight";
+const BODYWEIGHT_KIND = "bodyweight";
 
 export interface BodyweightPoint {
   id: string;

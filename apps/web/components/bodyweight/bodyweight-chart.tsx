@@ -12,7 +12,7 @@ function formatWeight(value: number): string {
 }
 
 /** Each point's average over the trailing `TREND_DAYS` days of weigh-ins. */
-export function trailingAverage(points: readonly BodyweightPoint[]): number[] {
+function trailingAverage(points: readonly BodyweightPoint[]): number[] {
   return points.map((point, index) => {
     const from = point.measuredAt.getTime() - (TREND_DAYS - 1) * DAY_MS;
     let sum = 0;

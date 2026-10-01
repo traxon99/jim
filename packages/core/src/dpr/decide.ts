@@ -357,11 +357,6 @@ export function resolveRepRange(
   return { low: defaultRange.low, high: defaultRange.high };
 }
 
-/** DPR state is kept per (exercise, rep range) — this is that key. */
-export function dprStateKey(exerciseId: string, range: RepRange): string {
-  return `${exerciseId}:${range.low}-${range.high}`;
-}
-
 export interface DprHistoryEntry extends DprSession {
   exerciseId: string;
   repRange: RepRange;

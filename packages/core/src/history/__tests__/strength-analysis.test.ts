@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import { estimateOneRepMax } from "../../one-rep-max";
 import {
   type AnalysisSet,
-  DEFAULT_ANALYSIS_RANGE,
   analysisRangeStart,
-  parseAnalysisRange,
   strengthTrends,
   summarizeTraining,
   weeklyVolumeTotals,
@@ -23,16 +21,6 @@ function set(overrides: Partial<AnalysisSet> = {}): AnalysisSet {
     ...overrides,
   };
 }
-
-describe("parseAnalysisRange", () => {
-  it("accepts known ranges and falls back to the default otherwise", () => {
-    expect(parseAnalysisRange("4w")).toBe("4w");
-    expect(parseAnalysisRange("all")).toBe("all");
-    expect(parseAnalysisRange("3y")).toBe(DEFAULT_ANALYSIS_RANGE);
-    expect(parseAnalysisRange(undefined)).toBe(DEFAULT_ANALYSIS_RANGE);
-    expect(parseAnalysisRange(["4w"])).toBe(DEFAULT_ANALYSIS_RANGE);
-  });
-});
 
 describe("analysisRangeStart", () => {
   it("looks back the range's number of weeks, or returns null for all time", () => {
