@@ -2,6 +2,7 @@
 
 import type { RoutineIconColor } from "@jim/core";
 import { type AnimationEvent, type ReactNode, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   /** Id of the card's heading, for aria-labelledby. */
@@ -20,6 +21,10 @@ interface Props {
  * A card floating centered over the blurred page (issue #278): the shell of
  * the pre-workout sheet and the DPR details card (issue #284). Tapping the
  * backdrop or pressing Escape closes it.
+ *
+ * Portaled to <body> so it never depends on where it's rendered from: the DPR
+ * card opened from a routine row was trapped under the rows after it, which
+ * painted straight through the card (docs/PWA.md §4, issue #387).
  */
 export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
   // Closing plays the exit fade (globals.css .sheet-backdrop) before handing
@@ -62,7 +67,13 @@ export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
     };
   }, []);
 
-  return (
+  // Portals need the DOM, so the card appears once mounted (it's only ever
+  // opened by a tap or a client-side route, so there's no visible delay).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     // z-20: a full-screen overlay, above the tab bar and in-flow chrome
     // (docs/PWA.md §4). Only shown from the Workout tab, never alongside
     // FocusView or the exercise picker. The card floats centered, inset from
@@ -94,6 +105,7 @@ export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
       >
         {children(requestClose)}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

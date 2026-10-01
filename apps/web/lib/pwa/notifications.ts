@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "DPR now builds your working sets up to a top set, shrugs off RPEs that look off for the weight, and programs bigger jumps when you beat its suggestion with room to spare.";
+  "The DPR details card on the Workout tab no longer has your routine list showing through it.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

@@ -145,8 +145,18 @@ The current scale:
 | z | What |
 |---|---|
 | `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `RpeInfoMenu`, `ExerciseActionsMenu` |
-| `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together) |
+| `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together), `FloatingCard` (portaled to `<body>`) |
 | `z-50` | Boot `LoadingScreen` (above everything) |
+
+**A z-index only competes inside its stacking context, and `fixed` doesn't escape it.** The DPR
+details card (`FloatingCard`, `fixed inset-0 z-20`) was rendered from inside a routine row in the
+Workout tab's list, so the rows after it, their play buttons and DPR badges painted straight through
+the card and its blur on iPhone (#387). Every button carries `position: relative; overflow: hidden`
+for the tap ripple (§7), and the tabs live inside the shell's own scroller, so an overlay rendered
+deep in a list is at the mercy of whatever its ancestors and later siblings do. The rule: **any
+overlay that can be opened from inside a list row, card or other in-flow component renders through
+`createPortal(..., document.body)`**, like `FloatingCard` now does. Reuse `FloatingCard` rather than
+hand-rolling another `fixed inset-0` div; if you must, portal it.
 
 A new full-screen overlay goes at `z-20` or above. Add a comment next to the class saying what it
 has to beat and why, like `exercise-picker.tsx` does. Then open it over every screen it can
