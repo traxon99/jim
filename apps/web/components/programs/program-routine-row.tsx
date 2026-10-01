@@ -6,10 +6,12 @@ import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { WARMUP_TEMPLATES } from "@jim/core";
+import { Moon } from "lucide-react";
 
 interface Props {
   item: ProgramRoutineEntity;
-  routine: RoutineRow;
+  /** Null for a rest day (issue #366). */
+  routine: RoutineRow | null;
   /** A warm-up routine added as a step before pairing existed — skipped by suggestions. */
   isWarmup: boolean;
   /** Name of the warm-up paired with this routine, if it still exists. */
@@ -39,8 +41,8 @@ export function ProgramRoutineRow({
   onWarmupChange,
   onRemove,
 }: Props) {
-  const routineName = routine.name;
-  const pairedId = warmupName ? routine.warmupRoutineId : null;
+  const routineName = routine?.name ?? "Rest day";
+  const pairedId = warmupName ? routine?.warmupRoutineId : null;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
   });
@@ -71,7 +73,15 @@ export function ProgramRoutineRow({
           )}
           <span className="flex min-w-0 flex-col">
             <span className="flex min-w-0 items-center gap-2">
-              <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+              {routine ? (
+                <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+              ) : (
+                <Moon
+                  className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-500"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              )}
               <span className="truncate text-base font-medium">{routineName}</span>
             </span>
             {isNext && (
@@ -113,7 +123,7 @@ export function ProgramRoutineRow({
         </div>
       </div>
 
-      {!isWarmup && (
+      {routine && !isWarmup && (
         <label className="flex items-center gap-2 pl-10 text-sm text-zinc-600 dark:text-zinc-400">
           Warm-up
           <select

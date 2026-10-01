@@ -38,6 +38,13 @@ describe("weeklyStreakTarget", () => {
     expect(weeklyStreakTarget({ mode: "sequence", items: Array(9).fill(item) })).toBe(7);
     expect(weeklyStreakTarget({ mode: "sequence", items: [] })).toBe(1);
   });
+
+  it("doesn't count rest days as planned workouts", () => {
+    const workout = { routineId: "a", weekday: 1, deletedAt: null };
+    const rest = { routineId: null, weekday: 3, deletedAt: null };
+    expect(weeklyStreakTarget({ mode: "weekly", items: [workout, rest] })).toBe(1);
+    expect(weeklyStreakTarget({ mode: "sequence", items: [workout, rest, workout] })).toBe(2);
+  });
 });
 
 describe("trainingStreak", () => {

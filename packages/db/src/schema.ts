@@ -404,9 +404,9 @@ export const programRoutines = pgTable(
     programId: uuid("program_id")
       .notNull()
       .references(() => programs.id, { onDelete: "cascade" }),
-    routineId: uuid("routine_id")
-      .notNull()
-      .references(() => routines.id, { onDelete: "cascade" }),
+    // Null marks a rest day (issue #366): a step in a sequence, or a pinned
+    // weekday in a weekly schedule, with no routine to run.
+    routineId: uuid("routine_id").references(() => routines.id, { onDelete: "cascade" }),
     position: integer("position").notNull().default(0),
     // 0 = Sunday .. 6 = Saturday; only meaningful when the program's mode is "weekly".
     weekday: smallint("weekday"),
