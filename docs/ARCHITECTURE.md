@@ -186,6 +186,8 @@ under RLS, the same as an OAuth session.
 | `volume_report(group_by, from, to)` | Volume by muscle, exercise or week |
 | `search_exercises(query, muscles?, equipment?)` | Catalog search |
 | `dpr_status()` | Dynamic Progression: block, each focused lift's next call, e1RM vs goal, recent decisions |
+| `list_routines(folder?, query?)` | Every routine, logged or not, with exercise count and last performed |
+| `get_routine(routine)` | One routine's ordered exercises and targets, in the shape `update_routine` takes |
 
 **Write tools**
 

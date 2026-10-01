@@ -13,6 +13,8 @@ export interface CreateRoutineExerciseInput {
   targetRepsLow?: number;
   targetRepsHigh?: number;
   targetRestSeconds?: number;
+  targetDurationSeconds?: number;
+  targetWeight?: number;
   supersetGroup?: number;
   notes?: string;
 }
@@ -55,6 +57,8 @@ export async function createRoutine(context: UserContext, input: CreateRoutineIn
         targetRepsLow: item.targetRepsLow ?? null,
         targetRepsHigh: item.targetRepsHigh ?? null,
         targetRestSeconds: item.targetRestSeconds ?? null,
+        targetDurationSeconds: item.targetDurationSeconds ?? null,
+        targetWeight: item.targetWeight == null ? null : String(item.targetWeight),
         notes: item.notes ?? null,
         updatedAt: now,
         deviceId: MCP_DEVICE_ID,

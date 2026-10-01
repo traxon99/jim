@@ -5,7 +5,9 @@ import { createRoutine } from "./tools/create-routine.js";
 import { dprStatus } from "./tools/dpr-status.js";
 import { exerciseHistory } from "./tools/exercise-history.js";
 import { getPrs } from "./tools/get-prs.js";
+import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
+import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
 import { mergeExercises } from "./tools/merge-exercises.js";
@@ -42,6 +44,12 @@ const routineExerciseSchema = z.object({
   targetRepsLow: z.number().int().positive().optional(),
   targetRepsHigh: z.number().int().positive().optional(),
   targetRestSeconds: z.number().int().nonnegative().optional(),
+  targetDurationSeconds: z.number().int().positive().optional(),
+  targetWeight: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe("Starting weight, in the user's units"),
   supersetGroup: z.number().int().optional(),
   notes: z.string().optional(),
 });
@@ -126,6 +134,45 @@ export function createMcpServer(context: UserContext): McpServer {
     async (input) => {
       try {
         return json(await getPrs(context, input));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "list_routines",
+    {
+      title: "List routines",
+      description:
+        "Read-only. Every routine (program) you have, including ones never logged: id, name, folder, notes, kind (strength or warmup), exercise count, and when it was last performed. Use the id with get_routine, update_routine or schedule_workout.",
+      inputSchema: {
+        folder: z.string().optional().describe("Only routines in this folder (case-insensitive)"),
+        query: z.string().optional().describe("Only routines whose name contains this text"),
+      },
+    },
+    async (input) => {
+      try {
+        return json(await listRoutines(context, input));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_routine",
+    {
+      title: "Get routine",
+      description:
+        "Read-only. One routine's template: its exercises in order with target sets, reps, rest, duration, weight, superset group and notes. The exercises list is in the shape update_routine accepts, so it can be edited and passed straight back.",
+      inputSchema: {
+        routine: z.string().describe("Routine id, or its exact name (case-insensitive)"),
+      },
+    },
+    async (input) => {
+      try {
+        return json(await getRoutine(context, input));
       } catch (error) {
         return toolError(error);
       }

@@ -74,6 +74,8 @@ export async function updateRoutine(context: UserContext, input: UpdateRoutineIn
           targetRepsLow: item.targetRepsLow ?? null,
           targetRepsHigh: item.targetRepsHigh ?? null,
           targetRestSeconds: item.targetRestSeconds ?? null,
+          targetDurationSeconds: item.targetDurationSeconds ?? null,
+          targetWeight: item.targetWeight == null ? null : String(item.targetWeight),
           notes: item.notes ?? null,
           updatedAt: now,
           deviceId: MCP_DEVICE_ID,
