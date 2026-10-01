@@ -169,7 +169,7 @@ export function UpNextCard({ starting, onStart }: Props) {
         type="button"
         onClick={() => onStart(routine.id, routine.name)}
         disabled={starting}
-        className="min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
+        className="tinted-action min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
       >
         {next.reason === "next-scheduled" && next.doneToday
           ? "Start it now"

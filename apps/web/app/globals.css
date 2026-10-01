@@ -221,18 +221,36 @@ body {
     inset 0 1px 0 rgb(255 255 255 / 0.6);
 }
 
-/* The color under the glass: oversized so the blur never fades out at the card's edge. */
+/* The color under the glass. Soft-edged gradients rather than a CSS blur filter: iOS
+   Safari doesn't clip a filtered layer to its parent's rounded corners, so a blurred,
+   oversized layer showed square colored corners outside the card. `border-radius:
+   inherit` keeps every layer inside the card's own shape. */
 :root[data-cards="glass"] .tinted-card::before {
   content: "";
   position: absolute;
-  inset: -25%;
+  inset: 0;
   z-index: -2;
+  border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(38% 48% at 22% 26%, var(--tint-1, var(--accent)), transparent 70%),
-    radial-gradient(34% 44% at 82% 30%, var(--tint-2, var(--accent)), transparent 70%),
-    radial-gradient(44% 40% at 62% 84%, var(--tint-3, var(--accent)), transparent 70%);
-  filter: blur(26px) saturate(120%);
-  opacity: 0.7;
+  background: radial-gradient(
+      65% 90% at 6% 8%,
+      var(--tint-1, var(--accent)),
+      color-mix(in srgb, var(--tint-1, var(--accent)) 45%, transparent) 35%,
+      transparent 75%
+    ),
+    radial-gradient(
+      55% 85% at 96% 18%,
+      var(--tint-2, var(--accent)),
+      color-mix(in srgb, var(--tint-2, var(--accent)) 40%, transparent) 35%,
+      transparent 75%
+    ),
+    radial-gradient(
+      70% 70% at 60% 108%,
+      var(--tint-3, var(--accent)),
+      color-mix(in srgb, var(--tint-3, var(--accent)) 40%, transparent) 35%,
+      transparent 78%
+    );
+  opacity: 0.6;
 }
 
 /* The frost: a light wash, a touch heavier at the bottom where the buttons sit. */
@@ -241,6 +259,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: -1;
+  border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(160deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0.56));
 }
@@ -251,11 +270,19 @@ body {
 }
 
 :root.dark[data-cards="glass"] .tinted-card::before {
-  opacity: 0.68;
+  opacity: 0.6;
 }
 
 :root.dark[data-cards="glass"] .tinted-card::after {
   background: linear-gradient(160deg, rgb(10 10 10 / 0.3), rgb(10 10 10 / 0.55));
+}
+
+/* A card's main action (Start) under the frosted glass style: a stroke in the routine's
+   color over a faint wash of it, instead of a solid accent block that ignores the tint. */
+:root[data-cards="glass"] .tinted-card .tinted-action {
+  border: 1.5px solid var(--tint-1, var(--accent));
+  background: color-mix(in srgb, var(--tint-1, var(--accent)) 14%, transparent);
+  color: var(--foreground);
 }
 
 /* Global iOS hygiene (docs/ARCHITECTURE.md §6) */
