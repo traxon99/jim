@@ -42,6 +42,7 @@ import {
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   clampRpe,
+  isVisiblePrKind,
   nearestLoadableWeight,
   plannedSetRowCount,
   prefillWeightForSet,
@@ -436,7 +437,9 @@ export function SessionExerciseSection({
       reps,
       rpe: toRpeOrNull(draft.rpe),
     });
-    if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
+      setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    }
     setDraftOverrides((current) => {
       if (!current.has(index)) return current;
       const next = new Map(current);
@@ -458,7 +461,9 @@ export function SessionExerciseSection({
       reps: lastSet.reps,
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
     });
-    if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
+      setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    }
     onSetLogged(restSeconds, remainingAfterLogging(nextIndex));
   }
 

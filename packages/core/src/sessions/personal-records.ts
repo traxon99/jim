@@ -3,6 +3,16 @@ import { estimateOneRepMax } from "../one-rep-max";
 /** Mirrors `pr_kind` in packages/db's schema. */
 export type PrKind = "1rm" | "weight" | "volume" | "reps_at_weight";
 
+/**
+ * Whether a PR kind is shown as a PR outside the PR page: the 🎉 on a set
+ * mid-workout, PR chips and PR counts on summaries and history. Only the
+ * estimated 1RM is (issue #389). The other kinds are still detected and
+ * recorded, and the PR page lists them all.
+ */
+export function isVisiblePrKind(kind: PrKind): boolean {
+  return kind === "1rm";
+}
+
 export interface PrCandidate {
   kind: PrKind;
   value: number;

@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "The DPR details card on the Workout tab no longer has your routine list showing through it.";
+  "Workouts now only celebrate a new estimated 1RM as a PR, while weight, volume and rep bests stay on the PR page.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

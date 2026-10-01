@@ -3,7 +3,7 @@ import type { PrKind } from "@jim/core";
 
 /** Short chip labels for each PR kind, shared with session detail. */
 export const PR_KIND_LABELS: Record<PrKind, string> = {
-  "1rm": "1RM",
+  "1rm": "e1RM",
   weight: "Weight",
   volume: "Volume",
   reps_at_weight: "Reps",

@@ -175,8 +175,13 @@ describe("history read pipeline (against Dexie)", () => {
       id: sessionId,
       totalVolume: 135 * 5,
       setCount: 1,
-      prCount: 3, // first-ever set: 1rm, weight, volume (no reps PRs for a loaded lift)
+      // First-ever set records 1rm, weight and volume PRs, but only e1RM shows
+      // outside the PR page (issue #389).
+      prCount: 1,
     });
+    expect((await testDb.personalRecords.toArray()).map((pr) => pr.kind).sort()).toEqual(
+      ["1rm", "volume", "weight"].sort(),
+    );
   });
 
   it("excludes an in-progress (not yet finalized) session from the list", async () => {
@@ -218,7 +223,7 @@ describe("history read pipeline (against Dexie)", () => {
     expect(sets.every((set) => !set.deletedAt)).toBe(true);
   });
 
-  it("tags a completed set with the PR kinds it achieved in the session detail view", async () => {
+  it("tags a completed set with only its e1RM PR in the session detail view", async () => {
     await testDb.exercises.put(bench());
     const sessionId = await loggedAndFinishedSession(135, 5);
 
@@ -233,7 +238,8 @@ describe("history read pipeline (against Dexie)", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0]?.exerciseName).toBe("Barbell Bench Press");
     expect(groups[0]?.sets).toHaveLength(1);
-    expect(groups[0]?.sets[0]?.prKinds.sort()).toEqual(["1rm", "volume", "weight"].sort());
+    // Weight and volume PRs are recorded too, but only e1RM shows (issue #389).
+    expect(groups[0]?.sets[0]?.prKinds).toEqual(["1rm"]);
   });
 
   it("attributes weekly volume to the exercise's primary and secondary muscles", async () => {

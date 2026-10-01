@@ -10,7 +10,12 @@ import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
-import { achievementsEarnedInSession, resolveCurrentRows, summarizeSession } from "@jim/core";
+import {
+  achievementsEarnedInSession,
+  isVisiblePrKind,
+  resolveCurrentRows,
+  summarizeSession,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -47,8 +52,9 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   const setIds = useMemo(() => new Set(sets.map((set) => set.id)), [sets]);
   const prCount = useMemo(
     () =>
-      (rawPersonalRecords ?? []).filter((pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId))
-        .length,
+      (rawPersonalRecords ?? []).filter(
+        (pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId) && isVisiblePrKind(pr.kind),
+      ).length,
     [rawPersonalRecords, setIds],
   );
 
