@@ -11,18 +11,12 @@ import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setKindLabel, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
+import { PR_KIND_LABELS } from "@/lib/workout/summary-exercises";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-
-const PR_LABELS: Record<string, string> = {
-  "1rm": "1RM",
-  weight: "Weight",
-  volume: "Volume",
-  reps_at_weight: "Reps",
-};
 
 export function SessionDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -254,7 +248,7 @@ export function SessionDetail({ id }: { id: string }) {
                             key={kind}
                             className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
                           >
-                            PR · {PR_LABELS[kind] ?? kind}
+                            PR · {PR_KIND_LABELS[kind] ?? kind}
                           </span>
                         ))}
                       </span>
