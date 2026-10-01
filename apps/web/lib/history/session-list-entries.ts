@@ -8,6 +8,7 @@ import type {
 import {
   type SessionListEntry,
   deriveUntitledSessionName,
+  isVisiblePrKind,
   resolveCurrentRows,
   summarizeSession,
 } from "@jim/core";
@@ -58,9 +59,10 @@ export function buildSessionListEntries(
 
   // A count of achieved PR *rows*, not distinct sets — one set can beat
   // several PR kinds at once (see set-actions.ts's detectAndRecordPrs),
-  // and each counts. Mirrors SessionSummary's prCount (S6).
+  // and each counts. Mirrors SessionSummary's prCount (S6). Only kinds shown
+  // outside the PR page count (e1RM, issue #389).
   const livePersonalRecordSetIds = personalRecords
-    .filter((pr) => !pr.deletedAt && pr.setId)
+    .filter((pr) => !pr.deletedAt && pr.setId && isVisiblePrKind(pr.kind))
     .map((pr) => pr.setId as string);
 
   return sessions
