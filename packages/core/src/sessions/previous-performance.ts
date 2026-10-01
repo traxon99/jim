@@ -6,21 +6,32 @@ export interface PreviousSet {
   completedAt: Date;
 }
 
+export interface PreviousSetsByKind {
+  /** Last time's warm-up sets, in the order they were logged. */
+  warmups: PreviousSet[];
+  /** Last time's working (and failure) sets, in order — warm-ups excluded. */
+  working: PreviousSet[];
+}
+
 /**
  * "Previous-session values shown inline on each row as the number to beat"
- * (STORIES.md S6) — indexes one prior session's sets by their position in
- * the exercise so a row being logged now can look up what happened at the
- * same position last time. The caller is responsible for picking which
- * session counts as "previous" (most recent session, before the current
- * one, that included this exercise) and for resolving supersede chains and
- * tombstones first.
+ * (STORIES.md S6) — splits one prior session's sets into its warm-ups and
+ * the rest, each in set order, so a row being logged now can look up what
+ * happened at the same position last time: working set 1 against last
+ * time's working set 1, however many warm-ups either workout had in front.
+ * Matching by raw position instead made a workout with warm-ups shift every
+ * later "last time" back by as many sets, and a later workout plan the
+ * warm-ups as extra working sets. The caller is responsible for picking
+ * which session counts as "previous" (most recent session, before the
+ * current one, that included this exercise) and for resolving supersede
+ * chains and tombstones first.
  */
-export function mapPreviousSetsByIndex(sets: readonly PreviousSet[]): Map<number, PreviousSet> {
-  const byIndex = new Map<number, PreviousSet>();
-  for (const set of sets) {
-    byIndex.set(set.setIndex, set);
-  }
-  return byIndex;
+export function splitPreviousSets(sets: readonly PreviousSet[]): PreviousSetsByKind {
+  const ordered = [...sets].sort((a, b) => a.setIndex - b.setIndex);
+  return {
+    warmups: ordered.filter((set) => set.kind === "warmup"),
+    working: ordered.filter((set) => set.kind !== "warmup"),
+  };
 }
 
 /**
@@ -44,27 +55,39 @@ export function prefillWeightForSet(
 }
 
 /**
- * Which not-yet-logged set rows an exercise should show right now: enough to
- * cover the routine's target and last time's set count (issue #121: preload
- * every set instead of drafting one at a time), plus one more once every
- * planned row has been logged, so there's always somewhere to log an extra
- * set. Never hides a row for a set skipped and logged out of order.
+ * How many set rows an exercise plans, logged or not (issue #121: preload
+ * every set instead of drafting one at a time). Warm-ups ride on top of the
+ * working sets rather than eating into them: rows are added until
+ * `workingSetCount` of them aren't warm-ups (at least one), and never fewer
+ * than `minRows` — enough to cover the warm-ups planned in front and every
+ * set already logged. `kindAt` is the kind of the row at an index: its
+ * logged set's, else the kind picked for the row still to log. Once the plan
+ * is logged there's no extra row; another set is the lifter's call.
  */
-export function plannedSetIndices(
-  targetSetCount: number | null,
-  previousSetCount: number,
-  loggedIndices: ReadonlySet<number>,
-): number[] {
-  let total = Math.max(targetSetCount ?? 0, previousSetCount, 1);
-
-  while (true) {
-    const indices: number[] = [];
-    for (let index = 0; index < total; index++) {
-      if (!loggedIndices.has(index)) indices.push(index);
-    }
-    if (indices.length > 0 || loggedIndices.size === 0) return indices;
-    total += 1;
+export function plannedSetRowCount(
+  workingSetCount: number,
+  minRows: number,
+  kindAt: (index: number) => string,
+): number {
+  const target = Math.max(workingSetCount, 1);
+  let rows = 0;
+  let working = 0;
+  while (rows < minRows || working < target) {
+    if (kindAt(rows) !== "warmup") working += 1;
+    rows += 1;
   }
+  return rows;
+}
+
+/**
+ * Each row's position among the rows of its own kind, in order: warm-ups
+ * count 0, 1, 2… on their own, and so do the working sets — so a row can be
+ * matched to last time's set of the same kind at the same position.
+ */
+export function setKindOrdinals(kinds: readonly string[]): number[] {
+  let warmups = 0;
+  let working = 0;
+  return kinds.map((kind) => (kind === "warmup" ? warmups++ : working++));
 }
 
 /**

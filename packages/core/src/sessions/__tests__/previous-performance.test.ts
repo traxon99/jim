@@ -1,24 +1,35 @@
 import { describe, expect, it } from "vitest";
 import {
   findPreviousSessionExerciseId,
-  mapPreviousSetsByIndex,
-  plannedSetIndices,
+  plannedSetRowCount,
   prefillWeightForSet,
+  setKindOrdinals,
+  splitPreviousSets,
 } from "../previous-performance";
 
-describe("mapPreviousSetsByIndex", () => {
-  it("indexes sets by their position in the exercise", () => {
-    const set0 = { setIndex: 0, kind: "working", weight: 135, reps: 5, completedAt: new Date() };
-    const set1 = { setIndex: 1, kind: "working", weight: 145, reps: 5, completedAt: new Date() };
-    const byIndex = mapPreviousSetsByIndex([set0, set1]);
+function prior(setIndex: number, kind: string, weight: number) {
+  return { setIndex, kind, weight, reps: 5, completedAt: new Date() };
+}
 
-    expect(byIndex.get(0)).toBe(set0);
-    expect(byIndex.get(1)).toBe(set1);
-    expect(byIndex.get(2)).toBeUndefined();
+describe("splitPreviousSets", () => {
+  it("keeps working sets in set order", () => {
+    const set0 = prior(0, "working", 135);
+    const set1 = prior(1, "working", 145);
+    expect(splitPreviousSets([set1, set0])).toEqual({ warmups: [], working: [set0, set1] });
+  });
+
+  it("separates warm-ups so working set 1 is the first set after them", () => {
+    const w0 = prior(0, "warmup", 45);
+    const w1 = prior(1, "warmup", 95);
+    const s2 = prior(2, "working", 135);
+    const s3 = prior(3, "failure", 135);
+    const { warmups, working } = splitPreviousSets([s2, w0, s3, w1]);
+    expect(warmups).toEqual([w0, w1]);
+    expect(working).toEqual([s2, s3]);
   });
 
   it("is empty for no prior sets", () => {
-    expect(mapPreviousSetsByIndex([]).size).toBe(0);
+    expect(splitPreviousSets([])).toEqual({ warmups: [], working: [] });
   });
 });
 
@@ -77,33 +88,40 @@ describe("prefillWeightForSet", () => {
   });
 });
 
-describe("plannedSetIndices", () => {
-  it("plans one row per target set when there's no history yet", () => {
-    expect(plannedSetIndices(3, 0, new Set())).toEqual([0, 1, 2]);
+describe("plannedSetRowCount", () => {
+  const allWorking = () => "working";
+
+  it("plans one row per working set", () => {
+    expect(plannedSetRowCount(3, 0, allWorking)).toBe(3);
   });
 
-  it("plans one row per set logged last time when there's no target", () => {
-    expect(plannedSetIndices(null, 4, new Set())).toEqual([0, 1, 2, 3]);
+  it("plans at least one row", () => {
+    expect(plannedSetRowCount(0, 0, allWorking)).toBe(1);
   });
 
-  it("takes whichever of target and history calls for more rows", () => {
-    expect(plannedSetIndices(2, 5, new Set())).toEqual([0, 1, 2, 3, 4]);
-    expect(plannedSetIndices(5, 2, new Set())).toEqual([0, 1, 2, 3, 4]);
+  it("adds warm-ups on top of the working sets", () => {
+    const kindAt = (index: number) => (index < 3 ? "warmup" : "working");
+    expect(plannedSetRowCount(3, 3, kindAt)).toBe(6);
   });
 
-  it("omits rows that are already logged", () => {
-    expect(plannedSetIndices(3, 0, new Set([0]))).toEqual([1, 2]);
+  it("keeps the working sets when a row is switched to a warm-up", () => {
+    const kindAt = (index: number) => (index === 1 ? "warmup" : "working");
+    expect(plannedSetRowCount(3, 0, kindAt)).toBe(4);
   });
 
-  it("still offers one more row past the plan once every planned set is logged", () => {
-    expect(plannedSetIndices(2, 0, new Set([0, 1]))).toEqual([2]);
+  it("covers every row already logged, even past the plan", () => {
+    expect(plannedSetRowCount(3, 5, allWorking)).toBe(5);
   });
 
-  it("keeps a gap open rather than hiding it when a later set was logged out of order", () => {
-    expect(plannedSetIndices(3, 0, new Set([2]))).toEqual([0, 1]);
+  it("adds no extra row once the plan is logged", () => {
+    expect(plannedSetRowCount(2, 2, allWorking)).toBe(2);
   });
+});
 
-  it("plans exactly one row with neither a target, history, nor any logged sets", () => {
-    expect(plannedSetIndices(null, 0, new Set())).toEqual([0]);
+describe("setKindOrdinals", () => {
+  it("counts warm-ups and working sets separately", () => {
+    expect(setKindOrdinals(["warmup", "warmup", "working", "failure", "warmup"])).toEqual([
+      0, 1, 0, 1, 2,
+    ]);
   });
 });
