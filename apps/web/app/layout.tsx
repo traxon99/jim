@@ -38,10 +38,18 @@ export const metadata: Metadata = {
     capable: true,
     title: "Jim",
     statusBarStyle: "black-translucent",
-    startupImage: SPLASH_DEVICES.map((device) => ({
-      url: `/splash/${device.id}`,
-      media: splashMediaQuery(device),
-    })),
+    // Light and dark launch images, so a cold open starts on the system
+    // theme's background, the same one the boot splash draws on.
+    startupImage: SPLASH_DEVICES.flatMap((device) => [
+      {
+        url: `/splash/${device.id}`,
+        media: `${splashMediaQuery(device)} and (prefers-color-scheme: light)`,
+      },
+      {
+        url: `/splash/${device.id}/dark`,
+        media: `${splashMediaQuery(device)} and (prefers-color-scheme: dark)`,
+      },
+    ]),
   },
 };
 
