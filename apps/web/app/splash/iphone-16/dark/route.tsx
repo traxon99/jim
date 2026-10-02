@@ -2,5 +2,5 @@ import { SPLASH_DEVICES } from "@/lib/pwa/splash-devices";
 import { splashImage } from "@/lib/pwa/splash-mark";
 
 export async function GET() {
-  return splashImage(SPLASH_DEVICES[1], "light");
+  return splashImage(SPLASH_DEVICES[0], "dark");
 }

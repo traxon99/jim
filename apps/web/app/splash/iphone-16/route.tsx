@@ -1,9 +1,6 @@
-import { splashMark } from "@/lib/pwa/splash-mark";
-import { ImageResponse } from "next/og";
-
-const width = 393 * 3;
-const height = 852 * 3;
+import { SPLASH_DEVICES } from "@/lib/pwa/splash-devices";
+import { splashImage } from "@/lib/pwa/splash-mark";
 
 export async function GET() {
-  return new ImageResponse(splashMark({ width, height }), { width, height });
+  return splashImage(SPLASH_DEVICES[0], "light");
 }
