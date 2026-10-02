@@ -258,6 +258,40 @@ describe("history read pipeline (against Dexie)", () => {
     expect(week?.volumeByMuscle.triceps).toBe((135 * 5) / 2);
   });
 
+  it("counts only working sets toward weekly muscle sets and volume (issue #395)", async () => {
+    await testDb.exercises.put(bench());
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId);
+    const log = (setIndex: number, kind: "warmup" | "working", weight: number) =>
+      completeSet(
+        {
+          userId: USER_ID,
+          sessionExerciseId: sessionExercise.id,
+          exerciseId: BENCH_ID,
+          setIndex,
+          kind,
+          weight,
+          reps: 5,
+        },
+        testDb,
+      );
+    await log(0, "warmup", 45);
+    await log(1, "warmup", 95);
+    await log(2, "working", 135);
+
+    const volumeSets = buildMuscleVolumeSets(
+      await testDb.sessions.toArray(),
+      await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
+      await testDb.sets.toArray(),
+    );
+    const [week] = weeklyVolumeByMuscle(volumeSets, 0);
+
+    expect(week?.setsByMuscle.chest).toBe(1);
+    expect(week?.setsByMuscle.triceps).toBe(0.5);
+    expect(week?.volumeByMuscle.chest).toBe(135 * 5);
+  });
+
   it("resolves the current PR per exercise and kind from raw personal_records rows", async () => {
     await testDb.exercises.put(bench());
     await loggedAndFinishedSession(135, 5);

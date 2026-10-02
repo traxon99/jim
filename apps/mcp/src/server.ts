@@ -200,11 +200,13 @@ export function createMcpServer(context: UserContext): McpServer {
     "volume_report",
     {
       title: "Volume report",
-      description: "Training volume grouped by muscle, exercise, or week, over a date range.",
+      description:
+        "Training volume grouped by muscle, exercise, or week, over a date range. Counts working sets only (warm-up sets excluded). By muscle, each week also has working sets per muscle (a secondary muscle counts half a set) and whether each muscle is under, within or over the weekly set range for `goal` (strength 5–10 sets, hypertrophy 10–20; default hypertrophy).",
       inputSchema: {
         groupBy: z.enum(["muscle", "exercise", "week"]),
         from: z.string().datetime(),
         to: z.string().datetime(),
+        goal: z.enum(["strength", "hypertrophy"]).optional(),
       },
     },
     async (input) => {
