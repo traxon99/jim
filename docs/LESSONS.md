@@ -47,6 +47,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       raw index. Warm-ups shifted Prev values and turned into extra working sets (#381).
 - [ ] Showing or pre-filling a computed weight? Round it to what the user's bar and plates can load
       (`nearestLoadableWeight`), never raw math like 51.08 (#320).
+- [ ] Counting training volume (sets, weight × reps, per muscle)? Count working sets only: leave
+      out warm-up sets (`kind === "warmup"`) as well as warm-up exercises (#395).
 - [ ] Sets are append-only and sync is foreground-driven (`docs/DECISIONS.md`). Don't edit rows in
       place.
 
@@ -64,6 +66,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #395 | Volume by muscle counted warm-up sets as weekly sets and volume | Only warm-up *exercises* were filtered, not warm-up sets on a working exercise | Count working sets only |
 | #387 | Routine rows painted through the DPR details card on the Workout tab | `FloatingCard` rendered inside the routine `<li>`, inside the shell scroller, so its `fixed z-20` was out-ranked | Portal overlays to `<body>` (`docs/PWA.md` §4) |
 | #381 / #382 | Warm-ups shifted Prev values and showed up as extra working sets next time | Last session's sets matched by index across kinds | Match sets by kind and position |
 | #374 / #376 | Square colored corners showed outside frosted glass cards on iPhone | iOS Safari doesn't clip a `filter: blur` layer to `border-radius` | Draw glass with gradients inside the shape |

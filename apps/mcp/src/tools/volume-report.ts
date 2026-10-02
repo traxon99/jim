@@ -1,7 +1,11 @@
 import {
+  type TrainingGoal,
+  WEEKLY_SET_TARGETS,
   deletedSessionExerciseIds,
   groupByWeek,
+  isWarmupExercise,
   resolveCurrentRows,
+  weeklySetStatusByMuscle,
   weeklyVolumeByMuscle,
 } from "@jim/core";
 import { type DbOrTx, exercises, sessionExercises, sessions, sets, users } from "@jim/db";
@@ -15,6 +19,8 @@ export interface VolumeReportInput {
   groupBy: VolumeGroupBy;
   from: string;
   to: string;
+  /** Which weekly set range to check muscles against (issue #395). */
+  goal?: TrainingGoal;
 }
 
 interface ResolvedSet {
@@ -35,7 +41,10 @@ async function resolvedSetsInRange(tx: DbOrTx, from: Date, to: Date): Promise<Re
     exerciseRows.filter((row) => !deleted.has(row.id)).map((row) => [row.id, row.exerciseId]),
   );
 
-  const setRows = resolveCurrentRows(await tx.select().from(sets)).filter((set) => !set.deletedAt);
+  // Only working sets are volume: warm-up sets are left out (issue #395).
+  const setRows = resolveCurrentRows(await tx.select().from(sets)).filter(
+    (set) => !set.deletedAt && set.kind !== "warmup",
+  );
 
   const result: ResolvedSet[] = [];
   for (const set of setRows) {
@@ -111,7 +120,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
     const muscleSets = resolved
       .map((set) => {
         const exercise = exerciseRows.get(set.exerciseId);
-        if (!exercise) return null;
+        if (!exercise || isWarmupExercise(exercise)) return null;
         return {
           completedAt: set.completedAt,
           weight: set.weight,
@@ -122,10 +131,15 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
       })
       .filter((set): set is NonNullable<typeof set> => set !== null);
 
+    const goal = input.goal ?? "hypertrophy";
     const groups = weeklyVolumeByMuscle(muscleSets, weekStart);
     return groups.map((group) => ({
       weekStart: group.weekStart.toISOString(),
       volumeByMuscle: group.volumeByMuscle,
+      setsByMuscle: group.setsByMuscle,
+      goal,
+      targetSets: WEEKLY_SET_TARGETS[goal],
+      setStatusByMuscle: weeklySetStatusByMuscle(group.setsByMuscle, goal),
     }));
   });
 }
