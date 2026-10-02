@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { DPR_MAX_FOCUS } from "../../dpr/presets";
 import { MUSCLES } from "../../exercises/muscles";
 import { WARMUP_EXERCISES } from "../../warmups/catalog";
 import { EXPLORE_WARMUP_TEMPLATES, PROGRAM_TEMPLATES, ROUTINE_TEMPLATES } from "../catalog";
 import { CURATED_EXERCISES } from "../curated-exercises";
-import { MADDYS_WORKOUT_SPLIT } from "../maddys-split";
 import {
   type RoutineTemplate,
   instantiateRoutineTemplate,
@@ -33,13 +33,54 @@ describe("Explore templates", () => {
     ...p.extraRoutines,
   ]);
 
-  it("lists Maddy's Workout Split first", () => {
-    expect(PROGRAM_TEMPLATES[0]).toBe(MADDYS_WORKOUT_SPLIT);
-    expect(MADDYS_WORKOUT_SPLIT.name).toBe("Maddy's Workout Split");
+  it("offers at least five programs, each with a level, days per week and description", () => {
+    expect(PROGRAM_TEMPLATES.length).toBeGreaterThanOrEqual(5);
+    for (const program of PROGRAM_TEMPLATES) {
+      expect(program.notes.length, program.key).toBeGreaterThan(0);
+      expect(program.info.progression.length, program.key).toBeGreaterThan(0);
+      expect(program.info.daysPerWeek, program.key).toBeGreaterThan(0);
+    }
   });
 
-  it("schedules Maddy's split Monday through Saturday", () => {
-    expect(MADDYS_WORKOUT_SPLIT.days.map((d) => d.weekday)).toEqual([1, 2, 3, 4, 5, 6]);
+  it("no longer offers Maddy's Workout Split", () => {
+    expect(PROGRAM_TEMPLATES.some((p) => p.name.includes("Maddy"))).toBe(false);
+    expect(EXPLORE_WARMUP_TEMPLATES.some((t) => t.name.includes("Maddy"))).toBe(false);
+  });
+
+  it("pins weekly days to distinct weekdays and leaves sequence days unpinned", () => {
+    for (const program of PROGRAM_TEMPLATES) {
+      const weekdays = program.days.map((d) => d.weekday);
+      if (program.mode === "weekly") {
+        expect(
+          weekdays.every((w) => w != null && w >= 0 && w <= 6),
+          program.key,
+        ).toBe(true);
+        expect(new Set(weekdays).size, program.key).toBe(weekdays.length);
+        expect(weekdays.length, program.key).toBe(program.info.daysPerWeek);
+      } else {
+        expect(
+          weekdays.every((w) => w === null),
+          program.key,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("only picks DPR focus lifts the program actually trains", () => {
+    for (const program of PROGRAM_TEMPLATES) {
+      const dpr = program.info.dpr;
+      if (!dpr) continue;
+      const trained = new Set(program.days.flatMap((d) => d.routine.items.map((i) => i.slug)));
+      expect(dpr.focusSlugs.length, program.key).toBeGreaterThan(0);
+      expect(dpr.focusSlugs.length, program.key).toBeLessThanOrEqual(DPR_MAX_FOCUS);
+      for (const slug of dpr.focusSlugs)
+        expect(trained.has(slug), `${program.key}: ${slug}`).toBe(true);
+    }
+  });
+
+  it("gives every routine a name no other template uses", () => {
+    const names = allRoutines.map((r) => r.name);
+    expect(new Set(names).size).toBe(names.length);
   });
 
   it("only references curated/warm-up slugs that exist", () => {

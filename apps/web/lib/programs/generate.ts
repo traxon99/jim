@@ -1,9 +1,8 @@
 import { type JimDatabase, db } from "@/lib/db/schema";
-import { currentBlock, planBlock, startDprBlock } from "@/lib/dpr/block";
-import { defaultRepRange, loadDprSnapshot } from "@/lib/dpr/data";
+import { startDprForProgram } from "@/lib/dpr/start-for-program";
 import { addProgramTemplate } from "@/lib/explore/add-template";
 import { setActiveProgram } from "@/lib/programs/set-active";
-import { getCachedSettings, patchSettings } from "@/lib/settings";
+import { patchSettings } from "@/lib/settings";
 import {
   type ExerciseUsage,
   type GeneratedProgram,
@@ -75,58 +74,14 @@ export async function saveGeneratedProgram(
 
   let dprError: string | null = null;
   if (options.dprFocusSlugs.length > 0) {
-    dprError = await startDprForFocus(
+    dprError = await startDprForProgram(
       userId,
       programId,
-      options.dprFocusSlugs,
-      options.answers,
+      { focusSlugs: options.dprFocusSlugs, experience: options.answers.experience, weeks: 8 },
       database,
       settingsPatcher,
     );
   }
 
   return { programId, missingSlugs, dprError };
-}
-
-async function startDprForFocus(
-  userId: string,
-  programId: string,
-  focusSlugs: readonly string[],
-  answers: ProgramQuestionnaire,
-  database: JimDatabase,
-  settingsPatcher: typeof patchSettings,
-): Promise<string | null> {
-  const blocks = await database.dprBlocks.toArray();
-  if (currentBlock(blocks)) {
-    return "You already have a Dynamic Progression block running — change its lifts on the Progression tab.";
-  }
-
-  const globalExercises = (await database.exercises.toArray()).filter(
-    (exercise) => exercise.ownerId == null,
-  );
-  const idBySlug = new Map(globalExercises.map((exercise) => [exercise.slug, exercise.id]));
-  const exerciseIds = focusSlugs.flatMap((slug) => {
-    const id = idBySlug.get(slug);
-    return id ? [id] : [];
-  });
-  if (exerciseIds.length === 0) return null;
-
-  const settings = await getCachedSettings(database);
-  const snapshot = await loadDprSnapshot(database, defaultRepRange(settings));
-  const plan = planBlock(snapshot, {
-    exerciseIds,
-    weeks: 8,
-    preset: settings.dprAggressiveness,
-    experience: answers.experience,
-    now: new Date(),
-  });
-  await startDprBlock(userId, plan, { programId }, database);
-
-  const result = await settingsPatcher(
-    { dprEnabled: true, dprExperience: answers.experience },
-    database,
-  );
-  return result.ok
-    ? null
-    : `Block saved, but turning Dynamic Progression on failed: ${result.error}`;
 }
