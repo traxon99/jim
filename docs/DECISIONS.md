@@ -414,6 +414,16 @@ functions are the only way to change it. They're executable by `authenticated` o
   workout's per-kind counts and whether you reacted; and `workout_reactions_received` shows a
   session's owner who reacted to which of their workouts.
 
+- **Profile pictures, posts and sharing settings** (issue #316) follow it too. The picture is a
+  small square JPEG data URL on `users.avatar`, cropped and shrunk on the phone, so there's no file
+  storage. `posts` (a workout, record or achievement, with an optional caption) is readable only by
+  its author and has no write policies: migration 0031's `create_post` checks a linked workout is
+  the author's own finished one, `delete_post` removes only your own, and `friend_posts` hands
+  friends theirs. `users.share_workouts` and `share_workout_details` are read by the recreated
+  `friend_workouts`, which leaves out a friend's workouts, or just their exercises, when they've
+  turned sharing off. Posts are shared one at a time on purpose, so they show either way. These
+  live on `/api/profile`, not the IndexedDB-cached settings row, like the username.
+
 **Rejected: friend-aware RLS on `sessions`/`session_exercises`/`sets`.** Simpler SQL, but every pull
 would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
 server, the portal) silently merges someone else's training into yours.

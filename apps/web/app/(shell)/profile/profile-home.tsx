@@ -1,6 +1,7 @@
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { AchievementsSection } from "@/components/profile/achievements-section";
 import { ProfileHandle } from "@/components/profile/profile-handle";
+import { YourPostsSection } from "@/components/profile/your-posts-section";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -21,6 +22,7 @@ export function ProfileHome() {
           <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
         </Link>
         <AchievementsSection />
+        <YourPostsSection />
       </div>
     </main>
   );

@@ -7,6 +7,7 @@ interface WorkoutRow extends Record<string, unknown> {
   session_id: string;
   user_id: string;
   username: string;
+  avatar: string | null;
   units: FriendWorkout["units"];
   name: string | null;
   started_at: Date | string;
@@ -17,7 +18,7 @@ interface WorkoutRow extends Record<string, unknown> {
 
 /**
  * Accepted friends' latest finished workouts and their reactions, summarized
- * server-side by `friend_workouts()` (migrations 0023/0025) — a friend's raw
+ * server-side by `friend_workouts()` (migrations 0023/0025/0031) — a friend's raw
  * rows never leave Postgres, and never reach this user's IndexedDB.
  */
 export async function GET() {
@@ -28,6 +29,7 @@ export async function GET() {
         sessionId: row.session_id,
         userId: row.user_id,
         username: row.username,
+        avatar: row.avatar,
         units: row.units,
         name: row.name,
         startedAt: new Date(row.started_at).toISOString(),

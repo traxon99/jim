@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/components/friends/avatar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
   friendRequestMessage,
@@ -117,7 +118,7 @@ function FriendLists({
         <section className="flex flex-col gap-2">
           <h2 className={SECTION_HEADING}>Friend requests</h2>
           {incoming.map((friend) => (
-            <PersonRow key={friend.userId} username={friend.username}>
+            <PersonRow key={friend.userId} username={friend.username} avatar={friend.avatar}>
               <button
                 type="button"
                 aria-label={`Accept @${friend.username}`}
@@ -158,7 +159,7 @@ function FriendLists({
           </div>
         ) : (
           accepted.map((friend) => (
-            <PersonRow key={friend.userId} username={friend.username}>
+            <PersonRow key={friend.userId} username={friend.username} avatar={friend.avatar}>
               <button
                 type="button"
                 disabled={busyUserId === friend.userId}
@@ -179,7 +180,12 @@ function FriendLists({
         <section className="flex flex-col gap-2">
           <h2 className={SECTION_HEADING}>Sent requests</h2>
           {outgoing.map((friend) => (
-            <PersonRow key={friend.userId} username={friend.username} note="Request sent">
+            <PersonRow
+              key={friend.userId}
+              username={friend.username}
+              avatar={friend.avatar}
+              note="Request sent"
+            >
               <button
                 type="button"
                 disabled={busyUserId === friend.userId}
@@ -273,21 +279,18 @@ function AddFriendForm({ onSent }: { onSent: () => Promise<void> }) {
 
 function PersonRow({
   username,
+  avatar,
   note,
   children,
 }: {
   username: string;
+  avatar: string | null;
   note?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-zinc-200 py-1 pl-2 pr-1 dark:border-zinc-800">
-      <span
-        aria-hidden="true"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold uppercase text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
-      >
-        {username.charAt(0)}
-      </span>
+      <Avatar username={username} avatar={avatar} className="h-9 w-9 text-sm" />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="allow-pwa-select truncate text-sm font-medium">@{username}</span>
         {note && <span className="text-xs text-zinc-500 dark:text-zinc-500">{note}</span>}

@@ -14,6 +14,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 interface FriendRow extends Record<string, unknown> {
   user_id: string;
   username: string;
+  avatar: string | null;
   status: FriendEntry["status"];
   direction: FriendEntry["direction"];
   since: Date | string;
@@ -48,6 +49,7 @@ export async function GET() {
         friends: rows.map((row) => ({
           userId: row.user_id,
           username: row.username,
+          avatar: row.avatar,
           status: row.status,
           direction: row.direction,
           since: new Date(row.since).toISOString(),
