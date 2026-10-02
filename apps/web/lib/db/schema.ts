@@ -15,6 +15,7 @@ import type {
   users,
 } from "@jim/db";
 import Dexie, { type EntityTable } from "dexie";
+import { bootQueryMiddleware } from "../boot/dexie-boot-middleware";
 
 // Dexie mirrors Postgres (docs/ARCHITECTURE.md §1) — row shapes come
 // straight from the Drizzle schema (type-only import: nothing server-side
@@ -134,6 +135,9 @@ export class JimDatabase extends Dexie {
 }
 
 export const db = new JimDatabase();
+// Holds the boot splash while any IndexedDB query is in flight (the app's db
+// only, not the isolated test instances below).
+db.use(bootQueryMiddleware);
 
 /** For tests: an isolated instance so parallel test files don't share IndexedDB state. */
 export function createTestDb(name: string) {

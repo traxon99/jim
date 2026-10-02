@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import {
@@ -189,7 +190,7 @@ export function ProgressionHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col">
       <PageHeader title="Progression" back={{ href: "/profile/settings", label: "Settings" }} />
       <div className={PAGE_BODY}>
-        {loading && <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>}
+        {loading && <LoadingText />}
 
         {!loading && block && !settings.dprEnabled && (
           <div className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">

@@ -252,6 +252,13 @@ the exact same in-memory JS, React state included, indefinitely.
 - **Timers:** never count with `setInterval`. Store an absolute end time and recompute it on
   resume. Anything that must happen while backgrounded (the rest-timer alert) is a server-sent
   Web Push, because the page's JS isn't running then (ARCHITECTURE constraint 4, ADR-014).
+- **The boot splash waits for everything** (`lib/boot/gate.ts`). On a full page load,
+  `LoadingScreen` stays up until the window has loaded, fonts and images are in, every boot task has
+  settled and the DOM has gone quiet; a 15s backstop lifts it if something hangs. Every IndexedDB
+  query counts as a boot task automatically (`lib/boot/dexie-boot-middleware.ts`). A new loading
+  state that waits on the network should render `LoadingText` or call `useBootTask(pending)`, or
+  the app can be revealed with it still loading. The gate latches: later loading never brings the
+  splash back. A cold open (first load of a session, `lib/boot/cold-open.ts`) plays the intro.
 - **Wake lock:** Safari releases it whenever the page is hidden, so `lib/wake-lock.ts` requests it
   again on every `visibilitychange` back to visible.
 - **No Background Sync on iOS.** Sync is foreground-driven only (ARCHITECTURE constraint 1).

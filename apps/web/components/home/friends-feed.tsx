@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { fetchFriendWorkouts, fetchReceivedReactions, toggleReaction } from "@/lib/friends/client";
 import {
   describeExercise,
@@ -89,7 +90,7 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
   }
 
   if (load.status === "loading") {
-    return <p className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>;
+    return <LoadingText className="py-6 text-center text-sm text-zinc-500 dark:text-zinc-500" />;
   }
   if (load.status === "error") {
     return (
