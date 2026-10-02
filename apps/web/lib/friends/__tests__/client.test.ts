@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { friendRequestMessage, sendFriendRequest, toggleReaction, updateUsername } from "../client";
+import {
+  createPost,
+  friendRequestMessage,
+  sendFriendRequest,
+  toggleReaction,
+  updateProfile,
+  updateUsername,
+} from "../client";
 
 function respond(status: number, body: unknown) {
   return vi.fn(
@@ -26,6 +33,40 @@ describe("friends client", () => {
         method: "POST",
         body: JSON.stringify({ sessionId: "s1", kind: "fire" }),
       }),
+    );
+  });
+
+  it("creates a post", async () => {
+    const fetchImpl = respond(200, { postId: "p1" });
+    const draft = {
+      kind: "record" as const,
+      sessionId: null,
+      title: "Bench Press",
+      detail: "Estimated 1RM · 225 lb",
+      caption: "Finally",
+    };
+    expect(await createPost(draft, fetchImpl)).toEqual({ ok: true, value: "p1" });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/posts",
+      expect.objectContaining({ method: "POST", body: JSON.stringify(draft) }),
+    );
+  });
+
+  it("patches the profile", async () => {
+    const saved = {
+      username: "bob",
+      avatar: null,
+      shareWorkouts: false,
+      shareWorkoutDetails: true,
+    };
+    const fetchImpl = respond(200, saved);
+    expect(await updateProfile({ shareWorkouts: false }, fetchImpl)).toEqual({
+      ok: true,
+      value: saved,
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/profile",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ shareWorkouts: false }) }),
     );
   });
 

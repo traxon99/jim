@@ -1,10 +1,12 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
+import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -17,6 +19,7 @@ import {
   summarizeSession,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Send } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -190,17 +193,29 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                   className="achievement-pop"
                   style={{ animationDelay: `${index * 90}ms` }}
                 />
-                <div className="flex min-w-0 flex-col">
+                <div className="flex min-w-0 flex-1 flex-col">
                   <span className="text-sm font-medium">{achievement.title}</span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-500">
                     {achievement.description}
                   </span>
                 </div>
+                <PostToFriendsButton
+                  draft={achievementPostDraft(achievement)}
+                  label={`Post ${achievement.title} to friends`}
+                  className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500 dark:text-zinc-400"
+                >
+                  <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                </PostToFriendsButton>
               </li>
             ))}
           </ul>
         </section>
       )}
+
+      <PostToFriendsButton
+        draft={workoutPostDraft(session, summary, settings.units)}
+        className="min-h-11 w-full max-w-xs rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+      />
 
       <div className="flex gap-3">
         <ShareWorkoutButton

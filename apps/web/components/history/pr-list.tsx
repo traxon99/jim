@@ -1,9 +1,11 @@
 "use client";
 
+import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { PrSparkline } from "@/components/history/pr-sparkline";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
+import { recordPostDraft } from "@/lib/friends/post-drafts";
 import { toPersonalRecordEntries } from "@/lib/history/pr-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
@@ -525,12 +527,18 @@ export function PrList() {
                           </li>
                         ))}
                       </ul>
-                      <Link
-                        href={`/exercises/${group.exerciseId}`}
-                        className="py-1 text-sm font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
-                      >
-                        View 1RM chart and history
-                      </Link>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Link
+                          href={`/exercises/${group.exerciseId}`}
+                          className="py-1 text-sm font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
+                        >
+                          View 1RM chart and history
+                        </Link>
+                        <PostToFriendsButton
+                          draft={recordPostDraft(group.name, group.headlineRecord, settings.units)}
+                          className="min-h-11 rounded-lg px-2 text-sm font-medium text-zinc-600 dark:text-zinc-400"
+                        />
+                      </div>
                     </div>
                   )}
                 </section>

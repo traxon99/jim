@@ -1,5 +1,13 @@
-import type { ReactionKind } from "@jim/core";
-import type { FriendRequestResult, FriendWorkout, FriendsPayload, ReceivedReaction } from "./types";
+import type { PostDraft, ReactionKind } from "@jim/core";
+import type {
+  FriendPost,
+  FriendRequestResult,
+  FriendWorkout,
+  FriendsPayload,
+  OwnPost,
+  ProfilePayload,
+  ReceivedReaction,
+} from "./types";
 
 // Friends are server data (issue #35): unlike training, nothing here is
 // written to IndexedDB first, so each call can fail offline and says so.
@@ -43,6 +51,73 @@ export async function fetchFriendWorkouts(
     fetchImpl,
   );
   return result.ok ? { ok: true, value: result.value.workouts } : result;
+}
+
+export async function fetchFriendPosts(
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<FriendPost[]>> {
+  const result = await request<{ posts: FriendPost[] }>(
+    "/api/friends/posts",
+    undefined,
+    "Couldn't load your friends' posts",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.posts } : result;
+}
+
+export function fetchProfile(fetchImpl: typeof fetch = fetch) {
+  return request<ProfilePayload>(
+    "/api/profile",
+    undefined,
+    "Couldn't load your profile",
+    fetchImpl,
+  );
+}
+
+/** Changes the picture (null removes it) or sharing settings; the value is the saved profile. */
+export function updateProfile(
+  patch: Partial<Pick<ProfilePayload, "avatar" | "shareWorkouts" | "shareWorkoutDetails">>,
+  fetchImpl: typeof fetch = fetch,
+) {
+  return request<ProfilePayload>(
+    "/api/profile",
+    { method: "PATCH", body: JSON.stringify(patch) },
+    "Couldn't save your profile",
+    fetchImpl,
+  );
+}
+
+export async function fetchOwnPosts(fetchImpl: typeof fetch = fetch): Promise<Result<OwnPost[]>> {
+  const result = await request<{ posts: OwnPost[] }>(
+    "/api/posts",
+    undefined,
+    "Couldn't load your posts",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.posts } : result;
+}
+
+/** Shares a post with friends; the value is the new post's id. */
+export async function createPost(
+  draft: PostDraft,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<string>> {
+  const result = await request<{ postId: string }>(
+    "/api/posts",
+    { method: "POST", body: JSON.stringify(draft) },
+    "Couldn't share your post",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.postId } : result;
+}
+
+export function deletePost(postId: string, fetchImpl: typeof fetch = fetch) {
+  return request<{ ok: boolean }>(
+    "/api/posts",
+    { method: "DELETE", body: JSON.stringify({ postId }) },
+    "Couldn't delete the post",
+    fetchImpl,
+  );
 }
 
 export async function fetchReceivedReactions(

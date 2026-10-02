@@ -1,4 +1,10 @@
-import { MUSCLES, REACTION_KINDS, ROUTINE_ICON_COLORS, ROUTINE_ICON_SHAPES } from "@jim/core";
+import {
+  MUSCLES,
+  POST_KINDS,
+  REACTION_KINDS,
+  ROUTINE_ICON_COLORS,
+  ROUTINE_ICON_SHAPES,
+} from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -125,6 +131,10 @@ export const friendshipStatusEnum = pgEnum("friendship_status", ["pending", "acc
 // shows each as an emoji (@jim/core's REACTION_EMOJI).
 export const reactionKindEnum = pgEnum("reaction_kind", [...REACTION_KINDS]);
 
+// What a post shares with friends (issue #316): a finished workout, a
+// personal record or an earned achievement. Mirrors @jim/core's POST_KINDS.
+export const postKindEnum = pgEnum("post_kind", [...POST_KINDS]);
+
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
 // ---------------------------------------------------------------------------
@@ -140,6 +150,16 @@ export const users = pgTable(
     // exactly. Filled from the email's local part by the users_default_username
     // trigger (migration 0023) when a row is created without one.
     username: text("username"),
+    // The profile picture friends see (issue #316): a small square JPEG data
+    // URL the phone crops and shrinks before upload (@jim/core's
+    // AVATAR_MAX_LENGTH caps it). Null shows the username's initial.
+    avatar: text("avatar"),
+    // Sharing settings (issue #316). Whether friends see this user's finished
+    // workouts in their feed at all, and if so whether they see the exercises
+    // and weights or just the name and duration. Posts are shared explicitly,
+    // so they show either way. Read by friend_workouts() (migration 0031).
+    shareWorkouts: boolean("share_workouts").notNull().default(true),
+    shareWorkoutDetails: boolean("share_workout_details").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 
     // settings
@@ -862,6 +882,40 @@ export const workoutReactions = pgTable(
     uniqueIndex("workout_reactions_unique").on(table.sessionId, table.userId, table.kind),
     index("workout_reactions_user").on(table.userId),
     pgPolicy("workout_reactions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// posts — something a user chose to share with their friends (issue #316): a
+// finished workout (`session_id` set), a personal record or an achievement,
+// with an optional caption. `title` and `detail` are written by the phone,
+// which has the history that describes it, and shown as is. Like friendships,
+// readable only by the author and never written directly: migration 0031's
+// SECURITY DEFINER functions create and delete posts, and hand friends their
+// posts (ADR-017). Not synced to the phone.
+// ---------------------------------------------------------------------------
+
+export const posts = pgTable(
+  "posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: postKindEnum("kind").notNull(),
+    sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    detail: text("detail"),
+    caption: text("caption"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("posts_user_created").on(table.userId, table.createdAt),
+    pgPolicy("posts_select_own", {
       for: "select",
       to: authenticatedRole,
       using: sql`${table.userId} = ${authUid}`,

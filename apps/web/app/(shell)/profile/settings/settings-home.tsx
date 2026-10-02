@@ -7,7 +7,9 @@ import { ConnectClaudeSection } from "@/components/profile/connect-claude-sectio
 import { DataSection } from "@/components/profile/data-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
+import { ProfilePictureSection } from "@/components/profile/profile-picture-section";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
+import { SharingSection } from "@/components/profile/sharing-section";
 import { UsernameSection } from "@/components/profile/username-section";
 import { WorkoutSection } from "@/components/profile/workout-section";
 import { APP_VERSION } from "@/lib/version";
@@ -34,7 +36,9 @@ export function SettingsHome({
       <div className={`items-center text-center ${PAGE_BODY}`}>
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
         {/* Moved from Profile (issue #331); every section here saves as you go. */}
+        <ProfilePictureSection />
         <UsernameSection />
+        <SharingSection />
         <BodyStatsSection userId={userId} />
         <WorkoutSection />
         <Link
