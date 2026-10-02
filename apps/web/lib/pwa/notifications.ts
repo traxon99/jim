@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Completed sets now show as lighter, rounded rows instead of a solid gray block.";
+  "Paste a weight log from your notes into Bodyweight → Import, and Jim cleans it up.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
