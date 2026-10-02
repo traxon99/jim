@@ -129,17 +129,20 @@ function sizesFor(large: boolean) {
     // Set rows (header, logged and to-log) are the same list-view row in
     // both views: focus view puts its Log button beside the inputs too, and
     // at ~305px wide that only fits with the compact inputs.
-    headerRow:
-      "border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500",
-    headerCell: "py-1 pr-2 font-medium",
-    indexCell: "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    headerRow: "text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    // The rule sits on the cells: the table's separated borders (for the gap
+    // between logged rows, issue #391) don't draw a row's own border.
+    headerCell: "border-b border-zinc-200 py-1 pr-2 font-medium dark:border-zinc-800",
+    // pl-2 lines the label up with a logged row's, which is inset from its
+    // tinted edge (issue #391).
+    indexCell: "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
     cell: "py-2 pr-2 align-middle",
     // Last session's weight over ×reps for the same set (issue #323), stacked
     // in small grey type so the column stays ~40px wide at 393px.
     prevCell:
       "py-2 pr-2 align-middle text-center text-xs leading-tight tabular-nums text-zinc-400 dark:text-zinc-500",
     // `relative` anchors the swipe-to-delete strip (issue #350).
-    actionCell: "relative py-2 pl-1 align-middle text-right whitespace-nowrap",
+    actionCell: "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
     // Values are centered and sized as large as the row allows (issue #186):
     // the input is pinned to h-11, the same height as the log/repeat buttons
     // beside it, so the row doesn't grow; text-xl is the largest size where a
@@ -678,7 +681,7 @@ export function SessionExerciseSection({
   const tableHead = (
     <thead>
       <tr className={sizes.headerRow}>
-        <th className={`w-8 ${sizes.headerCell}`}>Set</th>
+        <th className={`w-8 pl-2 ${sizes.headerCell}`}>Set</th>
         <th className={`text-center ${sizes.headerCell}`}>Prev</th>
         <th className={`text-center ${sizes.headerCell}`}>Weight</th>
         {/* Reps and RPE are pinned narrow (issue #323) so, beside the Prev
@@ -856,7 +859,7 @@ export function SessionExerciseSection({
       {!large && (
         // Clips a row sliding left to delete (issue #350) so it can't widen the page.
         <div className="overflow-x-clip">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-separate border-spacing-y-1 text-left">
             {tableHead}
             <tbody>
               {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
@@ -874,7 +877,7 @@ export function SessionExerciseSection({
       {large && (
         // Clips a row sliding left to delete (issue #350) so it can't widen the page.
         <div className="overflow-x-clip">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-separate border-spacing-y-1 text-left">
             {tableHead}
             <tbody>
               {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
