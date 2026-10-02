@@ -2,7 +2,7 @@
 
 import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { useFriends } from "@/lib/friends/use-friends";
-import { CircleUserRound, UsersRound } from "lucide-react";
+import { CircleUserRound, Settings, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { FriendsFeed } from "./friends-feed";
 import { HomeShortcuts, HomeSummary } from "./home-summary";
@@ -10,9 +10,9 @@ import { HomeShortcuts, HomeSummary } from "./home-summary";
 /**
  * The Home tab. It opens like a mini profile — your streak, this week and
  * your recent stats — then scrolls into your friends' workouts (issue #35).
- * Friends (badged with pending requests) and Profile are one tap away from
- * the buttons floating in the header, which blurs the page scrolling under
- * it (issue #311).
+ * Settings, Friends (badged with pending requests) and Profile are one tap
+ * away from the buttons floating in the header, which blurs the page
+ * scrolling under it (issues #311, #404).
  */
 export function HomeScreen() {
   const { load } = useFriends();
@@ -27,6 +27,14 @@ export function HomeScreen() {
         title="Home"
         actions={
           <>
+            <Link
+              href="/profile/settings?from=home"
+              aria-label="Settings"
+              data-ripple
+              className={FLOATING_BUTTON}
+            >
+              <Settings className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+            </Link>
             {/* The badge sits beside the link, not in it: [data-ripple] clips its overflow. */}
             <span className="relative flex">
               <Link

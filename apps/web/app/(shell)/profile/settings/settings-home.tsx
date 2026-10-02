@@ -15,10 +15,22 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { SignOutButton } from "./sign-out-button";
 
-export function SettingsHome({ email, userId }: { email?: string; userId?: string }) {
+export function SettingsHome({
+  email,
+  userId,
+  fromHome = false,
+}: {
+  email?: string;
+  userId?: string;
+  /** Opened from Home's header (issue #404), so Back returns there instead of Profile. */
+  fromHome?: boolean;
+}) {
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Settings" back={{ href: "/profile", label: "Profile" }} />
+      <PageHeader
+        title="Settings"
+        back={fromHome ? { href: "/home", label: "Home" } : { href: "/profile", label: "Profile" }}
+      />
       <div className={`items-center text-center ${PAGE_BODY}`}>
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
         {/* Moved from Profile (issue #331); every section here saves as you go. */}
