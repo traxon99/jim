@@ -16,7 +16,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type WeightUnit, WorkoutCsvError } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Trash2, Upload } from "lucide-react";
+import { ClipboardPaste, Trash2, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 const RANGES = [
@@ -79,6 +79,8 @@ export function BodyweightHome({ userId }: { userId: string }) {
   const [preview, setPreview] = useState<WeightImportPreview | null>(null);
   const [fileUnit, setFileUnit] = useState<WeightUnit>(units);
   const [imported, setImported] = useState<number | null>(null);
+  /** Pasted text, while the paste box is open; null when it's closed. */
+  const [pasted, setPasted] = useState<string | null>(null);
 
   const latest = series[series.length - 1];
   const visible = useMemo(() => {
@@ -128,16 +130,17 @@ export function BodyweightHome({ userId }: { userId: string }) {
     void syncCurrentBodyweight();
   }
 
-  async function handleFile(file: File) {
+  async function readImport(text: Promise<string> | string) {
     setImportBusy("reading");
     setImportError(null);
     setImported(null);
     try {
-      setPreview(await previewWeightImport(await file.text()));
+      setPreview(await previewWeightImport(await text));
       setFileUnit(units);
+      setPasted(null);
     } catch (caught) {
       setImportError(
-        caught instanceof WorkoutCsvError ? caught.message : "Couldn't read that file. Try again.",
+        caught instanceof WorkoutCsvError ? caught.message : "Couldn't read that. Try again.",
       );
     } finally {
       setImportBusy(null);
@@ -257,11 +260,50 @@ export function BodyweightHome({ userId }: { userId: string }) {
           <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
             Import
           </h2>
-          {!preview && (
+          {!preview && pasted != null && (
+            <div className="flex flex-col gap-2">
+              <label className="flex flex-col gap-1 text-xs font-medium">
+                One weigh-in per line, date then weight
+                <textarea
+                  value={pasted}
+                  onChange={(event) => setPasted(event.target.value)}
+                  rows={6}
+                  placeholder={"6/26/26 - 153.1\n6/29/26 149.7"}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className={inputClass}
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPasted(null);
+                    setImportError(null);
+                  }}
+                  disabled={importBusy !== null}
+                  className={`${secondaryButton} flex-1`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void readImport(pasted)}
+                  disabled={importBusy !== null || pasted.trim() === ""}
+                  className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+                >
+                  {importBusy === "reading" ? "Reading…" : "Preview"}
+                </button>
+              </div>
+            </div>
+          )}
+          {!preview && pasted == null && (
             <>
               <p className="text-xs text-zinc-600 dark:text-zinc-400">
                 Export your Weight measurement from Strong's settings as a CSV and pick it here.
-                Other CSVs with a date and a weight column work too.
+                Other CSVs with a date and a weight column work too, or paste a list from your
+                notes.
               </p>
               <button
                 type="button"
@@ -272,15 +314,28 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 <Upload className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                 {importBusy === "reading" ? "Reading…" : "Import weight from Strong"}
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPasted("");
+                  setImportError(null);
+                  setImported(null);
+                }}
+                disabled={importBusy !== null}
+                className={secondaryButton}
+              >
+                <ClipboardPaste className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                Paste weights from notes
+              </button>
               <input
                 ref={fileInput}
                 type="file"
-                accept=".csv,text/csv,text/comma-separated-values"
+                accept=".csv,.txt,text/csv,text/comma-separated-values,text/plain"
                 className="hidden"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = "";
-                  if (file) void handleFile(file);
+                  if (file) void readImport(file.text());
                 }}
               />
             </>
@@ -301,7 +356,11 @@ export function BodyweightHome({ userId }: { userId: string }) {
             <div className="flex flex-col gap-3 rounded-lg border border-zinc-300 p-3 dark:border-zinc-700">
               <div className="flex flex-col gap-1 text-sm">
                 <p className="font-medium">
-                  {preview.format === "strong" ? "Strong measurements" : "Weight CSV"}
+                  {preview.format === "strong"
+                    ? "Strong measurements"
+                    : preview.format === "notes"
+                      ? "Pasted weights"
+                      : "Weight CSV"}
                 </p>
                 {preview.entries.length === 0 ? (
                   <p className="text-zinc-600 dark:text-zinc-400">
@@ -321,7 +380,11 @@ export function BodyweightHome({ userId }: { userId: string }) {
                     {preview.duplicateCount > 0 &&
                       `. ${plural(preview.duplicateCount, "weigh-in")} already in Jim will be skipped.`}
                     {preview.skippedRows > 0 &&
-                      ` ${plural(preview.skippedRows, "row")} couldn't be read and will be skipped.`}
+                      ` ${plural(preview.skippedRows, preview.format === "notes" ? "line" : "row")} couldn't be read and will be skipped.`}
+                    {preview.sameDayRows > 0 &&
+                      ` ${plural(preview.sameDayRows, "day")} logged twice; the later line is kept.`}
+                    {preview.outlierRows > 0 &&
+                      ` Skipping ${plural(preview.outlierRows, "weight")} far off from the days around, likely a typo.`}
                   </p>
                 )}
               </div>

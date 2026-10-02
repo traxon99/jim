@@ -124,6 +124,9 @@ export interface WeightImportPreview {
   entries: ImportedWeight[];
   duplicateCount: number;
   skippedRows: number;
+  /** Cleaned out of pasted notes: repeat lines for a day, and likely typos. */
+  sameDayRows: number;
+  outlierRows: number;
   /** Whether any entry has no unit in the file, so the user must pick one. */
   needsUnit: boolean;
   firstDate: Date | null;
@@ -158,6 +161,8 @@ export async function previewWeightImport(
     entries,
     duplicateCount: parsed.entries.length - entries.length,
     skippedRows: parsed.skippedRows,
+    sameDayRows: parsed.sameDayRows,
+    outlierRows: parsed.outlierRows,
     needsUnit: entries.some((entry) => entry.unit == null),
     firstDate: entries[0]?.measuredAt ?? null,
     lastDate: entries[entries.length - 1]?.measuredAt ?? null,

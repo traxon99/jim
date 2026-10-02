@@ -17,13 +17,17 @@ export interface ImportedWeight {
   unit: WeightUnit | null;
 }
 
-export type WeightCsvFormat = "strong" | "csv";
+export type WeightCsvFormat = "strong" | "csv" | "notes";
 
 export interface ParsedWeightCsv {
   format: WeightCsvFormat;
   entries: ImportedWeight[];
   /** Data rows that had no readable date or weight. */
   skippedRows: number;
+  /** Earlier entries dropped because a later line logged the same day (notes only). */
+  sameDayRows: number;
+  /** Weights dropped as likely typos: far off from the weigh-ins around them (notes only). */
+  outlierRows: number;
 }
 
 const DATE_COLUMNS = ["date", "datetime", "date/time", "date time", "timestamp", "time", "day"];
@@ -172,7 +176,111 @@ function findColumn(labels: readonly string[], names: readonly string[]): number
   return -1;
 }
 
+/**
+ * A date at the start of a line: "6/26/26", "2026-06-26", "26.06.2026".
+ * Leading bullets or checkboxes from a notes app are allowed before it.
+ */
+const NOTE_DATE =
+  /^[\s*•·\-–—>[\]x]*?(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/i;
+
+/**
+ * "6/26/26 - 153.1", "7/27/26. 145.5", "7/5/26 148.7 lb": the date, any run
+ * of separators, then the weight. Anything after the weight is a comment.
+ */
+const NOTE_LINE = new RegExp(
+  `${NOTE_DATE.source}(?![\\d])[\\s\\-–—:.,;=|>~]*(\\d+(?:[.,]\\d+)?)\\s*([a-z#]+\\.?)?`,
+  "i",
+);
+
+/** Whether the text is a hand-typed list (no header row, a date on the first line). */
+function looksLikeNotes(text: string): boolean {
+  const first = text.split(/\r?\n/).find((line) => line.trim() !== "");
+  return first != null && NOTE_DATE.test(first);
+}
+
+/** Plausible bodyweights in either unit; anything outside is a typo, not a weigh-in. */
+const MIN_WEIGHT = 20;
+const MAX_WEIGHT = 1000;
+/** A weigh-in this far (as a fraction) from the ones around it is a typo. */
+const OUTLIER_SPREAD = 0.25;
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? (sorted[mid] as number)
+    : ((sorted[mid - 1] as number) + (sorted[mid] as number)) / 2;
+}
+
+/**
+ * Drops entries far off from the weigh-ins around them: each is checked
+ * against the median of a five-entry window centered on it, so one typo
+ * can't drag the yardstick its neighbors are judged by.
+ */
+function dropOutliers(entries: readonly ImportedWeight[]): ImportedWeight[] {
+  // Mixed units can't be compared; leave those to the user.
+  if (new Set(entries.map((entry) => entry.unit)).size > 1) return [...entries];
+  return entries.filter((entry, i) => {
+    const window = entries.slice(Math.max(0, i - 2), i + 3).map((other) => other.value);
+    if (window.length < 3) return true;
+    const typical = median(window);
+    return Math.abs(entry.value - typical) / typical <= OUTLIER_SPREAD;
+  });
+}
+
+/**
+ * A weight log typed into a notes app, one weigh-in per line. Cleans as it
+ * goes: separators between date and weight vary line to line, blank and
+ * unreadable lines are skipped, two lines for one day keep the later one
+ * (the correction), and a weight far off from its neighbors is dropped as a
+ * typo.
+ */
+function parseWeightNotes(text: string): ParsedWeightCsv {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+  const dayFirst = sniffDayFirst(lines.map((line) => NOTE_DATE.exec(line)?.[1] ?? ""));
+
+  const byDay = new Map<string, ImportedWeight>();
+  let skippedRows = 0;
+  let sameDayRows = 0;
+  for (const line of lines) {
+    const match = NOTE_LINE.exec(line);
+    const measuredAt = match ? parseWeightDate(match[1] ?? "", dayFirst) : null;
+    const value = match ? Number((match[2] ?? "").replace(",", ".")) : Number.NaN;
+    if (!measuredAt || !Number.isFinite(value) || value < MIN_WEIGHT || value > MAX_WEIGHT) {
+      skippedRows++;
+      continue;
+    }
+    const day = `${measuredAt.getFullYear()}-${measuredAt.getMonth()}-${measuredAt.getDate()}`;
+    if (byDay.has(day)) {
+      sameDayRows++;
+      byDay.delete(day);
+    }
+    byDay.set(day, { measuredAt, value, unit: parseWeightUnit(match?.[3] ?? "") });
+  }
+
+  const sorted = [...byDay.values()].sort(
+    (a, b) => a.measuredAt.getTime() - b.measuredAt.getTime(),
+  );
+  const entries = dropOutliers(sorted);
+  if (entries.length === 0) {
+    throw new WorkoutCsvError(
+      "Couldn't read any weights. Put one weigh-in per line, like 6/26/26 - 153.1.",
+    );
+  }
+  return {
+    format: "notes",
+    entries,
+    skippedRows,
+    sameDayRows,
+    outlierRows: sorted.length - entries.length,
+  };
+}
+
 export function parseWeightCsv(text: string): ParsedWeightCsv {
+  if (looksLikeNotes(text)) return parseWeightNotes(text);
   const rows = parseCsv(text);
   const [header, ...data] = rows;
   if (!header || data.length === 0) {
@@ -242,6 +350,8 @@ export function parseWeightCsv(text: string): ParsedWeightCsv {
     format: typeIndex !== -1 || labels.includes("measurement") ? "strong" : "csv",
     entries,
     skippedRows,
+    sameDayRows: 0,
+    outlierRows: 0,
   };
 }
 

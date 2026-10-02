@@ -110,3 +110,77 @@ describe("weightEntryKey", () => {
     expect(weightEntryKey(at, 100, "kg")).not.toBe(weightEntryKey(at, 101, "kg"));
   });
 });
+
+describe("parseWeightCsv: a weight log pasted from notes", () => {
+  // Jackson's notes, as typed: mixed separators and a second line for 9/10.
+  const NOTES = [
+    "6/26/26 - 153.1",
+    "6/29/26 - 149.7",
+    "7/2/26 - 150.3",
+    "7/5/26 148.7",
+    "7/27/26. 145.5",
+    "",
+    "9/10/26 130.2",
+    "9/10/26 128.8",
+    "9/18/26 127.9",
+    "9/23/26 126.4",
+  ].join("\n");
+
+  it("reads one weigh-in per line whatever sits between the date and the weight", () => {
+    const parsed = parseWeightCsv(NOTES);
+    expect(parsed.format).toBe("notes");
+    expect(parsed.entries[0]).toEqual({
+      measuredAt: new Date(2026, 5, 26, 12),
+      value: 153.1,
+      unit: null,
+    });
+    expect(
+      parsed.entries.find((e) => e.measuredAt.getMonth() === 6 && e.measuredAt.getDate() === 27)
+        ?.value,
+    ).toBe(145.5);
+    expect(parsed.skippedRows).toBe(0);
+  });
+
+  it("keeps the later line when a day is logged twice", () => {
+    const parsed = parseWeightCsv(NOTES);
+    const sept10 = parsed.entries.filter(
+      (e) => e.measuredAt.getMonth() === 8 && e.measuredAt.getDate() === 10,
+    );
+    expect(sept10.map((e) => e.value)).toEqual([128.8]);
+    expect(parsed.sameDayRows).toBe(1);
+    expect(parsed.entries).toHaveLength(8);
+  });
+
+  it("sorts out-of-order lines and reads bullets, ISO dates and units", () => {
+    const parsed = parseWeightCsv(
+      ["• 2026-07-02: 68.2 kg", "- 2026-07-01 = 68.5kg", "2026-07-03 68 kg (after run)"].join("\n"),
+    );
+    expect(parsed.entries.map((e) => [e.measuredAt.getDate(), e.value, e.unit])).toEqual([
+      [1, 68.5, "kg"],
+      [2, 68.2, "kg"],
+      [3, 68, "kg"],
+    ]);
+  });
+
+  it("skips unreadable lines and drops typos far from their neighbors", () => {
+    const parsed = parseWeightCsv(
+      [
+        "8/7/26 141.3",
+        "8/8/26 140.6",
+        "8/9/26 1394",
+        "8/10/26 241.0",
+        "8/11/26 139.1",
+        "8/12/26 138.9",
+        "weigh in before breakfast",
+        "8/13/26",
+      ].join("\n"),
+    );
+    expect(parsed.entries.map((e) => e.value)).toEqual([141.3, 140.6, 139.1, 138.9]);
+    expect(parsed.outlierRows).toBe(1);
+    expect(parsed.skippedRows).toBe(3);
+  });
+
+  it("explains the expected shape when nothing reads", () => {
+    expect(() => parseWeightCsv("6/26/26 nope")).toThrow(/one weigh-in per line/);
+  });
+});
