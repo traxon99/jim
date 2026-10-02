@@ -7,9 +7,13 @@ import {
   type RoutineRow,
   db,
 } from "@/lib/db/schema";
+import { startDprForProgram } from "@/lib/dpr/start-for-program";
+import { setActiveProgram } from "@/lib/programs/set-active";
 import { addWarmupTemplate } from "@/lib/routines/warmup-templates";
+import { getCachedSettings, patchSettings } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
+  type ExploreProgramTemplate,
   type ProgramTemplate,
   type RoutineTemplate,
   instantiateRoutineTemplate,
@@ -108,7 +112,7 @@ export async function addProgramTemplate(
   const missing = new Set<string>();
   const folder = template.name;
 
-  const scheduled: { routineId: string; weekday: number }[] = [];
+  const scheduled: { routineId: string; weekday: number | null }[] = [];
   for (const day of template.days) {
     const added = await addRoutineTemplate(userId, day.routine, { folder }, database);
     scheduled.push({ routineId: added.routineId, weekday: day.weekday });
@@ -160,4 +164,48 @@ export async function addProgramTemplate(
   }
 
   return { programId: program.id, missingSlugs: [...missing] };
+}
+
+export interface AddExploreProgramResult {
+  programId: string;
+  missingSlugs: string[];
+  /** Set when DPR was asked for but couldn't be (fully) started. */
+  dprError: string | null;
+}
+
+/**
+ * Adds an Explore program (issue #243) and, as the user chose on its card,
+ * makes it the active program and starts Dynamic Progression on the focus
+ * lifts the program's own progression rule calls for — at the program's
+ * preset, and at the user's DPR experience if they've set one, else the
+ * program's level.
+ */
+export async function addExploreProgram(
+  userId: string,
+  template: ExploreProgramTemplate,
+  options: { activate: boolean; startDpr: boolean },
+  database: JimDatabase = db,
+  settingsPatcher: typeof patchSettings = patchSettings,
+): Promise<AddExploreProgramResult> {
+  const { programId, missingSlugs } = await addProgramTemplate(userId, template, database);
+  if (options.activate) await setActiveProgram(programId, database);
+
+  let dprError: string | null = null;
+  const dpr = template.info.dpr;
+  if (options.startDpr && dpr) {
+    const settings = await getCachedSettings(database);
+    dprError = await startDprForProgram(
+      userId,
+      programId,
+      {
+        focusSlugs: dpr.focusSlugs,
+        weeks: dpr.weeks,
+        preset: dpr.preset,
+        experience: settings.dprExperience ?? template.info.level,
+      },
+      database,
+      settingsPatcher,
+    );
+  }
+  return { programId, missingSlugs, dprError };
 }

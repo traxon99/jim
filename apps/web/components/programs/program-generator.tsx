@@ -208,7 +208,7 @@ export function ProgramGenerator({ userId }: { userId: string }) {
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-base font-semibold">{day.routine.name}</h2>
                 <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-                  {WEEKDAY_NAMES[day.weekday]}
+                  {day.weekday == null ? null : WEEKDAY_NAMES[day.weekday]}
                 </span>
               </div>
               <ul className="flex flex-col gap-1">
