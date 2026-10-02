@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { LoadingText } from "@/components/loading-text";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import {
   preferencesAction,
@@ -451,7 +452,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   if (session === undefined || rawSessionExercises === undefined || notFound) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }

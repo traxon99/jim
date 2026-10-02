@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -99,7 +100,7 @@ export function SessionDetail({ id }: { id: string }) {
   if (session === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }

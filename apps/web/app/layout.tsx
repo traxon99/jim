@@ -6,6 +6,7 @@ import { PwaChrome } from "@/components/pwa-chrome";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import { RippleEffect } from "@/components/ripple-effect";
 import { StatusBarScrim } from "@/components/status-bar-scrim";
+import { COLD_OPEN_SCRIPT } from "@/lib/boot/cold-open";
 import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
@@ -63,7 +64,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${roboto.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
+      // The cold-open script below sets data-boot before React hydrates.
+      suppressHydrationWarning
     >
+      <head>
+        {/* Marks this load cold or warm before first paint, so the splash
+            shows the right intro without a flash (lib/boot/cold-open.ts). */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed, build-time string with no user input. */}
+        <script dangerouslySetInnerHTML={{ __html: COLD_OPEN_SCRIPT }} />
+      </head>
       <body className="flex h-lvh flex-col">
         <LoadingScreen />
         <RegisterServiceWorker />

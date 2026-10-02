@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import {
   preferencesAction,
@@ -282,7 +283,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   if (routine === undefined || rawItems === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }

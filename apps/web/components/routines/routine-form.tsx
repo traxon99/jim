@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineRow, db } from "@/lib/db/schema";
@@ -191,7 +192,7 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
   if (mode === "edit" && existing === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }

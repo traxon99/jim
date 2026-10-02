@@ -129,27 +129,32 @@ const SYNC_INTERVAL_MS = 60_000;
  *
  * Call once (e.g. from a client component's effect); returns a cleanup
  * function that removes every listener and stops the interval.
+ * `onBootCycle` receives the boot cycle's promise, so the boot splash can
+ * wait for it (components/sync-engine-boot.tsx).
  */
 export function startSyncEngine(
   database: JimDatabase = db,
   fetchImpl: typeof fetch = fetch,
+  onBootCycle?: (cycle: Promise<void>) => void,
 ): () => void {
-  const run = () => {
-    void runSyncCycle(database, fetchImpl);
+  const run = () => runSyncCycle(database, fetchImpl);
+
+  const bootCycle = run();
+  onBootCycle?.(bootCycle);
+
+  const runInBackground = () => {
+    void run();
   };
-
-  run();
-
   const onVisibilityChange = () => {
-    if (document.visibilityState === "visible") run();
+    if (document.visibilityState === "visible") runInBackground();
   };
   document.addEventListener("visibilitychange", onVisibilityChange);
-  window.addEventListener("online", run);
-  const interval = setInterval(run, SYNC_INTERVAL_MS);
+  window.addEventListener("online", runInBackground);
+  const interval = setInterval(runInBackground, SYNC_INTERVAL_MS);
 
   return () => {
     document.removeEventListener("visibilitychange", onVisibilityChange);
-    window.removeEventListener("online", run);
+    window.removeEventListener("online", runInBackground);
     clearInterval(interval);
   };
 }
