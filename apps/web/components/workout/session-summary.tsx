@@ -4,6 +4,7 @@ import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine } from "@/components/workout/rest-stats-line";
+import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
 import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
@@ -144,6 +145,8 @@ export function SessionSummary({ session, sessionExercises }: Props) {
       </dl>
 
       <RestStatsLine sets={sets} className="-mt-2" />
+
+      <SaveRoutineChangesCard session={session} />
 
       {exerciseRows.length > 0 && (
         <section aria-label="Exercises" className="flex w-full max-w-sm flex-col gap-2 text-left">
