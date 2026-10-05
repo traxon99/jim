@@ -3,6 +3,7 @@
 import { ExercisePicker } from "@/components/exercise-picker";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
+import { ShareLinkButton } from "@/components/sharing/share-link-button";
 import {
   preferencesAction,
   removeExerciseAction,
@@ -19,6 +20,7 @@ import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { routineItemSummary } from "@/lib/routines/summary";
 import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { buildRoutineSnapshot } from "@/lib/sharing/local";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -309,7 +311,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         <BackLink href="/routines" label="Routines" />
       </div>
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
             <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
             {routine.name}
@@ -338,14 +340,17 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
             Done
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Edit routine"
-            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
-          >
-            <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <div className="flex shrink-0 items-start">
+            <ShareLinkButton title={routine.name} build={() => buildRoutineSnapshot(routine.id)} />
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Edit routine"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+            >
+              <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </div>
         )}
       </div>
 

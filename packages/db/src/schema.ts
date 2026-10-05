@@ -4,6 +4,7 @@ import {
   REACTION_KINDS,
   ROUTINE_ICON_COLORS,
   ROUTINE_ICON_SHAPES,
+  SHARE_KINDS,
 } from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
@@ -134,6 +135,9 @@ export const reactionKindEnum = pgEnum("reaction_kind", [...REACTION_KINDS]);
 // What a post shares with friends (issue #316): a finished workout, a
 // personal record or an earned achievement. Mirrors @jim/core's POST_KINDS.
 export const postKindEnum = pgEnum("post_kind", [...POST_KINDS]);
+
+// What a share link freezes (issue #254). Mirrors @jim/core's SHARE_KINDS.
+export const shareKindEnum = pgEnum("share_kind", [...SHARE_KINDS]);
 
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
@@ -917,6 +921,49 @@ export const posts = pgTable(
     index("posts_user_created").on(table.userId, table.createdAt),
     pgPolicy("posts_select_own", {
       for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// share_links — a routine or program frozen into a read-only snapshot that
+// anyone signed in can open by its link (issue #254). The id is the link: a
+// random v4 uuid, so links can't be guessed or listed. The sharer reads and
+// deletes (revokes) their own links under RLS; there's no update policy, so
+// a snapshot never changes once written. Anyone else reads one only through
+// migration 0033's SECURITY DEFINER function, by its id, and gets the
+// snapshot and the sharer's username, nothing more. Not synced to the phone.
+// ---------------------------------------------------------------------------
+
+export const shareLinks = pgTable(
+  "share_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: shareKindEnum("kind").notNull(),
+    name: text("name").notNull(),
+    // @jim/core's ShareSnapshot, checked with parseShareSnapshot on the way in.
+    snapshot: jsonb("snapshot").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("share_links_user_created").on(table.userId, table.createdAt),
+    pgPolicy("share_links_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+    pgPolicy("share_links_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.userId} = ${authUid}`,
+    }),
+    pgPolicy("share_links_delete_own", {
+      for: "delete",
       to: authenticatedRole,
       using: sql`${table.userId} = ${authUid}`,
     }),

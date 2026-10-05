@@ -9,6 +9,7 @@ import { FeedbackSection } from "@/components/profile/feedback-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
 import { ProfilePictureSection } from "@/components/profile/profile-picture-section";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
+import { SharedLinksSection } from "@/components/profile/shared-links-section";
 import { SharingSection } from "@/components/profile/sharing-section";
 import { UsernameSection } from "@/components/profile/username-section";
 import { WorkoutSection } from "@/components/profile/workout-section";
@@ -39,6 +40,7 @@ export function SettingsHome({
         <ProfilePictureSection />
         <UsernameSection />
         <SharingSection />
+        <SharedLinksSection />
         <BodyStatsSection userId={userId} />
         <WorkoutSection />
         <Link
