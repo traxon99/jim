@@ -64,3 +64,12 @@ export async function withUserDb<T>(
 export function withVerifiedUserDb<T>(userId: string, fn: (tx: DbOrTx) => Promise<T>): Promise<T> {
   return runAsUser(getDb(), userId, fn);
 }
+
+/**
+ * The server's own connection, outside any user's RLS: only for the few
+ * reads a signed-out request may make, each narrowed to what it returns. The
+ * one today is a share link's preview for chat apps (lib/sharing/preview.ts).
+ */
+export function serviceDb(): Db {
+  return getDb();
+}
