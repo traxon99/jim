@@ -118,6 +118,8 @@ export interface BlockPlan {
   experience: ExperienceLevel;
   startedAt: Date;
   lifts: PlannedLift[];
+  /** Mesocycle mode (issue #250): grow each muscle's weekly sets too. */
+  volumeMode?: boolean;
 }
 
 export function planBlock(
@@ -175,6 +177,7 @@ export async function startDprBlock(
     status: "active",
     aggressiveness: plan.preset,
     experience: plan.experience,
+    volumeMode: plan.volumeMode ?? false,
     programId: options.programId ?? null,
     createdAt: now,
     updatedAt: now,
@@ -290,7 +293,7 @@ export function lastCompletedBlock(blocks: readonly DprBlockRow[]): DprBlockRow 
 
 async function updateBlock(
   block: DprBlockRow,
-  patch: Partial<Pick<DprBlockRow, "status" | "endsAt">>,
+  patch: Partial<Pick<DprBlockRow, "status" | "endsAt" | "volumeMode">>,
   database: JimDatabase,
 ) {
   const deviceId = await getDeviceId(database);
@@ -305,6 +308,15 @@ export async function startDeloadWeek(block: DprBlockRow, database: JimDatabase 
     { status: "deload", endsAt: new Date(now.getTime() + DPR_DELOAD_WEEK_DAYS * DAY_MS) },
     database,
   );
+}
+
+/** Mesocycle mode (issue #250) can be switched on or off mid-block. */
+export async function setBlockVolumeMode(
+  block: DprBlockRow,
+  volumeMode: boolean,
+  database: JimDatabase = db,
+) {
+  await updateBlock(block, { volumeMode }, database);
 }
 
 export async function completeBlock(block: DprBlockRow, database: JimDatabase = db) {

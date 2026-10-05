@@ -35,7 +35,7 @@ export function BlockHeader({
       </div>
       <p className="text-xs text-zinc-500 dark:text-zinc-500">
         {block.status === "deload"
-          ? "Every focused lift is called 10% lighter this week."
+          ? `Every focused lift is called 10% lighter this week${block.volumeMode ? ", with half the weekly sets" : ""}.`
           : `${PRESET_LABELS[block.aggressiveness]} · goals set for ${EXPERIENCE_LABELS[block.experience].toLowerCase()}`}
       </p>
     </section>

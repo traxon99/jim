@@ -353,6 +353,7 @@ describe("setup wizard → Dexie", () => {
       endsAt: new Date(),
       aggressiveness: "moderate" as const,
       experience: "novice" as const,
+      volumeMode: false,
       programId: null,
       createdAt: new Date(),
       updatedAt: new Date(),

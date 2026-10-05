@@ -16,6 +16,7 @@ import {
   type DprCallInfo,
   dprBadge,
   dprRepsPlaceholder,
+  dprVolumeLine,
   dprWeightPlaceholder,
   dprWhyLine,
   needsRpeNudge,
@@ -79,6 +80,12 @@ interface Props {
   settings: SettingsRow;
   /** DPR's call when this is a focused lift and DPR is on (issue #212); else null. */
   dpr?: DprCallInfo | null;
+  /**
+   * Mesocycle mode (issue #250): this week's working sets, the routine's
+   * scaled by DPR's weekly set plan. It replaces the routine's count, and
+   * last time's too, so a drop or a deload week really plans fewer sets.
+   */
+  volumeSets?: number | null;
   /** The routine's custom progression rule's call (issue #255); never alongside `dpr`. */
   rule?: RuleCallInfo | null;
   large?: boolean;
@@ -186,6 +193,7 @@ export function SessionExerciseSection({
   target,
   settings,
   dpr = null,
+  volumeSets = null,
   rule = null,
   large = false,
   supersetLabel = null,
@@ -261,6 +269,7 @@ export function SessionExerciseSection({
   // 10×1), so its sets win over last time's.
   const workingTarget =
     (rule?.decision.targetSets ??
+      volumeSets ??
       Math.max(target?.targetSets ?? 0, previousSets.working.length, 1)) + addedSets;
 
   const loggedByIndex = useMemo(() => new Map(sets.map((set) => [set.setIndex, set])), [sets]);
@@ -852,6 +861,10 @@ export function SessionExerciseSection({
 
       {dpr && <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>}
       {rule && <p className={sizes.meta}>{ruleWhyLine(rule, settings.units)}</p>}
+
+      {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (
+        <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>
+      )}
 
       {suggestedWeights && hasHistory && !suggestionsOpen && (
         <button
