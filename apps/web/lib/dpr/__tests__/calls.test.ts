@@ -193,6 +193,19 @@ describe("in-session DPR (issue #212)", () => {
     expect(dprWeightPlaceholder(info, "warmup")).toBeNull();
   });
 
+  it("gives no DPR call to a lift the routine gives a custom rule (issue #255)", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await context();
+    if (!ctx) throw new Error("expected a DPR context");
+
+    const withRule = {
+      ...target(BENCH, 0),
+      progressionRule: { type: "linear" as const, increment: 5 },
+    };
+    expect(dprCallFor(ctx, BENCH, withRule)).toBeNull();
+    expect(dprCallsForRoutine(ctx, [withRule])).toEqual([]);
+  });
+
   it("ramps the working sets up to DPR's weight as the top set (issue #385)", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();
@@ -443,15 +456,24 @@ describe("mesocycle mode (issue #250)", () => {
   it("scales a routine's sets by the muscle's weekly plan", () => {
     const ctx = build(volumeBlock);
     expect(ctx?.volume?.get("chest")?.current).toMatchObject({ week: 2, planned: 8 });
-    expect(dprVolumeSets(ctx, BENCH, 3)).toBe(4);
+    expect(dprVolumeSets(ctx, BENCH, { targetSets: 3 })).toBe(4);
     expect(dprVolumeLine(4, 3)).toBe("DPR volume: 4 sets this week (routine: 3)");
   });
 
   it("leaves set counts alone with the mode off or no routine count", () => {
     const off = build({ ...volumeBlock, volumeMode: false });
     expect(off?.volume).toBeNull();
-    expect(dprVolumeSets(off, BENCH, 3)).toBeNull();
-    expect(dprVolumeSets(build(volumeBlock), BENCH, null)).toBeNull();
-    expect(dprVolumeSets(null, BENCH, 3)).toBeNull();
+    expect(dprVolumeSets(off, BENCH, { targetSets: 3 })).toBeNull();
+    expect(dprVolumeSets(build(volumeBlock), BENCH, { targetSets: null })).toBeNull();
+    expect(dprVolumeSets(null, BENCH, { targetSets: 3 })).toBeNull();
+  });
+
+  it("leaves an exercise with its own progression rule (issue #255) alone", () => {
+    expect(
+      dprVolumeSets(build(volumeBlock), BENCH, {
+        targetSets: 3,
+        progressionRule: { type: "linear", increment: 5 },
+      } as RoutineExerciseRow),
+    ).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 {
-  "id": "eb2759fd-3cb7-446d-a456-540af232d372",
-  "prevId": "4d9ef043-dbf3-4c18-a0bc-16e348fabe2b",
+  "id": "e62229f8-ec54-438d-91e4-375337e988ac",
+  "prevId": "eb2759fd-3cb7-446d-a456-540af232d372",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -354,6 +354,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "volume_mode": {
+          "name": "volume_mode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "program_id": {
           "name": "program_id",

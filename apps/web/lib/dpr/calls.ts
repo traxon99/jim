@@ -5,6 +5,7 @@ import type {
   RoutineExerciseRow,
   SettingsRow,
 } from "@/lib/db/schema";
+import { ruleOf } from "@/lib/progression/calls";
 import {
   type DprCall,
   type DprDecision,
@@ -18,6 +19,7 @@ import {
   callForLift,
   liftProgress,
   mesocycleVolumePlan,
+  progressionSystemFor,
   volumeAdjustedSets,
   workingSetWeights,
 } from "@jim/core";
@@ -79,14 +81,22 @@ export function buildDprContext(input: {
 /**
  * Mesocycle mode (issue #250): this week's working sets for an exercise,
  * the routine's sets scaled by its muscles' plans. Null when the mode is
- * off, the routine sets no count, or no muscle of the exercise is planned.
+ * off, the routine sets no count, no muscle of the exercise is planned, or
+ * the routine item has its own progression rule (issue #255), which then
+ * owns its sets: one automatic system per lift (ADR-016).
  */
 export function dprVolumeSets(
   ctx: DprContext | null,
   exerciseId: string,
-  routineSets: number | null | undefined,
+  target:
+    | (Pick<RoutineExerciseRow, "targetSets"> &
+        Partial<Pick<RoutineExerciseRow, "progressionRule">>)
+    | null
+    | undefined,
 ): number | null {
+  const routineSets = target?.targetSets;
   if (!ctx?.volume || routineSets == null || routineSets <= 0) return null;
+  if (ruleOf(target)) return null;
   const exercise = ctx.exercises.get(exerciseId);
   if (!exercise) return null;
   return volumeAdjustedSets(routineSets, exercise, ctx.volume);
@@ -94,7 +104,8 @@ export function dprVolumeSets(
 
 export type DprCallInfo = DprLiftCall;
 
-type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight">;
+type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight"> &
+  Partial<Pick<RoutineExerciseRow, "progressionRule">>;
 
 export function dprUserSettings(settings: SettingsRow): DprUserSettings {
   return {
@@ -105,7 +116,11 @@ export function dprUserSettings(settings: SettingsRow): DprUserSettings {
   };
 }
 
-/** DPR's call for one lift, or null when the lift isn't focused. */
+/**
+ * DPR's call for one lift, or null when the lift isn't focused — or when
+ * the routine gives it a custom progression rule, which wins (issue #255,
+ * ADR-016: one automatic system per lift).
+ */
 export function dprCallFor(
   ctx: DprContext,
   exerciseId: string,
@@ -114,6 +129,8 @@ export function dprCallFor(
   intensity?: SessionIntensity | null,
 ): DprCallInfo | null {
   if (!ctx.lifts.has(exerciseId)) return null;
+  const system = progressionSystemFor({ rule: ruleOf(target), dprFocused: true });
+  if (system !== "dpr") return null;
   const fallback = target?.targetWeight == null ? null : Number(target.targetWeight);
   return callForLift({
     snapshot: ctx.snapshot,

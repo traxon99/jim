@@ -22,6 +22,8 @@ import {
 } from "@/lib/db/schema";
 import { dprCallFor, dprVolumeSets } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { ruleCallFor, ruleOf } from "@/lib/progression/calls";
+import { useRuleSnapshot } from "@/lib/progression/use-rule-snapshot";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
@@ -161,6 +163,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
     return map;
   }, [rawRoutineExercises]);
+  const hasRules = useMemo(
+    () => [...targetByExerciseId.values()].some((item) => ruleOf(item) !== null),
+    [targetByExerciseId],
+  );
+  const ruleSnapshot = useRuleSnapshot(hasRules, dprContext?.snapshot ?? null);
 
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
   const idsKey = sessionExerciseIds.join(",");
@@ -215,9 +222,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           : (workingSetCountBySessionExerciseId.get(se.id) ?? 0),
         targetSetCount: isWarmupItem
           ? plannedSetCountFor(se, target)
-          : (dprVolumeSets(dprContext, se.exerciseId, target?.targetSets) ??
-            target?.targetSets ??
-            null),
+          : (dprVolumeSets(dprContext, se.exerciseId, target) ?? target?.targetSets ?? null),
       };
     });
   }, [
@@ -261,7 +266,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     () =>
       mainItems.map((se) => {
         const target = targetByExerciseId.get(se.exerciseId);
-        const volumeSets = dprVolumeSets(dprContext, se.exerciseId, target?.targetSets);
+        const volumeSets = dprVolumeSets(dprContext, se.exerciseId, target);
         return {
           targetSetCount: plannedSetCountFor(
             se,
@@ -522,7 +527,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         dpr={
           dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
         }
-        volumeSets={dprVolumeSets(dprContext, item.exerciseId, target?.targetSets)}
+        volumeSets={dprVolumeSets(dprContext, item.exerciseId, target)}
+        rule={
+          ruleSnapshot
+            ? ruleCallFor({
+                snapshot: ruleSnapshot,
+                exerciseId: item.exerciseId,
+                target,
+                exercise,
+                settings,
+              })
+            : null
+        }
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}
         onSetLogged={(restSeconds, remainingPlannedSets) =>

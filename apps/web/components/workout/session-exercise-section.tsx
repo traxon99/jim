@@ -21,6 +21,13 @@ import {
   dprWhyLine,
   needsRpeNudge,
 } from "@/lib/dpr/calls";
+import {
+  type RuleCallInfo,
+  ruleBadge,
+  ruleRepsPlaceholder,
+  ruleWeightPlaceholder,
+  ruleWhyLine,
+} from "@/lib/progression/calls";
 import { NO_PREVIOUS_SETS, loadPreviousSets } from "@/lib/sessions/previous-set-lookup";
 import {
   completeSet,
@@ -79,6 +86,8 @@ interface Props {
    * last time's too, so a drop or a deload week really plans fewer sets.
    */
   volumeSets?: number | null;
+  /** The routine's custom progression rule's call (issue #255); never alongside `dpr`. */
+  rule?: RuleCallInfo | null;
   large?: boolean;
   /** "A1"-style place in a superset (issue #228), or null. */
   supersetLabel?: string | null;
@@ -185,6 +194,7 @@ export function SessionExerciseSection({
   settings,
   dpr = null,
   volumeSets = null,
+  rule = null,
   large = false,
   supersetLabel = null,
   onSetLogged,
@@ -255,8 +265,12 @@ export function SessionExerciseSection({
   // front. They ride on top of the working sets, as does a row switched to
   // a warm-up from its set-type menu: a 3×10 still plans three working sets.
   const warmupCount = item.warmupSets ?? 0;
+  // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
+  // 10×1), so its sets win over last time's.
   const workingTarget =
-    (volumeSets ?? Math.max(target?.targetSets ?? 0, previousSets.working.length, 1)) + addedSets;
+    (rule?.decision.targetSets ??
+      volumeSets ??
+      Math.max(target?.targetSets ?? 0, previousSets.working.length, 1)) + addedSets;
 
   const loggedByIndex = useMemo(() => new Map(sets.map((set) => [set.setIndex, set])), [sets]);
   const loggedIndices = useMemo(() => new Set(loggedByIndex.keys()), [loggedByIndex]);
@@ -347,7 +361,8 @@ export function SessionExerciseSection({
   // lift the working sets themselves build up to DPR's weight (issue #385),
   // so that's the lightest of them.
   const firstWorkingWeight = toNumberOrNull(
-    dprWeightPlaceholder(dpr, "working", { ordinal: 0, count: workingTarget }) ??
+    ruleWeightPlaceholder(rule, "working") ??
+      dprWeightPlaceholder(dpr, "working", { ordinal: 0, count: workingTarget }) ??
       prefillWeightForSet(0, previousSets.working[0], targetWeight),
   );
   const ramp = warmupRamp(
@@ -365,6 +380,7 @@ export function SessionExerciseSection({
       return weight == null ? "" : String(weight);
     }
     return (
+      ruleWeightPlaceholder(rule, draftFor(index).kind) ??
       dprWeightPlaceholder(dpr, draftFor(index).kind, { ordinal, count: workingTarget }) ??
       prefillWeightForSet(ordinal, previousFor(index), targetWeight)
     );
@@ -373,7 +389,9 @@ export function SessionExerciseSection({
     if (kindAt(index) === "warmup") {
       return String(ramp[ordinals[index] ?? 0]?.reps ?? previousFor(index)?.reps ?? "");
     }
-    const dprReps = dprRepsPlaceholder(dpr, draftFor(index).kind);
+    const dprReps =
+      ruleRepsPlaceholder(rule, draftFor(index).kind) ??
+      dprRepsPlaceholder(dpr, draftFor(index).kind);
     if (dprReps !== null) return dprReps;
     const priorAtIndex = previousFor(index);
     return priorAtIndex?.reps != null
@@ -803,6 +821,11 @@ export function SessionExerciseSection({
                 : `DPR ${dprBadge(dpr.decision.call).symbol}`}
             </span>
           )}
+          {rule && (
+            <span className="shrink-0 rounded-full border border-zinc-400 px-1.5 text-xs font-semibold text-zinc-600 dark:border-zinc-600 dark:text-zinc-400">
+              {ruleBadge(rule)}
+            </span>
+          )}
         </h2>
         <ExerciseActionsMenu actions={[...ownActions, ...actions]} large={large} />
       </div>
@@ -837,6 +860,7 @@ export function SessionExerciseSection({
       )}
 
       {dpr && <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>}
+      {rule && <p className={sizes.meta}>{ruleWhyLine(rule, settings.units)}</p>}
 
       {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (
         <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>

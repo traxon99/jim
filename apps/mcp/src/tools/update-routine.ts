@@ -5,6 +5,7 @@ import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
 import type { CreateRoutineExerciseInput } from "./create-routine.js";
+import { progressionRuleChecker } from "./progression-rules.js";
 import { resolveExercise } from "./resolve-exercise.js";
 
 export class RoutineNotFoundError extends Error {
@@ -59,9 +60,11 @@ export async function updateRoutine(context: UserContext, input: UpdateRoutineIn
         .returning({ id: routineExercises.id });
       removedExercises = removed.length;
 
+      const checkRule = progressionRuleChecker(tx, context.userId);
       items = [];
       for (const [index, item] of input.exercises.entries()) {
         const exercise = await resolveExercise(tx, context.userId, item.exercise);
+        const progressionRule = await checkRule(item.progression, exercise);
         const id = uuidv7();
         await tx.insert(routineExercises).values({
           id,
@@ -76,6 +79,7 @@ export async function updateRoutine(context: UserContext, input: UpdateRoutineIn
           targetRestSeconds: item.targetRestSeconds ?? null,
           targetDurationSeconds: item.targetDurationSeconds ?? null,
           targetWeight: item.targetWeight == null ? null : String(item.targetWeight),
+          progressionRule,
           notes: item.notes ?? null,
           updatedAt: now,
           deviceId: MCP_DEVICE_ID,

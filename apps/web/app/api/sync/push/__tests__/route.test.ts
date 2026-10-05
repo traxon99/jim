@@ -154,6 +154,58 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.name).toBe("From device B (newer)");
   });
 
+  it("stores and updates a routine exercise's custom progression rule (issue #255)", async () => {
+    const routineId = uuidv7();
+    const itemId = uuidv7();
+    const routine = {
+      id: routineId,
+      name: "GZCLP A1",
+      notes: null,
+      position: 0,
+      folder: null,
+      iconShape: "square",
+      iconColor: "blue",
+      kind: "strength",
+      warmupRoutineId: null,
+      warmupMinutes: null,
+      updatedAt: new Date("2026-03-01T00:00:00Z").toISOString(),
+      deviceId: "device-a",
+      deletedAt: null,
+    };
+    const item = (rule: unknown, at: string) => ({
+      id: uuidv7(),
+      table: "routineExercises",
+      entity: {
+        id: itemId,
+        routineId,
+        exerciseId,
+        position: 0,
+        targetSets: 5,
+        targetRepsLow: 3,
+        targetRepsHigh: 3,
+        progressionRule: rule,
+        updatedAt: at,
+        deviceId: "device-a",
+        deletedAt: null,
+      },
+    });
+    const t1 = { type: "linear", increment: 10, stages: [{ sets: 5, reps: 3 }] };
+    await push([
+      { id: uuidv7(), table: "routines", entity: routine },
+      item(t1, "2026-03-01T00:00:00Z"),
+    ]);
+    const read = async () =>
+      (
+        await admin<{ progression_rule: unknown }[]>`
+          SELECT progression_rule FROM routine_exercises WHERE id = ${itemId}
+        `
+      )[0]?.progression_rule;
+    expect(await read()).toEqual(t1);
+
+    await push([item(null, "2026-03-02T00:00:00Z")]);
+    expect(await read()).toBeNull();
+  });
+
   it("applies warm-up routines, the link to them, and hold-time targets (issue #59)", async () => {
     const warmupId = uuidv7();
     const legDayId = uuidv7();

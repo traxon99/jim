@@ -47,7 +47,7 @@ export function buildPreWorkoutRows(
       // Mesocycle mode (issue #250) plans this week's sets.
       plan: formatPlan({
         ...item,
-        targetSets: dprVolumeSets(ctx, item.exerciseId, item.targetSets) ?? item.targetSets,
+        targetSets: dprVolumeSets(ctx, item.exerciseId, item) ?? item.targetSets,
       }),
       dpr: ctx ? dprCallFor(ctx, item.exerciseId, item, intensity) : null,
     }));
