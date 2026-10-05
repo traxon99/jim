@@ -483,6 +483,9 @@ export const dprBlocks = pgTable(
     // doesn't move its goals.
     aggressiveness: dprAggressivenessEnum("aggressiveness").notNull(),
     experience: dprExperienceEnum("experience").notNull(),
+    // Mesocycle mode (issue #250): DPR also grows each muscle's weekly sets
+    // through the block. The plan itself is derived, never stored.
+    volumeMode: boolean("volume_mode").notNull().default(false),
     programId: uuid("program_id").references(() => programs.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -942,7 +945,7 @@ export const posts = pgTable(
 // random v4 uuid, so links can't be guessed or listed. The sharer reads and
 // deletes (revokes) their own links under RLS; there's no update policy, so
 // a snapshot never changes once written. Anyone else reads one only through
-// migration 0035's SECURITY DEFINER function, by its id, and gets the
+// migration 0036's SECURITY DEFINER function, by its id, and gets the
 // snapshot and the sharer's username, nothing more. Not synced to the phone.
 // ---------------------------------------------------------------------------
 
