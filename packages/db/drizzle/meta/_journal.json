@@ -250,8 +250,22 @@
     {
       "idx": 35,
       "version": "7",
-      "when": 1791233574384,
-      "tag": "0035_add_measurement_units",
+      "when": 1791233671239,
+      "tag": "0035_add_share_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791233673096,
+      "tag": "0036_share_links_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791233919783,
+      "tag": "0037_add_measurement_units",
       "breakpoints": true
     }
   ]

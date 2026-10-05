@@ -31,7 +31,8 @@ that rejects any `UPDATE` on `sets` — `drizzle-kit generate` won't reproduce
 this from the schema DSL, so don't regenerate over it. `drizzle/0023_friends_functions.sql` is
 hand-authored for the same reason: it backfills usernames and adds the username trigger and the
 SECURITY DEFINER friend functions (ADR-017), and `drizzle/0025_workout_reactions_functions.sql`
-adds the workout-reaction functions the same way.
+adds the workout-reaction functions the same way. `drizzle/0036_share_links_functions.sql` adds the
+function that opens a routine or program share link (issue #254) the same way.
 
 `drizzle/meta/_journal.json`'s `when` for `0007_last_starhawk` is deliberately earlier than
 when that file was generated. Drizzle's migrator only runs migrations whose `when` is later

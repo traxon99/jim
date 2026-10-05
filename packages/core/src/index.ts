@@ -10,6 +10,7 @@ export * from "./programs";
 export * from "./progression";
 export * from "./routines";
 export * from "./sessions";
+export * from "./sharing";
 export * from "./social";
 export * from "./strength-standards";
 export * from "./supersets";
