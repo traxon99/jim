@@ -22,7 +22,7 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Layers } from "lucide-react";
+import { Layers, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -206,9 +206,10 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
           <ShareLinkButton title={program.name} build={() => buildProgramSnapshot(program.id)} />
           <Link
             href={`/routines/programs/${program.id}/edit`}
-            className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+            aria-label="Edit program"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
           >
-            Edit
+            <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
           </Link>
         </div>
       </div>

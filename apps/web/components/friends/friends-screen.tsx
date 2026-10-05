@@ -10,7 +10,7 @@ import {
 } from "@/lib/friends/client";
 import { useFriends } from "@/lib/friends/use-friends";
 import { normalizeUsername } from "@jim/core";
-import { Check, Search, UserPlus, UsersRound, X } from "lucide-react";
+import { Check, Search, UserMinus, UserPlus, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
@@ -167,9 +167,10 @@ function FriendLists({
                   if (!window.confirm(`Remove @${friend.username} from your friends?`)) return;
                   onRemove(friend.userId);
                 }}
-                className="min-h-11 rounded-lg px-3 text-sm text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
+                aria-label={`Remove @${friend.username}`}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
               >
-                Remove
+                <UserMinus className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               </button>
             </PersonRow>
           ))
@@ -190,9 +191,10 @@ function FriendLists({
                 type="button"
                 disabled={busyUserId === friend.userId}
                 onClick={() => onRemove(friend.userId)}
-                className="min-h-11 rounded-lg px-3 text-sm text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
+                aria-label={`Cancel request to @${friend.username}`}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
               >
-                Cancel
+                <X className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               </button>
             </PersonRow>
           ))}

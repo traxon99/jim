@@ -63,7 +63,7 @@ import {
   warmupRamp,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
+import { Check, Diff, File, Pin, RotateCcw, Timer, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ExerciseDialog } from "./exercise-dialog";
 import { RpeInfoMenu } from "./rpe-info-menu";
@@ -931,9 +931,10 @@ export function SessionExerciseSection({
           <button
             type="button"
             onClick={() => void handleUndoDelete()}
-            className="min-h-11 px-2 font-semibold text-accent"
+            aria-label="Undo delete"
+            className="flex min-h-11 min-w-11 items-center justify-center text-accent"
           >
-            Undo
+            <Undo2 className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
           </button>
         </output>
       )}
