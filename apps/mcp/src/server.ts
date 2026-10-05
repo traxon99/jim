@@ -17,6 +17,7 @@ import { searchExercisesTool } from "./tools/search-exercises.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
+import { MAX_SUMMARY_WEEKS, weeklySummary } from "./tools/weekly-summary.js";
 
 function json(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
@@ -255,6 +256,37 @@ export function createMcpServer(context: UserContext): McpServer {
     async (input) => {
       try {
         return json(await volumeReport(context, input));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "weekly_summary",
+    {
+      title: "Weekly summary",
+      description:
+        "Read-only. What was done in a training week (weeks start on the user's chosen week-start day): workouts, working sets and total volume (weight × reps), working sets and volume per muscle checked against the weekly set range for `goal` (strength 5–10, hypertrophy 10–20; default hypertrophy; a secondary muscle counts half a set), and sets and volume per exercise. Working sets only: warm-up sets and warm-up exercises are left out. Defaults to the current week; pass `weeks` to also get the weeks before it, newest first.",
+      inputSchema: {
+        date: z
+          .string()
+          .datetime({ offset: true })
+          .optional()
+          .describe("Any date/time inside the week to summarize (default: now)"),
+        weeks: z
+          .number()
+          .int()
+          .min(1)
+          .max(MAX_SUMMARY_WEEKS)
+          .optional()
+          .describe("How many weeks to return, ending with the week of `date` (default 1)"),
+        goal: z.enum(["strength", "hypertrophy"]).optional(),
+      },
+    },
+    async (input) => {
+      try {
+        return json(await weeklySummary(context, input));
       } catch (error) {
         return toolError(error);
       }

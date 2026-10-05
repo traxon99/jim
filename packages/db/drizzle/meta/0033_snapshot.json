@@ -1,6 +1,6 @@
 {
-  "id": "4d9ef043-dbf3-4c18-a0bc-16e348fabe2b",
-  "prevId": "dfa7d470-df3c-4fd7-a241-d9ba455208c0",
+  "id": "eb2759fd-3cb7-446d-a456-540af232d372",
+  "prevId": "4d9ef043-dbf3-4c18-a0bc-16e348fabe2b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1812,6 +1812,12 @@
         "target_weight": {
           "name": "target_weight",
           "type": "numeric(7, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "progression_rule": {
+          "name": "progression_rule",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

@@ -11,6 +11,7 @@ import {
   type Muscle,
   applyExerciseEdit,
   exerciseCategoryOf,
+  normalizeVideoUrl,
   slugify,
   uuidv7,
 } from "@jim/core";
@@ -67,6 +68,7 @@ export function ExerciseForm({
   );
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
+  const [videoUrlText, setVideoUrlText] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Populate the form once the existing row loads (edit mode).
@@ -78,6 +80,7 @@ export function ExerciseForm({
     setTrackingType(existing.trackingType);
     setPrimaryMuscles([...existing.primaryMuscles]);
     setInstructionsText(existing.instructions.join("\n"));
+    setVideoUrlText(existing.videoUrl ?? "");
   }, [existing]);
 
   function handleCategoryChange(next: ExerciseCategory) {
@@ -106,6 +109,7 @@ export function ExerciseForm({
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
+    const videoUrl = normalizeVideoUrl(videoUrlText);
 
     let entity: ExerciseRow;
 
@@ -126,6 +130,7 @@ export function ExerciseForm({
         category,
         instructions,
         imageUrls: [],
+        videoUrl,
         isArchived: false,
         createdAt: now,
         updatedAt: now,
@@ -142,6 +147,7 @@ export function ExerciseForm({
           category,
           primaryMuscles,
           instructions,
+          videoUrl,
         },
         userId,
         uuidv7,
@@ -296,6 +302,21 @@ export function ExerciseForm({
             rows={5}
             className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Demo video link
+          <input
+            type="url"
+            inputMode="url"
+            value={videoUrlText}
+            onChange={(event) => setVideoUrlText(event.target.value)}
+            placeholder="https://youtube.com/…"
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          />
+          <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+            Optional. Without one, the exercise links to a YouTube search for its form.
+          </span>
         </label>
 
         <button

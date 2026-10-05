@@ -261,6 +261,10 @@ export const exercises = pgTable(
     category: exerciseCategoryEnum("category").notNull().default("strength"),
     instructions: text("instructions").array().notNull().default(sql`ARRAY[]::text[]`),
     imageUrls: text("image_urls").array().notNull().default(sql`ARRAY[]::text[]`),
+    // A demo video link the user set (issue #252). The catalog doesn't ship
+    // any; exercises without one fall back to a YouTube search (core's
+    // exerciseDemo).
+    videoUrl: text("video_url"),
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S4): user-owned rows (custom or cloned, ADR-008) are

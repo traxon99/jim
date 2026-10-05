@@ -286,6 +286,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             category: excluded(exercises.category),
             instructions: excluded(exercises.instructions),
             imageUrls: excluded(exercises.imageUrls),
+            videoUrl: excluded(exercises.videoUrl),
             isArchived: excluded(exercises.isArchived),
             updatedAt: excluded(exercises.updatedAt),
             deviceId: excluded(exercises.deviceId),
