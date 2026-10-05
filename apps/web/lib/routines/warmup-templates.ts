@@ -66,6 +66,7 @@ export async function addWarmupTemplate(
       supersetGroup: null,
       targetRestSeconds: null,
       targetWeight: null,
+      progressionRule: null,
       notes: null,
       updatedAt: now,
       deviceId,

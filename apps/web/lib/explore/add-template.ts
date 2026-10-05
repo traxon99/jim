@@ -87,6 +87,7 @@ export async function addRoutineTemplate(
       routineId: routine.id,
       targetRestSeconds: null,
       targetWeight: null,
+      progressionRule: null,
       updatedAt: now,
       deviceId,
       deletedAt: null,

@@ -5,7 +5,9 @@ import { SupersetBadge } from "@/components/supersets/superset-badge";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { parseProgressionRule } from "@jim/core";
 import { useState } from "react";
+import { ProgressionRuleEditor } from "./progression-rule-editor";
 
 interface Props {
   item: RoutineExerciseRowEntity;
@@ -15,6 +17,8 @@ interface Props {
   units: "lb" | "kg";
   /** "A1"-style place in a superset (issue #228), or null. */
   supersetLabel?: string | null;
+  /** DPR is focusing on this lift, which rules out a custom progression rule (issue #255). */
+  dprFocused?: boolean;
   /** The ⋯ menu's items — superset options and Remove (issue #269). */
   actions: readonly ExerciseAction[];
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
@@ -45,6 +49,7 @@ export function RoutineExerciseRow({
   warmup = null,
   units,
   supersetLabel = null,
+  dprFocused = false,
   actions,
   onUpdate,
 }: Props) {
@@ -204,6 +209,15 @@ export function RoutineExerciseRow({
           </>
         )}
       </div>
+
+      {!warmup && (
+        <ProgressionRuleEditor
+          rule={parseProgressionRule(item.progressionRule)}
+          units={units}
+          dprFocused={dprFocused}
+          onChange={(progressionRule) => onUpdate({ progressionRule })}
+        />
+      )}
 
       <label className="flex flex-col gap-1 pl-10 text-xs font-medium">
         Notes
