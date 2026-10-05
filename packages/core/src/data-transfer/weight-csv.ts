@@ -17,7 +17,7 @@ export interface ImportedWeight {
   unit: WeightUnit | null;
 }
 
-export type WeightCsvFormat = "strong" | "csv" | "notes";
+export type WeightCsvFormat = "strong" | "csv" | "notes" | "apple-health";
 
 export interface ParsedWeightCsv {
   format: WeightCsvFormat;
