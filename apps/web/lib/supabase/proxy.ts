@@ -1,3 +1,4 @@
+import { isSharePreviewRequest } from "@/lib/sharing/preview-request";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { supabaseEnv } from "./env";
@@ -46,7 +47,9 @@ export async function updateSession(request: NextRequest) {
     console.error("[proxy] getClaims failed, treating as unauthenticated:", error);
     return null;
   });
-  const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
+  const isPublicPath =
+    PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path)) ||
+    isSharePreviewRequest(request.nextUrl.pathname, request.headers.get("user-agent"));
 
   if (!claims?.data?.claims && !isPublicPath) {
     const redirectUrl = new URL("/login", request.url);
