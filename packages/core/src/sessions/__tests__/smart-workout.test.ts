@@ -156,6 +156,24 @@ describe("planSmartWorkout", () => {
     expect(plan.picks.map((pick) => pick.exerciseId)).toEqual(["squat", "curl"]);
   });
 
+  it("fills what an in-progress workout is missing, without repeating its exercises", () => {
+    const plan = planSmartWorkout({
+      now: NOW,
+      sets: [],
+      exercises: [
+        exercise("squat", ["quadriceps"]),
+        exercise("leg-press", ["quadriceps"]),
+        exercise("bench", ["chest"]),
+      ],
+      usage: new Map(),
+      exerciseCount: 2,
+      alreadyPickedIds: ["squat"],
+    });
+    // Quads already have the squat's sets, so chest comes first, and the
+    // squat itself is never suggested again.
+    expect(plan.picks.map((pick) => pick.exerciseId)).toEqual(["bench", "leg-press"]);
+  });
+
   it("returns what it can when the catalog is small", () => {
     const plan = planSmartWorkout({
       now: NOW,
