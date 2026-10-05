@@ -23,6 +23,7 @@ import {
 import { dprCallFor } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
+import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -76,6 +77,8 @@ function plannedSetCountFor(
 export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Issue #226: an ad hoc workout's Add exercise menu suggests a few lifts.
+  const [suggestedExerciseIds, setSuggestedExerciseIds] = useState<string[]>([]);
   // The exercise whose ⋯ Replace Exercise opened the picker (issue #271).
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // The exercise whose Create/Edit Superset card is open (issue #360).
@@ -463,6 +466,14 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   const excludeExerciseIds = new Set(sessionExercises.map((se) => se.exerciseId));
 
+  function openPicker() {
+    setSuggestedExerciseIds([]);
+    setPickerOpen(true);
+    // Only ad hoc workouts: a routine already says what to do.
+    if (session?.routineId) return;
+    void suggestExercisesFromDb(userId, [...excludeExerciseIds]).then(setSuggestedExerciseIds);
+  }
+
   function hasLogged(itemId: string) {
     return (setCompletedAtBySessionExerciseId.get(itemId)?.length ?? 0) > 0;
   }
@@ -679,7 +690,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
       <button
         type="button"
-        onClick={() => setPickerOpen(true)}
+        onClick={openPicker}
         className="min-h-11 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
       >
         Add exercise
@@ -709,6 +720,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         <ExercisePicker
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
+          suggestedExerciseIds={suggestedExerciseIds}
           onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
         />

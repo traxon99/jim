@@ -2,7 +2,7 @@ import { uuidv7 } from "@jim/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type ExerciseRow, type JimDatabase, createTestDb } from "../../db/schema";
 import { completeSet } from "../set-actions";
-import { SMART_WORKOUT_NAME, startSmartSession } from "../smart-workout";
+import { SMART_WORKOUT_NAME, startSmartSession, suggestExercisesFromDb } from "../smart-workout";
 import { startEmptySession } from "../start-session";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
@@ -126,5 +126,20 @@ describe("startSmartSession", () => {
       bench.id,
       row.id,
     ]);
+  });
+});
+
+describe("suggestExercisesFromDb", () => {
+  it("suggests strength exercises the workout doesn't already have", async () => {
+    const bench = exercise("bench", ["chest"]);
+    const squat = exercise("squat", ["quadriceps"]);
+    const row = exercise("row", ["middle back"]);
+    const stretch = exercise("warmup-stretch", ["hamstrings"], { category: "warmup" });
+    await testDb.exercises.bulkPut([bench, squat, row, stretch]);
+
+    const suggested = await suggestExercisesFromDb(USER_ID, [bench.id], testDb);
+
+    // Bench is already in the workout and warm-ups aren't suggested.
+    expect(suggested.sort()).toEqual([squat.id, row.id].sort());
   });
 });
