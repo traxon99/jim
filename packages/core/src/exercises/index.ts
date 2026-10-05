@@ -6,3 +6,5 @@ export * from "./copy-on-write";
 export * from "./muscles";
 export * from "./slugify";
 export * from "./usage";
+export * from "./demo-video";
+export * from "./body-map";

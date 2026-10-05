@@ -38,6 +38,7 @@ function exercise(
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
