@@ -24,6 +24,7 @@ import { Layers } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { ProgramProgress } from "./program-progress";
 import { ProgramRoutineRow as ProgramRoutineRowItem } from "./program-routine-row";
 
 export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
@@ -206,6 +207,11 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
           Edit
         </Link>
       </div>
+
+      <ProgramProgress
+        routineIds={items.flatMap((item) => (item.routineId ? [item.routineId] : []))}
+        since={program.activatedAt ?? program.createdAt}
+      />
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         {weekly
