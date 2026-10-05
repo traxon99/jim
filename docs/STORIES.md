@@ -192,7 +192,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - Streamable HTTP transport, OAuth 2.1 via the SDK's `authProvider`
 - Personal access tokens (Settings → Connect Claude) for clients without OAuth, hashed at rest (#246)
 - User-scoped token under RLS — **no service-role key** (ADR-006)
-- Read tools: `list_workouts`, `get_workout`, `exercise_history`, `get_prs`, `volume_report`, `search_exercises`, `list_routines`, `get_routine` (#370)
+- Read tools: `list_workouts`, `get_workout`, `exercise_history`, `get_prs`, `volume_report`, `weekly_summary` (#409), `search_exercises`, `list_routines`, `get_routine` (#370)
 - Write tools: `create_routine`, `update_routine`, `schedule_workout`, `log_past_workout`, `upsert_exercise`, `merge_exercises`
 - Every write tool accepts `dry_run` to preview without writing; `merge_exercises` previews by default (#245)
 - All computation via `packages/core`, so MCP numbers and phone numbers cannot drift
