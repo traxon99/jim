@@ -55,6 +55,7 @@ function routineItem(
     targetRestSeconds: rest,
     targetDurationSeconds: null,
     targetWeight: null,
+    progressionRule: null,
     notes: null,
     updatedAt: T0,
     deviceId: "d",

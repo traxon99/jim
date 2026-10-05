@@ -204,6 +204,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         targetRestSeconds: null,
         targetDurationSeconds: null,
         targetWeight: null,
+        progressionRule: null,
         notes: null,
         updatedAt: now,
         deviceId,
@@ -472,6 +473,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                   exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                   warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                   units={settings.units}
+                  dprFocused={dprContext?.lifts.has(item.exerciseId) ?? false}
                   onUpdate={(patch) => handleUpdateItem(item, patch)}
                 />
               ))}

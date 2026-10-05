@@ -1,6 +1,6 @@
 {
-  "id": "eb2759fd-3cb7-446d-a456-540af232d372",
-  "prevId": "4d9ef043-dbf3-4c18-a0bc-16e348fabe2b",
+  "id": "acd111a0-a7ed-4050-97df-5be8f4e5e9f0",
+  "prevId": "eb2759fd-3cb7-446d-a456-540af232d372",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -36,7 +36,7 @@
         },
         "unit": {
           "name": "unit",
-          "type": "units",
+          "type": "measurement_unit",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -3276,6 +3276,11 @@
       "name": "level",
       "schema": "public",
       "values": ["beginner", "intermediate", "expert"]
+    },
+    "public.measurement_unit": {
+      "name": "measurement_unit",
+      "schema": "public",
+      "values": ["lb", "kg", "in", "cm", "pct"]
     },
     "public.mechanic": {
       "name": "mechanic",

@@ -236,8 +236,15 @@
     {
       "idx": 33,
       "version": "7",
-      "when": 1791232834220,
-      "tag": "0033_add_measurement_units",
+      "when": 1791232877562,
+      "tag": "0033_add_progression_rule",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791233374117,
+      "tag": "0034_add_measurement_units",
       "breakpoints": true
     }
   ]

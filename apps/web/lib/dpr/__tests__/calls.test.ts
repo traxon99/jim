@@ -190,6 +190,19 @@ describe("in-session DPR (issue #212)", () => {
     expect(dprWeightPlaceholder(info, "warmup")).toBeNull();
   });
 
+  it("gives no DPR call to a lift the routine gives a custom rule (issue #255)", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await context();
+    if (!ctx) throw new Error("expected a DPR context");
+
+    const withRule = {
+      ...target(BENCH, 0),
+      progressionRule: { type: "linear" as const, increment: 5 },
+    };
+    expect(dprCallFor(ctx, BENCH, withRule)).toBeNull();
+    expect(dprCallsForRoutine(ctx, [withRule])).toEqual([]);
+  });
+
   it("ramps the working sets up to DPR's weight as the top set (issue #385)", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();

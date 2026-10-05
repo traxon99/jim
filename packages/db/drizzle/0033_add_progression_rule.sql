@@ -1,0 +1,1 @@
+ALTER TABLE "routine_exercises" ADD COLUMN "progression_rule" jsonb;

@@ -1,4 +1,4 @@
-import { MEASUREMENT_KINDS } from "@jim/core";
+import { MEASUREMENT_KINDS, PROGRESSION_TYPES } from "@jim/core";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { UserContext } from "./context.js";
@@ -41,6 +41,42 @@ function dryRunParam(defaultValue: boolean) {
 
 const PREVIEW_HINT = " Preview with dry_run: true before committing.";
 
+const repSchemeSchema = z.object({
+  sets: z.number().int().positive(),
+  reps: z.number().int().positive(),
+});
+
+const progressionRuleSchema = z.object({
+  type: z
+    .enum(PROGRESSION_TYPES)
+    .describe(
+      "linear: hit the target reps on every set, then add `increment`. double: work up to the top of the rep range on every set, then add `increment` and restart at the bottom. reps_sum: add `increment` once the working sets' reps total `repsSumTarget`.",
+    ),
+  increment: z.number().positive().describe("Weight added after a success, in the user's units"),
+  stages: z
+    .array(repSchemeSchema)
+    .min(1)
+    .optional()
+    .describe(
+      "linear only: rep schemes to step through on a failed session at the same weight, e.g. GZCLP T1 [5×3, 6×2, 10×1]. Failing the last one counts toward the deload, which returns to the first.",
+    ),
+  repsSumTarget: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "reps_sum only: total reps to go up, e.g. 55 for GZCLP T3's 3×15+ (25 on the last set). Default sets × top of the rep range.",
+    ),
+  deload: z
+    .object({
+      afterFailures: z.number().int().positive(),
+      pct: z.number().positive().lt(1).describe("Fraction to drop, e.g. 0.15"),
+    })
+    .optional()
+    .describe("After this many failed sessions in a row, drop the weight by pct"),
+});
+
 const routineExerciseSchema = z.object({
   exercise: z.string().describe("Exercise name or id"),
   targetSets: z.number().int().positive().optional(),
@@ -55,6 +91,12 @@ const routineExerciseSchema = z.object({
     .describe("Starting weight, in the user's units"),
   supersetGroup: z.number().int().optional(),
   notes: z.string().optional(),
+  progression: progressionRuleSchema
+    .nullable()
+    .optional()
+    .describe(
+      "Custom progression rule for this exercise (issue #255); omit or null for none. A lift can't have both a rule and DPR focus: setting a rule on a DPR-focused lift fails.",
+    ),
 });
 
 /**
@@ -193,7 +235,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Get routine",
       description:
-        "Read-only. One routine's template: its exercises in order with target sets, reps, rest, duration, weight, superset group and notes. The exercises list is in the shape update_routine accepts, so it can be edited and passed straight back.",
+        "Read-only. One routine's template: its exercises in order with target sets, reps, rest, duration, weight, superset group, notes and any custom progression rule. The exercises list is in the shape update_routine accepts, so it can be edited and passed straight back.",
       inputSchema: {
         routine: z.string().describe("Routine id, or its exact name (case-insensitive)"),
       },

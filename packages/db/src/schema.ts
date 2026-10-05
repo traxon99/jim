@@ -1,6 +1,7 @@
 import {
   MUSCLES,
   POST_KINDS,
+  type ProgressionRule,
   REACTION_KINDS,
   ROUTINE_ICON_COLORS,
   ROUTINE_ICON_SHAPES,
@@ -378,6 +379,10 @@ export const routineExercises = pgTable(
     // auto-increment that once built on it was replaced by DPR (issue #217,
     // docs/DECISIONS.md ADR-016).
     targetWeight: numeric("target_weight", { precision: 7, scale: 2 }),
+    // A custom progression rule (issue #255), @jim/core's ProgressionRule;
+    // null = DPR or plain "last time" prefill. Parse with
+    // `parseProgressionRule` — rows from older clients may lack it.
+    progressionRule: jsonb("progression_rule").$type<ProgressionRule>(),
     notes: text("notes"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
