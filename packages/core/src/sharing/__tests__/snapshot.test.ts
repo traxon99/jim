@@ -162,6 +162,28 @@ describe("parseShareSnapshot", () => {
     expect(parseShareSnapshot(JSON.parse(JSON.stringify(snapshot)))).toEqual(snapshot);
   });
 
+  it("accepts any target the routine editor saves, however big", () => {
+    // Jackson's "Torture" routine: a 900-minute warm-up, 100 sets of 90-100
+    // reps and an hour of cardio were refused as an "Invalid share".
+    const torture = buildRoutineShare("torture", {
+      ...source,
+      routines: [routine("torture", { warmupMinutes: 900 })],
+      routineExercises: [
+        item("torture", "squat", 0, { targetSets: 100, targetRepsLow: 90, targetRepsHigh: 100 }),
+        item("torture", "bench", 1, {
+          targetSets: 999,
+          targetRepsLow: 5000,
+          targetRepsHigh: 5000,
+          targetRestSeconds: 7200,
+          targetDurationSeconds: 100_000,
+          supersetGroup: 2000,
+        }),
+      ],
+    });
+    expect(torture).not.toBeNull();
+    expect(parseShareSnapshot(JSON.parse(JSON.stringify(torture)))).toEqual(torture);
+  });
+
   it("rejects out-of-range references and bad values", () => {
     const bad = (patch: (copy: ShareSnapshot) => void) => {
       const copy: ShareSnapshot = JSON.parse(JSON.stringify(snapshot));
