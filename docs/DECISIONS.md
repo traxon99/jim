@@ -428,3 +428,65 @@ functions are the only way to change it. They're executable by `authenticated` o
 would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
 server, the portal) silently merges someone else's training into yours.
 
+
+---
+
+## ADR-018 — Coach / client mode: no-go for now
+
+**Status:** Accepted (no-go) · 2026-10-05
+
+**Context.** Issue #256 asks whether Jim should let a coach program for a client and watch their
+logs, as Hevy Coach and Boostcamp do. The proposed shape: a coach relationship table whose policies
+let the coach read the client's sessions and write their routines and programs; the coach works from
+`/portal` or MCP; the client's phone is unchanged and the live session stays phone-only (ADR-007);
+the client owns consent and revocation.
+
+**Finding: it's feasible, and smaller than it looks.** The plumbing mostly exists.
+
+- **Reads** would follow ADR-017, not RLS. The syncable tables must keep their own-rows-only
+  policies, because `/api/sync/pull` selects them with no `user_id` filter: a coach-readable policy
+  on `sessions`/`sets` would copy every client's training into the coach's IndexedDB. A
+  `SECURITY DEFINER` `coach_client_workouts(client_id)` that checks an active relationship, like
+  `friend_workouts`, avoids that, and the portal already renders server data (ADR-015).
+- **Writes** need no new sync path. MCP's `create_routine`/`update_routine` already write routines
+  into the user's own rows with a fresh `server_seq` and `device_id = 'mcp-server'`, and the phone
+  picks them up on its next pull. A coach write is the same insert with `user_id` set to the client,
+  done by a definer function (`coach_upsert_routine`, `coach_assign_program`) that checks the
+  relationship and only touches `routines`, `routine_exercises`, `programs` and `program_routines`.
+- **Consent.** A `coach_clients` table (`coach_id`, `client_id`, `status`, `created_at`,
+  `revoked_at`), readable by both users with no write policies, changed only through
+  `invite_coach` / `accept_coach` / `revoke_coach`, where only the client can accept or revoke.
+  Revocation takes effect on the coach's next call because every function re-checks it.
+
+**What makes it more than a migration.** Each of these is solvable, but together they are real work
+and real risk for a feature nobody uses yet:
+
+- **It's the first cross-user write.** Everything shared so far (friends, reactions, posts) is a read
+  or a write to your own rows. A coach writing into a client's account is the first path where a bug
+  edits someone else's data, which is the failure ADR-005 exists to prevent.
+- **Last-write-wins between two people.** Routines are LWW on `(updated_at, device_id)` because it's
+  "one person, one phone" (ARCHITECTURE §3). A coach editing a routine while the client tweaks it on
+  the phone silently drops one side. Coach-owned routines would need to be read-only on the phone, or
+  copied rather than shared, which is UI work on the phone the issue wanted to avoid.
+- **Exercise visibility.** A coach's custom exercise has `owner_id = coach`, so it's invisible to the
+  client under ADR-008's policies and a routine pointing at it breaks on the phone. Coach routines
+  would be limited to seed exercises, or the function would have to copy exercises into the client.
+- **MCP identity.** A personal access token resolves to one user (ADR-006). A coach acting for
+  several clients needs a `client` argument on every write tool, checked server-side, plus a way to
+  see which account an agent just changed.
+- **Product.** Coach discovery, invites, a client list in the portal, and what the client sees when a
+  routine changes under them. Hevy charges $25+/mo for this because it's a product of its own.
+
+**Decision.** No-go. Jim stays a personal app. Nothing is built for coaching, and no schema is added
+speculatively. The design above is the plan of record if it's revisited.
+
+**Revisit when** a real coach/client pair wants to use Jim, or when Jim gains a second cross-user
+write for another reason (that feature would pay for the relationship-checked definer pattern, the
+read-only-routine UI and the MCP `client` argument).
+
+**Rejected: coach-aware RLS on the syncable tables.** Fewer functions, but it has ADR-017's flaw:
+every pull, portal query and MCP read would need an explicit `user_id = me` filter, and missing one
+merges a client's training into the coach's history.
+
+**Rejected: building it now as a go.** The plumbing makes the first demo cheap, but the cost is in
+the parts above, which a single-user app would carry and test with no one exercising them.
