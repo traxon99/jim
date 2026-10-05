@@ -143,6 +143,12 @@ export interface AchievementInput {
   bodyweight: number | null;
   /** Null skips strength-standard milestones (the profile isn't filled in). */
   strengthProfile: StrengthProfile | null;
+  /**
+   * The bodyweight (in `units`) that applied on a date, from the weigh-in
+   * history (issue #247). Badges judge each lift against it; without it, or
+   * where it returns null, they fall back to the current bodyweight.
+   */
+  bodyweightOn?: (date: Date) => number | null;
   strengthRecords: readonly AchievementStrengthRecord[];
 }
 
@@ -282,9 +288,17 @@ export function deriveAchievements(input: AchievementInput): Achievement[] {
     });
   }
 
+  const bodyweightOn = (date: Date, fallback: number): number => {
+    const dated = input.bodyweightOn?.(date);
+    return dated != null && Number.isFinite(dated) && dated > 0 ? dated : fallback;
+  };
+
   if (input.bodyweight != null && input.bodyweight > 0) {
+    const current = input.bodyweight;
     for (const multiple of BODYWEIGHT_MULTIPLES) {
-      const set = firstSet(sets, liftedAtLeast(input.bodyweight * multiple));
+      const set = firstSet(sets, (candidate) =>
+        liftedAtLeast(bodyweightOn(candidate.completedAt, current) * multiple)(candidate),
+      );
       achievements.push({
         id: `bodyweight-${multiple}`,
         category: "bodyweight",
@@ -303,7 +317,10 @@ export function deriveAchievements(input: AchievementInput): Achievement[] {
   if (input.strengthProfile) {
     const profile = input.strengthProfile;
     const records = byTime(input.strengthRecords, (record) => record.achievedAt).map((record) => {
-      const tier = tierForOneRepMax(record.lift, record.oneRepMax, profile);
+      const tier = tierForOneRepMax(record.lift, record.oneRepMax, {
+        ...profile,
+        bodyweight: bodyweightOn(record.achievedAt, profile.bodyweight),
+      });
       return { record, tierIndex: tier ? STRENGTH_STANDARD_TIERS.indexOf(tier) : -1 };
     });
     STRENGTH_STANDARD_TIERS.forEach((tier, index) => {

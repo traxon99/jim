@@ -191,7 +191,9 @@ preferring the user-owned row where a clone exists. This belongs in one shared q
 **Rationale.** A PWA has no HealthKit access. None. The only available route is manually exporting
 Health data as XML and importing the file, which is periodic and manual rather than live. Recorded
 here so the question is answered once rather than revisited each time bodyweight tracking comes up.
-An Apple Health XML importer sits in the backlog as the honest version of this feature.
+An Apple Health XML importer is the honest version of this feature: Profile → Bodyweight reads the
+Health app's `export.zip` (issue #247), streaming `export.xml` out of the zip so a large export
+never sits in memory whole.
 
 ---
 

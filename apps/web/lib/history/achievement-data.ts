@@ -1,4 +1,6 @@
+import { bodyweightOnDate, bodyweightSeries } from "@/lib/bodyweight/series";
 import type {
+  BodyMeasurementRow,
   ExerciseRow,
   PersonalRecordRow,
   ProgramRoutineRow,
@@ -32,6 +34,8 @@ export interface AchievementTables {
   personalRecords: readonly PersonalRecordRow[];
   programs: readonly ProgramRow[];
   programRoutines: readonly ProgramRoutineRow[];
+  /** Weigh-in history, so badges use the bodyweight on each lift's date (issue #247). */
+  bodyMeasurements?: readonly BodyMeasurementRow[];
 }
 
 export interface AchievementData {
@@ -105,6 +109,7 @@ export function buildAchievementData(
     units: settings.units,
     bodyweight: bodyweight != null && Number.isFinite(bodyweight) ? bodyweight : null,
     strengthProfile: strengthProfileFromSettings(settings, now),
+    bodyweightOn: bodyweightOnDate(bodyweightSeries(tables.bodyMeasurements ?? [], settings.units)),
     strengthRecords,
   });
 

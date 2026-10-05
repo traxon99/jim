@@ -16,6 +16,7 @@ export function useAchievements(): AchievementData | undefined {
       personalRecords,
       programs,
       programRoutines,
+      bodyMeasurements,
       settings,
     ] = await Promise.all([
       db.sessions.toArray(),
@@ -25,10 +26,20 @@ export function useAchievements(): AchievementData | undefined {
       db.personalRecords.toArray(),
       db.programs.toArray(),
       db.programRoutines.toArray(),
+      db.bodyMeasurements.toArray(),
       db.settings.get("me"),
     ]);
     return buildAchievementData(
-      { sessions, sessionExercises, exercises, sets, personalRecords, programs, programRoutines },
+      {
+        sessions,
+        sessionExercises,
+        exercises,
+        sets,
+        personalRecords,
+        programs,
+        programRoutines,
+        bodyMeasurements,
+      },
       settings ?? DEFAULT_SETTINGS,
       new Date(),
     );
