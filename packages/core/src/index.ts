@@ -6,6 +6,7 @@ export * from "./explore";
 export * from "./history";
 export * from "./one-rep-max";
 export * from "./programs";
+export * from "./progression";
 export * from "./routines";
 export * from "./sessions";
 export * from "./sharing";

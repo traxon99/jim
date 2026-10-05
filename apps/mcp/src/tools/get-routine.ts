@@ -1,3 +1,4 @@
+import { parseProgressionRule } from "@jim/core";
 import { exercises, routineExercises, routines } from "@jim/db";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
@@ -81,6 +82,8 @@ export async function getRoutine(context: UserContext, input: GetRoutineInput) {
         if (item.targetWeight != null) entry.targetWeight = Number(item.targetWeight);
         if (item.supersetGroup != null) entry.supersetGroup = item.supersetGroup;
         if (item.notes != null) entry.notes = item.notes;
+        const progression = parseProgressionRule(item.progressionRule);
+        if (progression) entry.progression = progression;
         return entry;
       }),
     };

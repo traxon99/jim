@@ -95,6 +95,7 @@ function item(
     targetDurationSeconds: null,
     targetWeight: "100.00",
     notes: null,
+    progressionRule: null,
     deletedAt: null,
     ...stamp,
     ...overrides,
@@ -115,7 +116,7 @@ async function seedSharer() {
   await sharerDb.routineExercises.bulkPut([
     item("i1", "r-push", "c-sled", 1, { notes: "Heavy" }),
     item("i2", "r-push", "g-bench", 0, { supersetGroup: 1 }),
-    item("i3", "r-pull", "g-row", 0),
+    item("i3", "r-pull", "g-row", 0, { progressionRule: { type: "linear", increment: 5 } }),
     item("i4", "r-warm", "g-row", 0, { targetWeight: null }),
   ]);
   await sharerDb.programs.put({
@@ -276,6 +277,7 @@ describe("share links on the phone (issue #254)", () => {
       .equals(added.routineId)
       .toArray();
     expect(row?.targetWeight).toBe("45");
+    expect(row?.progressionRule).toMatchObject({ type: "linear", increment: 2.5 });
   });
 });
 

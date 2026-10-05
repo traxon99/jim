@@ -15,6 +15,7 @@ import {
   type ShareSource,
   buildProgramShare,
   buildRoutineShare,
+  convertShareRule,
   convertShareWeight,
   matchShareExercises,
   uuidv7,
@@ -154,6 +155,7 @@ export async function addSharedSnapshot(
         targetDurationSeconds: item.targetDurationSeconds,
         targetWeight: weight === null ? null : String(weight),
         notes: item.notes,
+        progressionRule: convertShareRule(item.progressionRule, snapshot.units, settings.units),
         deletedAt: null,
         ...stamp,
       };

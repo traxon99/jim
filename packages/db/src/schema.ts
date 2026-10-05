@@ -1,6 +1,7 @@
 import {
   MUSCLES,
   POST_KINDS,
+  type ProgressionRule,
   REACTION_KINDS,
   ROUTINE_ICON_COLORS,
   ROUTINE_ICON_SHAPES,
@@ -380,6 +381,10 @@ export const routineExercises = pgTable(
     // auto-increment that once built on it was replaced by DPR (issue #217,
     // docs/DECISIONS.md ADR-016).
     targetWeight: numeric("target_weight", { precision: 7, scale: 2 }),
+    // A custom progression rule (issue #255), @jim/core's ProgressionRule;
+    // null = DPR or plain "last time" prefill. Parse with
+    // `parseProgressionRule` — rows from older clients may lack it.
+    progressionRule: jsonb("progression_rule").$type<ProgressionRule>(),
     notes: text("notes"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
@@ -937,7 +942,7 @@ export const posts = pgTable(
 // random v4 uuid, so links can't be guessed or listed. The sharer reads and
 // deletes (revokes) their own links under RLS; there's no update policy, so
 // a snapshot never changes once written. Anyone else reads one only through
-// migration 0034's SECURITY DEFINER function, by its id, and gets the
+// migration 0035's SECURITY DEFINER function, by its id, and gets the
 // snapshot and the sharer's username, nothing more. Not synced to the phone.
 // ---------------------------------------------------------------------------
 

@@ -7,6 +7,7 @@ import {
   type ShareSourceRoutineItem,
   buildProgramShare,
   buildRoutineShare,
+  convertShareRule,
   convertShareWeight,
   matchShareExercises,
   parseShareSnapshot,
@@ -178,6 +179,12 @@ describe("parseShareSnapshot", () => {
     ).toBeNull();
     expect(
       bad((c) => {
+        const first = c.routines[0]?.items[0];
+        if (first) Object.assign(first, { progressionRule: { type: "linear", increment: -5 } });
+      }),
+    ).toBeNull();
+    expect(
+      bad((c) => {
         const first = c.exercises[0];
         if (first) Object.assign(first, { primaryMuscles: ["spleen"] });
       }),
@@ -250,5 +257,15 @@ describe("convertShareWeight", () => {
     expect(convertShareWeight(null, "lb", "kg")).toBeNull();
     expect(convertShareWeight(135, "lb", "kg")).toBe(60);
     expect(convertShareWeight(100, "kg", "lb")).toBe(220);
+  });
+});
+
+describe("convertShareRule", () => {
+  it("moves the increment onto a loadable step in the new units", () => {
+    const rule = { type: "linear" as const, increment: 5 };
+    expect(convertShareRule(rule, "lb", "lb")).toBe(rule);
+    expect(convertShareRule(null, "lb", "kg")).toBeNull();
+    expect(convertShareRule(rule, "lb", "kg")?.increment).toBe(2.5);
+    expect(convertShareRule({ ...rule, increment: 2.5 }, "kg", "lb")?.increment).toBe(5);
   });
 });

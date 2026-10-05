@@ -86,6 +86,7 @@ function routineExercise(exerciseId: string, position: number): RoutineExerciseR
     targetRestSeconds: 120,
     targetDurationSeconds: null,
     targetWeight: null,
+    progressionRule: null,
     notes: null,
     updatedAt: LONG_AGO,
     deviceId: "device-a",

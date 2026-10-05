@@ -1,4 +1,5 @@
 import { MUSCLES, type Muscle } from "../exercises/muscles";
+import { type ProgressionRule, parseProgressionRule } from "../progression/rules";
 import {
   ROUTINE_ICON_COLORS,
   ROUTINE_ICON_SHAPES,
@@ -81,6 +82,8 @@ export interface SharedRoutineItem {
   /** In the snapshot's `units`. */
   targetWeight: number | null;
   notes: string | null;
+  /** Its increments are in the snapshot's `units` too. */
+  progressionRule: ProgressionRule | null;
 }
 
 export interface SharedRoutine {
@@ -161,6 +164,7 @@ export interface ShareSourceRoutineItem {
   targetDurationSeconds: number | null;
   targetWeight: string | number | null;
   notes: string | null;
+  progressionRule?: unknown;
   deletedAt: Date | null;
 }
 
@@ -266,6 +270,7 @@ class SnapshotBuilder {
         targetDurationSeconds: item.targetDurationSeconds,
         targetWeight: weight != null && Number.isFinite(weight) ? weight : null,
         notes: blankToNull(item.notes),
+        progressionRule: parseProgressionRule(item.progressionRule),
       });
     }
 
@@ -414,6 +419,8 @@ function parseItem(value: unknown, exerciseCount: number): SharedRoutineItem {
     targetDurationSeconds: maybeInt(raw.targetDurationSeconds, 0, 86400),
     targetWeight: maybeWeight(raw.targetWeight),
     notes: maybeText(raw.notes, SHARE_LIMITS.notes),
+    progressionRule:
+      raw.progressionRule == null ? null : (parseProgressionRule(raw.progressionRule) ?? fail()),
   };
 }
 
@@ -553,4 +560,21 @@ export function convertShareWeight(weight: number | null, from: Units, to: Units
   if (weight == null || from === to) return weight;
   if (to === "kg") return Math.round(weight / LB_PER_KG / 2.5) * 2.5;
   return Math.round((weight * LB_PER_KG) / 5) * 5;
+}
+
+/**
+ * A progression rule in the recipient's units: its weight increment lands
+ * on a 2.5 lb or 1.25 kg step (one pair of the smallest common plates).
+ */
+export function convertShareRule(
+  rule: ProgressionRule | null,
+  from: Units,
+  to: Units,
+): ProgressionRule | null {
+  if (rule == null || from === to) return rule;
+  const increment =
+    to === "kg"
+      ? Math.max(1.25, Math.round(rule.increment / LB_PER_KG / 1.25) * 1.25)
+      : Math.max(2.5, Math.round((rule.increment * LB_PER_KG) / 2.5) * 2.5);
+  return { ...rule, increment };
 }

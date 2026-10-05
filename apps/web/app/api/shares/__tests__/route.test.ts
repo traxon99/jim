@@ -61,6 +61,7 @@ const snapshot: ShareSnapshot = {
           targetDurationSeconds: null,
           targetWeight: 135,
           notes: null,
+          progressionRule: null,
         },
       ],
     },

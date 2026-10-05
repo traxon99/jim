@@ -22,6 +22,8 @@ import {
 } from "@/lib/db/schema";
 import { dprCallFor } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { ruleCallFor, ruleOf } from "@/lib/progression/calls";
+import { useRuleSnapshot } from "@/lib/progression/use-rule-snapshot";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
@@ -161,6 +163,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
     return map;
   }, [rawRoutineExercises]);
+  const hasRules = useMemo(
+    () => [...targetByExerciseId.values()].some((item) => ruleOf(item) !== null),
+    [targetByExerciseId],
+  );
+  const ruleSnapshot = useRuleSnapshot(hasRules, dprContext?.snapshot ?? null);
 
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
   const idsKey = sessionExerciseIds.join(",");
@@ -508,6 +515,17 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         settings={settings}
         dpr={
           dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
+        }
+        rule={
+          ruleSnapshot
+            ? ruleCallFor({
+                snapshot: ruleSnapshot,
+                exerciseId: item.exerciseId,
+                target,
+                exercise,
+                settings,
+              })
+            : null
         }
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}

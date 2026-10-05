@@ -191,7 +191,9 @@ preferring the user-owned row where a clone exists. This belongs in one shared q
 **Rationale.** A PWA has no HealthKit access. None. The only available route is manually exporting
 Health data as XML and importing the file, which is periodic and manual rather than live. Recorded
 here so the question is answered once rather than revisited each time bodyweight tracking comes up.
-An Apple Health XML importer sits in the backlog as the honest version of this feature.
+An Apple Health XML importer is the honest version of this feature: Profile → Bodyweight reads the
+Health app's `export.zip` (issue #247), streaming `export.xml` out of the zip so a large export
+never sits in memory whole.
 
 ---
 
@@ -365,7 +367,7 @@ happened in the gym: a missed week, a grinder at RPE 10 or a layoff all left it 
 (DPR, epic #207) makes the same call from what was actually logged: reps against the routine's
 range, RPE, the current weight and time off.
 
-**Decision.** DPR is the only automatic progression. The weekly increment's UI, the `@jim/core`
+**Decision.** DPR is the only automatic progression (custom per-exercise rules came later, one system per lift: ADR-019). The weekly increment's UI, the `@jim/core`
 `weekly-progression` module and the two `routine_exercises` columns are removed (migration 0019).
 `targetWeight` stays as the starting weight for an exercise with no history. DPR is opt-in and
 covers up to 5 focused lifts. Every other lift keeps the plain "last time" prefill, falling back to
@@ -490,3 +492,35 @@ merges a client's training into the coach's history.
 
 **Rejected: building it now as a go.** The plumbing makes the first demo cheap, but the cost is in
 the parts above, which a single-user app would carry and test with no one exercising them.
+
+---
+
+## ADR-019 — Custom progression rules are a second system, one per lift
+
+**Status:** Accepted · 2026-10-05
+
+**Context.** DPR (ADR-016) has three presets and decides from RPE. Programs like GZCLP, 5/3/1 or a
+plain double progression spell out their own rules: add X after a success, change the rep scheme
+after a miss, drop Y% after N misses. Rewriting routines over MCP covered some of that, but not for
+users without an MCP client (issue #255).
+
+**Decision.** A routine exercise can carry a structured rule in `routine_exercises.progression_rule`
+(jsonb, migration 0032): `linear` (optionally stepping through rep schemes on a miss, like GZCLP's
+5×3 → 6×2 → 10×1), `double` (reps up the routine's range, then weight) or `reps_sum` (weight once the
+working sets' reps reach a total, like GZCLP T3's 3×15+), each with an optional "after N misses,
+drop Y%" deload. No scripting language: these options cover the common programs.
+
+- **Derived, like DPR.** Only the rule is stored. `decideProgression` in `@jim/core` replays the
+  exercise's history oldest first against what the rule asked for, so logging stays append-only
+  and the call is a suggestion the lifter can type over. A weight other than the one asked for
+  becomes the new starting point. Light sessions don't count. No RPE is needed.
+- **One automatic system per lift.** ADR-016's reason for removing the weekly increment still
+  holds, so a lift never gets both calls. The routine editor and MCP refuse a rule on a lift that
+  DPR is focusing on. If both happen anyway (edits on two offline devices), the rule wins and
+  `dprCallFor` returns null for that lift (`progressionSystemFor`).
+- **Per routine exercise, not per lift.** A lift that's T1 on one day and T2 on another can have a
+  different rule in each routine. The replay reads every session of the exercise, whatever routine
+  it came from.
+
+**Rejected: a Liftoscript-style language.** It would be more expressive, but it's hard to edit on a
+phone and hard to check, and the structured options already express the programs people asked for.

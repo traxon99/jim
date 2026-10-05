@@ -6,7 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 // One share link by its id (issue #254): opened by anyone signed in through
-// migration 0034's SECURITY DEFINER function, revoked by its sharer under RLS.
+// migration 0035's SECURITY DEFINER function, revoked by its sharer under RLS.
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
