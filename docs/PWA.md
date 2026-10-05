@@ -117,8 +117,9 @@ An `absolute` popup anchored near the edge of the screen extends past the viewpo
 scroll container's bounds (#167, #168). The pattern now:
 
 - **Open away from the nearest edge.** `SetKindMenu` sits at the left of the row and anchors
-  `left-0`. `RpeInfoMenu` and the ⋯ `ExerciseActionsMenu` sit near the right and anchor
-  `right-0`, so they open leftward (#183, #184, #269).
+  `left-0`. the ⋯ `ExerciseActionsMenu` sits near the right and anchors
+  `right-0`, so it opens leftward (#184, #269). `RpeInfoMenu` was cut off on the left that way,
+  so it's now a centered `FloatingCard` (#410).
 - **Cap its size to the viewport:** `max-w-[calc(100vw-2rem)]`, plus
   `max-h-[calc(100vh-2rem)] overflow-y-auto` if it can be tall.
 - A `fixed`, viewport-centered overlay with a backdrop can never affect scroll bounds, so use one
@@ -144,7 +145,7 @@ The current scale:
 
 | z | What |
 |---|---|
-| `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `RpeInfoMenu`, `ExerciseActionsMenu` |
+| `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `ExerciseActionsMenu` |
 | `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together), `FloatingCard` (portaled to `<body>`) |
 | `z-50` | Boot `LoadingScreen` (above everything) |
 

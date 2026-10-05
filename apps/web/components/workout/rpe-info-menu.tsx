@@ -1,7 +1,9 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+
+import { FloatingCard } from "../floating-card";
 
 const RPE_LEVELS = [
   { value: 10, description: "Max effort — no reps left" },
@@ -17,29 +19,13 @@ interface Props {
   titleId?: string;
 }
 
-/** RPE column title, opened into an info menu (issue #163) explaining the scale — mirrors SetKindMenu's open/close behavior but is purely informational, not a selector. Anchored to its own right edge (issue #183), not left like SetKindMenu, since RPE sits near the end of the row — opening leftward keeps the popup inside the table instead of pushing past the edge. */
+/** RPE column title, opened into an info card (issues #163, #410) explaining the scale. Purely informational, not a selector. Rendered through FloatingCard, centered over the page, since an anchored popup got clipped at the screen edge (#410). */
 export function RpeInfoMenu({ large = false, titleId }: Props) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handlePointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
+  const closeOpen = useCallback(() => setOpen(false), []);
 
   return (
-    <div ref={rootRef} className="relative inline-block text-left">
+    <div className="relative inline-block text-left">
       <button
         id={titleId}
         type="button"
@@ -59,19 +45,31 @@ export function RpeInfoMenu({ large = false, titleId }: Props) {
         />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-10 mt-1 w-64 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-md border border-zinc-200 bg-white p-3 text-left shadow-md dark:border-zinc-700 dark:bg-zinc-900">
-          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            RPE (Rate of Perceived Exertion): how hard a set felt, from 5 to 10 — higher is harder.
-          </p>
-          <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-zinc-500 dark:text-zinc-500">
-            {RPE_LEVELS.map((level) => (
-              <li key={level.value}>
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">{level.value}</span>{" "}
-                — {level.description}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <FloatingCard labelledBy="rpe-info-heading" onClose={closeOpen}>
+          {() => (
+            <div className="overflow-y-auto p-4">
+              <h2
+                id="rpe-info-heading"
+                className="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+              >
+                RPE (Rate of Perceived Exertion)
+              </h2>
+              <p className="mt-1 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                How hard a set felt, from 5 to 10 — higher is harder.
+              </p>
+              <ul className="mt-2 flex flex-col gap-1 text-xs text-zinc-500 dark:text-zinc-500">
+                {RPE_LEVELS.map((level) => (
+                  <li key={level.value}>
+                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                      {level.value}
+                    </span>{" "}
+                    — {level.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </FloatingCard>
       )}
     </div>
   );

@@ -66,6 +66,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #410 | RPE info popup was cut off on the left and unreadable | Anchored `absolute right-0` popup (#183) sat inside a narrow row, so its left side ran off-screen | Info popups from small triggers use `FloatingCard`, not an anchored `absolute` div |
 | #395 | Volume by muscle counted warm-up sets as weekly sets and volume | Only warm-up *exercises* were filtered, not warm-up sets on a working exercise | Count working sets only |
 | #387 | Routine rows painted through the DPR details card on the Workout tab | `FloatingCard` rendered inside the routine `<li>`, inside the shell scroller, so its `fixed z-20` was out-ranked | Portal overlays to `<body>` (`docs/PWA.md` §4) |
 | #381 / #382 | Warm-ups shifted Prev values and showed up as extra working sets next time | Last session's sets matched by index across kinds | Match sets by kind and position |
