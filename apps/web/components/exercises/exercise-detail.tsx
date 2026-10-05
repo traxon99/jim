@@ -1,5 +1,6 @@
 "use client";
 
+import { BodyMap } from "@/components/exercises/body-map";
 import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -7,12 +8,14 @@ import { db } from "@/lib/db/schema";
 import {
   deletedSessionExerciseIds,
   estimatedOneRepMaxSeries,
+  exerciseDemo,
+  exerciseMuscleShading,
   isWarmupExercise,
   resolveCurrentRows,
   warmupFrequency,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil } from "lucide-react";
+import { ExternalLink, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo } from "react";
@@ -139,6 +142,9 @@ export function ExerciseDetail({
     ...exercise.primaryMuscles,
     ...exercise.secondaryMuscles,
   ].filter((tag): tag is string => Boolean(tag));
+  const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
+  // Rows synced before the column existed have no videoUrl at all.
+  const demo = exerciseDemo({ name: exercise.name, videoUrl: exercise.videoUrl ?? null });
 
   return (
     <FloatingCard labelledBy={titleId} onClose={closeToList}>
@@ -177,6 +183,32 @@ export function ExerciseDetail({
                 ))}
               </div>
             )}
+
+            {hasMuscles && (
+              <section>
+                <h2 className="text-sm font-semibold">Muscles worked</h2>
+                <BodyMap
+                  shading={exerciseMuscleShading(exercise)}
+                  label={muscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles)}
+                  className="mt-2"
+                />
+                {exercise.secondaryMuscles.length > 0 && (
+                  <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-500">
+                    Darker: primary · lighter: secondary
+                  </p>
+                )}
+              </section>
+            )}
+
+            <a
+              href={demo.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+            >
+              <ExternalLink className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              {demo.custom ? "Watch demo video" : "Find a demo video"}
+            </a>
 
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -295,4 +327,17 @@ export function ExerciseDetail({
       )}
     </FloatingCard>
   );
+}
+
+/** "Works chest; also triceps and shoulders", read out for the body map. */
+function muscleSummary(primary: readonly string[], secondary: readonly string[]): string {
+  const list = (muscles: readonly string[]) =>
+    muscles.length <= 1
+      ? muscles.join("")
+      : `${muscles.slice(0, -1).join(", ")} and ${muscles[muscles.length - 1]}`;
+  const parts = [];
+  if (primary.length > 0) parts.push(`Works ${list(primary)}`);
+  if (secondary.length > 0)
+    parts.push(`${primary.length > 0 ? "also" : "Also works"} ${list(secondary)}`);
+  return parts.join("; ");
 }

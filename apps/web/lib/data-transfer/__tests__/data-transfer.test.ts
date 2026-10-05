@@ -32,6 +32,7 @@ function catalogExercise(
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(0),
     updatedAt: new Date(0),
