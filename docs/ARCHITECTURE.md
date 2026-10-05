@@ -184,6 +184,7 @@ under RLS, the same as an OAuth session.
 | `exercise_history(exercise, from?, to?)` | All sets for one exercise over time |
 | `get_prs(exercise?, kind?)` | Personal records |
 | `volume_report(group_by, from, to, goal?)` | Working-set volume by muscle, exercise or week; by muscle, weekly sets checked against the strength or hypertrophy range |
+| `weekly_summary(date?, weeks?, goal?)` | One training week (or the last few): workouts, working sets and volume, per muscle against the goal's set range, and per exercise |
 | `search_exercises(query, muscles?, equipment?)` | Catalog search |
 | `dpr_status()` | Dynamic Progression: block, each focused lift's next call, e1RM vs goal, recent decisions |
 | `list_routines(folder?, query?)` | Every routine, logged or not, with exercise count and last performed |

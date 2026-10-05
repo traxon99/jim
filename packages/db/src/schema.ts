@@ -264,6 +264,10 @@ export const exercises = pgTable(
     category: exerciseCategoryEnum("category").notNull().default("strength"),
     instructions: text("instructions").array().notNull().default(sql`ARRAY[]::text[]`),
     imageUrls: text("image_urls").array().notNull().default(sql`ARRAY[]::text[]`),
+    // A demo video link the user set (issue #252). The catalog doesn't ship
+    // any; exercises without one fall back to a YouTube search (core's
+    // exerciseDemo).
+    videoUrl: text("video_url"),
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S4): user-owned rows (custom or cloned, ADR-008) are
@@ -933,7 +937,7 @@ export const posts = pgTable(
 // random v4 uuid, so links can't be guessed or listed. The sharer reads and
 // deletes (revokes) their own links under RLS; there's no update policy, so
 // a snapshot never changes once written. Anyone else reads one only through
-// migration 0033's SECURITY DEFINER function, by its id, and gets the
+// migration 0034's SECURITY DEFINER function, by its id, and gets the
 // snapshot and the sharer's username, nothing more. Not synced to the phone.
 // ---------------------------------------------------------------------------
 

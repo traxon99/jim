@@ -104,6 +104,7 @@ export async function addSharedSnapshot(
       category: shared.category,
       instructions: shared.instructions,
       imageUrls: [],
+      videoUrl: null,
       isArchived: false,
       createdAt: now,
       ...stamp,

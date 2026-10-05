@@ -46,6 +46,7 @@ function exercise(id: string, overrides: Partial<ExerciseRow> = {}): ExerciseRow
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(),
     ...stamp,

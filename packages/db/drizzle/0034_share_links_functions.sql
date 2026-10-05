@@ -1,7 +1,7 @@
 -- Routine and program share links (issue #254). Hand-authored for the same
 -- reason as 0023, 0025 and 0031: drizzle-kit can't express functions, so
 -- don't regenerate over this file. `share_links` is readable by its sharer
--- only (0032); anyone else signed in opens a link through this function,
+-- only (0033); anyone else signed in opens a link through this function,
 -- which hands back that one snapshot and the sharer's username, nothing
 -- else of theirs. A revoked (deleted) link returns no row.
 

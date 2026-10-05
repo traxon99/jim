@@ -78,6 +78,13 @@ export interface SmartWorkoutInput {
   /** From `buildExerciseUsage` — exercises the user already does are preferred. */
   usage: ReadonlyMap<string, ExerciseUsage>;
   exerciseCount?: number;
+  /**
+   * Exercises already in the workout (issue #226: suggestions in an ad hoc
+   * workout's Add exercise menu). They're never picked again, and their sets
+   * count toward the muscles they train before anything else is chosen, so
+   * the suggestions fill what the workout is still missing.
+   */
+  alreadyPickedIds?: readonly string[];
 }
 
 export interface SmartWorkoutPick {
@@ -130,6 +137,12 @@ export function planSmartWorkout(input: SmartWorkoutInput): SmartWorkoutPlan {
   const picks: SmartWorkoutPick[] = [];
   const exerciseById = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
 
+  for (const exerciseId of input.alreadyPickedIds ?? []) {
+    picked.add(exerciseId);
+    const exercise = exerciseById.get(exerciseId);
+    if (exercise) projectSets(projected, exercise);
+  }
+
   while (picks.length < count) {
     const muscles = TARGET_MUSCLES.filter((muscle) =>
       input.exercises.some((e) => !picked.has(e.id) && e.primaryMuscles.includes(muscle)),
@@ -147,14 +160,7 @@ export function planSmartWorkout(input: SmartWorkoutInput): SmartWorkoutPlan {
 
     picked.add(exercise.id);
     picks.push({ exerciseId: exercise.id, muscle });
-    for (const m of exercise.primaryMuscles) {
-      if (m in projected) projected[m as Muscle] += SMART_WORKOUT_SETS_PER_EXERCISE;
-    }
-    for (const m of exercise.secondaryMuscles) {
-      if (m in projected) {
-        projected[m as Muscle] += SMART_WORKOUT_SETS_PER_EXERCISE * SECONDARY_MUSCLE_VOLUME_WEIGHT;
-      }
-    }
+    projectSets(projected, exercise);
   }
 
   // Heavy compound lifts before isolation work; otherwise keep pick order.
@@ -168,6 +174,18 @@ export function planSmartWorkout(input: SmartWorkoutInput): SmartWorkoutPlan {
     .map(({ pick }) => pick);
 
   return { picks: ordered, recentSets };
+}
+
+/** Counts the sets a picked exercise is assumed to add toward its muscles. */
+function projectSets(projected: Record<Muscle, number>, exercise: SmartWorkoutExercise) {
+  for (const m of exercise.primaryMuscles) {
+    if (m in projected) projected[m as Muscle] += SMART_WORKOUT_SETS_PER_EXERCISE;
+  }
+  for (const m of exercise.secondaryMuscles) {
+    if (m in projected) {
+      projected[m as Muscle] += SMART_WORKOUT_SETS_PER_EXERCISE * SECONDARY_MUSCLE_VOLUME_WEIGHT;
+    }
+  }
 }
 
 function targetOf(muscle: Muscle): number {
