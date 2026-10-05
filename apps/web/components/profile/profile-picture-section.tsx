@@ -4,6 +4,7 @@ import { Avatar } from "@/components/friends/avatar";
 import { photoToAvatar } from "@/lib/friends/avatar-image";
 import { fetchProfile, updateProfile } from "@/lib/friends/client";
 import type { ProfilePayload } from "@/lib/friends/types";
+import { Trash2 } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 /**
@@ -81,9 +82,10 @@ export function ProfilePictureSection() {
               type="button"
               disabled={busy}
               onClick={() => void handleRemove()}
-              className="min-h-11 rounded-lg px-3 text-sm text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
+              aria-label="Remove photo"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
             >
-              Remove
+              <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
         </div>

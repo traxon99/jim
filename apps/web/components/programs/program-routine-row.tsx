@@ -6,7 +6,7 @@ import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { WARMUP_TEMPLATES } from "@jim/core";
-import { Moon } from "lucide-react";
+import { Moon, Trash2 } from "lucide-react";
 
 interface Props {
   item: ProgramRoutineEntity;
@@ -116,9 +116,10 @@ export function ProgramRoutineRow({
           <button
             type="button"
             onClick={onRemove}
-            className="min-h-11 px-1 text-sm font-medium text-red-600 dark:text-red-500"
+            aria-label={`Remove ${routineName} from the program`}
+            className="flex min-h-11 min-w-11 items-center justify-center text-red-600 dark:text-red-500"
           >
-            Remove
+            <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
       </div>

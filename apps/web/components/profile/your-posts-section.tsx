@@ -3,6 +3,7 @@
 import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
 import { deletePost, fetchOwnPosts } from "@/lib/friends/client";
 import type { OwnPost } from "@/lib/friends/types";
+import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 /**
@@ -69,9 +70,10 @@ export function YourPostsSection() {
                 type="button"
                 disabled={busyId === post.postId}
                 onClick={() => void remove(post)}
-                className="min-h-11 shrink-0 rounded-lg px-3 text-sm text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
+                aria-label="Delete post"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-zinc-500 disabled:opacity-50 dark:text-zinc-500"
               >
-                Delete
+                <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               </button>
             </li>
           );

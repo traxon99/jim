@@ -16,6 +16,7 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -241,9 +242,10 @@ export function ExerciseForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-2 py-2 text-sm font-medium underline underline-offset-4"
+            aria-label="Back"
+            className="flex min-h-11 min-w-11 items-center justify-center"
           >
-            Back
+            <ChevronLeft className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </button>
         )}
       </div>
