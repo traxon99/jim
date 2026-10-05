@@ -8,6 +8,7 @@ import {
   commitWeightImport,
   deleteBodyweight,
   logBodyweight,
+  previewAppleHealthImport,
   previewWeightImport,
   syncCurrentBodyweight,
 } from "@/lib/bodyweight";
@@ -16,7 +17,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type WeightUnit, WorkoutCsvError } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardPaste, Trash2, Upload } from "lucide-react";
+import { ClipboardPaste, HeartPulse, Trash2, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 const RANGES = [
@@ -74,6 +75,9 @@ export function BodyweightHome({ userId }: { userId: string }) {
   const [showAll, setShowAll] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);
+  const healthInput = useRef<HTMLInputElement>(null);
+  /** How far through an Apple Health export the reader is, 0–1; null when not reading one. */
+  const [healthProgress, setHealthProgress] = useState<number | null>(null);
   const [importBusy, setImportBusy] = useState<"reading" | "importing" | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [preview, setPreview] = useState<WeightImportPreview | null>(null);
@@ -130,12 +134,12 @@ export function BodyweightHome({ userId }: { userId: string }) {
     void syncCurrentBodyweight();
   }
 
-  async function readImport(text: Promise<string> | string) {
+  async function readImport(read: () => Promise<WeightImportPreview>) {
     setImportBusy("reading");
     setImportError(null);
     setImported(null);
     try {
-      setPreview(await previewWeightImport(await text));
+      setPreview(await read());
       setFileUnit(units);
       setPasted(null);
     } catch (caught) {
@@ -144,7 +148,13 @@ export function BodyweightHome({ userId }: { userId: string }) {
       );
     } finally {
       setImportBusy(null);
+      setHealthProgress(null);
     }
+  }
+
+  function readHealthExport(file: File) {
+    setHealthProgress(0);
+    void readImport(() => previewAppleHealthImport(file, setHealthProgress));
   }
 
   async function handleImport() {
@@ -289,7 +299,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void readImport(pasted)}
+                  onClick={() => void readImport(() => previewWeightImport(pasted))}
                   disabled={importBusy !== null || pasted.trim() === ""}
                   className="flex min-h-11 flex-1 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
                 >
@@ -303,7 +313,8 @@ export function BodyweightHome({ userId }: { userId: string }) {
               <p className="text-xs text-zinc-600 dark:text-zinc-400">
                 Export your Weight measurement from Strong's settings as a CSV and pick it here.
                 Other CSVs with a date and a weight column work too, or paste a list from your
-                notes.
+                notes. From Apple Health, tap your picture → Export All Health Data and pick the
+                export.zip.
               </p>
               <button
                 type="button"
@@ -312,7 +323,20 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 className={secondaryButton}
               >
                 <Upload className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                {importBusy === "reading" ? "Reading…" : "Import weight from Strong"}
+                {importBusy === "reading" && healthProgress == null
+                  ? "Reading…"
+                  : "Import weight from Strong"}
+              </button>
+              <button
+                type="button"
+                onClick={() => healthInput.current?.click()}
+                disabled={importBusy !== null}
+                className={secondaryButton}
+              >
+                <HeartPulse className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                {healthProgress == null
+                  ? "Import from Apple Health"
+                  : `Reading Health export… ${Math.round(healthProgress * 100)}%`}
               </button>
               <button
                 type="button"
@@ -335,7 +359,18 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = "";
-                  if (file) void readImport(file.text());
+                  if (file) void readImport(async () => previewWeightImport(await file.text()));
+                }}
+              />
+              <input
+                ref={healthInput}
+                type="file"
+                accept=".zip,.xml,application/zip,application/xml,text/xml"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) readHealthExport(file);
                 }}
               />
             </>
@@ -358,9 +393,11 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 <p className="font-medium">
                   {preview.format === "strong"
                     ? "Strong measurements"
-                    : preview.format === "notes"
-                      ? "Pasted weights"
-                      : "Weight CSV"}
+                    : preview.format === "apple-health"
+                      ? "Apple Health"
+                      : preview.format === "notes"
+                        ? "Pasted weights"
+                        : "Weight CSV"}
                 </p>
                 {preview.entries.length === 0 ? (
                   <p className="text-zinc-600 dark:text-zinc-400">
@@ -380,9 +417,11 @@ export function BodyweightHome({ userId }: { userId: string }) {
                     {preview.duplicateCount > 0 &&
                       `. ${plural(preview.duplicateCount, "weigh-in")} already in Jim will be skipped.`}
                     {preview.skippedRows > 0 &&
-                      ` ${plural(preview.skippedRows, preview.format === "notes" ? "line" : "row")} couldn't be read and will be skipped.`}
+                      ` ${plural(preview.skippedRows, preview.format === "notes" ? "line" : preview.format === "apple-health" ? "record" : "row")} couldn't be read and will be skipped.`}
                     {preview.sameDayRows > 0 &&
-                      ` ${plural(preview.sameDayRows, "day")} logged twice; the later line is kept.`}
+                      (preview.format === "apple-health"
+                        ? ` Days with several weigh-ins keep the last one (${plural(preview.sameDayRows, "extra reading")} left out).`
+                        : ` ${plural(preview.sameDayRows, "day")} logged twice; the later line is kept.`)}
                     {preview.outlierRows > 0 &&
                       ` Skipping ${plural(preview.outlierRows, "weight")} far off from the days around, likely a typo.`}
                   </p>
