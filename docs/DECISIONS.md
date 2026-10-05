@@ -194,7 +194,7 @@ here so the question is answered once rather than revisited each time bodyweight
 An Apple Health XML importer sits in the backlog as the honest version of this feature.
 
 A native iOS wrapper, the only route to HealthKit and an Apple Watch app, was evaluated and
-deferred in ADR-018.
+deferred in ADR-019.
 
 ---
 
@@ -434,7 +434,7 @@ server, the portal) silently merges someone else's training into yours.
 
 ---
 
-## ADR-018 — No native iOS wrapper for now; Apple Watch and HealthKit stay out of scope
+## ADR-019 — No native iOS wrapper for now; Apple Watch and HealthKit stay out of scope
 
 **Status:** Accepted · 2026-10-05
 
