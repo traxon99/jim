@@ -354,6 +354,7 @@ export async function commitWorkoutImport(
       category: "strength",
       instructions: [],
       imageUrls: [],
+      videoUrl: null,
       isArchived: false,
       createdAt: now,
       updatedAt: now,

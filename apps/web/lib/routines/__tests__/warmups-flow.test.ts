@@ -39,6 +39,7 @@ function exercise(overrides: Partial<ExerciseRow> & { id: string; slug: string }
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),

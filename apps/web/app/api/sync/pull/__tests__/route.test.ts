@@ -190,6 +190,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
           trackingType: "weight_reps",
           instructions: ["Curl it."],
           imageUrls: [],
+          videoUrl: null,
           isArchived: false,
           createdAt: now,
           updatedAt: now,
