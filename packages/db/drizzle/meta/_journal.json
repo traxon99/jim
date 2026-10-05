@@ -246,6 +246,20 @@
       "when": 1791233366848,
       "tag": "0034_add_dpr_volume_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791233671239,
+      "tag": "0035_add_share_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791233673096,
+      "tag": "0036_share_links_functions",
+      "breakpoints": true
     }
   ]
 }

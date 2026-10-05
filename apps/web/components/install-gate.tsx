@@ -90,6 +90,12 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
         <ol className="max-w-xs list-decimal space-y-1 pl-5 text-left text-sm text-zinc-600 dark:text-zinc-400">
           <InstallSteps platform={platform} />
         </ol>
+        {pathname.startsWith("/share/") && (
+          <p className="max-w-xs text-sm text-zinc-600 dark:text-zinc-400">
+            Opening a shared routine? Copy this page's link, open Jim from your home screen, and
+            paste it under Routines with the link button.
+          </p>
+        )}
         <p className="max-w-xs text-sm text-zinc-600 dark:text-zinc-400">
           On a computer?{" "}
           <Link href={PORTAL_PATH} className="font-medium underline underline-offset-4">
