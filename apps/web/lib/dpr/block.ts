@@ -68,17 +68,28 @@ export function guessExperience(
   exercises: readonly Pick<ExerciseRow, "id" | "slug">[],
   settings: SettingsRow,
   now: Date,
+  bodyweightAt: (date: Date) => number | null = () => null,
 ): ExperienceGuess {
   const historyWeeks = snapshot.firstSessionAt
     ? (now.getTime() - snapshot.firstSessionAt.getTime()) / (7 * DAY_MS)
     : 0;
   const profile = strengthProfileFromSettings(settings, now);
 
+  // Standards are bodyweight ratios, so a lift from when the user weighed
+  // something else is scaled to today's bodyweight before it's compared
+  // (issue #249): the ratio it showed then is what counts.
+  const bodyweightNow = profile?.bodyweight ?? null;
+  const scaled = (point: { date: Date; e1rm: number }): number => {
+    const then = bodyweightAt(point.date);
+    if (bodyweightNow == null || then == null || then <= 0) return point.e1rm;
+    return (point.e1rm / then) * bodyweightNow;
+  };
+
   const e1rmByLift: Partial<Record<StandardLift, number>> = {};
   for (const exercise of exercises) {
     const lift = standardLiftForSlug(exercise.slug);
     if (!lift) continue;
-    const best = Math.max(0, ...e1rmSeries(snapshot.history, exercise.id).map((p) => p.e1rm));
+    const best = Math.max(0, ...e1rmSeries(snapshot.history, exercise.id).map(scaled));
     if (best > (e1rmByLift[lift] ?? 0)) e1rmByLift[lift] = best;
   }
 

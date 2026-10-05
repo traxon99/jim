@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { tierForOneRepMax } from "../../strength-standards";
 import {
   type AchievementInput,
   type AchievementSet,
@@ -213,6 +214,37 @@ describe("deriveAchievements", () => {
     );
     expect(byId(list, "strength-beginner")?.sessionId).toBe("early");
     expect(byId(list, "strength-elite")?.sessionId).toBe("late");
+  });
+
+  it("judges past lifts against the bodyweight on that day (#249)", () => {
+    const records = [
+      { lift: "squat" as const, oneRepMax: 300, achievedAt: day(2026, 9, 1), sessionId: "old" },
+    ];
+    const sets = [set({ sessionId: "old", completedAt: day(2026, 9, 1), weight: 300, reps: 1 })];
+    const today = deriveAchievements(
+      input({
+        bodyweight: 300,
+        strengthProfile: { sex: "male", bodyweight: 300 },
+        strengthRecords: records,
+        sets,
+      }),
+    );
+    const then = deriveAchievements(
+      input({
+        bodyweight: 300,
+        strengthProfile: { sex: "male", bodyweight: 300 },
+        strengthRecords: records,
+        sets,
+        bodyweightAt: () => 150,
+      }),
+    );
+    expect(byId(today, "bodyweight-2")?.achievedAt).toBeNull();
+    expect(byId(then, "bodyweight-2")?.sessionId).toBe("old");
+    const tierAt150 = tierForOneRepMax("squat", 300, { sex: "male", bodyweight: 150 });
+    const tierAt300 = tierForOneRepMax("squat", 300, { sex: "male", bodyweight: 300 });
+    expect(tierAt150).not.toBe(tierAt300);
+    expect(byId(then, `strength-${tierAt150}`)?.sessionId).toBe("old");
+    expect(byId(today, `strength-${tierAt150}`)?.achievedAt).toBeNull();
   });
 
   it("picks out what one workout earned", () => {

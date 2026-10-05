@@ -44,6 +44,8 @@ const nextSyncSeq = sql`nextval('sync_seq')`;
 // ---------------------------------------------------------------------------
 
 export const unitsEnum = pgEnum("units", ["lb", "kg"]);
+/** body_measurements.unit (issue #249): weights, lengths, and percent for body fat. */
+export const measurementUnitEnum = pgEnum("measurement_unit", ["lb", "kg", "in", "cm", "pct"]);
 
 export const colorSchemeEnum = pgEnum("color_scheme", ["system", "light", "dark"]);
 
@@ -190,8 +192,8 @@ export const users = pgTable(
     // sex and bodyweight select the standards table, age adjusts it. All
     // nullable — the feature degrades to "no standard shown" without them,
     // rather than forcing profile completion. `bodyweight` is a single
-    // current value in the user's `units`, distinct from the `body_measurements`
-    // time series (which nothing in the app reads or writes yet).
+    // current value in the user's `units`, kept in step with the latest
+    // weigh-in in the `body_measurements` time series.
     sex: sexEnum("sex"),
     birthdate: date("birthdate"),
     heightCm: numeric("height_cm", { precision: 5, scale: 1 }),
@@ -667,7 +669,9 @@ export const personalRecords = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
-// body_measurements — v1: bodyweight only
+// body_measurements — bodyweight, body fat and circumferences over time.
+// `kind` is one of @jim/core's MEASUREMENT_KINDS; rows keep the unit they
+// were entered in and readers convert.
 // ---------------------------------------------------------------------------
 
 export const bodyMeasurements = pgTable(
@@ -679,7 +683,7 @@ export const bodyMeasurements = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     kind: text("kind").notNull().default("bodyweight"),
     value: numeric("value", { precision: 7, scale: 2 }).notNull(),
-    unit: unitsEnum("unit").notNull(),
+    unit: measurementUnitEnum("unit").notNull(),
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),

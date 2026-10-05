@@ -1,9 +1,11 @@
+import { MEASUREMENT_KINDS } from "@jim/core";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { UserContext } from "./context.js";
 import { createRoutine } from "./tools/create-routine.js";
 import { dprStatus } from "./tools/dpr-status.js";
 import { exerciseHistory } from "./tools/exercise-history.js";
+import { getBodyMeasurements } from "./tools/get-body-measurements.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
@@ -135,6 +137,31 @@ export function createMcpServer(context: UserContext): McpServer {
     async (input) => {
       try {
         return json(await getPrs(context, input));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_body_measurements",
+    {
+      title: "Get body measurements",
+      description:
+        "Read-only. Bodyweight, body fat % and circumferences (neck, chest, waist, hips, arms, thighs, calves) logged over time, oldest first, grouped by kind with the latest value and the change across the range. Weights are in the user's units, lengths in inches (lb users) or centimetres (kg users).",
+      inputSchema: {
+        kinds: z.array(z.enum(MEASUREMENT_KINDS)).optional().describe("Only these kinds"),
+        from: z
+          .string()
+          .datetime({ offset: true })
+          .optional()
+          .describe("ISO date/time lower bound"),
+        to: z.string().datetime({ offset: true }).optional().describe("ISO date/time upper bound"),
+      },
+    },
+    async (input) => {
+      try {
+        return json(await getBodyMeasurements(context, input));
       } catch (error) {
         return toolError(error);
       }

@@ -1,4 +1,6 @@
+import { bodyweightLookup } from "@/lib/bodyweight";
 import type {
+  BodyMeasurementRow,
   ExerciseRow,
   PersonalRecordRow,
   ProgramRoutineRow,
@@ -32,6 +34,8 @@ export interface AchievementTables {
   personalRecords: readonly PersonalRecordRow[];
   programs: readonly ProgramRow[];
   programRoutines: readonly ProgramRoutineRow[];
+  /** Weigh-in history, so milestones use the bodyweight on the day (issue #249). */
+  bodyMeasurements?: readonly BodyMeasurementRow[];
 }
 
 export interface AchievementData {
@@ -106,6 +110,7 @@ export function buildAchievementData(
     bodyweight: bodyweight != null && Number.isFinite(bodyweight) ? bodyweight : null,
     strengthProfile: strengthProfileFromSettings(settings, now),
     strengthRecords,
+    bodyweightAt: bodyweightLookup(tables.bodyMeasurements ?? [], settings.units),
   });
 
   const activeProgram = tables.programs.find((program) => program.isActive && !program.deletedAt);

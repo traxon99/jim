@@ -4,19 +4,23 @@ import { getCachedSettings, patchSettings } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type ImportedWeight,
+  type MeasurementKind,
+  type MeasurementUnit,
   type WeightCsvFormat,
   type WeightUnit,
-  convertWeight,
+  bodyweightOn,
+  convertMeasurement,
   parseWeightCsv,
   uuidv7,
   weightEntryKey,
 } from "@jim/core";
 
 /**
- * Bodyweight over time (issue #377). Each weigh-in is a `body_measurements`
- * row (kind "bodyweight"), written through the outbox like everything else
- * the phone logs, so it syncs. Rows keep the unit they were entered in;
- * readers convert to the user's current units.
+ * Bodyweight over time (issue #377), and body measurements alongside it
+ * (issue #249). Each entry is a `body_measurements` row (kind "bodyweight",
+ * "waist", …), written through the outbox like everything else the phone
+ * logs, so it syncs. Rows keep the unit they were entered in; readers
+ * convert to the user's current units.
  */
 
 const BODYWEIGHT_KIND = "bodyweight";
@@ -28,8 +32,36 @@ export interface BodyweightPoint {
   value: number;
 }
 
-function isLiveBodyweight(row: BodyMeasurementRow): boolean {
-  return row.kind === BODYWEIGHT_KIND && !row.deletedAt;
+/** A point on any measurement's trend (issue #249); same shape as a weigh-in. */
+export type MeasurementPoint = BodyweightPoint;
+
+function isLive(row: BodyMeasurementRow, kind: MeasurementKind): boolean {
+  return row.kind === kind && !row.deletedAt;
+}
+
+function isLiveBodyweight(
+  row: BodyMeasurementRow,
+): row is BodyMeasurementRow & { unit: WeightUnit } {
+  return isLive(row, BODYWEIGHT_KIND) && (row.unit === "lb" || row.unit === "kg");
+}
+
+/**
+ * Live entries of one kind in `unit`, oldest first. Rows whose unit can't
+ * convert to it (a length logged against a weight kind) are left out.
+ */
+export function measurementSeries(
+  rows: readonly BodyMeasurementRow[],
+  kind: MeasurementKind,
+  unit: MeasurementUnit,
+): MeasurementPoint[] {
+  const points: MeasurementPoint[] = [];
+  for (const row of rows) {
+    if (!isLive(row, kind)) continue;
+    const value = convertMeasurement(Number(row.value), row.unit, unit);
+    if (value == null || !Number.isFinite(value)) continue;
+    points.push({ id: row.id, measuredAt: row.measuredAt, value });
+  }
+  return points.sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime());
 }
 
 /** Live weigh-ins in `units`, oldest first. */
@@ -37,15 +69,20 @@ export function bodyweightSeries(
   rows: readonly BodyMeasurementRow[],
   units: WeightUnit,
 ): BodyweightPoint[] {
-  return rows
-    .filter(isLiveBodyweight)
-    .map((row) => ({
-      id: row.id,
-      measuredAt: row.measuredAt,
-      value: convertWeight(Number(row.value), row.unit, units),
-    }))
-    .filter((point) => Number.isFinite(point.value))
-    .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime());
+  return measurementSeries(rows, BODYWEIGHT_KIND, units);
+}
+
+/**
+ * Looks up the bodyweight (in `units`) that applied on a date, so a past PR
+ * is judged against what the user weighed then rather than today (issue
+ * #249). Null with no weigh-ins; callers fall back to Settings' value.
+ */
+export function bodyweightLookup(
+  rows: readonly BodyMeasurementRow[],
+  units: WeightUnit,
+): (date: Date) => number | null {
+  const series = bodyweightSeries(rows, units);
+  return (date) => bodyweightOn(series, date);
 }
 
 /** `numeric(7, 2)` on the server: round here so the local row matches what syncs back. */
@@ -62,23 +99,29 @@ function sameLocalDay(a: Date, b: Date): boolean {
 }
 
 /**
- * Logs a weigh-in. A day holds one manual entry: logging again on a day that
- * already has one updates it instead of stacking a second point.
+ * Logs one measurement. A day holds one entry per kind: logging again on a
+ * day that already has one updates it instead of stacking a second point.
  */
-export async function logBodyweight(
-  input: { userId: string; value: number; unit: WeightUnit; measuredAt: Date },
+export async function logMeasurement(
+  input: {
+    userId: string;
+    kind: MeasurementKind;
+    value: number;
+    unit: MeasurementUnit;
+    measuredAt: Date;
+  },
   database: JimDatabase = db,
 ): Promise<BodyMeasurementRow> {
   const deviceId = await getDeviceId(database);
   const now = new Date();
   const rows = await database.bodyMeasurements.toArray();
   const sameDay = rows.find(
-    (row) => isLiveBodyweight(row) && sameLocalDay(row.measuredAt, input.measuredAt),
+    (row) => isLive(row, input.kind) && sameLocalDay(row.measuredAt, input.measuredAt),
   );
   const entity: BodyMeasurementRow = {
     id: sameDay?.id ?? uuidv7(),
     userId: input.userId,
-    kind: BODYWEIGHT_KIND,
+    kind: input.kind,
     value: toStoredValue(input.value),
     unit: input.unit,
     measuredAt: sameDay?.measuredAt ?? input.measuredAt,
@@ -91,7 +134,16 @@ export async function logBodyweight(
   return entity;
 }
 
-export async function deleteBodyweight(
+/** Logs a weigh-in; see `logMeasurement`. */
+export function logBodyweight(
+  input: { userId: string; value: number; unit: WeightUnit; measuredAt: Date },
+  database: JimDatabase = db,
+): Promise<BodyMeasurementRow> {
+  return logMeasurement({ ...input, kind: BODYWEIGHT_KIND }, database);
+}
+
+/** Tombstones any measurement row, weigh-ins included. */
+export async function deleteMeasurement(
   row: BodyMeasurementRow,
   database: JimDatabase = db,
 ): Promise<void> {
@@ -102,6 +154,8 @@ export async function deleteBodyweight(
     database,
   );
 }
+
+export const deleteBodyweight = deleteMeasurement;
 
 /**
  * Keeps Settings' single "current bodyweight" (what strength standards

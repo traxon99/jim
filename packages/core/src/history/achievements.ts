@@ -144,6 +144,13 @@ export interface AchievementInput {
   /** Null skips strength-standard milestones (the profile isn't filled in). */
   strengthProfile: StrengthProfile | null;
   strengthRecords: readonly AchievementStrengthRecord[];
+  /**
+   * The bodyweight (in `units`) that applied on a date, from the weigh-in
+   * history (issue #249). Bodyweight and strength milestones are judged
+   * against it, falling back to `bodyweight` and the profile's when it
+   * returns null or is left out.
+   */
+  bodyweightAt?: (date: Date) => number | null;
 }
 
 export type AchievementCategory = "workouts" | "volume" | "plates" | "bodyweight" | "strength";
@@ -282,9 +289,17 @@ export function deriveAchievements(input: AchievementInput): Achievement[] {
     });
   }
 
-  if (input.bodyweight != null && input.bodyweight > 0) {
+  const bodyweightAt = (date: Date, fallback: number): number => {
+    const then = input.bodyweightAt?.(date);
+    return then != null && then > 0 ? then : fallback;
+  };
+
+  const currentBodyweight = input.bodyweight;
+  if (currentBodyweight != null && currentBodyweight > 0) {
     for (const multiple of BODYWEIGHT_MULTIPLES) {
-      const set = firstSet(sets, liftedAtLeast(input.bodyweight * multiple));
+      const set = firstSet(sets, (candidate) =>
+        liftedAtLeast(bodyweightAt(candidate.completedAt, currentBodyweight) * multiple)(candidate),
+      );
       achievements.push({
         id: `bodyweight-${multiple}`,
         category: "bodyweight",
@@ -303,7 +318,10 @@ export function deriveAchievements(input: AchievementInput): Achievement[] {
   if (input.strengthProfile) {
     const profile = input.strengthProfile;
     const records = byTime(input.strengthRecords, (record) => record.achievedAt).map((record) => {
-      const tier = tierForOneRepMax(record.lift, record.oneRepMax, profile);
+      const tier = tierForOneRepMax(record.lift, record.oneRepMax, {
+        ...profile,
+        bodyweight: bodyweightAt(record.achievedAt, profile.bodyweight),
+      });
       return { record, tierIndex: tier ? STRENGTH_STANDARD_TIERS.indexOf(tier) : -1 };
     });
     STRENGTH_STANDARD_TIERS.forEach((tier, index) => {
