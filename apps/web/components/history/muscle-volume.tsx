@@ -1,5 +1,6 @@
 "use client";
 
+import { BodyMap } from "@/components/exercises/body-map";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
@@ -11,6 +12,7 @@ import {
   type WeeklyMuscleVolume,
   type WeeklySetRange,
   type WeeklySetStatus,
+  heatmapShading,
   startOfWeek,
   weeklySetStatus,
   weeklyVolumeByMuscle,
@@ -199,6 +201,47 @@ function formatRange(range: WeeklySetRange): string {
 }
 
 /**
+ * The most recent week as a body-map heatmap (issue #252), on the same scale
+ * as the bars below, so the darkest muscles are the ones trained most.
+ */
+function LatestWeekMap({
+  week,
+  metric,
+  max,
+  current,
+}: {
+  week: WeeklyMuscleVolume | undefined;
+  metric: Metric;
+  max: number;
+  current: number;
+}) {
+  if (!week) return null;
+  const values = valuesFor(week, metric);
+  const trained = Object.keys(values).filter((muscle) => (values[muscle] ?? 0) > 0);
+  const isCurrent = week.weekStart.getTime() === current;
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+        {isCurrent
+          ? "This week at a glance"
+          : `Week of ${week.weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} at a glance`}
+      </h2>
+      <BodyMap
+        shading={heatmapShading(values, max)}
+        label={
+          trained.length > 0
+            ? `Muscles trained: ${trained.join(", ")}. Darker means more ${metric}.`
+            : "No muscles trained yet."
+        }
+      />
+      <p className="text-center text-xs text-zinc-500 dark:text-zinc-500">
+        Darker means more {metric === "sets" ? "sets" : "volume"}.
+      </p>
+    </section>
+  );
+}
+
+/**
  * "Weekly volume by muscle group" (STORIES.md S7). Secondary muscles count
  * at half weight — see `weeklyVolumeByMuscle`'s doc comment in
  * packages/core/src/history/volume-by-muscle.ts for why.
@@ -318,6 +361,7 @@ export function MuscleVolume() {
                 Bars share one scale across weeks.
               </p>
             </div>
+            <LatestWeekMap week={weeks[0]} metric={metric} max={max} current={currentWeekStart} />
             {weeks.map((week) => {
               const current = week.weekStart.getTime() === currentWeekStart;
               const entries = rowsFor(week, metric, trainedMuscles);

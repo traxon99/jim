@@ -44,6 +44,7 @@ function exercise(id: string): ExerciseRow {
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: LONG_AGO,
     updatedAt: LONG_AGO,

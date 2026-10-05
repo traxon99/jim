@@ -38,6 +38,7 @@ function exercise(slug: string, ownerId: string | null = null): ExerciseRow {
     category: slug.startsWith("warmup-") ? "warmup" : "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
