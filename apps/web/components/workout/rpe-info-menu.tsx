@@ -1,9 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useCallback, useState } from "react";
-
-import { FloatingCard } from "../floating-card";
+import { useEffect, useRef, useState } from "react";
 
 const RPE_LEVELS = [
   { value: 10, description: "Max effort — no reps left" },
@@ -19,13 +17,39 @@ interface Props {
   titleId?: string;
 }
 
-/** RPE column title, opened into an info card (issues #163, #410) explaining the scale. Purely informational, not a selector. Rendered through FloatingCard, centered over the page, since an anchored popup got clipped at the screen edge (#410). */
+/**
+ * RPE column title, opened into an info menu (issues #163, #412) explaining
+ * the scale. Purely informational, not a selector; closes like SetKindMenu.
+ *
+ * The menu is centered in the exercise card rather than under the narrow RPE
+ * column, where it ran off the left edge (#410). Neither this wrapper nor any
+ * cell above it is positioned, so the menu's containing block is the card's
+ * `relative` <section>: `left-1/2 -translate-x-1/2` centers it there, and,
+ * with no `top`, it keeps its in-flow spot just under the RPE header. That also
+ * puts it outside the table's `overflow-x-clip`, so nothing clips it.
+ */
 export function RpeInfoMenu({ large = false, titleId }: Props) {
   const [open, setOpen] = useState(false);
-  const closeOpen = useCallback(() => setOpen(false), []);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   return (
-    <div className="relative inline-block text-left">
+    <div ref={rootRef} className="inline-block text-left">
       <button
         id={titleId}
         type="button"
@@ -45,31 +69,19 @@ export function RpeInfoMenu({ large = false, titleId }: Props) {
         />
       </button>
       {open && (
-        <FloatingCard labelledBy="rpe-info-heading" onClose={closeOpen}>
-          {() => (
-            <div className="overflow-y-auto p-4">
-              <h2
-                id="rpe-info-heading"
-                className="text-sm font-semibold text-zinc-900 dark:text-zinc-100"
-              >
-                RPE (Rate of Perceived Exertion)
-              </h2>
-              <p className="mt-1 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                How hard a set felt, from 5 to 10 — higher is harder.
-              </p>
-              <ul className="mt-2 flex flex-col gap-1 text-xs text-zinc-500 dark:text-zinc-500">
-                {RPE_LEVELS.map((level) => (
-                  <li key={level.value}>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                      {level.value}
-                    </span>{" "}
-                    — {level.description}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </FloatingCard>
+        <div className="absolute left-1/2 z-10 mt-1 w-64 max-w-[calc(100%-1rem)] max-h-[calc(100vh-2rem)] -translate-x-1/2 overflow-y-auto rounded-md border border-zinc-200 bg-white p-3 text-left shadow-md dark:border-zinc-700 dark:bg-zinc-900">
+          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+            RPE (Rate of Perceived Exertion): how hard a set felt, from 5 to 10 — higher is harder.
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-zinc-500 dark:text-zinc-500">
+            {RPE_LEVELS.map((level) => (
+              <li key={level.value}>
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">{level.value}</span>{" "}
+                — {level.description}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

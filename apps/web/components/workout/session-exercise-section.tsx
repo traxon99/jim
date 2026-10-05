@@ -767,11 +767,12 @@ export function SessionExerciseSection({
   }
 
   return (
+    // `relative` is the containing block RpeInfoMenu centers its menu in (#412).
     <section
       className={
         large
-          ? "flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
-          : "flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+          ? "relative flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+          : "relative flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
       }
     >
       <div className="flex items-start justify-between gap-2">
