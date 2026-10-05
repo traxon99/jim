@@ -2,8 +2,12 @@ import { mutate } from "@/lib/db/mutate";
 import { type BodyMeasurementRow, type JimDatabase, type OutboxEntry, db } from "@/lib/db/schema";
 import { getCachedSettings, patchSettings } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
+import { readAppleHealthWeights } from "./apple-health";
+import { BODYWEIGHT_KIND, bodyweightSeries, isLiveBodyweight } from "./series";
+
 import {
   type ImportedWeight,
+  type ParsedWeightCsv,
   type WeightCsvFormat,
   type WeightUnit,
   convertWeight,
@@ -12,41 +16,14 @@ import {
   weightEntryKey,
 } from "@jim/core";
 
+export { type BodyweightPoint, bodyweightOnDate, bodyweightSeries } from "./series";
+
 /**
  * Bodyweight over time (issue #377). Each weigh-in is a `body_measurements`
  * row (kind "bodyweight"), written through the outbox like everything else
  * the phone logs, so it syncs. Rows keep the unit they were entered in;
  * readers convert to the user's current units.
  */
-
-const BODYWEIGHT_KIND = "bodyweight";
-
-export interface BodyweightPoint {
-  id: string;
-  measuredAt: Date;
-  /** In the units asked for, to two decimals. */
-  value: number;
-}
-
-function isLiveBodyweight(row: BodyMeasurementRow): boolean {
-  return row.kind === BODYWEIGHT_KIND && !row.deletedAt;
-}
-
-/** Live weigh-ins in `units`, oldest first. */
-export function bodyweightSeries(
-  rows: readonly BodyMeasurementRow[],
-  units: WeightUnit,
-): BodyweightPoint[] {
-  return rows
-    .filter(isLiveBodyweight)
-    .map((row) => ({
-      id: row.id,
-      measuredAt: row.measuredAt,
-      value: convertWeight(Number(row.value), row.unit, units),
-    }))
-    .filter((point) => Number.isFinite(point.value))
-    .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime());
-}
 
 /** `numeric(7, 2)` on the server: round here so the local row matches what syncs back. */
 function toStoredValue(value: number): string {
@@ -146,7 +123,25 @@ export async function previewWeightImport(
   text: string,
   database: JimDatabase = db,
 ): Promise<WeightImportPreview> {
-  const parsed = parseWeightCsv(text);
+  return previewParsedWeights(parseWeightCsv(text), database);
+}
+
+/**
+ * Reads an Apple Health export (`export.zip` or `export.xml`) a chunk at a
+ * time, so a file of hundreds of MB never sits in memory whole (issue #247).
+ */
+export async function previewAppleHealthImport(
+  file: Blob & { name?: string },
+  onProgress?: (fraction: number) => void,
+  database: JimDatabase = db,
+): Promise<WeightImportPreview> {
+  return previewParsedWeights(await readAppleHealthWeights(file, onProgress), database);
+}
+
+async function previewParsedWeights(
+  parsed: ParsedWeightCsv,
+  database: JimDatabase,
+): Promise<WeightImportPreview> {
   const existing = await existingKeys(database);
   // Unlabelled rows can't be keyed until the user picks a unit, so check
   // both: a re-import of an unlabelled file still finds its duplicates.
