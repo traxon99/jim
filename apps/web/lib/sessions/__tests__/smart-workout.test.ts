@@ -34,6 +34,7 @@ function exercise(slug: string, primaryMuscles: string[], overrides: Partial<Exe
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
