@@ -5,6 +5,7 @@ import type {
   RoutineExerciseRow,
   SettingsRow,
 } from "@/lib/db/schema";
+import { ruleOf } from "@/lib/progression/calls";
 import {
   type DprCall,
   type DprDecision,
@@ -16,6 +17,7 @@ import {
   type SessionIntensity,
   callForLift,
   liftProgress,
+  progressionSystemFor,
   workingSetWeights,
 } from "@jim/core";
 import { currentBlock, liveBlockLifts } from "./block";
@@ -60,7 +62,8 @@ export function buildDprContext(input: {
 
 export type DprCallInfo = DprLiftCall;
 
-type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight">;
+type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight"> &
+  Partial<Pick<RoutineExerciseRow, "progressionRule">>;
 
 export function dprUserSettings(settings: SettingsRow): DprUserSettings {
   return {
@@ -71,7 +74,11 @@ export function dprUserSettings(settings: SettingsRow): DprUserSettings {
   };
 }
 
-/** DPR's call for one lift, or null when the lift isn't focused. */
+/**
+ * DPR's call for one lift, or null when the lift isn't focused — or when
+ * the routine gives it a custom progression rule, which wins (issue #255,
+ * ADR-016: one automatic system per lift).
+ */
 export function dprCallFor(
   ctx: DprContext,
   exerciseId: string,
@@ -80,6 +87,8 @@ export function dprCallFor(
   intensity?: SessionIntensity | null,
 ): DprCallInfo | null {
   if (!ctx.lifts.has(exerciseId)) return null;
+  const system = progressionSystemFor({ rule: ruleOf(target), dprFocused: true });
+  if (system !== "dpr") return null;
   const fallback = target?.targetWeight == null ? null : Number(target.targetWeight);
   return callForLift({
     snapshot: ctx.snapshot,

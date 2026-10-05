@@ -40,6 +40,7 @@ function routineExercise(overrides: Partial<RoutineExerciseRow> = {}): RoutineEx
     targetRestSeconds: 120,
     targetDurationSeconds: null,
     targetWeight: null,
+    progressionRule: null,
     notes: null,
     updatedAt: new Date(),
     deviceId: "device-a",

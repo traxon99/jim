@@ -149,6 +149,7 @@ export async function saveSessionChangesToRoutine(
       targetRestSeconds: addition.targetRestSeconds,
       targetDurationSeconds: null,
       targetWeight: null,
+      progressionRule: null,
       notes: null,
       updatedAt: now,
       deviceId,
