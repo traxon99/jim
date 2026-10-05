@@ -386,6 +386,14 @@ function maybeInt(value: unknown, min: number, max: number): number | null {
   return value == null ? null : int(value, min, max);
 }
 
+/**
+ * The ceiling for the integer targets (sets, reps, rest, duration, warm-up
+ * minutes, superset groups): Postgres's `integer`. The routine editors
+ * don't cap these, so a tighter cap here would refuse to share a routine
+ * the app saved without complaint (a 900-minute warm-up did).
+ */
+const PG_INT_MAX = 2_147_483_647;
+
 function maybeWeight(value: unknown): number | null {
   if (value == null) return null;
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value < 100000
@@ -418,12 +426,12 @@ function parseItem(value: unknown, exerciseCount: number): SharedRoutineItem {
   const raw = record(value);
   return {
     exercise: int(raw.exercise, 0, exerciseCount - 1),
-    supersetGroup: maybeInt(raw.supersetGroup, 0, 1000),
-    targetSets: maybeInt(raw.targetSets, 0, 100),
-    targetRepsLow: maybeInt(raw.targetRepsLow, 0, 1000),
-    targetRepsHigh: maybeInt(raw.targetRepsHigh, 0, 1000),
-    targetRestSeconds: maybeInt(raw.targetRestSeconds, 0, 3600),
-    targetDurationSeconds: maybeInt(raw.targetDurationSeconds, 0, 86400),
+    supersetGroup: maybeInt(raw.supersetGroup, 0, PG_INT_MAX),
+    targetSets: maybeInt(raw.targetSets, 0, PG_INT_MAX),
+    targetRepsLow: maybeInt(raw.targetRepsLow, 0, PG_INT_MAX),
+    targetRepsHigh: maybeInt(raw.targetRepsHigh, 0, PG_INT_MAX),
+    targetRestSeconds: maybeInt(raw.targetRestSeconds, 0, PG_INT_MAX),
+    targetDurationSeconds: maybeInt(raw.targetDurationSeconds, 0, PG_INT_MAX),
     targetWeight: maybeWeight(raw.targetWeight),
     notes: maybeText(raw.notes, SHARE_LIMITS.notes),
     progressionRule:
@@ -439,7 +447,7 @@ function parseRoutine(value: unknown, exerciseCount: number, routineCount: numbe
     kind: oneOf(raw.kind, ROUTINE_KINDS),
     iconShape: oneOf(raw.iconShape, ROUTINE_ICON_SHAPES),
     iconColor: oneOf(raw.iconColor, ROUTINE_ICON_COLORS),
-    warmupMinutes: maybeInt(raw.warmupMinutes, 0, 600),
+    warmupMinutes: maybeInt(raw.warmupMinutes, 0, PG_INT_MAX),
     warmupRoutine: maybeInt(raw.warmupRoutine, 0, routineCount - 1),
     items: list(raw.items, SHARE_LIMITS.itemsPerRoutine).map((item) =>
       parseItem(item, exerciseCount),
@@ -453,7 +461,7 @@ function parseProgram(value: unknown, routineCount: number): SharedProgram {
     name: text(raw.name, SHARE_LIMITS.name),
     notes: maybeText(raw.notes, SHARE_LIMITS.notes),
     mode: oneOf(raw.mode, PROGRAM_MODES),
-    durationWeeks: maybeInt(raw.durationWeeks, 1, 520),
+    durationWeeks: maybeInt(raw.durationWeeks, 1, PG_INT_MAX),
     entries: list(raw.entries, SHARE_LIMITS.programEntries).map((entry) => {
       const rawEntry = record(entry);
       return {

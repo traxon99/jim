@@ -66,6 +66,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #433 | "Invalid share" on a routine with a 900-minute warm-up | The share parser capped warm-up minutes, sets, reps and rest tighter than the routine editor does | A validator for data the app already saved must accept everything the app lets you save |
 | #412 | The #410 fix turned the RPE info dropdown into a full-screen card, which felt heavier than a column header's tip | `FloatingCard` was used to escape the clipping instead of fixing where the dropdown was anchored | A dropdown that's too wide for its column can center in its card: anchor it to the `relative` card, not the cell |
 | #410 | RPE info popup was cut off on the left and unreadable | Anchored `absolute right-0` popup (#183) sat inside a narrow row, so its left side ran off-screen | Don't anchor a wide popup to a narrow cell near the edge (superseded by #412) |
 | #395 | Volume by muscle counted warm-up sets as weekly sets and volume | Only warm-up *exercises* were filtered, not warm-up sets on a working exercise | Count working sets only |
