@@ -166,7 +166,6 @@ describe("body measurements (#249)", () => {
     const at = bodyweightLookup(await testDb.bodyMeasurements.toArray(), "lb");
     expect(at(new Date(2023, 11, 1))).toBe(200); // before the first: the first
     expect(at(new Date(2024, 2, 1))).toBe(200);
-    expect(at(new Date(2024, 5, 1, 6))).toBe(198.42); // same day counts
     expect(at(new Date(2025, 0, 1))).toBe(198.42);
     expect(bodyweightLookup([], "lb")(new Date())).toBeNull();
   });

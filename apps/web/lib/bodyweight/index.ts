@@ -2,18 +2,29 @@ import { mutate } from "@/lib/db/mutate";
 import { type BodyMeasurementRow, type JimDatabase, type OutboxEntry, db } from "@/lib/db/schema";
 import { getCachedSettings, patchSettings } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
+import { readAppleHealthWeights } from "./apple-health";
+import { BODYWEIGHT_KIND, bodyweightSeries, isLiveBodyweight } from "./series";
+
 import {
   type ImportedWeight,
   type MeasurementKind,
   type MeasurementUnit,
+  type ParsedWeightCsv,
   type WeightCsvFormat,
   type WeightUnit,
-  bodyweightOn,
-  convertMeasurement,
   parseWeightCsv,
   uuidv7,
   weightEntryKey,
 } from "@jim/core";
+
+export {
+  type BodyweightPoint,
+  type MeasurementPoint,
+  bodyweightLookup,
+  bodyweightOnDate,
+  bodyweightSeries,
+  measurementSeries,
+} from "./series";
 
 /**
  * Bodyweight over time (issue #377), and body measurements alongside it
@@ -22,68 +33,6 @@ import {
  * logs, so it syncs. Rows keep the unit they were entered in; readers
  * convert to the user's current units.
  */
-
-const BODYWEIGHT_KIND = "bodyweight";
-
-export interface BodyweightPoint {
-  id: string;
-  measuredAt: Date;
-  /** In the units asked for, to two decimals. */
-  value: number;
-}
-
-/** A point on any measurement's trend (issue #249); same shape as a weigh-in. */
-export type MeasurementPoint = BodyweightPoint;
-
-function isLive(row: BodyMeasurementRow, kind: MeasurementKind): boolean {
-  return row.kind === kind && !row.deletedAt;
-}
-
-function isLiveBodyweight(
-  row: BodyMeasurementRow,
-): row is BodyMeasurementRow & { unit: WeightUnit } {
-  return isLive(row, BODYWEIGHT_KIND) && (row.unit === "lb" || row.unit === "kg");
-}
-
-/**
- * Live entries of one kind in `unit`, oldest first. Rows whose unit can't
- * convert to it (a length logged against a weight kind) are left out.
- */
-export function measurementSeries(
-  rows: readonly BodyMeasurementRow[],
-  kind: MeasurementKind,
-  unit: MeasurementUnit,
-): MeasurementPoint[] {
-  const points: MeasurementPoint[] = [];
-  for (const row of rows) {
-    if (!isLive(row, kind)) continue;
-    const value = convertMeasurement(Number(row.value), row.unit, unit);
-    if (value == null || !Number.isFinite(value)) continue;
-    points.push({ id: row.id, measuredAt: row.measuredAt, value });
-  }
-  return points.sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime());
-}
-
-/** Live weigh-ins in `units`, oldest first. */
-export function bodyweightSeries(
-  rows: readonly BodyMeasurementRow[],
-  units: WeightUnit,
-): BodyweightPoint[] {
-  return measurementSeries(rows, BODYWEIGHT_KIND, units);
-}
-
-/**
- * Looks up the bodyweight (in `units`) that applied on a date, so a past PR
- * is judged against what the user weighed then rather than today (issue
- * #249). Null with no weigh-ins; callers fall back to Settings' value.
- */
-export function bodyweightLookup(
-  rows: readonly BodyMeasurementRow[],
-  units: WeightUnit,
-): (date: Date) => number | null {
-  const series = bodyweightSeries(rows, units);
-  return (date) => bodyweightOn(series, date);
-}
 
 /** `numeric(7, 2)` on the server: round here so the local row matches what syncs back. */
 function toStoredValue(value: number): string {
@@ -116,7 +65,8 @@ export async function logMeasurement(
   const now = new Date();
   const rows = await database.bodyMeasurements.toArray();
   const sameDay = rows.find(
-    (row) => isLive(row, input.kind) && sameLocalDay(row.measuredAt, input.measuredAt),
+    (row) =>
+      row.kind === input.kind && !row.deletedAt && sameLocalDay(row.measuredAt, input.measuredAt),
   );
   const entity: BodyMeasurementRow = {
     id: sameDay?.id ?? uuidv7(),
@@ -200,7 +150,25 @@ export async function previewWeightImport(
   text: string,
   database: JimDatabase = db,
 ): Promise<WeightImportPreview> {
-  const parsed = parseWeightCsv(text);
+  return previewParsedWeights(parseWeightCsv(text), database);
+}
+
+/**
+ * Reads an Apple Health export (`export.zip` or `export.xml`) a chunk at a
+ * time, so a file of hundreds of MB never sits in memory whole (issue #247).
+ */
+export async function previewAppleHealthImport(
+  file: Blob & { name?: string },
+  onProgress?: (fraction: number) => void,
+  database: JimDatabase = db,
+): Promise<WeightImportPreview> {
+  return previewParsedWeights(await readAppleHealthWeights(file, onProgress), database);
+}
+
+async function previewParsedWeights(
+  parsed: ParsedWeightCsv,
+  database: JimDatabase,
+): Promise<WeightImportPreview> {
   const existing = await existingKeys(database);
   // Unlabelled rows can't be keyed until the user picks a unit, so check
   // both: a re-import of an unlabelled file still finds its duplicates.

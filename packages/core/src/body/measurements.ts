@@ -93,27 +93,3 @@ export function convertMeasurement(
 export function measurementUnitLabel(unit: MeasurementUnit): string {
   return unit === "pct" ? "%" : unit;
 }
-
-export interface DatedValue {
-  measuredAt: Date;
-  value: number;
-}
-
-/**
- * The bodyweight that applied on `date`: the latest weigh-in on or before
- * the end of that day, or, for a date before the first weigh-in, the first
- * one (the closest thing on record). Null with no weigh-ins at all.
- * `series` must be sorted oldest first.
- */
-export function bodyweightOn(series: readonly DatedValue[], date: Date): number | null {
-  if (series.length === 0) return null;
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
-  const cutoff = endOfDay.getTime();
-  let found: DatedValue | null = null;
-  for (const point of series) {
-    if (point.measuredAt.getTime() > cutoff) break;
-    found = point;
-  }
-  return (found ?? series[0])?.value ?? null;
-}

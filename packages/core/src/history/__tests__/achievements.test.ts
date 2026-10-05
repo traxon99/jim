@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { tierForOneRepMax } from "../../strength-standards";
 import {
   type AchievementInput,
   type AchievementSet,
@@ -216,35 +215,45 @@ describe("deriveAchievements", () => {
     expect(byId(list, "strength-elite")?.sessionId).toBe("late");
   });
 
-  it("judges past lifts against the bodyweight on that day (#249)", () => {
-    const records = [
-      { lift: "squat" as const, oneRepMax: 300, achievedAt: day(2026, 9, 1), sessionId: "old" },
-    ];
-    const sets = [set({ sessionId: "old", completedAt: day(2026, 9, 1), weight: 300, reps: 1 })];
-    const today = deriveAchievements(
+  it("judges each lift against the bodyweight on its date", () => {
+    const bodyweightOn = (date: Date) => (date.getTime() < day(2026, 9, 3).getTime() ? 240 : 200);
+    const list = deriveAchievements(
       input({
-        bodyweight: 300,
-        strengthProfile: { sex: "male", bodyweight: 300 },
-        strengthRecords: records,
-        sets,
+        bodyweight: 180,
+        bodyweightOn,
+        sets: [
+          set({ sessionId: "heavy-me", weight: 225, completedAt: day(2026, 9, 2) }),
+          set({ sessionId: "lighter-me", weight: 225, completedAt: day(2026, 9, 3) }),
+        ],
+        strengthProfile: { sex: "male", bodyweight: 180 },
+        strengthRecords: [
+          { lift: "squat", oneRepMax: 1000, achievedAt: day(2026, 9, 5), sessionId: "elite" },
+        ],
       }),
     );
-    const then = deriveAchievements(
+    expect(byId(list, "bodyweight-1")?.sessionId).toBe("lighter-me");
+    expect(byId(list, "strength-elite")?.sessionId).toBe("elite");
+
+    const heavier = deriveAchievements(
       input({
-        bodyweight: 300,
-        strengthProfile: { sex: "male", bodyweight: 300 },
-        strengthRecords: records,
-        sets,
-        bodyweightAt: () => 150,
+        strengthProfile: { sex: "male", bodyweight: 180 },
+        bodyweightOn: () => 400,
+        strengthRecords: [
+          { lift: "squat", oneRepMax: 500, achievedAt: day(2026, 9, 5), sessionId: "s" },
+        ],
       }),
     );
-    expect(byId(today, "bodyweight-2")?.achievedAt).toBeNull();
-    expect(byId(then, "bodyweight-2")?.sessionId).toBe("old");
-    const tierAt150 = tierForOneRepMax("squat", 300, { sex: "male", bodyweight: 150 });
-    const tierAt300 = tierForOneRepMax("squat", 300, { sex: "male", bodyweight: 300 });
-    expect(tierAt150).not.toBe(tierAt300);
-    expect(byId(then, `strength-${tierAt150}`)?.sessionId).toBe("old");
-    expect(byId(today, `strength-${tierAt150}`)?.achievedAt).toBeNull();
+    const lighter = deriveAchievements(
+      input({
+        strengthProfile: { sex: "male", bodyweight: 180 },
+        strengthRecords: [
+          { lift: "squat", oneRepMax: 500, achievedAt: day(2026, 9, 5), sessionId: "s" },
+        ],
+      }),
+    );
+    const earned = (l: typeof list) =>
+      l.filter((a) => a.category === "strength" && a.achievedAt).length;
+    expect(earned(heavier)).toBeLessThan(earned(lighter));
   });
 
   it("picks out what one workout earned", () => {
