@@ -87,13 +87,16 @@ export const trackingTypeEnum = pgEnum("tracking_type", [
   "distance",
   "bodyweight",
   "weighted_bodyweight",
+  // Cardio (issue #423): a distance covered in a time, e.g. a 5 km run in 25:00.
+  "distance_time",
 ]);
 
 // Warm-ups/stretches (issue #59) are exercises like any other, but live in
 // their own category: they're logged for reps or time, tracked for how often
 // they're done rather than for PRs/volume, and grouped at the start of a
-// workout.
-export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "warmup"]);
+// workout. Cardio (issue #423) is logged for time and/or distance, sits in
+// the workout alongside strength, and stays out of volume and the body map.
+export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "warmup", "cardio"]);
 
 // A "warmup" routine is a reusable warm-up block (e.g. "Leg warm-up") that a
 // strength routine can link to as its warm-up (routines.warmup_routine_id).

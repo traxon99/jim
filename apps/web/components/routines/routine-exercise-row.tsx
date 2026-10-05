@@ -14,6 +14,8 @@ interface Props {
   exerciseName: string;
   /** Warm-ups (issue #59) only take sets plus reps or a hold time. */
   warmup?: { timed: boolean } | null;
+  /** Cardio (issue #423) takes sets, a time per set and rest; no reps, weight or progression. */
+  cardio?: boolean;
   units: "lb" | "kg";
   /** "A1"-style place in a superset (issue #228), or null. */
   supersetLabel?: string | null;
@@ -47,6 +49,7 @@ export function RoutineExerciseRow({
   item,
   exerciseName,
   warmup = null,
+  cardio = false,
   units,
   supersetLabel = null,
   dprFocused = false,
@@ -62,6 +65,11 @@ export function RoutineExerciseRow({
   const [repsHigh, setRepsHigh] = useState(item.targetRepsHigh?.toString() ?? "");
   const [durationSeconds, setDurationSeconds] = useState(
     item.targetDurationSeconds?.toString() ?? "",
+  );
+  const [durationMinutes, setDurationMinutes] = useState(
+    item.targetDurationSeconds == null
+      ? ""
+      : String(Number((item.targetDurationSeconds / 60).toFixed(2))),
   );
   const [restSeconds, setRestSeconds] = useState(item.targetRestSeconds?.toString() ?? "");
   const [targetWeight, setTargetWeight] = useState(formatNumericField(item.targetWeight));
@@ -106,6 +114,9 @@ export function RoutineExerciseRow({
               <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
                 Warm-up
               </span>
+            )}
+            {cardio && (
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-500">Cardio</span>
             )}
           </span>
         </div>
@@ -156,6 +167,39 @@ export function RoutineExerciseRow({
               />
             </label>
           )
+        ) : cardio ? (
+          <>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Time (min)
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={durationMinutes}
+                onChange={(event) => setDurationMinutes(event.target.value)}
+                onBlur={() => {
+                  const minutes = toNumberOrNull(durationMinutes);
+                  onUpdate({
+                    targetDurationSeconds:
+                      minutes != null && minutes > 0 ? Math.round(minutes * 60) : null,
+                  });
+                }}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Rest (s)
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={restSeconds}
+                onChange={(event) => setRestSeconds(event.target.value)}
+                onBlur={() => onUpdate({ targetRestSeconds: toNumberOrNull(restSeconds) })}
+                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+          </>
         ) : (
           <>
             <label className="flex flex-col gap-1 text-xs font-medium">
@@ -210,7 +254,7 @@ export function RoutineExerciseRow({
         )}
       </div>
 
-      {!warmup && (
+      {!warmup && !cardio && (
         <ProgressionRuleEditor
           rule={parseProgressionRule(item.progressionRule)}
           units={units}

@@ -18,7 +18,7 @@ import {
   type TrainingStreak,
   deletedSessionExerciseIds,
   deriveAchievements,
-  isWarmupExercise,
+  isStrengthExercise,
   resolveCurrentRows,
   standardLiftForSlug,
   trainingStreak,
@@ -67,7 +67,7 @@ export function buildAchievementData(
     if (!sessionExercise || deleted.has(sessionExercise.id)) continue;
     if (!finishedIds.has(sessionExercise.sessionId)) continue;
     const exercise = exerciseById.get(sessionExercise.exerciseId);
-    if (!exercise || isWarmupExercise(exercise)) continue;
+    if (!exercise || !isStrengthExercise(exercise)) continue;
     sets.push({
       sessionId: sessionExercise.sessionId,
       completedAt: set.completedAt,

@@ -1,4 +1,4 @@
-import { type ExerciseCategory, isWarmupExercise, resolveCurrentRows } from "@jim/core";
+import { type ExerciseCategory, isStrengthExercise, resolveCurrentRows } from "@jim/core";
 
 interface PortalSessionRow {
   id: string;
@@ -86,7 +86,7 @@ export function buildPortalSets(
     const sessionExercise = sessionExerciseById.get(set.sessionExerciseId);
     if (!sessionExercise) continue;
     const exercise = exerciseById.get(sessionExercise.exerciseId);
-    if (!exercise || isWarmupExercise(exercise)) continue;
+    if (!exercise || !isStrengthExercise(exercise)) continue;
 
     usedExerciseIds.add(exercise.id);
     result.push({

@@ -1,5 +1,5 @@
 import type { SessionDetailExercise, SessionDetailSet } from "@/lib/history/session-detail-entries";
-import type { PrKind } from "@jim/core";
+import { type DistanceUnit, type PrKind, formatTimedSet } from "@jim/core";
 
 /** Short chip labels for each PR kind, shared with session detail. */
 export const PR_KIND_LABELS: Record<PrKind, string> = {
@@ -15,31 +15,30 @@ export interface SummaryExerciseRow {
   exerciseName: string;
   /** Non-warm-up sets, or every set when the exercise only has warm-ups. */
   setCount: number;
-  /** "185 × 5", "× 12", "60s" — the exercise's best set, or "—". */
+  /** "185 × 5", "× 12", "45s", "5 km · 25:00" — the exercise's best set, or "—". */
   bestSet: string;
   /** Distinct PR kinds hit by any set of the exercise, in first-hit order. */
   prKinds: PrKind[];
 }
 
 function isBetter(candidate: SessionDetailSet, best: SessionDetailSet): boolean {
+  // Cardio (issue #423): the longest distance, then the longest time.
+  if ((candidate.distance ?? 0) !== (best.distance ?? 0)) {
+    return (candidate.distance ?? 0) > (best.distance ?? 0);
+  }
   if ((candidate.weight ?? 0) !== (best.weight ?? 0)) {
     return (candidate.weight ?? 0) > (best.weight ?? 0);
   }
   if ((candidate.reps ?? 0) !== (best.reps ?? 0)) return (candidate.reps ?? 0) > (best.reps ?? 0);
-  if ((candidate.durationSeconds ?? 0) !== (best.durationSeconds ?? 0)) {
-    return (candidate.durationSeconds ?? 0) > (best.durationSeconds ?? 0);
-  }
-  return (candidate.distance ?? 0) > (best.distance ?? 0);
+  return (candidate.durationSeconds ?? 0) > (best.durationSeconds ?? 0);
 }
 
-function formatSet(set: SessionDetailSet): string {
+function formatSet(set: SessionDetailSet, unit: DistanceUnit): string {
   if (set.weight != null && set.weight > 0) {
     return set.reps != null ? `${set.weight} × ${set.reps}` : `${set.weight}`;
   }
   if (set.reps != null) return `× ${set.reps}`;
-  if (set.durationSeconds != null) return `${set.durationSeconds}s`;
-  if (set.distance != null) return `${set.distance}`;
-  return "—";
+  return formatTimedSet(set, unit) ?? "—";
 }
 
 /**
@@ -50,6 +49,7 @@ function formatSet(set: SessionDetailSet): string {
  */
 export function buildSummaryExerciseRows(
   groups: readonly SessionDetailExercise[],
+  distanceUnit: DistanceUnit = "mi",
 ): SummaryExerciseRow[] {
   const rows: SummaryExerciseRow[] = [];
   for (const group of groups) {
@@ -71,7 +71,7 @@ export function buildSummaryExerciseRows(
       exerciseId: group.exerciseId,
       exerciseName: group.exerciseName,
       setCount: counted.length,
-      bestSet: formatSet(best),
+      bestSet: formatSet(best, distanceUnit),
       prKinds,
     });
   }

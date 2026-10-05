@@ -472,7 +472,14 @@ export function createMcpServer(context: UserContext): McpServer {
         force: z.enum(["push", "pull", "static"]).optional(),
         level: z.enum(["beginner", "intermediate", "expert"]).optional(),
         trackingType: z
-          .enum(["weight_reps", "time", "distance", "bodyweight", "weighted_bodyweight"])
+          .enum([
+            "weight_reps",
+            "time",
+            "distance",
+            "bodyweight",
+            "weighted_bodyweight",
+            "distance_time",
+          ])
           .optional(),
         instructions: z.array(z.string()).optional(),
         isArchived: z.boolean().optional(),

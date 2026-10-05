@@ -7,6 +7,7 @@ import {
   computePriorBests,
   deletedSessionExerciseIds,
   detectPersonalRecords,
+  isCardioExercise,
   isWarmupExercise,
   resolveCurrentRows,
   restTakenSeconds,
@@ -155,8 +156,10 @@ export interface CompleteSetInput {
   weight: number | null;
   reps: number | null;
   rpe?: number | null;
-  /** For time-tracked exercises, e.g. a held stretch (issue #59). */
+  /** For time-tracked exercises, e.g. a held stretch (issue #59) or a bag round (issue #423). */
   durationSeconds?: number | null;
+  /** For cardio (issue #423), in the user's distance unit (km with kg, miles with lb). */
+  distance?: number | null;
 }
 
 export interface CompleteSetResult {
@@ -168,7 +171,7 @@ export interface CompleteSetResult {
  * Logs a brand-new set and checks it against this exercise's history for a
  * PR, live (STORIES.md S6). Warm-ups are tracked for frequency, not
  * progress (issue #59), so they never produce PRs — nor do warm-up sets of
- * a working exercise (issue #352).
+ * a working exercise (issue #352), nor cardio (issue #423).
  */
 export async function completeSet(
   input: CompleteSetInput,
@@ -189,7 +192,7 @@ export async function completeSet(
     weight: input.weight == null ? null : String(input.weight),
     reps: input.reps,
     durationSeconds: input.durationSeconds ?? null,
-    distance: null,
+    distance: input.distance == null ? null : String(input.distance),
     rpe: input.rpe == null ? null : String(input.rpe),
     rir: null,
     restSeconds: rest.restSeconds,
@@ -201,7 +204,10 @@ export async function completeSet(
   };
   await mutate("sets", set, database);
 
-  if (exerciseIsWarmup || set.kind === "warmup") return { set, prs: [] };
+  // Cardio's records (longest distance/time, fastest pace) are computed
+  // from set history where they're shown (issue #423), not stored as PRs.
+  const exerciseIsCardio = exercise != null && isCardioExercise(exercise);
+  if (exerciseIsWarmup || exerciseIsCardio || set.kind === "warmup") return { set, prs: [] };
 
   const prs = await detectAndRecordPrs(
     database,

@@ -72,7 +72,7 @@ export interface GeneratorExercise {
   mechanic?: "compound" | "isolation" | null;
   level?: string | null;
   trackingType?: string | null;
-  category?: "strength" | "warmup" | null;
+  category?: "strength" | "warmup" | "cardio" | null;
   isArchived: boolean;
 }
 

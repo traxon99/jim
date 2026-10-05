@@ -29,6 +29,7 @@ import {
   type SupersetChange,
   duplicateRoutine,
   formSuperset,
+  isCardioExercise,
   isWarmupExercise,
   isWarmupRoutine,
   nextSupersetGroup,
@@ -104,6 +105,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         name: string;
         mechanic: "compound" | "isolation" | null;
         warmup: { timed: boolean } | null;
+        cardio: boolean;
       }
     >();
     for (const exercise of exercises ?? []) {
@@ -111,6 +113,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         name: exercise.name,
         mechanic: exercise.mechanic,
         warmup: isWarmupExercise(exercise) ? { timed: exercise.trackingType === "time" } : null,
+        cardio: isCardioExercise(exercise),
       });
     }
     return map;
@@ -433,7 +436,11 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           {items.map((item) => {
             const info = exercisesById.get(item.exerciseId);
             const label = labels.get(item.id);
-            const summary = routineItemSummary(item, settings.units, info?.warmup?.timed ?? false);
+            const summary = routineItemSummary(
+              item,
+              settings.units,
+              (info?.warmup?.timed ?? false) || (info?.cardio ?? false),
+            );
             return (
               <li key={item.id} className="flex flex-col gap-0.5 py-3">
                 <span className="flex items-center gap-2 text-base font-medium">
@@ -477,6 +484,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                   ]}
                   exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                   warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
+                  cardio={exercisesById.get(item.exerciseId)?.cardio ?? false}
                   units={settings.units}
                   dprFocused={dprContext?.lifts.has(item.exerciseId) ?? false}
                   onUpdate={(patch) => handleUpdateItem(item, patch)}

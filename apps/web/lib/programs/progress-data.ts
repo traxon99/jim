@@ -2,7 +2,7 @@ import type { ExerciseRow, SessionExerciseRow, SessionRow, SetRow } from "@/lib/
 import {
   type ProgramProgressSet,
   deletedSessionExerciseIds,
-  isWarmupExercise,
+  isStrengthExercise,
   resolveCurrentRows,
 } from "@jim/core";
 
@@ -28,7 +28,7 @@ export function buildProgramProgressSets(
     const sessionExercise = sessionExerciseById.get(set.sessionExerciseId);
     if (!sessionExercise || deleted.has(sessionExercise.id)) continue;
     const exercise = exerciseById.get(sessionExercise.exerciseId);
-    if (exercise && isWarmupExercise(exercise)) continue;
+    if (exercise && !isStrengthExercise(exercise)) continue;
 
     result.push({
       sessionId: sessionExercise.sessionId,

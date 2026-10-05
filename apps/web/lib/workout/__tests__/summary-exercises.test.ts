@@ -75,6 +75,19 @@ describe("buildSummaryExerciseRows", () => {
       group("se2", "Skipped", []),
     ]);
     expect(rows).toHaveLength(1);
-    expect(rows[0].bestSet).toBe("60s");
+    expect(rows[0].bestSet).toBe("1:00");
+  });
+
+  it("picks cardio's longest distance and shows it with its time", () => {
+    const rows = buildSummaryExerciseRows(
+      [
+        group("se1", "Running (Outdoor)", [
+          set("a", null, null, { distance: 3, durationSeconds: 1000 }),
+          set("b", null, null, { distance: 5, durationSeconds: 1500 }),
+        ]),
+      ],
+      "km",
+    );
+    expect(rows[0].bestSet).toBe("5 km · 25:00");
   });
 });

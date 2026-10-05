@@ -1,6 +1,6 @@
 import type { SessionDetailExercise, SessionDetailSet } from "@/lib/history/session-detail-entries";
 import { setKindLabel } from "@/lib/sessions/set-kinds";
-import type { SessionSummary } from "@jim/core";
+import { type DistanceUnit, type SessionSummary, distanceUnitFor, formatTimedSet } from "@jim/core";
 
 export interface BuildWorkoutShareTextInput {
   name: string | null;
@@ -16,17 +16,13 @@ const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
-function formatSet(set: SessionDetailSet): string {
+function formatSet(set: SessionDetailSet, unit: DistanceUnit): string {
   const value =
     set.weight != null && set.reps != null
       ? `${set.weight}×${set.reps}`
       : set.reps != null
         ? `${set.reps} reps`
-        : set.durationSeconds != null
-          ? `${set.durationSeconds}s`
-          : set.distance != null
-            ? `${set.distance}`
-            : "—";
+        : (formatTimedSet(set, unit) ?? "—");
 
   const tags = [
     set.kind === "working" ? null : setKindLabel(set.kind),
@@ -55,9 +51,14 @@ export function buildWorkoutShareText({
     `${DATE_FORMAT.format(startedAt)} · ${minutes} min · ${Math.round(summary.totalVolume).toLocaleString("en-US")} ${units} · ${summary.setCount} sets · ${prLabel}`,
   ];
 
+  const distanceUnit = distanceUnitFor(units === "kg" ? "kg" : "lb");
   for (const exercise of exercises) {
     if (exercise.sets.length === 0) continue;
-    lines.push("", exercise.exerciseName, exercise.sets.map(formatSet).join(", "));
+    lines.push(
+      "",
+      exercise.exerciseName,
+      exercise.sets.map((set) => formatSet(set, distanceUnit)).join(", "),
+    );
   }
 
   return lines.join("\n");

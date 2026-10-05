@@ -3,7 +3,7 @@ import {
   WEEKLY_SET_TARGETS,
   deletedSessionExerciseIds,
   groupByWeek,
-  isWarmupExercise,
+  isStrengthExercise,
   resolveCurrentRows,
   weeklySetStatusByMuscle,
   weeklyVolumeByMuscle,
@@ -126,7 +126,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
     const muscleSets = resolved
       .map((set) => {
         const exercise = exerciseRows.get(set.exerciseId);
-        if (!exercise || isWarmupExercise(exercise)) return null;
+        if (!exercise || !isStrengthExercise(exercise)) return null;
         return {
           completedAt: set.completedAt,
           weight: set.weight,

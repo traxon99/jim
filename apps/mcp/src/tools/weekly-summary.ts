@@ -2,7 +2,7 @@ import {
   type ExerciseCategory,
   type TrainingGoal,
   WEEKLY_SET_TARGETS,
-  isWarmupExercise,
+  isStrengthExercise,
   startOfWeek,
   weeklySetStatusByMuscle,
   weeklyVolumeByMuscle,
@@ -63,7 +63,10 @@ export function summarizeWeeks(
     const weekSets = sets.filter((set) => {
       const exercise = exercises.get(set.exerciseId);
       return (
-        exercise && !isWarmupExercise(exercise) && set.completedAt >= start && set.completedAt < end
+        exercise &&
+        isStrengthExercise(exercise) &&
+        set.completedAt >= start &&
+        set.completedAt < end
       );
     });
 
