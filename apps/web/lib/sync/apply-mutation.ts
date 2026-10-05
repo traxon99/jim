@@ -372,6 +372,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             status: excluded(dprBlocks.status),
             aggressiveness: excluded(dprBlocks.aggressiveness),
             experience: excluded(dprBlocks.experience),
+            volumeMode: excluded(dprBlocks.volumeMode),
             programId: excluded(dprBlocks.programId),
             updatedAt: excluded(dprBlocks.updatedAt),
             deviceId: excluded(dprBlocks.deviceId),

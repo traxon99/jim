@@ -21,6 +21,8 @@ import {
   dprCallsForRoutine,
   dprGoalLine,
   dprRepsPlaceholder,
+  dprVolumeLine,
+  dprVolumeSets,
   dprWeightPlaceholder,
   dprWhyLine,
   needsRpeNudge,
@@ -129,6 +131,7 @@ const block: DprBlockRow = {
   status: "active",
   aggressiveness: "moderate",
   experience: "intermediate",
+  volumeMode: false,
   programId: null,
   createdAt: daysAgo(20),
   updatedAt: daysAgo(20),
@@ -409,5 +412,68 @@ describe("pre-workout sheet (issue #235)", () => {
         "lb",
       ),
     ).toBe("DPR: light day — 165 instead of 185");
+  });
+});
+
+describe("mesocycle mode (issue #250)", () => {
+  const chestBench = {
+    ...exercise(BENCH, "Bench", "barbell"),
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["triceps"],
+  } as ExerciseRow;
+  const working = (count: number) =>
+    Array.from({ length: count }, () => ({
+      kind: "working" as const,
+      weight: 100,
+      reps: 8,
+      rpe: 7,
+    }));
+  // A block started 8 days ago: 6 chest sets the week before, then 6 at an
+  // easy RPE in week 1, so week 2 plans 8.
+  const volumeBlock: DprBlockRow = { ...block, startedAt: daysAgo(8), volumeMode: true };
+  const snapshot = {
+    history: [daysAgo(12), daysAgo(6)].map((date) => ({
+      exerciseId: BENCH,
+      repRange: { low: 6, high: 8 },
+      date,
+      sets: working(6),
+    })),
+    routineRanges: [],
+    usageRows: [],
+    firstSessionAt: daysAgo(12),
+    completedSessionCount: 2,
+  };
+  const build = (b: DprBlockRow) =>
+    buildDprContext({
+      settings: { ...DEFAULT_SETTINGS, dprEnabled: true },
+      blocks: [b],
+      lifts: [],
+      exercises: [chestBench],
+      snapshot,
+      now: new Date(),
+    });
+
+  it("scales a routine's sets by the muscle's weekly plan", () => {
+    const ctx = build(volumeBlock);
+    expect(ctx?.volume?.get("chest")?.current).toMatchObject({ week: 2, planned: 8 });
+    expect(dprVolumeSets(ctx, BENCH, { targetSets: 3 })).toBe(4);
+    expect(dprVolumeLine(4, 3)).toBe("DPR volume: 4 sets this week (routine: 3)");
+  });
+
+  it("leaves set counts alone with the mode off or no routine count", () => {
+    const off = build({ ...volumeBlock, volumeMode: false });
+    expect(off?.volume).toBeNull();
+    expect(dprVolumeSets(off, BENCH, { targetSets: 3 })).toBeNull();
+    expect(dprVolumeSets(build(volumeBlock), BENCH, { targetSets: null })).toBeNull();
+    expect(dprVolumeSets(null, BENCH, { targetSets: 3 })).toBeNull();
+  });
+
+  it("leaves an exercise with its own progression rule (issue #255) alone", () => {
+    expect(
+      dprVolumeSets(build(volumeBlock), BENCH, {
+        targetSets: 3,
+        progressionRule: { type: "linear", increment: 5 },
+      } as RoutineExerciseRow),
+    ).toBeNull();
   });
 });

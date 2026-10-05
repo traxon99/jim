@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Routine exercises can follow their own progression rule (linear, double progression or reps sum, with a deload), e.g. GZCLP.";
+  "Dynamic Progression's new mesocycle mode grows each muscle's weekly sets through a block. Turn it on from Progress.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
