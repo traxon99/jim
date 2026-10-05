@@ -143,6 +143,49 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("offline logging, then reconnect
     await offlineDb.delete();
   });
 
+  it("body measurements logged offline reach Postgres on reconnect (#249)", async () => {
+    const offlineDb = createTestDb(`jim-e2e-${crypto.randomUUID()}`);
+    const now = new Date();
+    const waistId = uuidv7();
+    const bodyFatId = uuidv7();
+    for (const [id, kind, value, unit] of [
+      [waistId, "waist", "32.50", "in"],
+      [bodyFatId, "body_fat", "18.20", "pct"],
+    ] as const) {
+      await mutate(
+        "bodyMeasurements",
+        {
+          id,
+          userId: USER_A,
+          kind,
+          value,
+          unit,
+          measuredAt: now,
+          updatedAt: now,
+          deviceId: "device-a",
+          deletedAt: null,
+          serverSeq: 0,
+        },
+        offlineDb,
+      );
+    }
+    expect(await offlineDb.outbox.count()).toBe(2);
+
+    await runSyncCycle(offlineDb, routeHandlerFetch);
+
+    expect(await offlineDb.outbox.count()).toBe(0);
+    const rows = await admin<{ id: string; kind: string; value: string; unit: string }[]>`
+      SELECT id, kind, value, unit FROM body_measurements
+      WHERE id IN (${waistId}, ${bodyFatId}) ORDER BY kind
+    `;
+    expect(rows.map(({ kind, value, unit }) => ({ kind, value, unit }))).toEqual([
+      { kind: "body_fat", value: "18.20", unit: "pct" },
+      { kind: "waist", value: "32.50", unit: "in" },
+    ]);
+
+    await offlineDb.delete();
+  });
+
   it("force-quitting mid-session and relaunching resumes the session with every set intact", async () => {
     const dbName = `jim-relaunch-${crypto.randomUUID()}`;
     const beforeQuit = createTestDb(dbName);

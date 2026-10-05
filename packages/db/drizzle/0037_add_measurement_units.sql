@@ -1,0 +1,2 @@
+CREATE TYPE "public"."measurement_unit" AS ENUM('lb', 'kg', 'in', 'cm', 'pct');--> statement-breakpoint
+ALTER TABLE "body_measurements" ALTER COLUMN "unit" SET DATA TYPE "public"."measurement_unit" USING "unit"::text::"public"."measurement_unit";

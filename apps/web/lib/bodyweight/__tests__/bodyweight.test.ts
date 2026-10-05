@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  bodyweightLookup,
   bodyweightSeries,
   commitWeightImport,
   deleteBodyweight,
   logBodyweight,
+  logMeasurement,
+  measurementSeries,
   previewWeightImport,
 } from "..";
 import { type JimDatabase, createTestDb } from "../../db/schema";
@@ -113,5 +116,57 @@ describe("weight import", () => {
     const rows = await testDb.bodyMeasurements.toArray();
     expect(rows.map((row) => row.unit)).toEqual(["kg", "kg"]);
     expect((await previewWeightImport(file, testDb)).duplicateCount).toBe(2);
+  });
+});
+
+describe("body measurements (#249)", () => {
+  it("logs each kind separately, one entry per kind a day, and converts lengths", async () => {
+    const waist = await logMeasurement(
+      { userId: USER_ID, kind: "waist", value: 32, unit: "in", measuredAt: new Date(2024, 0, 15) },
+      testDb,
+    );
+    const again = await logMeasurement(
+      {
+        userId: USER_ID,
+        kind: "waist",
+        value: 32.5,
+        unit: "in",
+        measuredAt: new Date(2024, 0, 15, 20),
+      },
+      testDb,
+    );
+    expect(again.id).toBe(waist.id);
+    await logMeasurement(
+      { userId: USER_ID, kind: "arms", value: 38, unit: "cm", measuredAt: new Date(2024, 0, 15) },
+      testDb,
+    );
+    await logBodyweight(
+      { userId: USER_ID, value: 180, unit: "lb", measuredAt: new Date(2024, 0, 15) },
+      testDb,
+    );
+
+    const rows = await testDb.bodyMeasurements.toArray();
+    expect(measurementSeries(rows, "waist", "cm").map((p) => p.value)).toEqual([82.55]);
+    expect(measurementSeries(rows, "arms", "in").map((p) => p.value)).toEqual([14.96]);
+    // A length never shows up as a weight, nor the other way round.
+    expect(measurementSeries(rows, "waist", "lb")).toEqual([]);
+    expect(bodyweightSeries(rows, "lb").map((p) => p.value)).toEqual([180]);
+    expect(await testDb.outbox.count()).toBe(4);
+  });
+
+  it("looks up the bodyweight that applied on a date", async () => {
+    await logBodyweight(
+      { userId: USER_ID, value: 200, unit: "lb", measuredAt: new Date(2024, 0, 1, 8) },
+      testDb,
+    );
+    await logBodyweight(
+      { userId: USER_ID, value: 90, unit: "kg", measuredAt: new Date(2024, 5, 1, 8) },
+      testDb,
+    );
+    const at = bodyweightLookup(await testDb.bodyMeasurements.toArray(), "lb");
+    expect(at(new Date(2023, 11, 1))).toBe(200); // before the first: the first
+    expect(at(new Date(2024, 2, 1))).toBe(200);
+    expect(at(new Date(2025, 0, 1))).toBe(198.42);
+    expect(bodyweightLookup([], "lb")(new Date())).toBeNull();
   });
 });

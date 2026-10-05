@@ -1,6 +1,7 @@
 "use client";
 
-import type { ExerciseRow, ProgramRow, SettingsRow } from "@/lib/db/schema";
+import { bodyweightLookup } from "@/lib/bodyweight";
+import { type ExerciseRow, type ProgramRow, type SettingsRow, db } from "@/lib/db/schema";
 import { guessExperience, planBlock, startDprBlock } from "@/lib/dpr/block";
 import type { DprSnapshot } from "@/lib/dpr/data";
 import { patchSettings } from "@/lib/settings";
@@ -15,6 +16,7 @@ import {
   blockWeeksForProgram,
   focusCandidates,
 } from "@jim/core";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
 import {
   EXPERIENCE_LABELS,
@@ -48,9 +50,17 @@ export function SetupWizard({
   prefill?: { focus: string[]; baselines: ReadonlyMap<string, number> } | null;
 }) {
   const now = useMemo(() => new Date(), []);
+  const bodyMeasurements = useLiveQuery(() => db.bodyMeasurements.toArray(), []);
   const guess = useMemo(
-    () => guessExperience(snapshot, exercises, settings, now),
-    [snapshot, exercises, settings, now],
+    () =>
+      guessExperience(
+        snapshot,
+        exercises,
+        settings,
+        now,
+        bodyweightLookup(bodyMeasurements ?? [], settings.units),
+      ),
+    [snapshot, exercises, settings, now, bodyMeasurements],
   );
   // The last block's lifts stay pickable even if they've left the top 10.
   const candidates = useMemo(() => {

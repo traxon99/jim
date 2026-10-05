@@ -22,3 +22,17 @@ export function strengthProfileFromSettings(
     age: settings.birthdate ? ageFromBirthdate(settings.birthdate, now) : null,
   };
 }
+
+/**
+ * `profile` judged at `date`: the bodyweight that applied then, from the
+ * weigh-in history (issue #249), in place of today's. Keeps today's when
+ * there's no weigh-in to go on.
+ */
+export function strengthProfileOn(
+  profile: StrengthProfile,
+  bodyweightAt: (date: Date) => number | null,
+  date: Date,
+): StrengthProfile {
+  const then = bodyweightAt(date);
+  return then != null && then > 0 ? { ...profile, bodyweight: then } : profile;
+}
