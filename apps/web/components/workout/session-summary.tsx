@@ -15,6 +15,7 @@ import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import {
   achievementsEarnedInSession,
+  distanceUnitFor,
   isVisiblePrKind,
   resolveCurrentRows,
   summarizeSession,
@@ -100,7 +101,10 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [session.name, session.startedAt, settings.units, summary, exerciseGroups],
   );
 
-  const exerciseRows = useMemo(() => buildSummaryExerciseRows(exerciseGroups), [exerciseGroups]);
+  const exerciseRows = useMemo(
+    () => buildSummaryExerciseRows(exerciseGroups, distanceUnitFor(settings.units)),
+    [exerciseGroups, settings.units],
+  );
 
   const achievementData = useAchievements();
   const earned = useMemo(

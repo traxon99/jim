@@ -178,8 +178,9 @@ type PendingWrite = {
 
 function customTrackingType(sets: ImportedWorkout["exercises"][number]["sets"]) {
   if (sets.some((set) => set.weight != null)) return "weight_reps" as const;
+  // Anything with a distance is cardio (issue #423), logged for distance and time.
+  if (sets.some((set) => set.distance != null)) return "distance_time" as const;
   if (sets.some((set) => set.durationSeconds != null)) return "time" as const;
-  if (sets.some((set) => set.distance != null)) return "distance" as const;
   return "bodyweight" as const;
 }
 
@@ -338,6 +339,7 @@ export async function commitWorkoutImport(
     }
   }
   for (const [name, sets] of customSets) {
+    const trackingType = customTrackingType(sets);
     const entity: ExerciseRow = {
       id: uuidv7(),
       ownerId: userId,
@@ -350,8 +352,8 @@ export async function commitWorkoutImport(
       mechanic: null,
       force: null,
       level: null,
-      trackingType: customTrackingType(sets),
-      category: "strength",
+      trackingType,
+      category: trackingType === "distance_time" ? "cardio" : "strength",
       instructions: [],
       imageUrls: [],
       videoUrl: null,

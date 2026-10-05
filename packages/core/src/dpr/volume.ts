@@ -3,7 +3,7 @@ import {
   SECONDARY_MUSCLE_VOLUME_WEIGHT,
 } from "../history/volume-by-muscle";
 import { WEEKLY_SET_TARGETS } from "../history/volume-targets";
-import { type ExerciseCategory, isWarmupExercise } from "../warmups/category";
+import { type ExerciseCategory, isStrengthExercise } from "../warmups/category";
 import type { DprHistoryEntry } from "./decide";
 import { DPR_DELOAD_WEEK_DAYS, type DprBlockInfo } from "./lift-status";
 import { MISS_RPE } from "./presets";
@@ -119,7 +119,7 @@ function weeklyStats(
 
   for (const entry of history) {
     const exercise = exercises.get(entry.exerciseId);
-    if (!exercise || isWarmupExercise(exercise)) continue;
+    if (!exercise || !isStrengthExercise(exercise)) continue;
     const week = blockWeekOf(block, entry.date);
     if (week === null) continue;
     // Working sets only (issue #395): warm-up sets aren't training volume.
@@ -236,7 +236,7 @@ export function volumeAdjustedSets(
   exercise: VolumeExercise,
   plans: ReadonlyMap<string, MuscleVolumePlan>,
 ): number | null {
-  if (isWarmupExercise(exercise)) return null;
+  if (!isStrengthExercise(exercise)) return null;
   const ratios: number[] = [];
   for (const muscle of exercise.primaryMuscles) {
     const plan = plans.get(muscle);

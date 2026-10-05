@@ -30,10 +30,19 @@ describe("classifyTrackingType", () => {
     ).toBe("time");
   });
 
-  it("classifies cardio as distance", () => {
+  it("classifies cardio as distance and time", () => {
     expect(
       classifyTrackingType({ name: "Rowing, Stationary", category: "cardio", equipment: null }),
-    ).toBe("distance");
+    ).toBe("distance_time");
+  });
+
+  it("classifies cardio done in place as time only", () => {
+    expect(
+      classifyTrackingType({ name: "Rope Jumping", category: "cardio", equipment: "other" }),
+    ).toBe("time");
+    expect(
+      classifyTrackingType({ name: "Stairmaster", category: "cardio", equipment: "machine" }),
+    ).toBe("time");
   });
 
   it("classifies a named weighted-bodyweight movement over its category", () => {

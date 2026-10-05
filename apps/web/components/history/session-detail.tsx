@@ -13,7 +13,13 @@ import { setKindLabel, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS } from "@/lib/workout/summary-exercises";
-import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
+import {
+  deriveUntitledSessionName,
+  distanceUnitFor,
+  formatTimedSet,
+  resolveCurrentRows,
+  summarizeSession,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -229,11 +235,7 @@ export function SessionDetail({ id }: { id: string }) {
                           ? `${set.weight} × ${set.reps}`
                           : set.reps != null
                             ? `${set.reps} reps`
-                            : set.durationSeconds != null
-                              ? `${set.durationSeconds}s`
-                              : set.distance != null
-                                ? `${set.distance}`
-                                : "—"}
+                            : (formatTimedSet(set, distanceUnitFor(settings.units)) ?? "—")}
                       </span>
                       {set.kind !== "working" && set.kind !== "warmup" && (
                         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">

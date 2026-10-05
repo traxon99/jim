@@ -25,10 +25,26 @@ const TRACKING_TYPES = [
   "distance",
   "bodyweight",
   "weighted_bodyweight",
+  "distance_time",
 ] as const;
 
 // Warm-ups/stretches are only ever logged for reps or for time (issue #59).
 const WARMUP_TRACKING_TYPES = ["bodyweight", "time"] as const;
+
+// Cardio is logged for distance and/or time (issue #423).
+const CARDIO_TRACKING_TYPES = ["distance_time", "time", "distance"] as const;
+
+const CARDIO_TRACKING_LABELS: Record<(typeof CARDIO_TRACKING_TYPES)[number], string> = {
+  distance_time: "distance and time",
+  time: "time",
+  distance: "distance",
+};
+
+function defaultTrackingType(category: ExerciseCategory): (typeof TRACKING_TYPES)[number] {
+  if (category === "warmup") return "bodyweight";
+  if (category === "cardio") return "distance_time";
+  return "weight_reps";
+}
 
 interface Props {
   userId: string;
@@ -64,7 +80,7 @@ export function ExerciseForm({
   const [equipment, setEquipment] = useState("");
   const [category, setCategory] = useState<ExerciseCategory>(initialCategory);
   const [trackingType, setTrackingType] = useState<(typeof TRACKING_TYPES)[number]>(
-    initialCategory === "warmup" ? "bodyweight" : "weight_reps",
+    defaultTrackingType(initialCategory),
   );
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
@@ -83,14 +99,31 @@ export function ExerciseForm({
     setVideoUrlText(existing.videoUrl ?? "");
   }, [existing]);
 
+  const trackingOptionsFor = (next: ExerciseCategory): readonly string[] =>
+    next === "warmup"
+      ? WARMUP_TRACKING_TYPES
+      : next === "cardio"
+        ? CARDIO_TRACKING_TYPES
+        : TRACKING_TYPES;
+
   function handleCategoryChange(next: ExerciseCategory) {
     setCategory(next);
-    if (next === "warmup" && !(WARMUP_TRACKING_TYPES as readonly string[]).includes(trackingType)) {
-      setTrackingType("bodyweight");
+    if (!trackingOptionsFor(next).includes(trackingType)) {
+      setTrackingType(defaultTrackingType(next));
     }
   }
 
-  const trackingOptions = category === "warmup" ? WARMUP_TRACKING_TYPES : TRACKING_TYPES;
+  const trackingOptions = trackingOptionsFor(
+    category,
+  ) as readonly (typeof TRACKING_TYPES)[number][];
+
+  function trackingLabel(t: (typeof TRACKING_TYPES)[number]): string {
+    if (category === "warmup") return t === "time" ? "time" : "reps";
+    if (category === "cardio") {
+      return CARDIO_TRACKING_LABELS[t as keyof typeof CARDIO_TRACKING_LABELS] ?? t;
+    }
+    return t.replace(/_/g, " ");
+  }
 
   function toggleMuscle(muscle: Muscle) {
     setPrimaryMuscles((current) =>
@@ -247,10 +280,17 @@ export function ExerciseForm({
           >
             <option value="strength">Strength</option>
             <option value="warmup">Warm-up / stretch</option>
+            <option value="cardio">Cardio</option>
           </select>
           {category === "warmup" && (
             <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
               Logged for reps or time, and tracked by how often you do it rather than for PRs.
+            </span>
+          )}
+          {category === "cardio" && (
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              Logged for distance and/or time, with records for longest distance, longest time and
+              fastest pace. Doesn't count toward muscle volume.
             </span>
           )}
         </label>
@@ -264,7 +304,7 @@ export function ExerciseForm({
           >
             {trackingOptions.map((t) => (
               <option key={t} value={t}>
-                {category === "warmup" ? (t === "time" ? "time" : "reps") : t.replace(/_/g, " ")}
+                {trackingLabel(t)}
               </option>
             ))}
           </select>

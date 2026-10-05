@@ -11,6 +11,7 @@ import {
   supersetMemberIds,
 } from "@/components/supersets/superset-actions";
 import { SupersetPickerCard } from "@/components/supersets/superset-picker-card";
+import { CardioExerciseSection } from "@/components/workout/cardio-exercise-section";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import {
@@ -34,6 +35,7 @@ import {
   type PaceExercise,
   type SupersetChange,
   formSuperset,
+  isCardioExercise,
   isFocusExerciseComplete,
   isLastRemainingSet,
   isWarmupComplete,
@@ -509,6 +511,33 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           target={target}
           large={large}
           actions={[
+            preferencesAction(item.exerciseId, router.push),
+            removeExerciseAction(() => void handleRemoveExercise(item.id)),
+          ]}
+        />
+      );
+    }
+    if (exercise && isCardioExercise(exercise)) {
+      return (
+        <CardioExerciseSection
+          key={item.id}
+          userId={userId}
+          item={item}
+          exercise={exercise}
+          target={target}
+          settings={settings}
+          large={large}
+          onSetLogged={(restSeconds, remainingPlannedSets) =>
+            handleSetLogged(item.id, restSeconds, remainingPlannedSets)
+          }
+          actions={[
+            ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
+            ...supersetActions(
+              mainItems,
+              mainItems.findIndex((se) => se.id === item.id),
+              (changes) => void applySupersetChanges(changes),
+              () => setSupersetFromId(item.id),
+            ),
             preferencesAction(item.exerciseId, router.push),
             removeExerciseAction(() => void handleRemoveExercise(item.id)),
           ]}

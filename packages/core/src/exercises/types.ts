@@ -13,5 +13,5 @@ export interface CatalogExercise {
    * Optional because rows cached locally before the column existed (issue
    * #59) don't carry it — absent reads as "strength" (see exerciseCategoryOf).
    */
-  category?: "strength" | "warmup" | null;
+  category?: "strength" | "warmup" | "cardio" | null;
 }

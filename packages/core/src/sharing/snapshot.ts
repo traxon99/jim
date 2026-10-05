@@ -31,16 +31,23 @@ export const SHARE_LIMITS = {
   instructionLength: 1000,
 } as const;
 
-type TrackingType = "weight_reps" | "time" | "distance" | "bodyweight" | "weighted_bodyweight";
+type TrackingType =
+  | "weight_reps"
+  | "time"
+  | "distance"
+  | "bodyweight"
+  | "weighted_bodyweight"
+  | "distance_time";
 const TRACKING_TYPES: readonly TrackingType[] = [
   "weight_reps",
   "time",
   "distance",
   "bodyweight",
   "weighted_bodyweight",
+  "distance_time",
 ];
-type ExerciseCategory = "strength" | "warmup";
-const CATEGORIES: readonly ExerciseCategory[] = ["strength", "warmup"];
+type ExerciseCategory = "strength" | "warmup" | "cardio";
+const CATEGORIES: readonly ExerciseCategory[] = ["strength", "warmup", "cardio"];
 type Mechanic = "compound" | "isolation";
 const MECHANICS: readonly Mechanic[] = ["compound", "isolation"];
 type Force = "push" | "pull" | "static";

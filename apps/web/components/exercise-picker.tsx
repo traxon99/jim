@@ -5,6 +5,7 @@ import { db } from "@/lib/db/schema";
 import {
   type ExerciseCategory,
   filterExercises,
+  isCardioExercise,
   isWarmupExercise,
   preferOwnedExercises,
   searchExercises,
@@ -43,6 +44,7 @@ const CATEGORY_TABS = [
   { value: "all", label: "All" },
   { value: "strength", label: "Strength" },
   { value: "warmup", label: "Warm-ups" },
+  { value: "cardio", label: "Cardio" },
 ] as const;
 
 export function ExercisePicker({
@@ -85,9 +87,9 @@ export function ExercisePicker({
   }, [allExercises, userId, query, excludeExerciseIds, category]);
 
   // Suggestions are strength work, so they sit out a search and the
-  // Warm-ups tab; while they show, the list below doesn't repeat them.
+  // Warm-ups and Cardio tabs; while they show, the list below doesn't repeat them.
   const suggestions = useMemo(() => {
-    if (replacing || query.trim() || category === "warmup") return [];
+    if (replacing || query.trim() || category === "warmup" || category === "cardio") return [];
     return suggestedExerciseIds.flatMap((exerciseId) => {
       const exercise = results.find((row) => row.id === exerciseId);
       return exercise ? [exercise] : [];
@@ -115,6 +117,7 @@ export function ExercisePicker({
             <span className="text-xs text-zinc-500 dark:text-zinc-500">
               {[
                 isWarmupExercise(exercise) ? "warm-up" : null,
+                isCardioExercise(exercise) ? "cardio" : null,
                 exercise.equipment,
                 ...exercise.primaryMuscles,
               ]
@@ -156,7 +159,7 @@ export function ExercisePicker({
           userId={userId}
           mode="new"
           initialName={query.trim()}
-          initialCategory={category === "warmup" ? "warmup" : "strength"}
+          initialCategory={category === "all" ? "strength" : category}
           onSaved={(exercise) => {
             // On its own it's added straight away, as before; alongside
             // others it joins the selection.
@@ -192,7 +195,7 @@ export function ExercisePicker({
       </div>
 
       <div className="flex flex-col gap-2 px-4 py-3">
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
           {CATEGORY_TABS.map((tab) => {
             const selected = category === tab.value;
             return (

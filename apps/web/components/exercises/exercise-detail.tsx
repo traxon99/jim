@@ -5,11 +5,18 @@ import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import {
+  computeCardioBests,
   deletedSessionExerciseIds,
+  distanceUnitFor,
   estimatedOneRepMaxSeries,
   exerciseDemo,
   exerciseMuscleShading,
+  formatDistance,
+  formatDuration,
+  formatTimedSet,
+  isCardioExercise,
   isWarmupExercise,
   resolveCurrentRows,
   warmupFrequency,
@@ -42,6 +49,8 @@ export function ExerciseDetail({
   const closeToList = onClose ?? (() => router.push("/exercises"));
   const titleId = useId();
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const distanceUnit = distanceUnitFor(settings.units);
 
   // Every current (non-superseded, non-deleted) set logged against this
   // exercise, most recent first, paired with which session it belongs to
@@ -108,6 +117,7 @@ export function ExerciseDetail({
   );
 
   const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
+  const cardioBests = useMemo(() => computeCardioBests(resolvedSets ?? []), [resolvedSets]);
 
   if (exercise === undefined) {
     return null;
@@ -136,8 +146,10 @@ export function ExerciseDetail({
 
   const canEdit = !onClose && (exercise.ownerId === null || exercise.ownerId === userId);
   const isWarmup = isWarmupExercise(exercise);
+  const isCardio = isCardioExercise(exercise);
   const tags = [
     isWarmup ? "warm-up" : null,
+    isCardio ? "cardio" : null,
     exercise.equipment,
     ...exercise.primaryMuscles,
     ...exercise.secondaryMuscles,
@@ -261,7 +273,51 @@ export function ExerciseDetail({
               </section>
             )}
 
-            {!isWarmup && oneRepMaxPoints.length > 0 && (
+            {isCardio &&
+              (cardioBests.distance != null ||
+                cardioBests.durationSeconds != null ||
+                cardioBests.paceSeconds != null) && (
+                <section>
+                  <h2 className="text-sm font-semibold">Records</h2>
+                  <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
+                    {[
+                      {
+                        label: "Longest distance",
+                        value:
+                          cardioBests.distance != null
+                            ? formatDistance(cardioBests.distance, distanceUnit)
+                            : "—",
+                      },
+                      {
+                        label: "Longest time",
+                        value:
+                          cardioBests.durationSeconds != null
+                            ? formatDuration(cardioBests.durationSeconds)
+                            : "—",
+                      },
+                      {
+                        label: "Fastest pace",
+                        value:
+                          cardioBests.paceSeconds != null
+                            ? `${formatDuration(cardioBests.paceSeconds)} /${distanceUnit}`
+                            : "—",
+                      },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="min-w-0 rounded-lg bg-zinc-100 px-2 py-2 dark:bg-zinc-900"
+                      >
+                        <dt className="text-xs text-zinc-500 dark:text-zinc-500">{stat.label}</dt>
+                        <dd className="truncate text-base font-semibold tabular-nums">
+                          {stat.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+
+            {!isWarmup && !isCardio && oneRepMaxPoints.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
                 <div className="mt-2">
@@ -296,11 +352,7 @@ export function ExerciseDetail({
                                     `${Number(set.weight)} × ${set.reps}`
                                   : set.reps != null
                                     ? `${set.reps} reps`
-                                    : set.durationSeconds != null
-                                      ? `${set.durationSeconds}s`
-                                      : set.distance != null
-                                        ? `${set.distance}`
-                                        : "—"}
+                                    : (formatTimedSet(set, distanceUnit) ?? "—")}
                               </span>
                               <SetRestTag set={set} />
                             </span>
