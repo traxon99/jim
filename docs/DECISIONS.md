@@ -193,6 +193,9 @@ Health data as XML and importing the file, which is periodic and manual rather t
 here so the question is answered once rather than revisited each time bodyweight tracking comes up.
 An Apple Health XML importer sits in the backlog as the honest version of this feature.
 
+A native iOS wrapper, the only route to HealthKit and an Apple Watch app, was evaluated and
+deferred in ADR-018.
+
 ---
 
 ## ADR-010 — The app hard-gates on home-screen install
@@ -428,3 +431,83 @@ functions are the only way to change it. They're executable by `authenticated` o
 would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
 server, the portal) silently merges someone else's training into yours.
 
+
+---
+
+## ADR-018 — No native iOS wrapper for now; Apple Watch and HealthKit stay out of scope
+
+**Status:** Accepted · 2026-10-05
+
+**Context.** Issue #248. Strong's Apple Watch app is its biggest strength and Hevy has one too.
+A PWA can't have a Watch app or HealthKit at all (ADR-009). Liftosaur gets native features by
+wrapping its PWA in thin native shells. This records what wrapping Jim would take and why it isn't
+being done yet.
+
+**What a wrapper would be.** A Capacitor (or hand-written WKWebView) shell whose web view loads the
+production URL, not a bundled copy: the app is Next.js with server routes and cookie-based Supabase
+auth (`lib/supabase/server.ts`), so it can't be exported as static files. Web deploys would keep
+reaching the shell without App Store review; only native code changes would need a new build.
+
+**What it would unlock.**
+
+- **HealthKit write.** Finished sessions written as `HKWorkout`s (traditional strength training)
+  with duration and estimated active energy, from a native plugin called at session finalize. This
+  is the cheapest real win and needs no Watch.
+- **Haptics.** Native `UIImpactFeedbackGenerator` through a plugin, lifting constraint 3
+  (`docs/ARCHITECTURE.md` §2) inside the shell.
+- **Rest timer alerts as native local notifications** scheduled for `endsAt` on the device, with no
+  server, QStash or network involved. Strictly better than ADR-014 inside the shell.
+- **No install gate.** An App Store app keeps its storage, so ADR-010's gate wouldn't apply there.
+- **A watchOS companion** for logging sets and running the rest timer. This is a separate SwiftUI
+  app, not part of the web view, talking to the phone over WatchConnectivity.
+
+**What it would cost.**
+
+- **A second platform.** An Apple Developer account (US$99 a year), a Mac with Xcode to build, and
+  App Store review for every native change. Every change in this repo is currently built, tested and
+  shipped from cloud sessions on Linux (`AGENTS.md`, the auto-ship skill), and none of them can
+  build, sign or run an iOS target. Native work would fall outside that loop entirely, or need
+  macOS CI runners and signing secrets set up first.
+- **Review risk.** A web view around a website is rejected under guideline 4.2 (minimum
+  functionality) unless it adds real native value. HealthKit plus haptics plus notifications
+  probably clears that bar, but it means the first native features must ship *with* the first
+  submission, not after it.
+- **Web features that don't carry over.** WKWebView only runs service workers for App-Bound
+  Domains, and has no Web Push at all. ADR-012's release notifications and ADR-014's rest-timer
+  push would both need native replacements (APNs and local notifications) inside the shell, while
+  the PWA keeps the web versions. Two notification paths to maintain.
+- **Storage and sync.** The shell's IndexedDB lives in the app's own `WKWebsiteDataStore`, separate
+  from the installed PWA's, so a user moving to the shell starts with an empty local database and
+  repopulates from `/api/sync/pull`. Anything still in the PWA's outbox has to be synced before
+  switching. Sync itself works unchanged: the protocol is plain HTTPS and stays foreground-driven
+  (ADR-002), since the web view gets no more background time than Safari does.
+- **The Watch breaks the single-writer model.** ADR-001 makes the phone's IndexedDB the source of
+  truth and every write goes through its outbox. A Watch logging sets would be a second writer with
+  its own store. Append-only sets with client UUIDv7 keys (ADR-003) make that tractable: the Watch
+  can mint set rows and hand them to the phone over WatchConnectivity, which writes them into
+  IndexedDB and its outbox through the JS bridge, or push them to `/api/sync/push` itself, which
+  would first need that route to accept a personal access token the way the MCP server does
+  (ADR-006 amendment). Either way it's a native Swift data layer duplicating
+  the set and session logic in `packages/core`, which is the bulk of the Watch's cost.
+
+**Decision.** No-go for now. Jim stays a PWA, and ADR-009 stands. The features worth having are
+real, but each one adds a Swift codebase, a build machine and a review process to a project whose
+entire workflow is web-only, and the Watch app, which is the reason to want this, is the most
+expensive part by far.
+
+**Revisit when** one of these changes: a Mac build and signing step is available in CI; HealthKit
+export becomes something users actively ask for (the cheapest step, a shell plus one HealthKit
+plugin, could then ship alone, without a Watch); or Jim gets enough iPhone users that App Store
+distribution is worth more than the install gate costs. If it's revisited, the order is Capacitor
+shell loading the production URL, then HealthKit write, haptics and native rest notifications, then
+the Watch app last.
+
+**Rejected: wrap it now in Capacitor.** It gets HealthKit, haptics and better notifications for a
+small amount of native code, but it can't be built or verified from the environment every other
+change ships from, and it adds a second notification stack and a second storage container to keep
+in step with the PWA, for a feature set that doesn't yet include the Watch.
+
+**Rejected: a standalone native Watch app talking to the server.** It avoids wrapping the phone app,
+but a Watch app without an iPhone companion still needs its own sign-in, its own offline store and a
+reimplementation of sessions and sets, and it would sync only through the server, so a set logged on
+the wrist wouldn't show on the phone until both had synced.
