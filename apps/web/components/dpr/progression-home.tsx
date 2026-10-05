@@ -9,6 +9,7 @@ import {
   endBlockNow,
   lastCompletedBlock,
   liveBlockLifts,
+  setBlockVolumeMode,
   startDeloadWeek,
 } from "@/lib/dpr/block";
 import { buildDprContext, liftGoal } from "@/lib/dpr/calls";
@@ -30,6 +31,7 @@ import { BlockRecap } from "./block-recap";
 import { BlockHeader } from "./block-summary";
 import { LiftCard } from "./lift-card";
 import { SetupWizard } from "./setup-wizard";
+import { VolumePlan } from "./volume-plan";
 
 /**
  * DPR's home (issues #211, #214, #215): the setup wizard until a block is
@@ -152,6 +154,11 @@ export function ProgressionHome({ userId }: { userId: string }) {
         {blockLifts.map((lift) => (
           <LiftCard key={lift.id} context={context} lift={lift} />
         ))}
+        <VolumePlan
+          context={context}
+          busy={busy}
+          onToggle={(on) => void run(() => setBlockVolumeMode(block, on))}
+        />
         <BlockEditor
           block={block}
           lifts={blockLifts}

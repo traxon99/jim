@@ -470,6 +470,9 @@ export const dprBlocks = pgTable(
     // doesn't move its goals.
     aggressiveness: dprAggressivenessEnum("aggressiveness").notNull(),
     experience: dprExperienceEnum("experience").notNull(),
+    // Mesocycle mode (issue #250): DPR also grows each muscle's weekly sets
+    // through the block. The plan itself is derived, never stored.
+    volumeMode: boolean("volume_mode").notNull().default(false),
     programId: uuid("program_id").references(() => programs.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -1,5 +1,5 @@
 import type { ExerciseRow, RoutineExerciseRow } from "@/lib/db/schema";
-import { type DprCallInfo, type DprContext, dprCallFor } from "@/lib/dpr/calls";
+import { type DprCallInfo, type DprContext, dprCallFor, dprVolumeSets } from "@/lib/dpr/calls";
 import type { SessionIntensity } from "@jim/core";
 
 export interface PreWorkoutRow {
@@ -44,7 +44,11 @@ export function buildPreWorkoutRows(
       id: item.id,
       exerciseId: item.exerciseId,
       name: exercises.get(item.exerciseId)?.name ?? "Exercise",
-      plan: formatPlan(item),
+      // Mesocycle mode (issue #250) plans this week's sets.
+      plan: formatPlan({
+        ...item,
+        targetSets: dprVolumeSets(ctx, item.exerciseId, item.targetSets) ?? item.targetSets,
+      }),
       dpr: ctx ? dprCallFor(ctx, item.exerciseId, item, intensity) : null,
     }));
 }

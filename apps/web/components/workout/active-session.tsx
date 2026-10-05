@@ -20,7 +20,7 @@ import {
   type SetRow,
   db,
 } from "@/lib/db/schema";
-import { dprCallFor } from "@/lib/dpr/calls";
+import { dprCallFor, dprVolumeSets } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
@@ -65,7 +65,7 @@ import { WarmupExerciseSection } from "./warmup-exercise-section";
  */
 function plannedSetCountFor(
   item: SessionExerciseRow,
-  target: RoutineExerciseRow | undefined,
+  target: Pick<RoutineExerciseRow, "targetSets"> | undefined,
 ): number | null {
   const targetSets = target?.targetSets ?? null;
   const warmupSets = item.warmupSets ?? 0;
@@ -212,7 +212,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           : (workingSetCountBySessionExerciseId.get(se.id) ?? 0),
         targetSetCount: isWarmupItem
           ? plannedSetCountFor(se, target)
-          : (target?.targetSets ?? null),
+          : (dprVolumeSets(dprContext, se.exerciseId, target?.targetSets) ??
+            target?.targetSets ??
+            null),
       };
     });
   }, [
@@ -222,6 +224,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     setCompletedAtBySessionExerciseId,
     workingSetCountBySessionExerciseId,
     targetByExerciseId,
+    dprContext,
   ]);
 
   // Issue #232: once every planned set is logged the lifter is at the bottom
@@ -255,13 +258,23 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     () =>
       mainItems.map((se) => {
         const target = targetByExerciseId.get(se.exerciseId);
+        const volumeSets = dprVolumeSets(dprContext, se.exerciseId, target?.targetSets);
         return {
-          targetSetCount: plannedSetCountFor(se, target),
+          targetSetCount: plannedSetCountFor(
+            se,
+            volumeSets === null ? target : { targetSets: volumeSets },
+          ),
           restSeconds: se.restSeconds ?? target?.targetRestSeconds ?? defaultRestSeconds,
           setCompletedAt: setCompletedAtBySessionExerciseId.get(se.id) ?? [],
         };
       }),
-    [mainItems, targetByExerciseId, setCompletedAtBySessionExerciseId, defaultRestSeconds],
+    [
+      mainItems,
+      targetByExerciseId,
+      setCompletedAtBySessionExerciseId,
+      defaultRestSeconds,
+      dprContext,
+    ],
   );
 
   // Issue #231: no rest after the workout's final set — there's no next set
@@ -498,6 +511,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         dpr={
           dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
         }
+        volumeSets={dprVolumeSets(dprContext, item.exerciseId, target?.targetSets)}
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}
         onSetLogged={(restSeconds, remainingPlannedSets) =>

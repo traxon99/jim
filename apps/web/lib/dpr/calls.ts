@@ -12,10 +12,13 @@ import {
   type DprLogEntry,
   type DprUserSettings,
   type IncrementOverrides,
+  type MuscleVolumePlan,
   type OnTrackStatus,
   type SessionIntensity,
   callForLift,
   liftProgress,
+  mesocycleVolumePlan,
+  volumeAdjustedSets,
   workingSetWeights,
 } from "@jim/core";
 import { currentBlock, liveBlockLifts } from "./block";
@@ -33,6 +36,8 @@ export interface DprContext {
   /** Focused lifts, by exercise id. */
   lifts: ReadonlyMap<string, DprBlockLiftRow>;
   exercises: ReadonlyMap<string, ExerciseRow>;
+  /** Mesocycle mode's weekly set plan by muscle (issue #250); null with the mode off. */
+  volume: ReadonlyMap<string, MuscleVolumePlan> | null;
   now: Date;
 }
 
@@ -48,14 +53,43 @@ export function buildDprContext(input: {
   if (!input.settings.dprEnabled) return null;
   const block = currentBlock(input.blocks);
   if (!block) return null;
+  const exercises = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
+  // Rows synced before the column existed have no volumeMode: off.
+  const volume = block.volumeMode
+    ? new Map(
+        mesocycleVolumePlan({
+          history: input.snapshot.history,
+          exercises,
+          block,
+          now: input.now,
+        }).map((plan) => [plan.muscle, plan]),
+      )
+    : null;
   return {
     snapshot: input.snapshot,
     settings: input.settings,
     block,
     lifts: new Map(liveBlockLifts(input.lifts, block.id).map((lift) => [lift.exerciseId, lift])),
-    exercises: new Map(input.exercises.map((exercise) => [exercise.id, exercise])),
+    exercises,
+    volume,
     now: input.now,
   };
+}
+
+/**
+ * Mesocycle mode (issue #250): this week's working sets for an exercise,
+ * the routine's sets scaled by its muscles' plans. Null when the mode is
+ * off, the routine sets no count, or no muscle of the exercise is planned.
+ */
+export function dprVolumeSets(
+  ctx: DprContext | null,
+  exerciseId: string,
+  routineSets: number | null | undefined,
+): number | null {
+  if (!ctx?.volume || routineSets == null || routineSets <= 0) return null;
+  const exercise = ctx.exercises.get(exerciseId);
+  if (!exercise) return null;
+  return volumeAdjustedSets(routineSets, exercise, ctx.volume);
 }
 
 export type DprCallInfo = DprLiftCall;
@@ -109,6 +143,11 @@ export function dprCallsForRoutine(
     .sort((a, b) => a.position - b.position)
     .map((item) => dprCallFor(ctx, item.exerciseId, item, intensity))
     .filter((info): info is DprCallInfo => info !== null);
+}
+
+/** e.g. "DPR volume: 4 sets this week (routine: 3)". */
+export function dprVolumeLine(volumeSets: number, routineSets: number): string {
+  return `DPR volume: ${volumeSets} ${volumeSets === 1 ? "set" : "sets"} this week (routine: ${routineSets})`;
 }
 
 export interface DprBadge {
