@@ -87,6 +87,17 @@ conventions — local-first IndexedDB, append-only sets, foreground-driven sync 
 and add or update tests where the change touches logic worth locking down (`packages/core`,
 `lib/sync`, `lib/db`, `lib/history` all have existing test suites to extend as a model).
 
+**Keep the MCP server at parity with the app.** If a user can do something in the app, it likely
+belongs in the MCP server (`apps/mcp`) too, so Claude can do it for them. When this run adds or
+changes something a user can do (create, edit, delete, log or configure), add or update the
+matching MCP tool in the same PR: a read tool for anything new to look at, a write tool with
+`dry_run` for anything new to change (defaulting `dry_run` to true for deletes and other
+hard-to-undo actions), registered in `apps/mcp/src/server.ts`, covered by a test under
+`apps/mcp/src/tools/__tests__/`, and listed in `docs/STORIES.md` S8. If you're unsure whether a
+feature belongs in the MCP (for example it publishes to other people, or only makes sense on the
+phone, like the rest timer), ask the user in the chat instead of guessing, and keep building the
+rest while you wait.
+
 ## 5. Verify locally
 
 Go through the `docs/LESSONS.md` pre-ship checklist against your actual diff, item by item for

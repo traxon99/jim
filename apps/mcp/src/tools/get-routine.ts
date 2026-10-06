@@ -1,13 +1,10 @@
 import { parseProgressionRule } from "@jim/core";
-import { exercises, routineExercises, routines } from "@jim/db";
+import { exercises, routineExercises } from "@jim/db";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 import type { CreateRoutineExerciseInput } from "./create-routine.js";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-class RoutineLookupError extends Error {}
+import { findRoutine } from "./find-routine.js";
 
 export interface GetRoutineInput {
   /** A routine id, or its name (case-insensitive exact match). */
@@ -22,30 +19,7 @@ export interface GetRoutineInput {
  */
 export async function getRoutine(context: UserContext, input: GetRoutineInput) {
   return withUser(context, async (tx) => {
-    const live = isNull(routines.deletedAt);
-    const key = input.routine.trim();
-    let candidates = UUID_RE.test(key)
-      ? await tx
-          .select()
-          .from(routines)
-          .where(and(live, eq(routines.id, key)))
-      : [];
-    if (candidates.length === 0) {
-      const all = await tx.select().from(routines).where(live);
-      candidates = all.filter((routine) => routine.name.toLowerCase() === key.toLowerCase());
-    }
-
-    const [routine, ...others] = candidates;
-    if (!routine) {
-      throw new RoutineLookupError(
-        `No routine matches "${input.routine}". Try list_routines to see what exists.`,
-      );
-    }
-    if (others.length > 0) {
-      throw new RoutineLookupError(
-        `${candidates.length} routines are named "${input.routine}" (${candidates.map((r) => r.id).join(", ")}). Pass one of those ids instead.`,
-      );
-    }
+    const routine = await findRoutine(tx, input.routine);
 
     const items = await tx
       .select()
@@ -67,6 +41,8 @@ export async function getRoutine(context: UserContext, input: GetRoutineInput) {
       folder: routine.folder,
       notes: routine.notes,
       kind: routine.kind,
+      warmupRoutineId: routine.warmupRoutineId,
+      warmupMinutes: routine.warmupMinutes,
       exercises: items.map((item) => {
         const entry: CreateRoutineExerciseInput & { exerciseName: string | null } = {
           exercise: item.exerciseId,

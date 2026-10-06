@@ -2,6 +2,7 @@ import { type ProgressionRule, uuidv7 } from "@jim/core";
 import { routineExercises, routines } from "@jim/db";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
+import { findWarmupRoutine, nextRoutineIcon } from "./find-routine.js";
 import { progressionRuleChecker } from "./progression-rules.js";
 import { resolveExercise } from "./resolve-exercise.js";
 
@@ -25,6 +26,11 @@ export interface CreateRoutineExerciseInput {
 export interface CreateRoutineInput {
   name: string;
   folder?: string;
+  notes?: string;
+  /** A warm-up routine (id or name) to run before this one, like the routine form's Warm-up picker. */
+  warmup?: string;
+  /** The warm-up timer's length for this routine; defaults to the warm-up's own. */
+  warmupMinutes?: number;
   exercises: CreateRoutineExerciseInput[];
   /** Preview only: run every check and return the result, then roll back (#245). */
   dryRun?: boolean;
@@ -34,12 +40,18 @@ export async function createRoutine(context: UserContext, input: CreateRoutineIn
   return withUserWrite(context, input.dryRun ?? false, async (tx) => {
     const now = new Date();
     const routineId = uuidv7();
+    const warmup = input.warmup ? await findWarmupRoutine(tx, input.warmup) : null;
 
     await tx.insert(routines).values({
       id: routineId,
       userId: context.userId,
       name: input.name,
       folder: input.folder ?? null,
+      notes: input.notes ?? null,
+      kind: "strength",
+      warmupRoutineId: warmup?.id ?? null,
+      warmupMinutes: input.warmupMinutes ?? null,
+      ...(await nextRoutineIcon(tx)),
       position: 0,
       updatedAt: now,
       deviceId: MCP_DEVICE_ID,
@@ -72,6 +84,11 @@ export async function createRoutine(context: UserContext, input: CreateRoutineIn
       items.push({ id, exerciseId: exercise.id, exerciseName: exercise.name });
     }
 
-    return { id: routineId, name: input.name, exercises: items };
+    return {
+      id: routineId,
+      name: input.name,
+      warmup: warmup ? { id: warmup.id, name: warmup.name } : null,
+      exercises: items,
+    };
   });
 }

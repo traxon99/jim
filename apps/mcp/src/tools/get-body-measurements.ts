@@ -20,10 +20,10 @@ export interface GetBodyMeasurementsInput {
 export interface MeasurementSeries {
   kind: MeasurementKind;
   unit: MeasurementUnit;
-  latest: { value: number; measuredAt: string } | null;
+  latest: { id: string; value: number; measuredAt: string } | null;
   /** Latest minus the first entry in range; null with fewer than two. */
   change: number | null;
-  entries: { value: number; measuredAt: string }[];
+  entries: { id: string; value: number; measuredAt: string }[];
 }
 
 /**
@@ -61,7 +61,7 @@ export async function getBodyMeasurements(
         series = { kind: row.kind, unit, latest: null, change: null, entries: [] };
         byKind.set(row.kind, series);
       }
-      series.entries.push({ value, measuredAt: row.measuredAt.toISOString() });
+      series.entries.push({ id: row.id, value, measuredAt: row.measuredAt.toISOString() });
     }
 
     const measurements = MEASUREMENT_KINDS.flatMap((kind) => {

@@ -1,8 +1,20 @@
 import { MEASUREMENT_KINDS, PROGRESSION_TYPES } from "@jim/core";
+import {
+  accentColorEnum,
+  cardStyleEnum,
+  colorSchemeEnum,
+  dprAggressivenessEnum,
+  dprExperienceEnum,
+  fontFamilyEnum,
+  sexEnum,
+} from "@jim/db";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { UserContext } from "./context.js";
+import { deleteBodyMeasurement, logBodyMeasurement } from "./tools/body-measurements-write.js";
 import { createRoutine } from "./tools/create-routine.js";
+import { deleteRoutine } from "./tools/delete-routine.js";
+import { deleteWorkout } from "./tools/delete-workout.js";
 import { dprStatus } from "./tools/dpr-status.js";
 import { exerciseHistory } from "./tools/exercise-history.js";
 import { getBodyMeasurements } from "./tools/get-body-measurements.js";
@@ -13,11 +25,15 @@ import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
 import { mergeExercises } from "./tools/merge-exercises.js";
+import { createProgram, deleteProgram, listPrograms, updateProgram } from "./tools/programs.js";
 import { scheduleWorkout } from "./tools/schedule-workout.js";
+import { cancelScheduledWorkout, listScheduledWorkouts } from "./tools/scheduled-workouts.js";
 import { searchExercisesTool } from "./tools/search-exercises.js";
+import { getSettings, updateSettings } from "./tools/settings.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
+import { createWarmup, listWarmupTemplates } from "./tools/warmups.js";
 import { MAX_SUMMARY_WEEKS, weeklySummary } from "./tools/weekly-summary.js";
 
 function json(data: unknown) {
@@ -215,7 +231,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "List routines",
       description:
-        "Read-only. Every routine (program) you have, including ones never logged: id, name, folder, notes, kind (strength or warmup), exercise count, and when it was last performed. Use the id with get_routine, update_routine or schedule_workout.",
+        "Read-only. Every routine and warm-up you have, including ones never logged: id, name, folder, notes, kind (strength or warmup), the linked warm-up's id, exercise count, and when it was last performed. Use the id with get_routine, update_routine or schedule_workout.",
       inputSchema: {
         folder: z.string().optional().describe("Only routines in this folder (case-insensitive)"),
         query: z.string().optional().describe("Only routines whose name contains this text"),
@@ -343,10 +359,21 @@ export function createMcpServer(context: UserContext): McpServer {
     "create_routine",
     {
       title: "Create routine",
-      description: `Build a new routine (program) with an ordered list of exercises and targets.${PREVIEW_HINT}`,
+      description: `Build a new strength routine with an ordered list of exercises and targets. For a warm-up, use create_warmup instead.${PREVIEW_HINT}`,
       inputSchema: {
         name: z.string(),
         folder: z.string().optional(),
+        notes: z.string().optional(),
+        warmup: z
+          .string()
+          .optional()
+          .describe("A warm-up routine (id or name) that runs before this routine"),
+        warmupMinutes: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("Warm-up timer length for this routine; defaults to the warm-up's own"),
         exercises: z.array(routineExerciseSchema),
         dry_run: dryRunParam(false),
       },
@@ -364,12 +391,26 @@ export function createMcpServer(context: UserContext): McpServer {
     "update_routine",
     {
       title: "Update routine",
-      description: `Amend a routine's name/folder/notes, and/or replace its entire exercise list (the result counts how many existing exercises were replaced).${PREVIEW_HINT}`,
+      description: `Amend a routine or warm-up: its name/folder/notes, its linked warm-up and warm-up timer, and/or replace its entire exercise list (the result counts how many existing exercises were replaced).${PREVIEW_HINT}`,
       inputSchema: {
-        routineId: z.string(),
+        routineId: z.string().describe("Routine id, or its exact name"),
         name: z.string().optional(),
         folder: z.string().nullable().optional(),
         notes: z.string().nullable().optional(),
+        warmup: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            "Warm-up routine (id or name) to run before this one; null unlinks it. Strength routines only.",
+          ),
+        warmupMinutes: z
+          .number()
+          .int()
+          .positive()
+          .nullable()
+          .optional()
+          .describe("Warm-up timer length in minutes; null clears it"),
         exercises: z.array(routineExerciseSchema).optional(),
         dry_run: dryRunParam(false),
       },
@@ -506,6 +547,343 @@ export function createMcpServer(context: UserContext): McpServer {
     async ({ dry_run, ...input }) => {
       try {
         return json(await mergeExercises(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "delete_routine",
+    {
+      title: "Delete routine",
+      description: `Delete a routine or warm-up, as the phone's Delete button does. Past workouts built from it are unaffected. Hard to undo from the phone, so dry_run defaults to true: confirm with the user, then call again with dry_run: false.`,
+      inputSchema: {
+        routine: z.string().describe("Routine id, or its exact name"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await deleteRoutine(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "list_warmup_templates",
+    {
+      title: "List warm-up templates",
+      description:
+        "Read-only. The built-in warm-up templates the phone offers (full body, legs, upper body, full-body stretch): key, name, timer minutes and exercises. Pass a key to create_warmup to add one.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return json(await listWarmupTemplates(context));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "create_warmup",
+    {
+      title: "Create warm-up",
+      description: `Create a warm-up: a routine of kind "warmup" whose exercises run as the timed warm-up block before any routine it's linked to, and never count toward working volume or PRs. Either add a built-in template by key (see list_warmup_templates) or give a custom exercise list, each with sets and reps or seconds. attachTo links it to strength routines straight away (or use update_routine's warmup later).${PREVIEW_HINT}`,
+      inputSchema: {
+        template: z.string().optional().describe("Built-in template key, e.g. full-body"),
+        name: z.string().optional().describe("Required for a custom warm-up"),
+        notes: z.string().optional(),
+        minutes: z.number().int().positive().optional().describe("Warm-up timer length"),
+        folder: z.string().optional(),
+        exercises: z
+          .array(
+            z.object({
+              exercise: z.string().describe("Exercise name or id"),
+              sets: z.number().int().positive().optional().describe("Default 1"),
+              reps: z.number().int().positive().optional(),
+              seconds: z
+                .number()
+                .int()
+                .positive()
+                .optional()
+                .describe("Hold or work time per set; give this or reps"),
+              notes: z.string().optional(),
+            }),
+          )
+          .optional(),
+        attachTo: z
+          .array(z.string())
+          .optional()
+          .describe("Strength routines (ids or names) that should run this warm-up first"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await createWarmup(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  const programEntrySchema = z.object({
+    routine: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Routine id or name; omit or null for a rest day"),
+    weekday: z
+      .number()
+      .int()
+      .min(0)
+      .max(6)
+      .optional()
+      .describe("0 = Sunday .. 6 = Saturday; required in weekly mode"),
+  });
+
+  server.registerTool(
+    "list_programs",
+    {
+      title: "List programs",
+      description:
+        "Read-only. Every program: a rotating sequence (next = the one after the last completed) or a weekly schedule (each routine pinned to a weekday). Shows which one is active, its entries in order (rest days included), and week N of M for one with a planned length.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return json(await listPrograms(context));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "create_program",
+    {
+      title: "Create program",
+      description: `Create a program from existing routines, as a rotating sequence or a weekly schedule. activate: true makes it the one active program, which the phone's Workout tab suggests from.${PREVIEW_HINT}`,
+      inputSchema: {
+        name: z.string(),
+        mode: z.enum(["sequence", "weekly"]).optional().describe("Default sequence"),
+        notes: z.string().optional(),
+        durationWeeks: z.number().int().positive().optional().describe("Planned length"),
+        entries: z.array(programEntrySchema),
+        activate: z.boolean().optional(),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await createProgram(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "update_program",
+    {
+      title: "Update program",
+      description: `Rename a program, change its mode, notes or planned length, replace its entries, or make it active (active: true; any other active program is switched off) or inactive.${PREVIEW_HINT}`,
+      inputSchema: {
+        program: z.string().describe("Program id, or its exact name"),
+        name: z.string().optional(),
+        mode: z.enum(["sequence", "weekly"]).optional(),
+        notes: z.string().nullable().optional(),
+        durationWeeks: z.number().int().positive().nullable().optional(),
+        entries: z.array(programEntrySchema).optional().describe("Replaces every entry"),
+        active: z.boolean().optional(),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await updateProgram(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "delete_program",
+    {
+      title: "Delete program",
+      description:
+        "Delete a program. Its routines and past workouts are unaffected. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        program: z.string().describe("Program id, or its exact name"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await deleteProgram(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "list_scheduled_workouts",
+    {
+      title: "List scheduled workouts",
+      description:
+        "Read-only. Workouts planned with schedule_workout, soonest first. Upcoming only unless includePast.",
+      inputSchema: { includePast: z.boolean().optional() },
+    },
+    async (input) => {
+      try {
+        return json(await listScheduledWorkouts(context, input));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "cancel_scheduled_workout",
+    {
+      title: "Cancel scheduled workout",
+      description: `Remove a planned workout (id from list_scheduled_workouts).${PREVIEW_HINT}`,
+      inputSchema: { id: z.string(), dry_run: dryRunParam(false) },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await cancelScheduledWorkout(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "delete_workout",
+    {
+      title: "Delete workout",
+      description:
+        "Delete a finished workout from history, as the phone's Delete workout does: it drops out of History, PRs, volume and PRP. A workout still in progress is refused. Can't be undone on the phone, so dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        sessionId: z.string().describe("Workout id from list_workouts"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await deleteWorkout(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "log_body_measurement",
+    {
+      title: "Log body measurement",
+      description: `Log a weigh-in, body fat % or a circumference. One entry per kind per day, like the phone: logging the same kind again that day updates it. A weigh-in that becomes the latest also updates the profile's current bodyweight.${PREVIEW_HINT}`,
+      inputSchema: {
+        kind: z.enum(MEASUREMENT_KINDS),
+        value: z.number().positive(),
+        unit: z
+          .enum(["lb", "kg", "in", "cm", "pct"])
+          .optional()
+          .describe("Default: what the phone shows this kind in for the user's units"),
+        measuredAt: z
+          .string()
+          .datetime({ offset: true })
+          .optional()
+          .describe("Default now. Include the user's UTC offset so it lands on the right day"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await logBodyMeasurement(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "delete_body_measurement",
+    {
+      title: "Delete body measurement",
+      description: `Delete one measurement entry (its id from get_body_measurements).${PREVIEW_HINT}`,
+      inputSchema: { id: z.string(), dry_run: dryRunParam(false) },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await deleteBodyMeasurement(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_settings",
+    {
+      title: "Get settings",
+      description:
+        "Read-only. The user's settings: units, bar weight, plates, default rest, week start, appearance, profile (sex, birthdate, height, bodyweight) and PR Progression (PRP, stored as dpr*) options.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return json(await getSettings(context));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "update_settings",
+    {
+      title: "Update settings",
+      description: `Change any of the settings get_settings returns; only the fields given change. Changing units only changes how weights are shown and entered. The phone picks changes up the next time the app is opened fresh.${PREVIEW_HINT}`,
+      inputSchema: {
+        units: z.enum(["lb", "kg"]).optional(),
+        defaultBarWeight: z.number().positive().optional(),
+        availablePlates: z.array(z.number().positive()).min(1).optional(),
+        defaultRestSeconds: z.number().int().nonnegative().optional(),
+        weekStart: z.number().int().min(0).max(6).optional().describe("0 = Sunday .. 6 = Saturday"),
+        colorScheme: z.enum(colorSchemeEnum.enumValues).optional(),
+        accentColor: z.enum(accentColorEnum.enumValues).optional(),
+        fontFamily: z.enum(fontFamilyEnum.enumValues).optional(),
+        cardStyle: z.enum(cardStyleEnum.enumValues).optional(),
+        showPaceTracker: z.boolean().optional(),
+        sex: z.enum(sexEnum.enumValues).nullable().optional(),
+        birthdate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .nullable()
+          .optional()
+          .describe("YYYY-MM-DD"),
+        heightCm: z.number().positive().nullable().optional(),
+        bodyweight: z.number().positive().nullable().optional().describe("In the user's units"),
+        dprEnabled: z.boolean().optional().describe("Turns PR Progression (PRP) on or off"),
+        dprAggressiveness: z.enum(dprAggressivenessEnum.enumValues).optional(),
+        dprExperience: z.enum(dprExperienceEnum.enumValues).nullable().optional(),
+        dprDefaultRepLow: z.number().int().min(1).max(100).optional(),
+        dprDefaultRepHigh: z.number().int().min(1).max(100).optional(),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await updateSettings(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }
