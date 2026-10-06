@@ -202,8 +202,8 @@ export function ProgressionHome({ userId }: { userId: string }) {
         {!loading && block && !settings.dprEnabled && (
           <div className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
             <p className="text-sm">
-              Dynamic Progression is off. Your block and lifts are saved — turn it back on to pick
-              up where you left off.
+              PRP is off. Your block and lifts are saved — turn it back on to pick up where you left
+              off.
             </p>
             <button
               type="button"

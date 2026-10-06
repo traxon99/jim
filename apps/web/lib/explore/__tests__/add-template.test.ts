@@ -154,7 +154,7 @@ describe("addProgramTemplate (against Dexie)", () => {
 });
 
 describe("addExploreProgram (against Dexie)", () => {
-  it("can make the program active and start DPR at the program's preset", async () => {
+  it("can make the program active and start PRP at the program's preset", async () => {
     await seedAllTemplateSlugs();
     const patch = vi.fn(async () => ({ ok: true as const }));
 
@@ -185,7 +185,7 @@ describe("addExploreProgram (against Dexie)", () => {
     );
   });
 
-  it("leaves the active program and DPR alone when both are switched off", async () => {
+  it("leaves the active program and PRP alone when both are switched off", async () => {
     await seedAllTemplateSlugs();
     const patch = vi.fn(async () => ({ ok: true as const }));
 
@@ -202,7 +202,7 @@ describe("addExploreProgram (against Dexie)", () => {
     expect(patch).not.toHaveBeenCalled();
   });
 
-  it("doesn't start a second DPR block", async () => {
+  it("doesn't start a second PRP block", async () => {
     await seedAllTemplateSlugs();
     const patch = vi.fn(async () => ({ ok: true as const }));
     await addExploreProgram(

@@ -1,5 +1,6 @@
 "use client";
 
+import { CallMark } from "@/components/dpr/call-mark";
 import { FloatingCard } from "@/components/floating-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
@@ -98,12 +99,15 @@ export function PreWorkoutSheet({
                       <span className="text-xs text-zinc-500 dark:text-zinc-500">{row.plan}</span>
                     )}
                   </span>
-                  {badge && weight !== null && (
+                  {badge && row.dpr && weight !== null && (
                     <span
                       aria-label={`${badge.label}, ${formatWeight(weight)} ${units}`}
                       className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${badge.className}`}
                     >
-                      {badge.symbol} {formatWeight(weight)} {units}
+                      <span className="flex items-center gap-1">
+                        <CallMark call={row.dpr.decision.call} inherit />
+                        {formatWeight(weight)} {units}
+                      </span>
                     </span>
                   )}
                 </li>

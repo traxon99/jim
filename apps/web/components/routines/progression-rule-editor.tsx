@@ -95,7 +95,7 @@ export function ProgressionRuleEditor({ rule, units, dprFocused, onChange }: Pro
   if (dprFocused && !rule) {
     return (
       <p className="pl-10 text-xs text-zinc-500 dark:text-zinc-500">
-        Progression: DPR. Remove this lift from your DPR focus to give it a custom rule.
+        Progression: PRP. Remove this lift from your PRP focus to give it a custom rule.
       </p>
     );
   }
@@ -198,7 +198,7 @@ export function ProgressionRuleEditor({ rule, units, dprFocused, onChange }: Pro
 
       {dprFocused && (
         <p className="text-xs text-zinc-500 dark:text-zinc-500">
-          This lift is also in your DPR focus. The rule sets its weight, not DPR.
+          This lift is also in your PRP focus. The rule sets its weight, not PRP.
         </p>
       )}
     </div>

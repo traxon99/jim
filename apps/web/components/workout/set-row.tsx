@@ -205,7 +205,7 @@ export function SetRow({
           <button
             type="button"
             onClick={() => setEditingField("rpe")}
-            aria-label="Add RPE for DPR"
+            aria-label="Add RPE for PRP"
             className="min-h-11 w-full rounded-md border border-dashed border-accent px-1 text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300"
           >
             Add RPE

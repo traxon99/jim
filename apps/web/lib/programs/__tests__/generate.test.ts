@@ -118,7 +118,7 @@ describe("saveGeneratedProgram", () => {
     expect(okPatch).not.toHaveBeenCalled();
   });
 
-  it("starts a DPR block on the picked focus lifts, tied to the program", async () => {
+  it("starts a PRP block on the picked focus lifts, tied to the program", async () => {
     await testDb.exercises.bulkPut(CATALOG);
     const generated = await generateProgramFromDb(ANSWERS, testDb);
     const patch = vi.fn(async () => ({ ok: true as const }));

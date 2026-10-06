@@ -106,7 +106,7 @@ export function SetupWizard({
       <section className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-6 text-center dark:border-zinc-700">
         <h2 className="text-base font-semibold">Log a few weighted workouts first</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Dynamic Progression picks your focus lifts from what you've trained in the last 90 days.
+          PRP picks your focus lifts from what you've trained in the last 90 days.
         </p>
       </section>
     );
@@ -132,7 +132,7 @@ export function SetupWizard({
       dprAggressiveness: preset,
     });
     if (!result.ok) {
-      setError(`Block saved, but turning DPR on failed: ${result.error}`);
+      setError(`Block saved, but turning PRP on failed: ${result.error}`);
       setSaving(false);
     }
   }
@@ -170,7 +170,7 @@ export function SetupWizard({
 
       {step === 1 && (
         <div className="flex flex-col gap-2">
-          <h2 className="text-base font-semibold">How hard should DPR push?</h2>
+          <h2 className="text-base font-semibold">How hard should PRP push?</h2>
           {DPR_PRESET_NAMES.map((option) => (
             <button
               key={option}

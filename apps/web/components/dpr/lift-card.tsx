@@ -11,6 +11,7 @@ import {
   liftGoal,
 } from "@/lib/dpr/calls";
 import { e1rmSeries, liftDecisionLog, liftProgress } from "@jim/core";
+import { CallMark } from "./call-mark";
 import { GoalChart } from "./goal-chart";
 import { formatWeight } from "./labels";
 import { StatusPill } from "./status-pill";
@@ -64,9 +65,14 @@ export function LiftCard({ context, lift }: { context: DprContext; lift: DprBloc
         <div>
           <dt className="text-xs text-zinc-500 dark:text-zinc-500">Next</dt>
           <dd className="text-lg font-semibold tabular-nums">
-            {call && call.decision.weight !== null
-              ? `${dprBadge(call.decision.call).symbol} ${Math.round(call.decision.weight * 100) / 100}`
-              : "?"}
+            {call && call.decision.weight !== null ? (
+              <span className="flex items-center gap-1.5">
+                <CallMark call={call.decision.call} className="text-sm" />
+                {Math.round(call.decision.weight * 100) / 100}
+              </span>
+            ) : (
+              "?"
+            )}
           </dd>
         </div>
       </dl>

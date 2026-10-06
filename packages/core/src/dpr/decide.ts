@@ -367,7 +367,7 @@ function decideCore(input: DecideInput, detectOutperformance: boolean): DprDecis
       weight: latestDecisive.topWeight,
       previousWeight: latestDecisive.topWeight,
       targetReps: null,
-      reason: "Add RPE for DPR",
+      reason: "Add RPE for PRP",
       streak: 0,
     };
   }
@@ -379,7 +379,7 @@ function decideCore(input: DecideInput, detectOutperformance: boolean): DprDecis
     0,
     leadingCount(eligible, (s) => s.topWeight === current),
   );
-  const skippedNote = latestDecisive.eligible ? "" : " · Add RPE for DPR";
+  const skippedNote = latestDecisive.eligible ? "" : " · Add RPE for PRP";
   const note = rpeNote(latestEligible) + skippedNote;
 
   const outperformed = detectOutperformance ? outperformance(latestEligible, input) : null;
@@ -389,7 +389,7 @@ function decideCore(input: DecideInput, detectOutperformance: boolean): DprDecis
       weight: outperformed.weight,
       previousWeight: current,
       targetReps: repRange.low,
-      reason: `Beat DPR's ${formatNumber(outperformed.suggested)} with ${describe(latestEligible)} — stronger than your history shows${skippedNote}`,
+      reason: `Beat PRP's ${formatNumber(outperformed.suggested)} with ${describe(latestEligible)} — stronger than your history shows${skippedNote}`,
       streak: 1,
     };
   }

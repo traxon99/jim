@@ -95,7 +95,7 @@ const routineExerciseSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      "Custom progression rule for this exercise (issue #255); omit or null for none. A lift can't have both a rule and DPR focus: setting a rule on a DPR-focused lift fails.",
+      "Custom progression rule for this exercise (issue #255); omit or null for none. A lift can't have both a rule and PRP focus: setting a rule on a PRP-focused lift fails.",
     ),
 });
 
@@ -252,9 +252,9 @@ export function createMcpServer(context: UserContext): McpServer {
   server.registerTool(
     "dpr_status",
     {
-      title: "Dynamic Progression status",
+      title: "PRP status",
       description:
-        "Read-only. Whether Dynamic Progression (DPR) is on, the current training block, and for each focused lift: its rep ranges, DPR's next call (increase / hold / deload / reenter / insufficient) with weight and reason, baseline / current / goal e1RM with on-track status, and the last 5 decisions.",
+        "Read-only. Whether PR Progression (PRP, formerly DPR) is on, the current training block, and for each focused lift: its rep ranges, PRP's next call (increase / hold / deload / reenter / insufficient) with weight and reason, baseline / current / goal e1RM with on-track status, and the last 5 decisions.",
       inputSchema: {},
     },
     async () => {
@@ -408,7 +408,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "log_past_workout",
     {
       title: "Log past workout",
-      description: `Record a workout that has already finished (e.g. one done without the phone), with its exercises and sets. The session is created already finished, so it shows up in History after the phone's next sync and counts toward PRs, volume and Dynamic Progression like any other workout. It can never start, change or end a workout that is in progress on the phone. PRs are detected against every set logged before this workout.${PREVIEW_HINT}`,
+      description: `Record a workout that has already finished (e.g. one done without the phone), with its exercises and sets. The session is created already finished, so it shows up in History after the phone's next sync and counts toward PRs, volume and PRP like any other workout. It can never start, change or end a workout that is in progress on the phone. PRs are detected against every set logged before this workout.${PREVIEW_HINT}`,
       inputSchema: {
         startedAt: z.string().datetime({ offset: true }).describe("When the workout started"),
         durationMinutes: z
