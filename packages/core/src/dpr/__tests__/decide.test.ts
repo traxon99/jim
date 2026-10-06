@@ -146,13 +146,13 @@ describe("decideNextWeight — RPE and set kinds", () => {
 
   it("is insufficient when no session has RPE, using the last weight", () => {
     const d = decide([s3(28, 185, 8, null)], "moderate", { fallbackWeight: 135 });
-    expect(d).toMatchObject({ call: "insufficient", weight: 185, reason: "Add RPE for DPR" });
+    expect(d).toMatchObject({ call: "insufficient", weight: 185, reason: "Add RPE for PRP" });
   });
 
   it("skips a session missing RPE and decides from the last eligible one", () => {
     const d = decide([s3(28, 185, 8, null), s3(25, 185, 8, 7)]);
     expect(d.call).toBe("increase");
-    expect(d.reason).toContain("Add RPE for DPR");
+    expect(d.reason).toContain("Add RPE for PRP");
   });
 
   it("treats one missing RPE as making the whole session ineligible", () => {
@@ -248,20 +248,20 @@ describe("decideNextWeight — RPE sanity check (issue #385)", () => {
   });
 });
 
-describe("decideNextWeight — outperforming DPR (issue #385)", () => {
-  it("programs from the session when the user beats DPR's weight at a low RPE", () => {
+describe("decideNextWeight — outperforming PRP (issue #385)", () => {
+  it("programs from the session when the user beats PRP's weight at a low RPE", () => {
     // DPR suggested 190 off 185 × 8; the user did 205 × 8 @ RPE 6.
     const d = decide([s3(28, 205, 8, 6), s3(25, 185, 8, 7.5)]);
     expect(d.call).toBe("increase");
     // e1RM 287 → 6 reps @ RPE 8 ≈ 226, capped at +10% of 205 → 225.
     expect(d.weight).toBe(225);
     expect(d.previousWeight).toBe(205);
-    expect(d.reason).toBe("Beat DPR's 190 with 3×8 @ RPE 6 — stronger than your history shows");
+    expect(d.reason).toBe("Beat PRP's 190 with 3×8 @ RPE 6 — stronger than your history shows");
   });
 
-  it("counts reps past the top of the range at DPR's weight", () => {
+  it("counts reps past the top of the range at PRP's weight", () => {
     const d = decide([s3(28, 190, 12, 6), s3(25, 185, 8, 7.5)]);
-    expect(d.reason).toContain("Beat DPR's 190");
+    expect(d.reason).toContain("Beat PRP's 190");
     expect(d.weight).toBeGreaterThan(195);
   });
 

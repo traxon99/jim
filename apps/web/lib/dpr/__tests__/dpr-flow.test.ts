@@ -401,7 +401,7 @@ describe("program duration", () => {
 });
 
 describe("settings defaults", () => {
-  it("has DPR off with the 6–10 default range", () => {
+  it("has PRP off with the 6–10 default range", () => {
     expect(DEFAULT_SETTINGS).toMatchObject({
       dprEnabled: false,
       dprAggressiveness: "moderate",

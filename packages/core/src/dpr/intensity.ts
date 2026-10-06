@@ -23,7 +23,7 @@ export const SESSION_INTENSITY_LABELS: Readonly<Record<SessionIntensity, string>
 export const SESSION_INTENSITY_DESCRIPTIONS: Readonly<Record<SessionIntensity, string>> = {
   light: `About ${Math.round(LIGHT_DAY_PCT * 100)}% lighter — won't count against progression`,
   maintain: "Repeat last session's weights, no progression attempt",
-  push: "Take DPR's progression call",
+  push: "Take PRP's progression call",
 };
 
 function formatWeight(n: number): string {

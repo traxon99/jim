@@ -1,10 +1,12 @@
 "use client";
 
+import { CallMark, CallMarkCounts } from "@/components/dpr/call-mark";
 import { FloatingCard } from "@/components/floating-card";
 import {
   type DprCallInfo,
   type DprContext,
   dprBadge,
+  dprCallCounts,
   dprCallSummary,
   dprGoalLine,
   dprWhyLine,
@@ -46,11 +48,11 @@ export function DprWorkoutBadge({
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        aria-label={`DPR details for ${routineName}: ${calls.length} focused lift${calls.length === 1 ? "" : "s"}`}
+        aria-label={`PRP details for ${routineName}: ${summary}`}
         className="flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-accent px-2 py-0.5 text-xs font-medium"
       >
-        <span className="font-semibold">DPR</span>
-        <span className="text-zinc-600 dark:text-zinc-400">{summary}</span>
+        <span className="font-semibold">PRP</span>
+        <CallMarkCounts counts={dprCallCounts(calls)} />
       </button>
 
       {open && (
@@ -59,7 +61,7 @@ export function DprWorkoutBadge({
             <>
               <div className="flex touch-none flex-col gap-1 px-4 pt-4">
                 <h2 id={titleId} className="truncate text-lg font-semibold">
-                  DPR · {routineName}
+                  PRP · {routineName}
                 </h2>
                 <p className="text-xs text-zinc-500 dark:text-zinc-500">
                   {calls.length} focused lift{calls.length === 1 ? "" : "s"} · block ends{" "}
@@ -85,8 +87,10 @@ export function DprWorkoutBadge({
                           }
                           className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${badge.className}`}
                         >
-                          {badge.symbol}
-                          {weight !== null && ` ${formatWeight(weight)} ${units}`}
+                          <span className="flex items-center gap-1">
+                            <CallMark call={info.decision.call} inherit />
+                            {weight !== null && `${formatWeight(weight)} ${units}`}
+                          </span>
                         </span>
                       </span>
                       <span className="text-xs text-zinc-600 dark:text-zinc-400">

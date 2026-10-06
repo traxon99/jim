@@ -164,46 +164,63 @@ export function dprCallsForRoutine(
 
 /** e.g. "DPR volume: 4 sets this week (routine: 3)". */
 export function dprVolumeLine(volumeSets: number, routineSets: number): string {
-  return `DPR volume: ${volumeSets} ${volumeSets === 1 ? "set" : "sets"} this week (routine: ${routineSets})`;
+  return `PRP volume: ${volumeSets} ${volumeSets === 1 ? "set" : "sets"} this week (routine: ${routineSets})`;
 }
 
 export interface DprBadge {
+  /** The call's word mark, shown with its arrow: "UP ↑", "STAY →" (`CallMark`). */
+  word: string;
+  /** The arrow alone, for plain-text lines like the decision log. */
   symbol: string;
   label: string;
   /** Tailwind classes for the pill. */
   className: string;
+  /** Tailwind text color for the word mark on its own. */
+  textClassName: string;
 }
 
 const BADGES: Record<DprCall, DprBadge> = {
   increase: {
+    word: "UP",
     symbol: "↑",
-    label: "DPR: increase",
+    label: "PRP: increase",
     className: "border-green-600 text-green-700 dark:border-green-500 dark:text-green-400",
+    textClassName: "text-green-700 dark:text-green-400",
   },
   hold: {
-    symbol: "=",
-    label: "DPR: hold",
+    word: "STAY",
+    symbol: "→",
+    label: "PRP: hold",
     className: "border-zinc-400 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400",
+    textClassName: "text-zinc-600 dark:text-zinc-400",
   },
   deload: {
+    word: "DOWN",
     symbol: "↓",
-    label: "DPR: deload",
+    label: "PRP: deload",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
+    textClassName: "text-orange-700 dark:text-orange-400",
   },
   reenter: {
-    symbol: "↓",
-    label: "DPR: easing back in",
+    word: "EASE",
+    symbol: "↘",
+    label: "PRP: easing back in",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
+    textClassName: "text-orange-700 dark:text-orange-400",
   },
   light: {
+    word: "LIGHT",
     symbol: "↓",
-    label: "DPR: light day",
+    label: "PRP: light day",
     className: "border-sky-600 text-sky-700 dark:border-sky-500 dark:text-sky-400",
+    textClassName: "text-sky-700 dark:text-sky-400",
   },
   insufficient: {
+    word: "RPE",
     symbol: "?",
-    label: "DPR: needs RPE",
+    label: "PRP: needs RPE",
     className: "border-zinc-400 text-zinc-500 dark:border-zinc-600 dark:text-zinc-500",
+    textClassName: "text-zinc-500 dark:text-zinc-500",
   },
 };
 
@@ -228,18 +245,18 @@ export function dprWhyLine(decision: DprDecision, units: string): string {
   switch (call) {
     case "increase": {
       const delta = weight !== null && previousWeight !== null ? weight - previousWeight : null;
-      return `DPR: ${lowerFirst(reason)} last time${delta ? ` → +${formatWeight(delta)} ${units}` : ""}`;
+      return `PRP: ${lowerFirst(reason)} last time${delta ? ` → +${formatWeight(delta)} ${units}` : ""}`;
     }
     case "deload":
     case "reenter":
-      return `DPR: ${lowerFirst(reason)}${weight === null ? "" : ` → ${formatWeight(weight)} ${units}`}`;
+      return `PRP: ${lowerFirst(reason)}${weight === null ? "" : ` → ${formatWeight(weight)} ${units}`}`;
     case "hold":
     case "light":
-      return `DPR: ${lowerFirst(reason)}`;
+      return `PRP: ${lowerFirst(reason)}`;
     case "insufficient":
-      return reason === "Add RPE for DPR"
-        ? "DPR: add RPE to your working sets so DPR can make a call"
-        : "DPR: log this lift with RPE to get a call next time";
+      return reason === "Add RPE for PRP"
+        ? "PRP: add RPE to your working sets so PRP can make a call"
+        : "PRP: log this lift with RPE to get a call next time";
   }
 }
 
@@ -312,19 +329,22 @@ export function liftGoal(lift: DprBlockLiftRow): {
 }
 
 /**
- * A routine's calls folded into one badge's text (issue #284), e.g.
- * "↑2 =1" — each call's symbol with its count, most common first; ties keep
- * the order the calls first appear in.
+ * A routine's calls counted for its one badge (issue #284): each call with
+ * how many lifts got it, most common first; ties keep the order the calls
+ * first appear in.
  */
-export function dprCallSummary(calls: readonly DprCallInfo[]): string {
-  const counts = new Map<string, number>();
+export function dprCallCounts(calls: readonly DprCallInfo[]): { call: DprCall; count: number }[] {
+  const counts = new Map<DprCall, number>();
   for (const { decision } of calls) {
-    const { symbol } = BADGES[decision.call];
-    counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+    counts.set(decision.call, (counts.get(decision.call) ?? 0) + 1);
   }
-  return [...counts]
-    .sort((a, b) => b[1] - a[1])
-    .map(([symbol, count]) => `${symbol}${count}`)
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([call, count]) => ({ call, count }));
+}
+
+/** The same counts as text, e.g. "UP ↑2 STAY →1". */
+export function dprCallSummary(calls: readonly DprCallInfo[]): string {
+  return dprCallCounts(calls)
+    .map(({ call, count }) => `${BADGES[call].word} ${BADGES[call].symbol}${count}`)
     .join(" ");
 }
 
@@ -332,10 +352,10 @@ function shortDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** A decision-log line, e.g. "Sep 12 · ↑ 185→190 · 3×8 @ RPE 7.5". */
+/** A decision-log line, e.g. "Sep 12 · UP ↑ 185→190 · 3×8 @ RPE 7.5". */
 export function formatLogEntry(entry: DprLogEntry): string {
   const { decision } = entry;
-  const { symbol } = dprBadge(decision.call);
+  const { word, symbol } = dprBadge(decision.call);
   const from = decision.previousWeight;
   const to = decision.weight;
   const move =
@@ -345,5 +365,5 @@ export function formatLogEntry(entry: DprLogEntry): string {
         ? formatWeight(to)
         : "—";
   const reason = decision.reason.replace(/^Hit /, "");
-  return `${shortDate(entry.sessionDate)} · ${symbol} ${move} · ${reason}`;
+  return `${shortDate(entry.sessionDate)} · ${word} ${symbol} ${move} · ${reason}`;
 }

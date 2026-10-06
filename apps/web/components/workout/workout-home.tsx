@@ -129,7 +129,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
         <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
         {/* Your routines come first (issue #329); the ways to start without
-          one and the DPR invite follow. */}
+          one and the PRP invite follow. */}
         {routineGroups.length > 0 && (
           <div className="flex flex-col gap-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">

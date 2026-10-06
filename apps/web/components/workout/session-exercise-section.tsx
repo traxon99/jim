@@ -1,5 +1,6 @@
 "use client";
 
+import { CallMark } from "@/components/dpr/call-mark";
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
@@ -816,9 +817,11 @@ export function SessionExerciseSection({
               title={dprBadge(dpr.decision.call).label}
               className={`shrink-0 rounded-full border px-1.5 text-xs font-semibold ${dprBadge(dpr.decision.call).className}`}
             >
-              {dpr.decision.reason === "Deload week"
-                ? "Deload week"
-                : `DPR ${dprBadge(dpr.decision.call).symbol}`}
+              {dpr.decision.reason === "Deload week" ? (
+                "Deload week"
+              ) : (
+                <CallMark call={dpr.decision.call} inherit />
+              )}
             </span>
           )}
           {rule && (

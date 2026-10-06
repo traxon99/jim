@@ -122,7 +122,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ bodyweight: 0 })).status).toBe(400);
   });
 
-  it("rejects invalid DPR settings", async () => {
+  it("rejects invalid PRP settings", async () => {
     expect((await patch({ dprEnabled: "yes" })).status).toBe(400);
     expect((await patch({ dprAggressiveness: "reckless" })).status).toBe(400);
     expect((await patch({ dprExperience: "elite" })).status).toBe(400);
@@ -133,7 +133,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ dprPromptDismissedAt: "soon" })).status).toBe(400);
   });
 
-  it("round-trips every DPR setting", async () => {
+  it("round-trips every PRP setting", async () => {
     const dismissedAt = "2026-09-20T12:00:00.000Z";
     const fields = {
       dprEnabled: true,

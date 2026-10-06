@@ -367,7 +367,7 @@ function ProgramCard({
               {info.dpr && (
                 <label className="flex min-h-11 items-center justify-between gap-3 text-sm">
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span>Progress with Dynamic Progression</span>
+                    <span>Progress with PRP</span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-500">
                       {dprRunning
                         ? "You already have a block running."

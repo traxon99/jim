@@ -242,14 +242,14 @@ describe("parseProgressionRule", () => {
 describe("one automatic system per lift (ADR-016)", () => {
   const rule: ProgressionRule = { type: "linear", increment: 5 };
 
-  it("a custom rule beats DPR focus", () => {
+  it("a custom rule beats PRP focus", () => {
     expect(progressionSystemFor({ rule, dprFocused: true })).toBe("custom");
     expect(progressionSystemFor({ rule: null, dprFocused: true })).toBe("dpr");
     expect(progressionSystemFor({ rule: null, dprFocused: false })).toBe("none");
   });
 
-  it("refuses a rule on a DPR-focused lift", () => {
-    expect(customRuleConflict({ dprFocused: true })).toMatch(/DPR/);
+  it("refuses a rule on a PRP-focused lift", () => {
+    expect(customRuleConflict({ dprFocused: true })).toMatch(/PRP/);
     expect(customRuleConflict({ dprFocused: false })).toBeNull();
   });
 });

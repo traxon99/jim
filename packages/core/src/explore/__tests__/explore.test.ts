@@ -66,7 +66,7 @@ describe("Explore templates", () => {
     }
   });
 
-  it("only picks DPR focus lifts the program actually trains", () => {
+  it("only picks PRP focus lifts the program actually trains", () => {
     for (const program of PROGRAM_TEMPLATES) {
       const dpr = program.info.dpr;
       if (!dpr) continue;

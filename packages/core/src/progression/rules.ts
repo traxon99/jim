@@ -120,7 +120,7 @@ export function progressionSystemFor(input: {
 /** Why a rule can't be set on a lift, or null when it can. */
 export function customRuleConflict(input: { dprFocused: boolean }): string | null {
   return input.dprFocused
-    ? "This lift is focused in your DPR block. Remove it from DPR first, so only one system sets its weight."
+    ? "This lift is focused in your PRP block. Remove it from PRP first, so only one system sets its weight."
     : null;
 }
 

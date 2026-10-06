@@ -72,13 +72,13 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("custom progression rules over M
     expect(await getRoutine(context, { routine: id })).toEqual(routine);
   });
 
-  it("refuses a rule on a DPR-focused lift", async () => {
+  it("refuses a rule on a PRP-focused lift", async () => {
     await expect(
       createRoutine(context, {
         name: "Bench day",
         exercises: [{ exercise: "bench press", progression: t3 }],
       }),
-    ).rejects.toThrow(/Bench Press: .*DPR/);
+    ).rejects.toThrow(/Bench Press: .*PRP/);
     expect(
       await createRoutine(context, {
         name: "Bench day",

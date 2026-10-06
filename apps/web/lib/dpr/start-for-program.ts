@@ -29,7 +29,7 @@ export async function startDprForProgram(
 ): Promise<string | null> {
   const blocks = await database.dprBlocks.toArray();
   if (currentBlock(blocks)) {
-    return "You already have a Dynamic Progression block running — change its lifts on the Progression tab.";
+    return "You already have a PRP block running — change its lifts on the Progression tab.";
   }
 
   const globalExercises = (await database.exercises.toArray()).filter(
@@ -62,7 +62,5 @@ export async function startDprForProgram(
     },
     database,
   );
-  return result.ok
-    ? null
-    : `Block saved, but turning Dynamic Progression on failed: ${result.error}`;
+  return result.ok ? null : `Block saved, but turning PRP on failed: ${result.error}`;
 }

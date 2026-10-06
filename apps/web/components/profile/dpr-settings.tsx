@@ -55,7 +55,7 @@ export function DprSettings({
     <div className="flex flex-col gap-3">
       <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
         <span className="flex flex-col gap-0.5">
-          Dynamic Progression
+          PR Progression (PRP)
           <span className="font-normal text-zinc-500 dark:text-zinc-500">
             Weight calls from your reps and RPE
           </span>

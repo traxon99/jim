@@ -33,9 +33,9 @@ export function TryDprCard({ completedSessionCount }: { completedSessionCount: n
     <section className="flex items-center gap-2 rounded-lg border border-accent py-1 pr-1 pl-3">
       <TrendingUp className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden="true" />
       <Link href="/progression" className="flex min-h-11 min-w-0 flex-1 flex-col justify-center">
-        <span className="text-sm font-semibold">Try Dynamic Progression</span>
+        <span className="text-sm font-semibold">Try PRP</span>
         <span className="truncate text-xs text-zinc-600 dark:text-zinc-400">
-          Jim suggests when to add weight, hold or back off
+          Jim tells you when to go UP, STAY or back off
         </span>
       </Link>
       <button
