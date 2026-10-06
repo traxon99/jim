@@ -43,7 +43,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("get_body_measurements (#249)", 
     });
     expect(result.measurements).toHaveLength(1);
     expect(result.measurements[0]?.entries).toEqual([
-      { value: 32, measuredAt: "2026-09-15T08:00:00.000Z" },
+      { id: expect.any(String), value: 32, measuredAt: "2026-09-15T08:00:00.000Z" },
     ]);
   });
 });

@@ -57,6 +57,7 @@ export async function listRoutines(context: UserContext, input: ListRoutinesInpu
       folder: routine.folder,
       notes: routine.notes,
       kind: routine.kind,
+      warmupRoutineId: routine.warmupRoutineId,
       exerciseCount: countById.get(routine.id) ?? 0,
       lastPerformedAt: lastById.get(routine.id)?.toISOString() ?? null,
     }));
