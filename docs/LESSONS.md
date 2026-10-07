@@ -31,6 +31,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       the page matches every other tab (#299).
 - [ ] Rows that can grow have `min-w-0` and either truncate, wrap or scroll. Check at 393 px with
       real-length text (#327, #182).
+- [ ] Adding a badge or icon to a table cell? Pin it (`absolute` in a `relative` cell) instead of
+      setting it inline, or it widens the column and pushes the row past the card (#440).
 - [ ] Use `PageHeader` for a tab's header instead of building a one-off one (#309).
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
