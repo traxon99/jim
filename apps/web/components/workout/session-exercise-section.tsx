@@ -448,7 +448,7 @@ export function SessionExerciseSection({
     const tombstone = undoableDelete;
     setUndoableDelete(null);
     const restored = await restoreSet(tombstone);
-    // The restored row has a new id; keep the 🎉 of the set it brings back.
+    // The restored row has a new id; keep the PR badge of the set it brings back.
     const prs = tombstone.supersedesId ? prsBySetId.get(tombstone.supersedesId) : undefined;
     if (prs) setPrsBySetId((map) => new Map(map).set(restored.id, prs));
   }

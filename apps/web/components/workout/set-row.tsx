@@ -6,6 +6,7 @@ import { type SetField, setFieldEditPatch } from "@/lib/workout/set-field-edit";
 import { RPE_MAX, RPE_MIN } from "@jim/core";
 import { Check } from "lucide-react";
 import { useRef, useState } from "react";
+import { PrBadge } from "./pr-badge";
 import { SetKindMenu } from "./set-kind-menu";
 import { SwipeDeleteReveal, useSwipeToDelete } from "./use-swipe-to-delete";
 
@@ -190,11 +191,14 @@ export function SetRow({
         <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
       </td>
       {previous}
-      <td className={sizes.cell}>
-        <div className="flex items-center justify-center gap-1 font-medium">
-          {editable("weight", "weight", set.weight)}
-          {isPr && editingField !== "weight" && <span title="Personal record">🎉</span>}
-        </div>
+      {/* The PR badge is pinned to the cell's corner rather than sitting
+          beside the weight: inline, its width widened the Weight column and
+          pushed PR rows past the card's edge (issue #440). */}
+      <td className={`relative ${sizes.cell}`}>
+        <div className="font-medium">{editable("weight", "weight", set.weight)}</div>
+        {isPr && editingField !== "weight" && (
+          <PrBadge className={large ? "absolute top-1 right-1" : "absolute top-0.5 right-0.5"} />
+        )}
       </td>
       <td className={sizes.cell}>{editable("reps", "reps", set.reps)}</td>
       <td className={sizes.metaCell}>
