@@ -31,6 +31,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       the page matches every other tab (#299).
 - [ ] Rows that can grow have `min-w-0` and either truncate, wrap or scroll. Check at 393 px with
       real-length text (#327, #182).
+- [ ] Adding a badge or icon to a table cell? Pin it (`absolute` in a `relative` cell) instead of
+      setting it inline, or it widens the column and pushes the row past the card (#440).
 - [ ] Use `PageHeader` for a tab's header instead of building a one-off one (#309).
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
@@ -66,6 +68,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #440 | PR sets pushed the set table past the card, clipping the ✓ column | The 🎉 PR marker sat inline beside the weight and widened the Weight column | Pin badges on table cells (`absolute` in a `relative` cell) so they add no column width |
 | #438 | Deleting one warm-up set brought the warm-ups back after a sync | A deleted set's index was planned again as a fresh warm-up row (`index < warmupSets`), ignoring its synced tombstone | A planned row must not reappear where a synced tombstone says the user deleted it |
 | #433 | "Invalid share" on a routine with a 900-minute warm-up | The share parser capped warm-up minutes, sets, reps and rest tighter than the routine editor does | A validator for data the app already saved must accept everything the app lets you save |
 | #412 | The #410 fix turned the RPE info dropdown into a full-screen card, which felt heavier than a column header's tip | `FloatingCard` was used to escape the clipping instead of fixing where the dropdown was anchored | A dropdown that's too wide for its column can center in its card: anchor it to the `relative` card, not the cell |

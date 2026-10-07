@@ -24,6 +24,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
+import { PrBadge } from "./pr-badge";
 
 interface Props {
   userId: string;
@@ -254,13 +255,10 @@ export function CardioExerciseSection({
                 <span className="truncate">
                   {i + 1}: {formatCardioSet(set, unit)}
                   {records && (
-                    <span title={`New best ${records.map((k) => RECORD_LABELS[k]).join(", ")}`}>
-                      {" "}
-                      🎉
-                      <span className="sr-only">
-                        New best {records.map((k) => RECORD_LABELS[k]).join(", ")}
-                      </span>
-                    </span>
+                    <PrBadge
+                      label={`New best ${records.map((k) => RECORD_LABELS[k]).join(", ")}`}
+                      className="ml-1 align-[1px]"
+                    />
                   )}
                 </span>
                 <button
