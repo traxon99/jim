@@ -37,7 +37,7 @@ import {
   restoreSet,
   updateSetKind,
 } from "@/lib/sessions/set-actions";
-import { type SetKind, setNumberLabels } from "@/lib/sessions/set-kinds";
+import { type SetKind, deletedWarmupIndices, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -273,6 +273,14 @@ export function SessionExerciseSection({
       volumeSets ??
       Math.max(target?.targetSets ?? 0, previousSets.working.length, 1)) + addedSets;
 
+  // A warm-up set deleted from the log (issue #438) stays deleted: its
+  // tombstone is synced, so the index isn't planned again as a fresh warm-up
+  // row, here or after a sync reloads this screen.
+  const deletedWarmups = useMemo(
+    () => deletedWarmupIndices(resolveCurrentRows(rawSets ?? [])),
+    [rawSets],
+  );
+
   const loggedByIndex = useMemo(() => new Map(sets.map((set) => [set.setIndex, set])), [sets]);
   const loggedIndices = useMemo(() => new Set(loggedByIndex.keys()), [loggedByIndex]);
   const restSeconds =
@@ -320,7 +328,9 @@ export function SessionExerciseSection({
     kindAt,
   );
   const allIndices = Array.from({ length: plannedTotal }, (_, index) => index);
-  const plannedIndices = allIndices.filter((index) => !loggedIndices.has(index));
+  const plannedIndices = allIndices.filter(
+    (index) => !loggedIndices.has(index) && !deletedWarmups.has(index),
+  );
   const visiblePlannedIndices = plannedIndices.filter((index) => !skippedIndices.has(index));
 
   // "Last time" for a row is last time's set of the same kind at the same

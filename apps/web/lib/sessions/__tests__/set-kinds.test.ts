@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setNumberLabels } from "../set-kinds";
+import { deletedWarmupIndices, setNumberLabels } from "../set-kinds";
 
 describe("setNumberLabels", () => {
   it("numbers sets from 1 when there are no warm-ups", () => {
@@ -25,5 +25,18 @@ describe("setNumberLabels", () => {
 
   it("handles an empty list", () => {
     expect(setNumberLabels([])).toEqual([]);
+  });
+});
+
+describe("deletedWarmupIndices", () => {
+  it("returns the indices of deleted warm-ups only (issue #438)", () => {
+    const at = new Date();
+    expect(
+      deletedWarmupIndices([
+        { setIndex: 0, kind: "warmup", deletedAt: at },
+        { setIndex: 1, kind: "warmup", deletedAt: null },
+        { setIndex: 2, kind: "working", deletedAt: at },
+      ]),
+    ).toEqual(new Set([0]));
   });
 });

@@ -35,3 +35,16 @@ export function setNumberLabels(kinds: readonly string[]): string[] {
     return String(number);
   });
 }
+
+/**
+ * Set indices whose current row is a deleted warm-up (issue #438). Those
+ * indices aren't planned again as fresh warm-up rows: the tombstone syncs,
+ * so the deletion sticks across devices and reloads.
+ */
+export function deletedWarmupIndices(
+  currentRows: readonly { setIndex: number; kind: string; deletedAt?: Date | null }[],
+): Set<number> {
+  return new Set(
+    currentRows.filter((row) => row.deletedAt && row.kind === "warmup").map((row) => row.setIndex),
+  );
+}
