@@ -2,7 +2,7 @@ import type { Achievement, AchievementCategory } from "@jim/core";
 import { Disc3, Dumbbell, type LucideIcon, PersonStanding, Trophy, Weight } from "lucide-react";
 import type { CSSProperties } from "react";
 
-export const ACHIEVEMENT_ICONS: Record<AchievementCategory, LucideIcon> = {
+const ACHIEVEMENT_ICONS: Record<AchievementCategory, LucideIcon> = {
   workouts: Dumbbell,
   volume: Weight,
   plates: Disc3,

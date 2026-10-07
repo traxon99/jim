@@ -1,6 +1,7 @@
 "use client";
 
-import type { ExerciseRow, ProgramRow, SettingsRow } from "@/lib/db/schema";
+import { bodyweightLookup } from "@/lib/bodyweight";
+import { type ExerciseRow, type ProgramRow, type SettingsRow, db } from "@/lib/db/schema";
 import { guessExperience, planBlock, startDprBlock } from "@/lib/dpr/block";
 import type { DprSnapshot } from "@/lib/dpr/data";
 import { patchSettings } from "@/lib/settings";
@@ -15,6 +16,7 @@ import {
   blockWeeksForProgram,
   focusCandidates,
 } from "@jim/core";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
 import {
   EXPERIENCE_LABELS,
@@ -48,9 +50,17 @@ export function SetupWizard({
   prefill?: { focus: string[]; baselines: ReadonlyMap<string, number> } | null;
 }) {
   const now = useMemo(() => new Date(), []);
+  const bodyMeasurements = useLiveQuery(() => db.bodyMeasurements.toArray(), []);
   const guess = useMemo(
-    () => guessExperience(snapshot, exercises, settings, now),
-    [snapshot, exercises, settings, now],
+    () =>
+      guessExperience(
+        snapshot,
+        exercises,
+        settings,
+        now,
+        bodyweightLookup(bodyMeasurements ?? [], settings.units),
+      ),
+    [snapshot, exercises, settings, now, bodyMeasurements],
   );
   // The last block's lifts stay pickable even if they've left the top 10.
   const candidates = useMemo(() => {
@@ -96,7 +106,7 @@ export function SetupWizard({
       <section className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-6 text-center dark:border-zinc-700">
         <h2 className="text-base font-semibold">Log a few weighted workouts first</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Dynamic Progression picks your focus lifts from what you've trained in the last 90 days.
+          PRP picks your focus lifts from what you've trained in the last 90 days.
         </p>
       </section>
     );
@@ -122,7 +132,7 @@ export function SetupWizard({
       dprAggressiveness: preset,
     });
     if (!result.ok) {
-      setError(`Block saved, but turning DPR on failed: ${result.error}`);
+      setError(`Block saved, but turning PRP on failed: ${result.error}`);
       setSaving(false);
     }
   }
@@ -160,7 +170,7 @@ export function SetupWizard({
 
       {step === 1 && (
         <div className="flex flex-col gap-2">
-          <h2 className="text-base font-semibold">How hard should DPR push?</h2>
+          <h2 className="text-base font-semibold">How hard should PRP push?</h2>
           {DPR_PRESET_NAMES.map((option) => (
             <button
               key={option}

@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { formatLastDone } from "@/lib/routines/last-done";
@@ -9,6 +10,7 @@ import {
   buildExerciseUsage,
   dedupeCatalogNames,
   filterExercises,
+  isCardioExercise,
   isWarmupExercise,
   preferOwnedExercises,
   searchExercises,
@@ -118,6 +120,7 @@ export function ExercisesList({ userId }: { userId: string }) {
             <span className="text-xs text-zinc-500 dark:text-zinc-500">
               {[
                 isWarmupExercise(exercise) ? "warm-up" : null,
+                isCardioExercise(exercise) ? "cardio" : null,
                 exercise.equipment,
                 ...exercise.primaryMuscles,
               ]
@@ -142,7 +145,7 @@ export function ExercisesList({ userId }: { userId: string }) {
   if (allExercises === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -195,12 +198,13 @@ export function ExercisesList({ userId }: { userId: string }) {
 
         {filtersOpen && (
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-3 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+            <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
               {(
                 [
                   { value: "", label: "All" },
                   { value: "strength", label: "Strength" },
                   { value: "warmup", label: "Warm-ups" },
+                  { value: "cardio", label: "Cardio" },
                 ] as const
               ).map((tab) => {
                 const selected = category === tab.value;

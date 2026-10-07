@@ -1,4 +1,12 @@
-import { MUSCLES, REACTION_KINDS, ROUTINE_ICON_COLORS, ROUTINE_ICON_SHAPES } from "@jim/core";
+import {
+  MUSCLES,
+  POST_KINDS,
+  type ProgressionRule,
+  REACTION_KINDS,
+  ROUTINE_ICON_COLORS,
+  ROUTINE_ICON_SHAPES,
+  SHARE_KINDS,
+} from "@jim/core";
 import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
@@ -38,6 +46,8 @@ const nextSyncSeq = sql`nextval('sync_seq')`;
 // ---------------------------------------------------------------------------
 
 export const unitsEnum = pgEnum("units", ["lb", "kg"]);
+/** body_measurements.unit (issue #249): weights, lengths, and percent for body fat. */
+export const measurementUnitEnum = pgEnum("measurement_unit", ["lb", "kg", "in", "cm", "pct"]);
 
 export const colorSchemeEnum = pgEnum("color_scheme", ["system", "light", "dark"]);
 
@@ -51,6 +61,10 @@ export const accentColorEnum = pgEnum("accent_color", [
 ]);
 
 export const fontFamilyEnum = pgEnum("font_family", ["sans", "serif", "mono"]);
+
+// How the routine cards (Up next, the pre-workout sheet) are drawn: "plain" is the
+// original flat card, "glass" a frosted card over blurred routine-colored gradients.
+export const cardStyleEnum = pgEnum("card_style", ["plain", "glass"]);
 
 // Biological sex, used to select the correct strength-standards table (see
 // packages/core's strength-standards module) — not a broader identity field.
@@ -73,13 +87,16 @@ export const trackingTypeEnum = pgEnum("tracking_type", [
   "distance",
   "bodyweight",
   "weighted_bodyweight",
+  // Cardio (issue #423): a distance covered in a time, e.g. a 5 km run in 25:00.
+  "distance_time",
 ]);
 
 // Warm-ups/stretches (issue #59) are exercises like any other, but live in
 // their own category: they're logged for reps or time, tracked for how often
 // they're done rather than for PRs/volume, and grouped at the start of a
-// workout.
-export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "warmup"]);
+// workout. Cardio (issue #423) is logged for time and/or distance, sits in
+// the workout alongside strength, and stays out of volume and the body map.
+export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "warmup", "cardio"]);
 
 // A "warmup" routine is a reusable warm-up block (e.g. "Leg warm-up") that a
 // strength routine can link to as its warm-up (routines.warmup_routine_id).
@@ -121,6 +138,13 @@ export const friendshipStatusEnum = pgEnum("friendship_status", ["pending", "acc
 // shows each as an emoji (@jim/core's REACTION_EMOJI).
 export const reactionKindEnum = pgEnum("reaction_kind", [...REACTION_KINDS]);
 
+// What a post shares with friends (issue #316): a finished workout, a
+// personal record or an earned achievement. Mirrors @jim/core's POST_KINDS.
+export const postKindEnum = pgEnum("post_kind", [...POST_KINDS]);
+
+// What a share link freezes (issue #254). Mirrors @jim/core's SHARE_KINDS.
+export const shareKindEnum = pgEnum("share_kind", [...SHARE_KINDS]);
+
 // ---------------------------------------------------------------------------
 // users — mirrors auth.users; row is created for a user on first sign-in
 // ---------------------------------------------------------------------------
@@ -136,6 +160,16 @@ export const users = pgTable(
     // exactly. Filled from the email's local part by the users_default_username
     // trigger (migration 0023) when a row is created without one.
     username: text("username"),
+    // The profile picture friends see (issue #316): a small square JPEG data
+    // URL the phone crops and shrinks before upload (@jim/core's
+    // AVATAR_MAX_LENGTH caps it). Null shows the username's initial.
+    avatar: text("avatar"),
+    // Sharing settings (issue #316). Whether friends see this user's finished
+    // workouts in their feed at all, and if so whether they see the exercises
+    // and weights or just the name and duration. Posts are shared explicitly,
+    // so they show either way. Read by friend_workouts() (migration 0031).
+    shareWorkouts: boolean("share_workouts").notNull().default(true),
+    shareWorkoutDetails: boolean("share_workout_details").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 
     // settings
@@ -157,6 +191,8 @@ export const users = pgTable(
     accentColor: accentColorEnum("accent_color").notNull().default("zinc"),
     // The app's body typeface. "sans" keeps the original system sans-serif look.
     fontFamily: fontFamilyEnum("font_family").notNull().default("sans"),
+    // The routine cards' look (issue #374). "plain" keeps the original flat cards.
+    cardStyle: cardStyleEnum("card_style").notNull().default("plain"),
     // Whether the live pace tracker card shows during a workout.
     showPaceTracker: boolean("show_pace_tracker").notNull().default(true),
 
@@ -164,8 +200,8 @@ export const users = pgTable(
     // sex and bodyweight select the standards table, age adjusts it. All
     // nullable — the feature degrades to "no standard shown" without them,
     // rather than forcing profile completion. `bodyweight` is a single
-    // current value in the user's `units`, distinct from the `body_measurements`
-    // time series (which nothing in the app reads or writes yet).
+    // current value in the user's `units`, kept in step with the latest
+    // weigh-in in the `body_measurements` time series.
     sex: sexEnum("sex"),
     birthdate: date("birthdate"),
     heightCm: numeric("height_cm", { precision: 5, scale: 1 }),
@@ -234,6 +270,10 @@ export const exercises = pgTable(
     category: exerciseCategoryEnum("category").notNull().default("strength"),
     instructions: text("instructions").array().notNull().default(sql`ARRAY[]::text[]`),
     imageUrls: text("image_urls").array().notNull().default(sql`ARRAY[]::text[]`),
+    // A demo video link the user set (issue #252). The catalog doesn't ship
+    // any; exercises without one fall back to a YouTube search (core's
+    // exerciseDemo).
+    videoUrl: text("video_url"),
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S4): user-owned rows (custom or cloned, ADR-008) are
@@ -346,6 +386,10 @@ export const routineExercises = pgTable(
     // auto-increment that once built on it was replaced by DPR (issue #217,
     // docs/DECISIONS.md ADR-016).
     targetWeight: numeric("target_weight", { precision: 7, scale: 2 }),
+    // A custom progression rule (issue #255), @jim/core's ProgressionRule;
+    // null = DPR or plain "last time" prefill. Parse with
+    // `parseProgressionRule` — rows from older clients may lack it.
+    progressionRule: jsonb("progression_rule").$type<ProgressionRule>(),
     notes: text("notes"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
@@ -444,6 +488,9 @@ export const dprBlocks = pgTable(
     // doesn't move its goals.
     aggressiveness: dprAggressivenessEnum("aggressiveness").notNull(),
     experience: dprExperienceEnum("experience").notNull(),
+    // Mesocycle mode (issue #250): DPR also grows each muscle's weekly sets
+    // through the block. The plan itself is derived, never stored.
+    volumeMode: boolean("volume_mode").notNull().default(false),
     programId: uuid("program_id").references(() => programs.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -637,7 +684,9 @@ export const personalRecords = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
-// body_measurements — v1: bodyweight only
+// body_measurements — bodyweight, body fat and circumferences over time.
+// `kind` is one of @jim/core's MEASUREMENT_KINDS; rows keep the unit they
+// were entered in and readers convert.
 // ---------------------------------------------------------------------------
 
 export const bodyMeasurements = pgTable(
@@ -649,7 +698,7 @@ export const bodyMeasurements = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     kind: text("kind").notNull().default("bodyweight"),
     value: numeric("value", { precision: 7, scale: 2 }).notNull(),
-    unit: unitsEnum("unit").notNull(),
+    unit: measurementUnitEnum("unit").notNull(),
     measuredAt: timestamp("measured_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
@@ -857,6 +906,83 @@ export const workoutReactions = pgTable(
     index("workout_reactions_user").on(table.userId),
     pgPolicy("workout_reactions_select_own", {
       for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// posts — something a user chose to share with their friends (issue #316): a
+// finished workout (`session_id` set), a personal record or an achievement,
+// with an optional caption. `title` and `detail` are written by the phone,
+// which has the history that describes it, and shown as is. Like friendships,
+// readable only by the author and never written directly: migration 0031's
+// SECURITY DEFINER functions create and delete posts, and hand friends their
+// posts (ADR-017). Not synced to the phone.
+// ---------------------------------------------------------------------------
+
+export const posts = pgTable(
+  "posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: postKindEnum("kind").notNull(),
+    sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    detail: text("detail"),
+    caption: text("caption"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("posts_user_created").on(table.userId, table.createdAt),
+    pgPolicy("posts_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// share_links — a routine or program frozen into a read-only snapshot that
+// anyone signed in can open by its link (issue #254). The id is the link: a
+// random v4 uuid, so links can't be guessed or listed. The sharer reads and
+// deletes (revokes) their own links under RLS; there's no update policy, so
+// a snapshot never changes once written. Anyone else reads one only through
+// migration 0036's SECURITY DEFINER function, by its id, and gets the
+// snapshot and the sharer's username, nothing more. Not synced to the phone.
+// ---------------------------------------------------------------------------
+
+export const shareLinks = pgTable(
+  "share_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: shareKindEnum("kind").notNull(),
+    name: text("name").notNull(),
+    // @jim/core's ShareSnapshot, checked with parseShareSnapshot on the way in.
+    snapshot: jsonb("snapshot").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("share_links_user_created").on(table.userId, table.createdAt),
+    pgPolicy("share_links_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+    pgPolicy("share_links_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.userId} = ${authUid}`,
+    }),
+    pgPolicy("share_links_delete_own", {
+      for: "delete",
       to: authenticatedRole,
       using: sql`${table.userId} = ${authUid}`,
     }),

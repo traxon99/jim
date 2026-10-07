@@ -1,12 +1,16 @@
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
+import { CardStyleSection } from "@/components/profile/card-style-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
 import { ConnectClaudeSection } from "@/components/profile/connect-claude-section";
 import { DataSection } from "@/components/profile/data-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
+import { ProfilePictureSection } from "@/components/profile/profile-picture-section";
 import { PushNotificationsSection } from "@/components/profile/push-notifications-section";
+import { SharedLinksSection } from "@/components/profile/shared-links-section";
+import { SharingSection } from "@/components/profile/sharing-section";
 import { UsernameSection } from "@/components/profile/username-section";
 import { WorkoutSection } from "@/components/profile/workout-section";
 import { APP_VERSION } from "@/lib/version";
@@ -14,15 +18,30 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { SignOutButton } from "./sign-out-button";
 
-export function SettingsHome({ email, userId }: { email?: string; userId?: string }) {
+export function SettingsHome({
+  email,
+  userId,
+  fromHome = false,
+}: {
+  email?: string;
+  userId?: string;
+  /** Opened from Home's header (issue #404), so Back returns there instead of Profile. */
+  fromHome?: boolean;
+}) {
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Settings" back={{ href: "/profile", label: "Profile" }} />
+      <PageHeader
+        title="Settings"
+        back={fromHome ? { href: "/home", label: "Home" } : { href: "/profile", label: "Profile" }}
+      />
       <div className={`items-center text-center ${PAGE_BODY}`}>
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
         {/* Moved from Profile (issue #331); every section here saves as you go. */}
+        <ProfilePictureSection />
         <UsernameSection />
-        <BodyStatsSection />
+        <SharingSection />
+        <SharedLinksSection />
+        <BodyStatsSection userId={userId} />
         <WorkoutSection />
         <Link
           href="/progression"
@@ -34,6 +53,7 @@ export function SettingsHome({ email, userId }: { email?: string; userId?: strin
         <ColorSchemeSection />
         <AccentColorSection />
         <FontFamilySection />
+        <CardStyleSection />
         <PushNotificationsSection />
         <ConnectClaudeSection />
         <FeedbackSection />

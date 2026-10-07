@@ -8,6 +8,7 @@ const UNITS = new Set(["lb", "kg"]);
 const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
 const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose"]);
 const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
+const CARD_STYLES = new Set(["plain", "glass"]);
 const SEXES = new Set(["male", "female"]);
 const DPR_AGGRESSIVENESS = new Set(["conservative", "moderate", "aggressive"]);
 const DPR_EXPERIENCE = new Set(["novice", "intermediate", "advanced"]);
@@ -31,6 +32,7 @@ interface SettingsPayload {
   colorScheme: "system" | "light" | "dark";
   accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose";
   fontFamily: "sans" | "serif" | "mono";
+  cardStyle: "plain" | "glass";
   showPaceTracker: boolean;
   sex: "male" | "female" | null;
   birthdate: string | null;
@@ -55,6 +57,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     colorScheme: row.colorScheme,
     accentColor: row.accentColor,
     fontFamily: row.fontFamily,
+    cardStyle: row.cardStyle,
     showPaceTracker: row.showPaceTracker,
     sex: row.sex,
     birthdate: row.birthdate,
@@ -124,6 +127,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     return false;
   }
   if ("fontFamily" in candidate && !FONT_FAMILIES.has(candidate.fontFamily as string)) {
+    return false;
+  }
+  if ("cardStyle" in candidate && !CARD_STYLES.has(candidate.cardStyle as string)) {
     return false;
   }
   if ("showPaceTracker" in candidate && typeof candidate.showPaceTracker !== "boolean") {
@@ -230,6 +236,7 @@ export async function PATCH(request: Request) {
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
       if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
       if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;
+      if (body.cardStyle !== undefined) patch.cardStyle = body.cardStyle;
       if (body.showPaceTracker !== undefined) patch.showPaceTracker = body.showPaceTracker;
       if (body.sex !== undefined) patch.sex = body.sex;
       if (body.birthdate !== undefined) patch.birthdate = body.birthdate;

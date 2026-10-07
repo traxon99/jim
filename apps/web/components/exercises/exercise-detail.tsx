@@ -1,18 +1,28 @@
 "use client";
 
+import { BodyMap } from "@/components/exercises/body-map";
 import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import {
+  computeCardioBests,
   deletedSessionExerciseIds,
+  distanceUnitFor,
   estimatedOneRepMaxSeries,
+  exerciseDemo,
+  exerciseMuscleShading,
+  formatDistance,
+  formatDuration,
+  formatTimedSet,
+  isCardioExercise,
   isWarmupExercise,
   resolveCurrentRows,
   warmupFrequency,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil } from "lucide-react";
+import { ExternalLink, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo } from "react";
@@ -39,6 +49,8 @@ export function ExerciseDetail({
   const closeToList = onClose ?? (() => router.push("/exercises"));
   const titleId = useId();
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const distanceUnit = distanceUnitFor(settings.units);
 
   // Every current (non-superseded, non-deleted) set logged against this
   // exercise, most recent first, paired with which session it belongs to
@@ -105,6 +117,7 @@ export function ExerciseDetail({
   );
 
   const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
+  const cardioBests = useMemo(() => computeCardioBests(resolvedSets ?? []), [resolvedSets]);
 
   if (exercise === undefined) {
     return null;
@@ -133,12 +146,17 @@ export function ExerciseDetail({
 
   const canEdit = !onClose && (exercise.ownerId === null || exercise.ownerId === userId);
   const isWarmup = isWarmupExercise(exercise);
+  const isCardio = isCardioExercise(exercise);
   const tags = [
     isWarmup ? "warm-up" : null,
+    isCardio ? "cardio" : null,
     exercise.equipment,
     ...exercise.primaryMuscles,
     ...exercise.secondaryMuscles,
   ].filter((tag): tag is string => Boolean(tag));
+  const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
+  // Rows synced before the column existed have no videoUrl at all.
+  const demo = exerciseDemo({ name: exercise.name, videoUrl: exercise.videoUrl ?? null });
 
   return (
     <FloatingCard labelledBy={titleId} onClose={closeToList}>
@@ -177,6 +195,32 @@ export function ExerciseDetail({
                 ))}
               </div>
             )}
+
+            {hasMuscles && (
+              <section>
+                <h2 className="text-sm font-semibold">Muscles worked</h2>
+                <BodyMap
+                  shading={exerciseMuscleShading(exercise)}
+                  label={muscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles)}
+                  className="mt-2"
+                />
+                {exercise.secondaryMuscles.length > 0 && (
+                  <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-500">
+                    Darker: primary · lighter: secondary
+                  </p>
+                )}
+              </section>
+            )}
+
+            <a
+              href={demo.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+            >
+              <ExternalLink className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              {demo.custom ? "Watch demo video" : "Find a demo video"}
+            </a>
 
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -229,7 +273,51 @@ export function ExerciseDetail({
               </section>
             )}
 
-            {!isWarmup && oneRepMaxPoints.length > 0 && (
+            {isCardio &&
+              (cardioBests.distance != null ||
+                cardioBests.durationSeconds != null ||
+                cardioBests.paceSeconds != null) && (
+                <section>
+                  <h2 className="text-sm font-semibold">Records</h2>
+                  <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
+                    {[
+                      {
+                        label: "Longest distance",
+                        value:
+                          cardioBests.distance != null
+                            ? formatDistance(cardioBests.distance, distanceUnit)
+                            : "—",
+                      },
+                      {
+                        label: "Longest time",
+                        value:
+                          cardioBests.durationSeconds != null
+                            ? formatDuration(cardioBests.durationSeconds)
+                            : "—",
+                      },
+                      {
+                        label: "Fastest pace",
+                        value:
+                          cardioBests.paceSeconds != null
+                            ? `${formatDuration(cardioBests.paceSeconds)} /${distanceUnit}`
+                            : "—",
+                      },
+                    ].map((stat) => (
+                      <div
+                        key={stat.label}
+                        className="min-w-0 rounded-lg bg-zinc-100 px-2 py-2 dark:bg-zinc-900"
+                      >
+                        <dt className="text-xs text-zinc-500 dark:text-zinc-500">{stat.label}</dt>
+                        <dd className="truncate text-base font-semibold tabular-nums">
+                          {stat.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+
+            {!isWarmup && !isCardio && oneRepMaxPoints.length > 0 && (
               <section>
                 <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
                 <div className="mt-2">
@@ -264,11 +352,7 @@ export function ExerciseDetail({
                                     `${Number(set.weight)} × ${set.reps}`
                                   : set.reps != null
                                     ? `${set.reps} reps`
-                                    : set.durationSeconds != null
-                                      ? `${set.durationSeconds}s`
-                                      : set.distance != null
-                                        ? `${set.distance}`
-                                        : "—"}
+                                    : (formatTimedSet(set, distanceUnit) ?? "—")}
                               </span>
                               <SetRestTag set={set} />
                             </span>
@@ -295,4 +379,17 @@ export function ExerciseDetail({
       )}
     </FloatingCard>
   );
+}
+
+/** "Works chest; also triceps and shoulders", read out for the body map. */
+function muscleSummary(primary: readonly string[], secondary: readonly string[]): string {
+  const list = (muscles: readonly string[]) =>
+    muscles.length <= 1
+      ? muscles.join("")
+      : `${muscles.slice(0, -1).join(", ")} and ${muscles[muscles.length - 1]}`;
+  const parts = [];
+  if (primary.length > 0) parts.push(`Works ${list(primary)}`);
+  if (secondary.length > 0)
+    parts.push(`${primary.length > 0 ? "also" : "Also works"} ${list(secondary)}`);
+  return parts.join("; ");
 }

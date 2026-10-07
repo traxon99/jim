@@ -19,10 +19,11 @@ export const SMART_WORKOUT_NAME = "Smart workout";
  * working sets per muscle, the user's exercise catalog, and how often
  * they've done each exercise. Reads only IndexedDB, so it works offline.
  */
-export async function planSmartWorkoutFromDb(
+async function planSmartWorkoutFromDb(
   userId: string,
   database: JimDatabase = db,
   now: Date = new Date(),
+  options: { exerciseCount?: number; alreadyPickedIds?: readonly string[] } = {},
 ): Promise<SmartWorkoutPlan> {
   const [sessions, sessionExercises, sets, exercises] = await Promise.all([
     database.sessions.toArray(),
@@ -50,7 +51,28 @@ export async function planSmartWorkoutFromDb(
     category: "strength",
   });
 
-  return planSmartWorkout({ now, sets: volumeSets, exercises: candidates, usage });
+  return planSmartWorkout({ now, sets: volumeSets, exercises: candidates, usage, ...options });
+}
+
+/** How many suggestions the Add exercise menu shows. */
+const SUGGESTED_EXERCISE_COUNT = 3;
+
+/**
+ * Exercises to suggest in an ad hoc workout's Add exercise menu (issue
+ * #226): the smart workout's picks for what this workout still leaves
+ * under-trained, skipping the exercises already in it.
+ */
+export async function suggestExercisesFromDb(
+  userId: string,
+  workoutExerciseIds: readonly string[],
+  database: JimDatabase = db,
+  now: Date = new Date(),
+): Promise<string[]> {
+  const plan = await planSmartWorkoutFromDb(userId, database, now, {
+    exerciseCount: SUGGESTED_EXERCISE_COUNT,
+    alreadyPickedIds: workoutExerciseIds,
+  });
+  return plan.picks.map((pick) => pick.exerciseId);
 }
 
 /** Starts an ad hoc session pre-filled with the smart workout's exercises. */

@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import {
@@ -8,6 +9,7 @@ import {
   endBlockNow,
   lastCompletedBlock,
   liveBlockLifts,
+  setBlockVolumeMode,
   startDeloadWeek,
 } from "@/lib/dpr/block";
 import { buildDprContext, liftGoal } from "@/lib/dpr/calls";
@@ -29,6 +31,7 @@ import { BlockRecap } from "./block-recap";
 import { BlockHeader } from "./block-summary";
 import { LiftCard } from "./lift-card";
 import { SetupWizard } from "./setup-wizard";
+import { VolumePlan } from "./volume-plan";
 
 /**
  * DPR's home (issues #211, #214, #215): the setup wizard until a block is
@@ -151,6 +154,11 @@ export function ProgressionHome({ userId }: { userId: string }) {
         {blockLifts.map((lift) => (
           <LiftCard key={lift.id} context={context} lift={lift} />
         ))}
+        <VolumePlan
+          context={context}
+          busy={busy}
+          onToggle={(on) => void run(() => setBlockVolumeMode(block, on))}
+        />
         <BlockEditor
           block={block}
           lifts={blockLifts}
@@ -189,13 +197,13 @@ export function ProgressionHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col">
       <PageHeader title="Progression" back={{ href: "/profile/settings", label: "Settings" }} />
       <div className={PAGE_BODY}>
-        {loading && <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>}
+        {loading && <LoadingText />}
 
         {!loading && block && !settings.dprEnabled && (
           <div className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
             <p className="text-sm">
-              Dynamic Progression is off. Your block and lifts are saved — turn it back on to pick
-              up where you left off.
+              PRP is off. Your block and lifts are saved — turn it back on to pick up where you left
+              off.
             </p>
             <button
               type="button"

@@ -353,6 +353,7 @@ describe("setup wizard → Dexie", () => {
       endsAt: new Date(),
       aggressiveness: "moderate" as const,
       experience: "novice" as const,
+      volumeMode: false,
       programId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -400,7 +401,7 @@ describe("program duration", () => {
 });
 
 describe("settings defaults", () => {
-  it("has DPR off with the 6–10 default range", () => {
+  it("has PRP off with the 6–10 default range", () => {
     expect(DEFAULT_SETTINGS).toMatchObject({
       dprEnabled: false,
       dprAggressiveness: "moderate",

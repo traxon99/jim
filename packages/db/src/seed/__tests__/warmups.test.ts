@@ -4,8 +4,9 @@ import { CONTROLLED_MUSCLES } from "../muscles";
 import { classifyCategory, warmupSeedRows } from "../warmups";
 
 describe("classifyCategory", () => {
-  it("puts free-exercise-db's stretching category in warm-ups and everything else in strength", () => {
+  it("puts stretching in warm-ups, cardio in cardio and everything else in strength", () => {
     expect(classifyCategory({ category: "stretching" })).toBe("warmup");
+    expect(classifyCategory({ category: "cardio" })).toBe("cardio");
     expect(classifyCategory({ category: "strength" })).toBe("strength");
     expect(classifyCategory({ category: null })).toBe("strength");
   });

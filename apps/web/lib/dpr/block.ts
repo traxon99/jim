@@ -68,17 +68,28 @@ export function guessExperience(
   exercises: readonly Pick<ExerciseRow, "id" | "slug">[],
   settings: SettingsRow,
   now: Date,
+  bodyweightAt: (date: Date) => number | null = () => null,
 ): ExperienceGuess {
   const historyWeeks = snapshot.firstSessionAt
     ? (now.getTime() - snapshot.firstSessionAt.getTime()) / (7 * DAY_MS)
     : 0;
   const profile = strengthProfileFromSettings(settings, now);
 
+  // Standards are bodyweight ratios, so a lift from when the user weighed
+  // something else is scaled to today's bodyweight before it's compared
+  // (issue #249): the ratio it showed then is what counts.
+  const bodyweightNow = profile?.bodyweight ?? null;
+  const scaled = (point: { date: Date; e1rm: number }): number => {
+    const then = bodyweightAt(point.date);
+    if (bodyweightNow == null || then == null || then <= 0) return point.e1rm;
+    return (point.e1rm / then) * bodyweightNow;
+  };
+
   const e1rmByLift: Partial<Record<StandardLift, number>> = {};
   for (const exercise of exercises) {
     const lift = standardLiftForSlug(exercise.slug);
     if (!lift) continue;
-    const best = Math.max(0, ...e1rmSeries(snapshot.history, exercise.id).map((p) => p.e1rm));
+    const best = Math.max(0, ...e1rmSeries(snapshot.history, exercise.id).map(scaled));
     if (best > (e1rmByLift[lift] ?? 0)) e1rmByLift[lift] = best;
   }
 
@@ -107,6 +118,8 @@ export interface BlockPlan {
   experience: ExperienceLevel;
   startedAt: Date;
   lifts: PlannedLift[];
+  /** Mesocycle mode (issue #250): grow each muscle's weekly sets too. */
+  volumeMode?: boolean;
 }
 
 export function planBlock(
@@ -164,6 +177,7 @@ export async function startDprBlock(
     status: "active",
     aggressiveness: plan.preset,
     experience: plan.experience,
+    volumeMode: plan.volumeMode ?? false,
     programId: options.programId ?? null,
     createdAt: now,
     updatedAt: now,
@@ -254,7 +268,7 @@ export async function updateBlockFocus(
   }
 }
 
-export const DPR_PROMPT_MIN_SESSIONS = 6;
+const DPR_PROMPT_MIN_SESSIONS = 6;
 
 /** The one-time "Try DPR" card: 6+ completed sessions, DPR off, not dismissed. */
 export function shouldShowDprPrompt(
@@ -279,7 +293,7 @@ export function lastCompletedBlock(blocks: readonly DprBlockRow[]): DprBlockRow 
 
 async function updateBlock(
   block: DprBlockRow,
-  patch: Partial<Pick<DprBlockRow, "status" | "endsAt">>,
+  patch: Partial<Pick<DprBlockRow, "status" | "endsAt" | "volumeMode">>,
   database: JimDatabase,
 ) {
   const deviceId = await getDeviceId(database);
@@ -294,6 +308,15 @@ export async function startDeloadWeek(block: DprBlockRow, database: JimDatabase 
     { status: "deload", endsAt: new Date(now.getTime() + DPR_DELOAD_WEEK_DAYS * DAY_MS) },
     database,
   );
+}
+
+/** Mesocycle mode (issue #250) can be switched on or off mid-block. */
+export async function setBlockVolumeMode(
+  block: DprBlockRow,
+  volumeMode: boolean,
+  database: JimDatabase = db,
+) {
+  await updateBlock(block, { volumeMode }, database);
 }
 
 export async function completeBlock(block: DprBlockRow, database: JimDatabase = db) {

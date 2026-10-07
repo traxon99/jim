@@ -6,8 +6,8 @@
  * the two in step.
  */
 
-export const USERNAME_MIN_LENGTH = 3;
-export const USERNAME_MAX_LENGTH = 30;
+const USERNAME_MIN_LENGTH = 3;
+const USERNAME_MAX_LENGTH = 30;
 
 const USERNAME_PATTERN = /^[a-z0-9._-]+$/;
 

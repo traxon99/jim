@@ -4,7 +4,7 @@ import type { CatalogExercise } from "./types";
 export interface ExerciseFilters {
   muscle?: string;
   equipment?: string;
-  /** "warmup" narrows to warm-ups/stretches only; "strength" to everything else. */
+  /** Narrows to one category: strength, warm-ups/stretches, or cardio (issue #423). */
   category?: ExerciseCategory;
   /** Default false: archived exercises are hidden unless explicitly asked for. */
   includeArchived?: boolean;

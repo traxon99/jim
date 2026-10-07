@@ -70,6 +70,39 @@ export const MISS_RPE = 9.5;
  */
 export const SHORT_REST_RPE_CREDIT = 0.5;
 
+/**
+ * RPE sanity check (issue #385): a session's RPE is compared with what the
+ * lifter's recent e1RM (the median of up to this many earlier sessions at
+ * the same rep range, needing at least two) says that weight × reps should
+ * feel like.
+ */
+export const RPE_BASELINE_SESSIONS = 3;
+
+/**
+ * An RPE this many points off what history expects is treated as a
+ * mislog or a one-off: too low and DPR judges the session at the expected
+ * RPE instead; too high and the session neither qualifies nor counts as a
+ * miss.
+ */
+export const RPE_ABNORMAL_POINTS = 3;
+
+/**
+ * Outperforming DPR (issue #385): beating the suggested weight (or the top
+ * of the rep range at it) with an RPE at least this far under the preset's
+ * cap means history underestimates the lifter.
+ */
+export const OUTPERFORM_RPE_MARGIN = 1;
+
+/** The most an outperformance jump adds in one go, as a fraction of the weight lifted. */
+export const OUTPERFORM_MAX_JUMP_PCT = 0.1;
+
+/**
+ * Ramped working sets (issue #385): each working set before the top one is
+ * this much lighter than the next, at most RAMP_MAX_STEPS steps below it.
+ */
+export const RAMP_STEP_PCT = 0.05;
+export const RAMP_MAX_STEPS = 2;
+
 /** "Go light" (issue #235) takes this off the day's weight, rounded down. */
 export const LIGHT_DAY_PCT = 0.1;
 

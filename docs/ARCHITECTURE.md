@@ -128,7 +128,9 @@ sets               id, session_exercise_id, set_index,
 personal_records   id, user_id, exercise_id, kind(1rm|volume|weight|reps_at_weight),
                    value, set_id, achieved_at         -- derived, never hand-edited
 
-body_measurements  id, user_id, kind, value, unit, measured_at   (v1: bodyweight only)
+body_measurements  id, user_id, kind, value, unit, measured_at
+                   kind: bodyweight|body_fat|neck|chest|waist|hips|arms|thighs|calves
+                   unit: lb|kg|in|cm|pct (as entered; readers convert)
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 
@@ -183,11 +185,13 @@ under RLS, the same as an OAuth session.
 | `get_workout(session_id)` | Full detail, every set |
 | `exercise_history(exercise, from?, to?)` | All sets for one exercise over time |
 | `get_prs(exercise?, kind?)` | Personal records |
-| `volume_report(group_by, from, to)` | Volume by muscle, exercise or week |
+| `volume_report(group_by, from, to, goal?)` | Working-set volume by muscle, exercise or week; by muscle, weekly sets checked against the strength or hypertrophy range |
+| `weekly_summary(date?, weeks?, goal?)` | One training week (or the last few): workouts, working sets and volume, per muscle against the goal's set range, and per exercise |
 | `search_exercises(query, muscles?, equipment?)` | Catalog search |
 | `dpr_status()` | Dynamic Progression: block, each focused lift's next call, e1RM vs goal, recent decisions |
 | `list_routines(folder?, query?)` | Every routine, logged or not, with exercise count and last performed |
 | `get_routine(routine)` | One routine's ordered exercises and targets, in the shape `update_routine` takes |
+| `get_body_measurements(kinds?, from?, to?)` | Bodyweight, body fat and circumferences over time, with latest value and change |
 
 **Write tools**
 

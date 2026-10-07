@@ -11,8 +11,9 @@ const DARK_MEDIA_QUERY = "(prefers-color-scheme: dark)";
  * Applies the profile page's appearance settings to <html>: `.dark` for the
  * color scheme — what globals.css's `@custom-variant dark` keys Tailwind's
  * `dark:` utilities off — `data-accent` for the accent color theme (see
- * globals.css's `:root[data-accent="..."]` rules), and `data-font` for the
- * body typeface (see globals.css's `:root[data-font="..."]` rules). "system"
+ * globals.css's `:root[data-accent="..."]` rules), `data-font` for the
+ * body typeface (see globals.css's `:root[data-font="..."]` rules), and
+ * `data-cards` for the card style (see globals.css's `.tinted-card`). "system"
  * tracks the OS/browser preference live via matchMedia rather than a
  * one-time snapshot, so an OS theme change mid-session (or the cache-miss
  * default before the settings row loads) is picked up without a reload.
@@ -22,6 +23,7 @@ export function ColorSchemeEffect() {
   const colorScheme = cached?.colorScheme ?? DEFAULT_SETTINGS.colorScheme;
   const accentColor = cached?.accentColor ?? DEFAULT_SETTINGS.accentColor;
   const fontFamily = cached?.fontFamily ?? DEFAULT_SETTINGS.fontFamily;
+  const cardStyle = cached?.cardStyle ?? DEFAULT_SETTINGS.cardStyle;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -45,6 +47,10 @@ export function ColorSchemeEffect() {
   useEffect(() => {
     document.documentElement.setAttribute("data-font", fontFamily);
   }, [fontFamily]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-cards", cardStyle);
+  }, [cardStyle]);
 
   return null;
 }

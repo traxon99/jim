@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { SettingsHome } from "./settings-home";
 
-export default async function SettingsPage() {
+export default async function SettingsPage(props: PageProps<"/profile/settings">) {
+  const { from } = await props.searchParams;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
-  return <SettingsHome email={data?.claims.email} userId={data?.claims.sub} />;
+  return (
+    <SettingsHome email={data?.claims.email} userId={data?.claims.sub} fromHome={from === "home"} />
+  );
 }

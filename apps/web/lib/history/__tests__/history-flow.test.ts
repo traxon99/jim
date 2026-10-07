@@ -53,6 +53,7 @@ function bench(overrides: Partial<ExerciseRow> = {}): ExerciseRow {
     category: "strength",
     instructions: [],
     imageUrls: [],
+    videoUrl: null,
     isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -175,8 +176,13 @@ describe("history read pipeline (against Dexie)", () => {
       id: sessionId,
       totalVolume: 135 * 5,
       setCount: 1,
-      prCount: 3, // first-ever set: 1rm, weight, volume (no reps PRs for a loaded lift)
+      // First-ever set records 1rm, weight and volume PRs, but only e1RM shows
+      // outside the PR page (issue #389).
+      prCount: 1,
     });
+    expect((await testDb.personalRecords.toArray()).map((pr) => pr.kind).sort()).toEqual(
+      ["1rm", "volume", "weight"].sort(),
+    );
   });
 
   it("excludes an in-progress (not yet finalized) session from the list", async () => {
@@ -218,7 +224,7 @@ describe("history read pipeline (against Dexie)", () => {
     expect(sets.every((set) => !set.deletedAt)).toBe(true);
   });
 
-  it("tags a completed set with the PR kinds it achieved in the session detail view", async () => {
+  it("tags a completed set with only its e1RM PR in the session detail view", async () => {
     await testDb.exercises.put(bench());
     const sessionId = await loggedAndFinishedSession(135, 5);
 
@@ -233,7 +239,8 @@ describe("history read pipeline (against Dexie)", () => {
     expect(groups).toHaveLength(1);
     expect(groups[0]?.exerciseName).toBe("Barbell Bench Press");
     expect(groups[0]?.sets).toHaveLength(1);
-    expect(groups[0]?.sets[0]?.prKinds.sort()).toEqual(["1rm", "volume", "weight"].sort());
+    // Weight and volume PRs are recorded too, but only e1RM shows (issue #389).
+    expect(groups[0]?.sets[0]?.prKinds).toEqual(["1rm"]);
   });
 
   it("attributes weekly volume to the exercise's primary and secondary muscles", async () => {
@@ -250,6 +257,40 @@ describe("history read pipeline (against Dexie)", () => {
 
     expect(week?.volumeByMuscle.chest).toBe(135 * 5);
     expect(week?.volumeByMuscle.triceps).toBe((135 * 5) / 2);
+  });
+
+  it("counts only working sets toward weekly muscle sets and volume (issue #395)", async () => {
+    await testDb.exercises.put(bench());
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = await makeSessionExercise(sessionId);
+    const log = (setIndex: number, kind: "warmup" | "working", weight: number) =>
+      completeSet(
+        {
+          userId: USER_ID,
+          sessionExerciseId: sessionExercise.id,
+          exerciseId: BENCH_ID,
+          setIndex,
+          kind,
+          weight,
+          reps: 5,
+        },
+        testDb,
+      );
+    await log(0, "warmup", 45);
+    await log(1, "warmup", 95);
+    await log(2, "working", 135);
+
+    const volumeSets = buildMuscleVolumeSets(
+      await testDb.sessions.toArray(),
+      await testDb.sessionExercises.toArray(),
+      await testDb.exercises.toArray(),
+      await testDb.sets.toArray(),
+    );
+    const [week] = weeklyVolumeByMuscle(volumeSets, 0);
+
+    expect(week?.setsByMuscle.chest).toBe(1);
+    expect(week?.setsByMuscle.triceps).toBe(0.5);
+    expect(week?.volumeByMuscle.chest).toBe(135 * 5);
   });
 
   it("resolves the current PR per exercise and kind from raw personal_records rows", async () => {

@@ -4,7 +4,7 @@
  * it into the browser bundle (see lib/supabase/env.ts). Unset means no server
  * is deployed yet, and the section hides itself.
  */
-export const MCP_SERVER_ORIGIN = process.env.NEXT_PUBLIC_MCP_URL ?? "";
+const MCP_SERVER_ORIGIN = process.env.NEXT_PUBLIC_MCP_URL ?? "";
 
 /**
  * The streamable HTTP endpoint an MCP client connects to. Accepts either the

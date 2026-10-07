@@ -1,16 +1,27 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine } from "@/components/workout/rest-stats-line";
+import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
+import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
-import { achievementsEarnedInSession, resolveCurrentRows, summarizeSession } from "@jim/core";
+import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
+import {
+  achievementsEarnedInSession,
+  distanceUnitFor,
+  isVisiblePrKind,
+  resolveCurrentRows,
+  summarizeSession,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Send } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -46,8 +57,9 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   const setIds = useMemo(() => new Set(sets.map((set) => set.id)), [sets]);
   const prCount = useMemo(
     () =>
-      (rawPersonalRecords ?? []).filter((pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId))
-        .length,
+      (rawPersonalRecords ?? []).filter(
+        (pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId) && isVisiblePrKind(pr.kind),
+      ).length,
     [rawPersonalRecords, setIds],
   );
 
@@ -87,6 +99,11 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         exercises: exerciseGroups,
       }),
     [session.name, session.startedAt, settings.units, summary, exerciseGroups],
+  );
+
+  const exerciseRows = useMemo(
+    () => buildSummaryExerciseRows(exerciseGroups, distanceUnitFor(settings.units)),
+    [exerciseGroups, settings.units],
   );
 
   const achievementData = useAchievements();
@@ -133,6 +150,38 @@ export function SessionSummary({ session, sessionExercises }: Props) {
 
       <RestStatsLine sets={sets} className="-mt-2" />
 
+      <SaveRoutineChangesCard session={session} />
+
+      {exerciseRows.length > 0 && (
+        <section aria-label="Exercises" className="flex w-full max-w-sm flex-col gap-2 text-left">
+          <h2 className="text-sm font-semibold">Exercises</h2>
+          <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-300 px-3 text-sm dark:divide-zinc-800 dark:border-zinc-700">
+            {exerciseRows.map((row) => (
+              <li key={row.sessionExerciseId} className="flex flex-col gap-1 py-2">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate font-medium">{row.exerciseName}</span>
+                  <span className="shrink-0 text-zinc-600 tabular-nums dark:text-zinc-400">
+                    {row.setCount} {row.setCount === 1 ? "set" : "sets"} · {row.bestSet}
+                  </span>
+                </div>
+                {row.prKinds.length > 0 && (
+                  <span className="flex flex-wrap gap-1">
+                    {row.prKinds.map((kind) => (
+                      <span
+                        key={kind}
+                        className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
+                      >
+                        PR · {PR_KIND_LABELS[kind] ?? kind}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {earned.length > 0 && (
         <section
           aria-label="Achievements earned"
@@ -151,17 +200,29 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                   className="achievement-pop"
                   style={{ animationDelay: `${index * 90}ms` }}
                 />
-                <div className="flex min-w-0 flex-col">
+                <div className="flex min-w-0 flex-1 flex-col">
                   <span className="text-sm font-medium">{achievement.title}</span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-500">
                     {achievement.description}
                   </span>
                 </div>
+                <PostToFriendsButton
+                  draft={achievementPostDraft(achievement)}
+                  label={`Post ${achievement.title} to friends`}
+                  className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500 dark:text-zinc-400"
+                >
+                  <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+                </PostToFriendsButton>
               </li>
             ))}
           </ul>
         </section>
       )}
+
+      <PostToFriendsButton
+        draft={workoutPostDraft(session, summary, settings.units)}
+        className="min-h-11 w-full max-w-xs rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+      />
 
       <div className="flex gap-3">
         <ShareWorkoutButton

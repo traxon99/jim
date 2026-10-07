@@ -3,6 +3,7 @@ import {
   EMPTY_PRIOR_BESTS,
   computePriorBests,
   detectPersonalRecords,
+  isVisiblePrKind,
   tracksRepsAtWeight,
 } from "../personal-records";
 
@@ -118,5 +119,14 @@ describe("tracksRepsAtWeight", () => {
     expect(tracksRepsAtWeight("weight_reps")).toBe(false);
     expect(tracksRepsAtWeight("time")).toBe(false);
     expect(tracksRepsAtWeight(undefined)).toBe(false);
+  });
+});
+
+describe("isVisiblePrKind", () => {
+  it("only shows estimated 1RM PRs outside the PR page (issue #389)", () => {
+    expect(isVisiblePrKind("1rm")).toBe(true);
+    expect(isVisiblePrKind("weight")).toBe(false);
+    expect(isVisiblePrKind("volume")).toBe(false);
+    expect(isVisiblePrKind("reps_at_weight")).toBe(false);
   });
 });

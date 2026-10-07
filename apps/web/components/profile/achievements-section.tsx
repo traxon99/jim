@@ -1,6 +1,8 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
+import { achievementPostDraft } from "@/lib/friends/post-drafts";
 import { useAchievements } from "@/lib/history/use-achievements";
 import type { Achievement, AchievementCategory } from "@jim/core";
 import { Flame } from "lucide-react";
@@ -65,9 +67,16 @@ export function AchievementsSection() {
       {earned.length > 0 && (
         <ul className="grid grid-cols-4 gap-x-2 gap-y-3">
           {earned.map((achievement) => (
-            <li key={achievement.id} className="flex flex-col items-center gap-1 text-center">
-              <AchievementBadge achievement={achievement} />
-              <span className="text-[11px] leading-tight">{achievement.title}</span>
+            <li key={achievement.id}>
+              {/* Tapping an earned badge posts it to friends (issue #316). */}
+              <PostToFriendsButton
+                draft={achievementPostDraft(achievement)}
+                label={`Post ${achievement.title} to friends`}
+                className="w-full flex-col gap-1! rounded-lg text-center"
+              >
+                <AchievementBadge achievement={achievement} />
+                <span className="text-[11px] leading-tight">{achievement.title}</span>
+              </PostToFriendsButton>
             </li>
           ))}
         </ul>

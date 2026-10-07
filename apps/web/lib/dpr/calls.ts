@@ -5,6 +5,7 @@ import type {
   RoutineExerciseRow,
   SettingsRow,
 } from "@/lib/db/schema";
+import { ruleOf } from "@/lib/progression/calls";
 import {
   type DprCall,
   type DprDecision,
@@ -12,10 +13,15 @@ import {
   type DprLogEntry,
   type DprUserSettings,
   type IncrementOverrides,
+  type MuscleVolumePlan,
   type OnTrackStatus,
   type SessionIntensity,
   callForLift,
   liftProgress,
+  mesocycleVolumePlan,
+  progressionSystemFor,
+  volumeAdjustedSets,
+  workingSetWeights,
 } from "@jim/core";
 import { currentBlock, liveBlockLifts } from "./block";
 import { type DprSnapshot, defaultRepRange } from "./data";
@@ -32,6 +38,8 @@ export interface DprContext {
   /** Focused lifts, by exercise id. */
   lifts: ReadonlyMap<string, DprBlockLiftRow>;
   exercises: ReadonlyMap<string, ExerciseRow>;
+  /** Mesocycle mode's weekly set plan by muscle (issue #250); null with the mode off. */
+  volume: ReadonlyMap<string, MuscleVolumePlan> | null;
   now: Date;
 }
 
@@ -47,19 +55,57 @@ export function buildDprContext(input: {
   if (!input.settings.dprEnabled) return null;
   const block = currentBlock(input.blocks);
   if (!block) return null;
+  const exercises = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
+  // Rows synced before the column existed have no volumeMode: off.
+  const volume = block.volumeMode
+    ? new Map(
+        mesocycleVolumePlan({
+          history: input.snapshot.history,
+          exercises,
+          block,
+          now: input.now,
+        }).map((plan) => [plan.muscle, plan]),
+      )
+    : null;
   return {
     snapshot: input.snapshot,
     settings: input.settings,
     block,
     lifts: new Map(liveBlockLifts(input.lifts, block.id).map((lift) => [lift.exerciseId, lift])),
-    exercises: new Map(input.exercises.map((exercise) => [exercise.id, exercise])),
+    exercises,
+    volume,
     now: input.now,
   };
 }
 
+/**
+ * Mesocycle mode (issue #250): this week's working sets for an exercise,
+ * the routine's sets scaled by its muscles' plans. Null when the mode is
+ * off, the routine sets no count, no muscle of the exercise is planned, or
+ * the routine item has its own progression rule (issue #255), which then
+ * owns its sets: one automatic system per lift (ADR-016).
+ */
+export function dprVolumeSets(
+  ctx: DprContext | null,
+  exerciseId: string,
+  target:
+    | (Pick<RoutineExerciseRow, "targetSets"> &
+        Partial<Pick<RoutineExerciseRow, "progressionRule">>)
+    | null
+    | undefined,
+): number | null {
+  const routineSets = target?.targetSets;
+  if (!ctx?.volume || routineSets == null || routineSets <= 0) return null;
+  if (ruleOf(target)) return null;
+  const exercise = ctx.exercises.get(exerciseId);
+  if (!exercise) return null;
+  return volumeAdjustedSets(routineSets, exercise, ctx.volume);
+}
+
 export type DprCallInfo = DprLiftCall;
 
-type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight">;
+type RoutineTarget = Pick<RoutineExerciseRow, "targetRepsLow" | "targetRepsHigh" | "targetWeight"> &
+  Partial<Pick<RoutineExerciseRow, "progressionRule">>;
 
 export function dprUserSettings(settings: SettingsRow): DprUserSettings {
   return {
@@ -70,7 +116,11 @@ export function dprUserSettings(settings: SettingsRow): DprUserSettings {
   };
 }
 
-/** DPR's call for one lift, or null when the lift isn't focused. */
+/**
+ * DPR's call for one lift, or null when the lift isn't focused — or when
+ * the routine gives it a custom progression rule, which wins (issue #255,
+ * ADR-016: one automatic system per lift).
+ */
 export function dprCallFor(
   ctx: DprContext,
   exerciseId: string,
@@ -79,6 +129,8 @@ export function dprCallFor(
   intensity?: SessionIntensity | null,
 ): DprCallInfo | null {
   if (!ctx.lifts.has(exerciseId)) return null;
+  const system = progressionSystemFor({ rule: ruleOf(target), dprFocused: true });
+  if (system !== "dpr") return null;
   const fallback = target?.targetWeight == null ? null : Number(target.targetWeight);
   return callForLift({
     snapshot: ctx.snapshot,
@@ -110,43 +162,65 @@ export function dprCallsForRoutine(
     .filter((info): info is DprCallInfo => info !== null);
 }
 
+/** e.g. "DPR volume: 4 sets this week (routine: 3)". */
+export function dprVolumeLine(volumeSets: number, routineSets: number): string {
+  return `PRP volume: ${volumeSets} ${volumeSets === 1 ? "set" : "sets"} this week (routine: ${routineSets})`;
+}
+
 export interface DprBadge {
+  /** The call's word mark, shown with its arrow: "UP ↑", "STAY →" (`CallMark`). */
+  word: string;
+  /** The arrow alone, for plain-text lines like the decision log. */
   symbol: string;
   label: string;
   /** Tailwind classes for the pill. */
   className: string;
+  /** Tailwind text color for the word mark on its own. */
+  textClassName: string;
 }
 
 const BADGES: Record<DprCall, DprBadge> = {
   increase: {
+    word: "UP",
     symbol: "↑",
-    label: "DPR: increase",
+    label: "PRP: increase",
     className: "border-green-600 text-green-700 dark:border-green-500 dark:text-green-400",
+    textClassName: "text-green-700 dark:text-green-400",
   },
   hold: {
-    symbol: "=",
-    label: "DPR: hold",
+    word: "STAY",
+    symbol: "→",
+    label: "PRP: hold",
     className: "border-zinc-400 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400",
+    textClassName: "text-zinc-600 dark:text-zinc-400",
   },
   deload: {
+    word: "DOWN",
     symbol: "↓",
-    label: "DPR: deload",
+    label: "PRP: deload",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
+    textClassName: "text-orange-700 dark:text-orange-400",
   },
   reenter: {
-    symbol: "↓",
-    label: "DPR: easing back in",
+    word: "EASE",
+    symbol: "↘",
+    label: "PRP: easing back in",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
+    textClassName: "text-orange-700 dark:text-orange-400",
   },
   light: {
+    word: "LIGHT",
     symbol: "↓",
-    label: "DPR: light day",
+    label: "PRP: light day",
     className: "border-sky-600 text-sky-700 dark:border-sky-500 dark:text-sky-400",
+    textClassName: "text-sky-700 dark:text-sky-400",
   },
   insufficient: {
+    word: "RPE",
     symbol: "?",
-    label: "DPR: needs RPE",
+    label: "PRP: needs RPE",
     className: "border-zinc-400 text-zinc-500 dark:border-zinc-600 dark:text-zinc-500",
+    textClassName: "text-zinc-500 dark:text-zinc-500",
   },
 };
 
@@ -171,35 +245,36 @@ export function dprWhyLine(decision: DprDecision, units: string): string {
   switch (call) {
     case "increase": {
       const delta = weight !== null && previousWeight !== null ? weight - previousWeight : null;
-      return `DPR: ${lowerFirst(reason)} last time${delta ? ` → +${formatWeight(delta)} ${units}` : ""}`;
+      return `PRP: ${lowerFirst(reason)} last time${delta ? ` → +${formatWeight(delta)} ${units}` : ""}`;
     }
     case "deload":
     case "reenter":
-      return `DPR: ${lowerFirst(reason)}${weight === null ? "" : ` → ${formatWeight(weight)} ${units}`}`;
+      return `PRP: ${lowerFirst(reason)}${weight === null ? "" : ` → ${formatWeight(weight)} ${units}`}`;
     case "hold":
     case "light":
-      return `DPR: ${lowerFirst(reason)}`;
+      return `PRP: ${lowerFirst(reason)}`;
     case "insufficient":
-      return reason === "Add RPE for DPR"
-        ? "DPR: add RPE to your working sets so DPR can make a call"
-        : "DPR: log this lift with RPE to get a call next time";
+      return reason === "Add RPE for PRP"
+        ? "PRP: add RPE to your working sets so PRP can make a call"
+        : "PRP: log this lift with RPE to get a call next time";
   }
-}
-
-/** Compact chip text for the Workout tab, e.g. "Bench ↑ 190" or "OHP ? add RPE". */
-export function dprChipText(name: string, decision: DprDecision): string {
-  const { symbol } = dprBadge(decision.call);
-  if (decision.call === "insufficient" || decision.weight === null) return `${name} ? add RPE`;
-  return `${name} ${symbol} ${formatWeight(decision.weight)}`;
 }
 
 /**
  * The weight placeholder for a not-yet-logged row: DPR's weight for working
  * sets of a focused lift, else null (use the usual "last time" suggestion).
+ * Given the row's place among `count` working sets, the sets ramp up to
+ * DPR's weight as the top set (issue #385); a set past the plan, or no
+ * place given, gets the top weight.
  */
-export function dprWeightPlaceholder(info: DprCallInfo | null, kind: string): string | null {
+export function dprWeightPlaceholder(
+  info: DprCallInfo | null,
+  kind: string,
+  set?: { ordinal: number; count: number },
+): string | null {
   if (!info || kind !== "working" || info.decision.weight === null) return null;
-  return formatWeight(info.decision.weight);
+  const ramp = set ? workingSetWeights(info.decision, set.count, info.increment) : [];
+  return formatWeight(ramp[set?.ordinal ?? -1] ?? info.decision.weight);
 }
 
 /** After any weight change, aim for the bottom of the range; else null ("last time" reps). */
@@ -253,22 +328,23 @@ export function liftGoal(lift: DprBlockLiftRow): {
   };
 }
 
-export const ON_TRACK_LABELS = STATUS_TEXT;
-
 /**
- * A routine's calls folded into one badge's text (issue #284), e.g.
- * "↑2 =1" — each call's symbol with its count, most common first; ties keep
- * the order the calls first appear in.
+ * A routine's calls counted for its one badge (issue #284): each call with
+ * how many lifts got it, most common first; ties keep the order the calls
+ * first appear in.
  */
-export function dprCallSummary(calls: readonly DprCallInfo[]): string {
-  const counts = new Map<string, number>();
+export function dprCallCounts(calls: readonly DprCallInfo[]): { call: DprCall; count: number }[] {
+  const counts = new Map<DprCall, number>();
   for (const { decision } of calls) {
-    const { symbol } = BADGES[decision.call];
-    counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+    counts.set(decision.call, (counts.get(decision.call) ?? 0) + 1);
   }
-  return [...counts]
-    .sort((a, b) => b[1] - a[1])
-    .map(([symbol, count]) => `${symbol}${count}`)
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([call, count]) => ({ call, count }));
+}
+
+/** The same counts as text, e.g. "UP ↑2 STAY →1". */
+export function dprCallSummary(calls: readonly DprCallInfo[]): string {
+  return dprCallCounts(calls)
+    .map(({ call, count }) => `${BADGES[call].word} ${BADGES[call].symbol}${count}`)
     .join(" ");
 }
 
@@ -276,10 +352,10 @@ function shortDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** A decision-log line, e.g. "Sep 12 · ↑ 185→190 · 3×8 @ RPE 7.5". */
+/** A decision-log line, e.g. "Sep 12 · UP ↑ 185→190 · 3×8 @ RPE 7.5". */
 export function formatLogEntry(entry: DprLogEntry): string {
   const { decision } = entry;
-  const { symbol } = dprBadge(decision.call);
+  const { word, symbol } = dprBadge(decision.call);
   const from = decision.previousWeight;
   const to = decision.weight;
   const move =
@@ -289,5 +365,5 @@ export function formatLogEntry(entry: DprLogEntry): string {
         ? formatWeight(to)
         : "—";
   const reason = decision.reason.replace(/^Hit /, "");
-  return `${shortDate(entry.sessionDate)} · ${symbol} ${move} · ${reason}`;
+  return `${shortDate(entry.sessionDate)} · ${word} ${symbol} ${move} · ${reason}`;
 }

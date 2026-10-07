@@ -191,7 +191,9 @@ preferring the user-owned row where a clone exists. This belongs in one shared q
 **Rationale.** A PWA has no HealthKit access. None. The only available route is manually exporting
 Health data as XML and importing the file, which is periodic and manual rather than live. Recorded
 here so the question is answered once rather than revisited each time bodyweight tracking comes up.
-An Apple Health XML importer sits in the backlog as the honest version of this feature.
+An Apple Health XML importer is the honest version of this feature: Profile → Bodyweight reads the
+Health app's `export.zip` (issue #247), streaming `export.xml` out of the zip so a large export
+never sits in memory whole.
 
 ---
 
@@ -365,7 +367,7 @@ happened in the gym: a missed week, a grinder at RPE 10 or a layoff all left it 
 (DPR, epic #207) makes the same call from what was actually logged: reps against the routine's
 range, RPE, the current weight and time off.
 
-**Decision.** DPR is the only automatic progression. The weekly increment's UI, the `@jim/core`
+**Decision.** DPR is the only automatic progression (custom per-exercise rules came later, one system per lift: ADR-019). The weekly increment's UI, the `@jim/core`
 `weekly-progression` module and the two `routine_exercises` columns are removed (migration 0019).
 `targetWeight` stays as the starting weight for an exercise with no history. DPR is opt-in and
 covers up to 5 focused lifts. Every other lift keeps the plain "last time" prefill, falling back to
@@ -414,7 +416,111 @@ functions are the only way to change it. They're executable by `authenticated` o
   workout's per-kind counts and whether you reacted; and `workout_reactions_received` shows a
   session's owner who reacted to which of their workouts.
 
+- **Profile pictures, posts and sharing settings** (issue #316) follow it too. The picture is a
+  small square JPEG data URL on `users.avatar`, cropped and shrunk on the phone, so there's no file
+  storage. `posts` (a workout, record or achievement, with an optional caption) is readable only by
+  its author and has no write policies: migration 0031's `create_post` checks a linked workout is
+  the author's own finished one, `delete_post` removes only your own, and `friend_posts` hands
+  friends theirs. `users.share_workouts` and `share_workout_details` are read by the recreated
+  `friend_workouts`, which leaves out a friend's workouts, or just their exercises, when they've
+  turned sharing off. Posts are shared one at a time on purpose, so they show either way. These
+  live on `/api/profile`, not the IndexedDB-cached settings row, like the username.
+
 **Rejected: friend-aware RLS on `sessions`/`session_exercises`/`sets`.** Simpler SQL, but every pull
 would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
 server, the portal) silently merges someone else's training into yours.
 
+
+---
+
+## ADR-018 — Coach / client mode: no-go for now
+
+**Status:** Accepted (no-go) · 2026-10-05
+
+**Context.** Issue #256 asks whether Jim should let a coach program for a client and watch their
+logs, as Hevy Coach and Boostcamp do. The proposed shape: a coach relationship table whose policies
+let the coach read the client's sessions and write their routines and programs; the coach works from
+`/portal` or MCP; the client's phone is unchanged and the live session stays phone-only (ADR-007);
+the client owns consent and revocation.
+
+**Finding: it's feasible, and smaller than it looks.** The plumbing mostly exists.
+
+- **Reads** would follow ADR-017, not RLS. The syncable tables must keep their own-rows-only
+  policies, because `/api/sync/pull` selects them with no `user_id` filter: a coach-readable policy
+  on `sessions`/`sets` would copy every client's training into the coach's IndexedDB. A
+  `SECURITY DEFINER` `coach_client_workouts(client_id)` that checks an active relationship, like
+  `friend_workouts`, avoids that, and the portal already renders server data (ADR-015).
+- **Writes** need no new sync path. MCP's `create_routine`/`update_routine` already write routines
+  into the user's own rows with a fresh `server_seq` and `device_id = 'mcp-server'`, and the phone
+  picks them up on its next pull. A coach write is the same insert with `user_id` set to the client,
+  done by a definer function (`coach_upsert_routine`, `coach_assign_program`) that checks the
+  relationship and only touches `routines`, `routine_exercises`, `programs` and `program_routines`.
+- **Consent.** A `coach_clients` table (`coach_id`, `client_id`, `status`, `created_at`,
+  `revoked_at`), readable by both users with no write policies, changed only through
+  `invite_coach` / `accept_coach` / `revoke_coach`, where only the client can accept or revoke.
+  Revocation takes effect on the coach's next call because every function re-checks it.
+
+**What makes it more than a migration.** Each of these is solvable, but together they are real work
+and real risk for a feature nobody uses yet:
+
+- **It's the first cross-user write.** Everything shared so far (friends, reactions, posts) is a read
+  or a write to your own rows. A coach writing into a client's account is the first path where a bug
+  edits someone else's data, which is the failure ADR-005 exists to prevent.
+- **Last-write-wins between two people.** Routines are LWW on `(updated_at, device_id)` because it's
+  "one person, one phone" (ARCHITECTURE §3). A coach editing a routine while the client tweaks it on
+  the phone silently drops one side. Coach-owned routines would need to be read-only on the phone, or
+  copied rather than shared, which is UI work on the phone the issue wanted to avoid.
+- **Exercise visibility.** A coach's custom exercise has `owner_id = coach`, so it's invisible to the
+  client under ADR-008's policies and a routine pointing at it breaks on the phone. Coach routines
+  would be limited to seed exercises, or the function would have to copy exercises into the client.
+- **MCP identity.** A personal access token resolves to one user (ADR-006). A coach acting for
+  several clients needs a `client` argument on every write tool, checked server-side, plus a way to
+  see which account an agent just changed.
+- **Product.** Coach discovery, invites, a client list in the portal, and what the client sees when a
+  routine changes under them. Hevy charges $25+/mo for this because it's a product of its own.
+
+**Decision.** No-go. Jim stays a personal app. Nothing is built for coaching, and no schema is added
+speculatively. The design above is the plan of record if it's revisited.
+
+**Revisit when** a real coach/client pair wants to use Jim, or when Jim gains a second cross-user
+write for another reason (that feature would pay for the relationship-checked definer pattern, the
+read-only-routine UI and the MCP `client` argument).
+
+**Rejected: coach-aware RLS on the syncable tables.** Fewer functions, but it has ADR-017's flaw:
+every pull, portal query and MCP read would need an explicit `user_id = me` filter, and missing one
+merges a client's training into the coach's history.
+
+**Rejected: building it now as a go.** The plumbing makes the first demo cheap, but the cost is in
+the parts above, which a single-user app would carry and test with no one exercising them.
+
+---
+
+## ADR-019 — Custom progression rules are a second system, one per lift
+
+**Status:** Accepted · 2026-10-05
+
+**Context.** DPR (ADR-016) has three presets and decides from RPE. Programs like GZCLP, 5/3/1 or a
+plain double progression spell out their own rules: add X after a success, change the rep scheme
+after a miss, drop Y% after N misses. Rewriting routines over MCP covered some of that, but not for
+users without an MCP client (issue #255).
+
+**Decision.** A routine exercise can carry a structured rule in `routine_exercises.progression_rule`
+(jsonb, migration 0032): `linear` (optionally stepping through rep schemes on a miss, like GZCLP's
+5×3 → 6×2 → 10×1), `double` (reps up the routine's range, then weight) or `reps_sum` (weight once the
+working sets' reps reach a total, like GZCLP T3's 3×15+), each with an optional "after N misses,
+drop Y%" deload. No scripting language: these options cover the common programs.
+
+- **Derived, like DPR.** Only the rule is stored. `decideProgression` in `@jim/core` replays the
+  exercise's history oldest first against what the rule asked for, so logging stays append-only
+  and the call is a suggestion the lifter can type over. A weight other than the one asked for
+  becomes the new starting point. Light sessions don't count. No RPE is needed.
+- **One automatic system per lift.** ADR-016's reason for removing the weekly increment still
+  holds, so a lift never gets both calls. The routine editor and MCP refuse a rule on a lift that
+  DPR is focusing on. If both happen anyway (edits on two offline devices), the rule wins and
+  `dprCallFor` returns null for that lift (`progressionSystemFor`).
+- **Per routine exercise, not per lift.** A lift that's T1 on one day and T2 on another can have a
+  different rule in each routine. The replay reads every session of the exercise, whatever routine
+  it came from.
+
+**Rejected: a Liftoscript-style language.** It would be more expressive, but it's hard to edit on a
+phone and hard to check, and the structured options already express the programs people asked for.

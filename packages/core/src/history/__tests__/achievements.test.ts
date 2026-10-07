@@ -215,6 +215,47 @@ describe("deriveAchievements", () => {
     expect(byId(list, "strength-elite")?.sessionId).toBe("late");
   });
 
+  it("judges each lift against the bodyweight on its date", () => {
+    const bodyweightOn = (date: Date) => (date.getTime() < day(2026, 9, 3).getTime() ? 240 : 200);
+    const list = deriveAchievements(
+      input({
+        bodyweight: 180,
+        bodyweightOn,
+        sets: [
+          set({ sessionId: "heavy-me", weight: 225, completedAt: day(2026, 9, 2) }),
+          set({ sessionId: "lighter-me", weight: 225, completedAt: day(2026, 9, 3) }),
+        ],
+        strengthProfile: { sex: "male", bodyweight: 180 },
+        strengthRecords: [
+          { lift: "squat", oneRepMax: 1000, achievedAt: day(2026, 9, 5), sessionId: "elite" },
+        ],
+      }),
+    );
+    expect(byId(list, "bodyweight-1")?.sessionId).toBe("lighter-me");
+    expect(byId(list, "strength-elite")?.sessionId).toBe("elite");
+
+    const heavier = deriveAchievements(
+      input({
+        strengthProfile: { sex: "male", bodyweight: 180 },
+        bodyweightOn: () => 400,
+        strengthRecords: [
+          { lift: "squat", oneRepMax: 500, achievedAt: day(2026, 9, 5), sessionId: "s" },
+        ],
+      }),
+    );
+    const lighter = deriveAchievements(
+      input({
+        strengthProfile: { sex: "male", bodyweight: 180 },
+        strengthRecords: [
+          { lift: "squat", oneRepMax: 500, achievedAt: day(2026, 9, 5), sessionId: "s" },
+        ],
+      }),
+    );
+    const earned = (l: typeof list) =>
+      l.filter((a) => a.category === "strength" && a.achievedAt).length;
+    expect(earned(heavier)).toBeLessThan(earned(lighter));
+  });
+
   it("picks out what one workout earned", () => {
     const list = deriveAchievements(
       input({ sets: [set({ sessionId: "s1", weight: 135, reps: 1 })] }),

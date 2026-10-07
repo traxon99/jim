@@ -1,5 +1,6 @@
 "use client";
 
+import { CallMark } from "@/components/dpr/call-mark";
 import { FloatingCard } from "@/components/floating-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
@@ -64,7 +65,7 @@ export function PreWorkoutSheet({
   const units = context?.settings.units;
 
   return (
-    <FloatingCard labelledBy="pre-workout-title" onClose={onCancel} placement="bottom">
+    <FloatingCard labelledBy="pre-workout-title" onClose={onCancel} tint={routine?.iconColor}>
       {(requestClose) => (
         <>
           <div className="flex touch-none flex-col gap-1 px-4 pt-4">
@@ -98,12 +99,15 @@ export function PreWorkoutSheet({
                       <span className="text-xs text-zinc-500 dark:text-zinc-500">{row.plan}</span>
                     )}
                   </span>
-                  {badge && weight !== null && (
+                  {badge && row.dpr && weight !== null && (
                     <span
                       aria-label={`${badge.label}, ${formatWeight(weight)} ${units}`}
                       className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${badge.className}`}
                     >
-                      {badge.symbol} {formatWeight(weight)} {units}
+                      <span className="flex items-center gap-1">
+                        <CallMark call={row.dpr.decision.call} inherit />
+                        {formatWeight(weight)} {units}
+                      </span>
                     </span>
                   )}
                 </li>
@@ -151,7 +155,7 @@ export function PreWorkoutSheet({
                 type="button"
                 onClick={() => onStart(context ? intensity : null)}
                 disabled={starting}
-                className="min-h-11 flex-[2] rounded-lg bg-accent px-4 text-base font-medium text-accent-foreground disabled:opacity-50"
+                className="tinted-action min-h-11 flex-[2] rounded-lg bg-accent px-4 text-base font-medium text-accent-foreground disabled:opacity-50"
               >
                 Start workout
               </button>

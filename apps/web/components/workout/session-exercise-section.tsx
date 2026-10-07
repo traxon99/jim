@@ -1,5 +1,6 @@
 "use client";
 
+import { CallMark } from "@/components/dpr/call-mark";
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
@@ -16,11 +17,19 @@ import {
   type DprCallInfo,
   dprBadge,
   dprRepsPlaceholder,
+  dprVolumeLine,
   dprWeightPlaceholder,
   dprWhyLine,
   needsRpeNudge,
 } from "@/lib/dpr/calls";
-import { loadPreviousSetsByIndex } from "@/lib/sessions/previous-set-lookup";
+import {
+  type RuleCallInfo,
+  ruleBadge,
+  ruleRepsPlaceholder,
+  ruleWeightPlaceholder,
+  ruleWhyLine,
+} from "@/lib/progression/calls";
+import { NO_PREVIOUS_SETS, loadPreviousSets } from "@/lib/sessions/previous-set-lookup";
 import {
   completeSet,
   deleteSet,
@@ -28,7 +37,7 @@ import {
   restoreSet,
   updateSetKind,
 } from "@/lib/sessions/set-actions";
-import { type SetKind, setNumberLabels } from "@/lib/sessions/set-kinds";
+import { type SetKind, deletedWarmupIndices, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -36,23 +45,26 @@ import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
   type PreviousSet,
+  type PreviousSetsByKind,
   RPE_MAX,
   RPE_MIN,
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   clampRpe,
+  isVisiblePrKind,
   nearestLoadableWeight,
-  plannedSetIndices,
+  plannedSetRowCount,
   prefillWeightForSet,
   remainingPlannedSetCount,
   resolveCurrentRows,
   resolveStickyNote,
+  setKindOrdinals,
   standardLiftForSlug,
   suggestedWeightsByTier,
   warmupRamp,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
+import { Check, Diff, File, Pin, RotateCcw, Timer, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ExerciseDialog } from "./exercise-dialog";
 import { RpeInfoMenu } from "./rpe-info-menu";
@@ -69,6 +81,14 @@ interface Props {
   settings: SettingsRow;
   /** DPR's call when this is a focused lift and DPR is on (issue #212); else null. */
   dpr?: DprCallInfo | null;
+  /**
+   * Mesocycle mode (issue #250): this week's working sets, the routine's
+   * scaled by DPR's weekly set plan. It replaces the routine's count, and
+   * last time's too, so a drop or a deload week really plans fewer sets.
+   */
+  volumeSets?: number | null;
+  /** The routine's custom progression rule's call (issue #255); never alongside `dpr`. */
+  rule?: RuleCallInfo | null;
   large?: boolean;
   /** "A1"-style place in a superset (issue #228), or null. */
   supersetLabel?: string | null;
@@ -126,17 +146,20 @@ function sizesFor(large: boolean) {
     // Set rows (header, logged and to-log) are the same list-view row in
     // both views: focus view puts its Log button beside the inputs too, and
     // at ~305px wide that only fits with the compact inputs.
-    headerRow:
-      "border-b border-zinc-200 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-500",
-    headerCell: "py-1 pr-2 font-medium",
-    indexCell: "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    headerRow: "text-xs font-medium text-zinc-500 dark:text-zinc-500",
+    // The rule sits on the cells: the table's separated borders (for the gap
+    // between logged rows, issue #391) don't draw a row's own border.
+    headerCell: "border-b border-zinc-200 py-1 pr-2 font-medium dark:border-zinc-800",
+    // pl-2 lines the label up with a logged row's, which is inset from its
+    // tinted edge (issue #391).
+    indexCell: "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
     cell: "py-2 pr-2 align-middle",
     // Last session's weight over ×reps for the same set (issue #323), stacked
     // in small grey type so the column stays ~40px wide at 393px.
     prevCell:
       "py-2 pr-2 align-middle text-center text-xs leading-tight tabular-nums text-zinc-400 dark:text-zinc-500",
     // `relative` anchors the swipe-to-delete strip (issue #350).
-    actionCell: "relative py-2 pl-1 align-middle text-right whitespace-nowrap",
+    actionCell: "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
     // Values are centered and sized as large as the row allows (issue #186):
     // the input is pinned to h-11, the same height as the log/repeat buttons
     // beside it, so the row doesn't grow; text-xl is the largest size where a
@@ -171,6 +194,8 @@ export function SessionExerciseSection({
   target,
   settings,
   dpr = null,
+  volumeSets = null,
+  rule = null,
   large = false,
   supersetLabel = null,
   onSetLogged,
@@ -182,7 +207,7 @@ export function SessionExerciseSection({
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
     [item.id],
   );
-  const [previousByIndex, setPreviousByIndex] = useState<Map<number, PreviousSet>>(new Map());
+  const [previousSets, setPreviousSets] = useState<PreviousSetsByKind>(NO_PREVIOUS_SETS);
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
   const [notes, setNotes] = useState(item.notes ?? "");
   // Both views collapse an empty note to "+ Add note" (issue #322); a note
@@ -202,6 +227,8 @@ export function SessionExerciseSection({
   // Planned rows swiped away (issue #350), by set index. They're only a
   // plan, so dropping one is kept to this screen rather than saved.
   const [skippedIndices, setSkippedIndices] = useState<ReadonlySet<number>>(new Set());
+  // Sets added past the plan with "+ Add Set", also kept to this screen.
+  const [addedSets, setAddedSets] = useState(0);
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
 
@@ -221,8 +248,8 @@ export function SessionExerciseSection({
 
   useEffect(() => {
     let cancelled = false;
-    void loadPreviousSetsByIndex(item.exerciseId, sessionId).then((map) => {
-      if (!cancelled) setPreviousByIndex(map);
+    void loadPreviousSets(item.exerciseId, sessionId).then((previous) => {
+      if (!cancelled) setPreviousSets(previous);
     });
     return () => {
       cancelled = true;
@@ -236,20 +263,28 @@ export function SessionExerciseSection({
   }, [rawSets]);
 
   // Warm-up sets added from the ⋯ menu (issue #271) are planned at the
-  // front, so the working sets' "last time" lookups shift back by as many.
+  // front. They ride on top of the working sets, as does a row switched to
+  // a warm-up from its set-type menu: a 3×10 still plans three working sets.
   const warmupCount = item.warmupSets ?? 0;
-  function previousFor(index: number): PreviousSet | undefined {
-    return index < warmupCount ? undefined : previousByIndex.get(index - warmupCount);
-  }
-  const plannedTotal = Math.max(target?.targetSets ?? 0, previousByIndex.size, 1) + warmupCount;
+  // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
+  // 10×1), so its sets win over last time's.
+  const workingTarget =
+    (rule?.decision.targetSets ??
+      volumeSets ??
+      Math.max(target?.targetSets ?? 0, previousSets.working.length, 1)) + addedSets;
 
-  const nextIndex = sets.length;
-  const previous = previousByIndex.get(Math.max(nextIndex - warmupCount, 0));
-  const lastSet = sets[sets.length - 1];
+  // A warm-up set deleted from the log (issue #438) stays deleted: its
+  // tombstone is synced, so the index isn't planned again as a fresh warm-up
+  // row, here or after a sync reloads this screen.
+  const deletedWarmups = useMemo(
+    () => deletedWarmupIndices(resolveCurrentRows(rawSets ?? [])),
+    [rawSets],
+  );
+
+  const loggedByIndex = useMemo(() => new Map(sets.map((set) => [set.setIndex, set])), [sets]);
+  const loggedIndices = useMemo(() => new Set(loggedByIndex.keys()), [loggedByIndex]);
   const restSeconds =
     item.restSeconds ?? target?.targetRestSeconds ?? (Number(settings.defaultRestSeconds) || 90);
-
-  const loggedIndices = useMemo(() => new Set(sets.map((set) => set.setIndex)), [sets]);
 
   // The routine's target weight is the starting point for an exercise with
   // no history yet (the weekly auto-increment it once drove is replaced by
@@ -262,16 +297,60 @@ export function SessionExerciseSection({
   const standardLift = useMemo(() => standardLiftForSlug(exercise?.slug), [exercise?.slug]);
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
+  function defaultDraft(index: number): DraftValues {
+    return {
+      weight: "",
+      reps: "",
+      rpe: "",
+      kind: index < warmupCount ? "warmup" : "working",
+    };
+  }
+
+  function draftFor(index: number): DraftValues {
+    return draftOverrides.get(index) ?? defaultDraft(index);
+  }
+
+  // A row's kind: its logged set's, else the one picked for the row to log.
+  function kindAt(index: number): string {
+    return loggedByIndex.get(index)?.kind ?? draftFor(index).kind;
+  }
+
   // Preloaded sets (issue #121): every not-yet-logged set the routine or last
   // time's workout calls for gets its own row, ready to log one tap at a
   // time. `draftOverrides` holds only rows the lifter has actually edited;
   // everything else is computed fresh from the plan/history on every render,
-  // so it stays current as `previousByIndex` loads in.
-  const plannedIndices = useMemo(
-    () => plannedSetIndices(plannedTotal, 0, loggedIndices),
-    [plannedTotal, loggedIndices],
+  // so it stays current as `previousSets` loads in. Once the plan is logged
+  // there's no extra row, just "+ Add Set".
+  const lastLoggedIndex = sets.reduce((max, set) => Math.max(max, set.setIndex), -1);
+  const plannedTotal = plannedSetRowCount(
+    workingTarget,
+    Math.max(warmupCount, lastLoggedIndex + 1),
+    kindAt,
+  );
+  const allIndices = Array.from({ length: plannedTotal }, (_, index) => index);
+  const plannedIndices = allIndices.filter(
+    (index) => !loggedIndices.has(index) && !deletedWarmups.has(index),
   );
   const visiblePlannedIndices = plannedIndices.filter((index) => !skippedIndices.has(index));
+
+  // "Last time" for a row is last time's set of the same kind at the same
+  // position among its kind: working set 1 against working set 1, however
+  // many warm-ups either workout put in front.
+  const ordinals = setKindOrdinals(allIndices.map(kindAt));
+  function previousFor(index: number): PreviousSet | undefined {
+    const ordinal = ordinals[index];
+    if (ordinal === undefined) return undefined;
+    return kindAt(index) === "warmup"
+      ? previousSets.warmups[ordinal]
+      : previousSets.working[ordinal];
+  }
+
+  const nextIndex = visiblePlannedIndices[0] ?? lastLoggedIndex + 1;
+  // Last time's working set to beat next (warm-ups aside).
+  const previous =
+    (kindAt(nextIndex) === "warmup" ? undefined : previousFor(nextIndex)) ??
+    previousSets.working[0];
+  const lastSet = loggedByIndex.get(lastLoggedIndex);
 
   // Suggested weight/reps for a not-yet-logged row (issue #159): last time's
   // numbers at this position, or the routine's target, same source as before
@@ -289,10 +368,13 @@ export function SessionExerciseSection({
     );
   }
 
-  // The ramp aims at the first working set's suggested weight.
+  // The ramp aims at the first working set's suggested weight. For a DPR
+  // lift the working sets themselves build up to DPR's weight (issue #385),
+  // so that's the lightest of them.
   const firstWorkingWeight = toNumberOrNull(
-    dprWeightPlaceholder(dpr, "working") ??
-      prefillWeightForSet(0, previousFor(warmupCount), targetWeight),
+    ruleWeightPlaceholder(rule, "working") ??
+      dprWeightPlaceholder(dpr, "working", { ordinal: 0, count: workingTarget }) ??
+      prefillWeightForSet(0, previousSets.working[0], targetWeight),
   );
   const ramp = warmupRamp(
     firstWorkingWeight,
@@ -300,37 +382,32 @@ export function SessionExerciseSection({
     settings.units === "kg" ? 2.5 : 5,
   );
 
+  // A warm-up row suggests its step of the ramp, or past the ramp's end,
+  // last time's warm-up at the same spot.
   function suggestedWeightFor(index: number): string {
-    if (index < warmupCount) {
-      const weight = ramp[index]?.weight;
+    const ordinal = ordinals[index] ?? 0;
+    if (kindAt(index) === "warmup") {
+      const weight = ramp[ordinal]?.weight ?? previousFor(index)?.weight;
       return weight == null ? "" : String(weight);
     }
     return (
-      dprWeightPlaceholder(dpr, draftFor(index).kind) ??
-      prefillWeightForSet(index - warmupCount, previousFor(index), targetWeight)
+      ruleWeightPlaceholder(rule, draftFor(index).kind) ??
+      dprWeightPlaceholder(dpr, draftFor(index).kind, { ordinal, count: workingTarget }) ??
+      prefillWeightForSet(ordinal, previousFor(index), targetWeight)
     );
   }
   function suggestedRepsFor(index: number): string {
-    if (index < warmupCount) return String(ramp[index]?.reps ?? "");
-    const dprReps = dprRepsPlaceholder(dpr, draftFor(index).kind);
+    if (kindAt(index) === "warmup") {
+      return String(ramp[ordinals[index] ?? 0]?.reps ?? previousFor(index)?.reps ?? "");
+    }
+    const dprReps =
+      ruleRepsPlaceholder(rule, draftFor(index).kind) ??
+      dprRepsPlaceholder(dpr, draftFor(index).kind);
     if (dprReps !== null) return dprReps;
     const priorAtIndex = previousFor(index);
     return priorAtIndex?.reps != null
       ? String(priorAtIndex.reps)
       : (target?.targetRepsLow?.toString() ?? "");
-  }
-
-  function defaultDraft(index: number): DraftValues {
-    return {
-      weight: "",
-      reps: "",
-      rpe: "",
-      kind: index < warmupCount ? "warmup" : "working",
-    };
-  }
-
-  function draftFor(index: number): DraftValues {
-    return draftOverrides.get(index) ?? defaultDraft(index);
   }
 
   function updateDraft(index: number, patch: Partial<DraftValues>) {
@@ -359,7 +436,10 @@ export function SessionExerciseSection({
     ...sets.map((set) => set.kind),
     ...visiblePlannedIndices.map((index) => draftFor(index).kind),
   ]);
-  const nextLabel = setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ?? "1";
+  const nextLabel =
+    rowLabels[sets.length] ??
+    setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ??
+    "1";
   const suggestionReps =
     toNumberOrNull(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
   const barWeight = Number(settings.defaultBarWeight) || 0;
@@ -380,7 +460,8 @@ export function SessionExerciseSection({
   }, [standardLift, strengthProfile, suggestionReps, barWeight, plates]);
   // With history for the lift (last time's sets, or a set already logged
   // today) the tiers are noise, so they wait behind "Suggest weight".
-  const hasHistory = previousByIndex.size > 0 || sets.length > 0;
+  const hasHistory =
+    previousSets.working.length > 0 || previousSets.warmups.length > 0 || sets.length > 0;
 
   async function logRow(index: number) {
     const draft = draftFor(index);
@@ -396,7 +477,9 @@ export function SessionExerciseSection({
       reps,
       rpe: toRpeOrNull(draft.rpe),
     });
-    if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
+      setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    }
     setDraftOverrides((current) => {
       if (!current.has(index)) return current;
       const next = new Map(current);
@@ -418,7 +501,9 @@ export function SessionExerciseSection({
       reps: lastSet.reps,
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
     });
-    if (prs.length > 0) setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
+      setPrsBySetId((map) => new Map(map).set(set.id, prs));
+    }
     onSetLogged(restSeconds, remainingAfterLogging(nextIndex));
   }
 
@@ -463,8 +548,13 @@ export function SessionExerciseSection({
     });
   }
 
-  // Brings back the first planned row swiped away.
-  function restorePlannedRow() {
+  // "+ Add Set" brings back the first planned row swiped away, if any,
+  // else plans one more working set past the program's.
+  function addSet() {
+    if (skippedIndices.size === 0) {
+      setAddedSets((count) => count + 1);
+      return;
+    }
     setSkippedIndices((current) => {
       const next = new Set(current);
       next.delete(Math.min(...current));
@@ -613,10 +703,22 @@ export function SessionExerciseSection({
     </button>
   );
 
+  // No row waits past the program's last set; another set is one tap away,
+  // labeled with the rest it starts once logged.
+  const addSetButton = (
+    <button
+      type="button"
+      onClick={addSet}
+      className="min-h-11 self-start text-sm font-medium text-accent"
+    >
+      + Add Set{restSeconds > 0 ? ` (${formatRest(restSeconds)})` : ""}
+    </button>
+  );
+
   const tableHead = (
     <thead>
       <tr className={sizes.headerRow}>
-        <th className={`w-8 ${sizes.headerCell}`}>Set</th>
+        <th className={`w-8 pl-2 ${sizes.headerCell}`}>Set</th>
         <th className={`text-center ${sizes.headerCell}`}>Prev</th>
         <th className={`text-center ${sizes.headerCell}`}>Weight</th>
         {/* Reps and RPE are pinned narrow (issue #323) so, beside the Prev
@@ -702,11 +804,12 @@ export function SessionExerciseSection({
   }
 
   return (
+    // `relative` is the containing block RpeInfoMenu centers its menu in (#412).
     <section
       className={
         large
-          ? "flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
-          : "flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+          ? "relative flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+          : "relative flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
       }
     >
       <div className="flex items-start justify-between gap-2">
@@ -724,9 +827,16 @@ export function SessionExerciseSection({
               title={dprBadge(dpr.decision.call).label}
               className={`shrink-0 rounded-full border px-1.5 text-xs font-semibold ${dprBadge(dpr.decision.call).className}`}
             >
-              {dpr.decision.reason === "Deload week"
-                ? "Deload week"
-                : `DPR ${dprBadge(dpr.decision.call).symbol}`}
+              {dpr.decision.reason === "Deload week" ? (
+                "Deload week"
+              ) : (
+                <CallMark call={dpr.decision.call} inherit />
+              )}
+            </span>
+          )}
+          {rule && (
+            <span className="shrink-0 rounded-full border border-zinc-400 px-1.5 text-xs font-semibold text-zinc-600 dark:border-zinc-600 dark:text-zinc-400">
+              {ruleBadge(rule)}
             </span>
           )}
         </h2>
@@ -763,6 +873,11 @@ export function SessionExerciseSection({
       )}
 
       {dpr && <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>}
+      {rule && <p className={sizes.meta}>{ruleWhyLine(rule, settings.units)}</p>}
+
+      {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (
+        <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>
+      )}
 
       {suggestedWeights && hasHistory && !suggestionsOpen && (
         <button
@@ -794,7 +909,7 @@ export function SessionExerciseSection({
       {!large && (
         // Clips a row sliding left to delete (issue #350) so it can't widen the page.
         <div className="overflow-x-clip">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-separate border-spacing-y-1 text-left">
             {tableHead}
             <tbody>
               {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
@@ -805,30 +920,23 @@ export function SessionExerciseSection({
           </table>
         </div>
       )}
-      {!large && skippedIndices.size > 0 && (
-        <button
-          type="button"
-          onClick={restorePlannedRow}
-          className="min-h-11 self-start text-sm font-medium text-accent"
-        >
-          + Add set
-        </button>
-      )}
+      {!large && addSetButton}
 
       {/* Focus view shows the set just logged (issue #257) above the one to
           log next, as list-view rows with the Log button beside the inputs. */}
       {large && (
         // Clips a row sliding left to delete (issue #350) so it can't widen the page.
         <div className="overflow-x-clip">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full border-separate border-spacing-y-1 text-left">
             {tableHead}
             <tbody>
               {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
-              {plannedRow(nextIndex, nextLabel, false)}
+              {visiblePlannedIndices.length > 0 && plannedRow(nextIndex, nextLabel, false)}
             </tbody>
           </table>
         </div>
       )}
+      {large && visiblePlannedIndices.length === 0 && addSetButton}
 
       {undoableDelete && (
         <output className="flex items-center justify-between gap-2 rounded-lg bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
@@ -836,9 +944,10 @@ export function SessionExerciseSection({
           <button
             type="button"
             onClick={() => void handleUndoDelete()}
-            className="min-h-11 px-2 font-semibold text-accent"
+            aria-label="Undo delete"
+            className="flex min-h-11 min-w-11 items-center justify-center text-accent"
           >
-            Undo
+            <Undo2 className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
           </button>
         </output>
       )}

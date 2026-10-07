@@ -204,6 +204,76 @@
       "when": 1790823528160,
       "tag": "0028_program_rest_days",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790891327707,
+      "tag": "0029_add_card_style",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790973232575,
+      "tag": "0030_add_avatar_posts_sharing",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790973245116,
+      "tag": "0031_posts_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791222905163,
+      "tag": "0032_add_exercise_video_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791232877562,
+      "tag": "0033_add_progression_rule",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791233366848,
+      "tag": "0034_add_dpr_volume_mode",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791233671239,
+      "tag": "0035_add_share_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791233673096,
+      "tag": "0036_share_links_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791233919783,
+      "tag": "0037_add_measurement_units",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791236145987,
+      "tag": "0038_add_cardio",
+      "breakpoints": true
     }
   ]
 }

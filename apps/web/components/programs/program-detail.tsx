@@ -1,6 +1,8 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
+import { ShareLinkButton } from "@/components/sharing/share-link-button";
 import { mutate } from "@/lib/db/mutate";
 import { type ProgramRoutineRow, type RoutineRow, db } from "@/lib/db/schema";
 import { pairWarmup } from "@/lib/programs/pair-warmup";
@@ -8,6 +10,7 @@ import { setActiveProgram } from "@/lib/programs/set-active";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { weekdaysFrom } from "@/lib/programs/weekdays";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { buildProgramSnapshot } from "@/lib/sharing/local";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -19,10 +22,11 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Layers } from "lucide-react";
+import { Layers, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
+import { ProgramProgress } from "./program-progress";
 import { ProgramRoutineRow as ProgramRoutineRowItem } from "./program-routine-row";
 
 export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
@@ -144,7 +148,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
   if (program === undefined || rawItems === undefined || rawRoutines === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -179,7 +183,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
         <BackLink href="/routines" label="Routines" />
       </div>
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
             <Layers
               className="h-5 w-5 shrink-0 text-zinc-500 dark:text-zinc-500"
@@ -198,13 +202,22 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
             <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{program.notes}</p>
           )}
         </div>
-        <Link
-          href={`/routines/programs/${program.id}/edit`}
-          className="shrink-0 text-sm font-medium underline underline-offset-4"
-        >
-          Edit
-        </Link>
+        <div className="flex shrink-0 items-start gap-1">
+          <ShareLinkButton title={program.name} build={() => buildProgramSnapshot(program.id)} />
+          <Link
+            href={`/routines/programs/${program.id}/edit`}
+            aria-label="Edit program"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+          >
+            <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
+
+      <ProgramProgress
+        routineIds={items.flatMap((item) => (item.routineId ? [item.routineId] : []))}
+        since={program.activatedAt ?? program.createdAt}
+      />
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         {weekly

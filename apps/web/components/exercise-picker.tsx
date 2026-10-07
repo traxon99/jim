@@ -5,6 +5,7 @@ import { db } from "@/lib/db/schema";
 import {
   type ExerciseCategory,
   filterExercises,
+  isCardioExercise,
   isWarmupExercise,
   preferOwnedExercises,
   searchExercises,
@@ -29,12 +30,21 @@ interface Props {
    * a tap picks it straight away, with no selection or superset.
    */
   mode?: "add" | "replace";
+  /**
+   * Shown at the top of the list, before any search, in an ad hoc workout's
+   * Add exercise menu (issue #226). Only strength exercises are suggested.
+   */
+  suggestedExerciseIds?: readonly string[];
 }
+
+const SECTION_LABEL =
+  "pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
 
 const CATEGORY_TABS = [
   { value: "all", label: "All" },
   { value: "strength", label: "Strength" },
   { value: "warmup", label: "Warm-ups" },
+  { value: "cardio", label: "Cardio" },
 ] as const;
 
 export function ExercisePicker({
@@ -44,6 +54,7 @@ export function ExercisePicker({
   onClose,
   initialCategory = "all",
   mode = "add",
+  suggestedExerciseIds = [],
 }: Props) {
   const replacing = mode === "replace";
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
@@ -75,6 +86,67 @@ export function ExercisePicker({
     return searchExercises(filtered, query);
   }, [allExercises, userId, query, excludeExerciseIds, category]);
 
+  // Suggestions are strength work, so they sit out a search and the
+  // Warm-ups and Cardio tabs; while they show, the list below doesn't repeat them.
+  const suggestions = useMemo(() => {
+    if (replacing || query.trim() || category === "warmup" || category === "cardio") return [];
+    return suggestedExerciseIds.flatMap((exerciseId) => {
+      const exercise = results.find((row) => row.id === exerciseId);
+      return exercise ? [exercise] : [];
+    });
+  }, [replacing, query, category, suggestedExerciseIds, results]);
+  const listed = useMemo(() => {
+    if (suggestions.length === 0) return results;
+    const suggestedIds = new Set(suggestions.map((exercise) => exercise.id));
+    return results.filter((exercise) => !suggestedIds.has(exercise.id));
+  }, [results, suggestions]);
+
+  function renderRow(exercise: (typeof results)[number]) {
+    const order = selectedIds.indexOf(exercise.id);
+    const selected = order !== -1;
+    return (
+      <li key={exercise.id}>
+        <button
+          type="button"
+          aria-pressed={replacing ? undefined : selected}
+          onClick={() => toggleSelected(exercise.id)}
+          className="flex w-full items-center gap-3 py-3 text-left"
+        >
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-base font-medium">{exercise.name}</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-500">
+              {[
+                isWarmupExercise(exercise) ? "warm-up" : null,
+                isCardioExercise(exercise) ? "cardio" : null,
+                exercise.equipment,
+                ...exercise.primaryMuscles,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </span>
+          {!replacing && (
+            <span
+              aria-hidden="true"
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                selected
+                  ? "border-accent bg-accent text-accent-foreground"
+                  : "border-zinc-300 dark:border-zinc-700"
+              }`}
+            >
+              {selected &&
+                (selectedIds.length > 1 ? (
+                  order + 1
+                ) : (
+                  <Check className="h-4 w-4" strokeWidth={2.5} />
+                ))}
+            </span>
+          )}
+        </button>
+      </li>
+    );
+  }
+
   if (creating) {
     // z-20: above RestTimerBar's z-10 — both are siblings under active-session.tsx's
     // <main>, so without this the timer bar paints over this full-screen view (#227).
@@ -87,7 +159,7 @@ export function ExercisePicker({
           userId={userId}
           mode="new"
           initialName={query.trim()}
-          initialCategory={category === "warmup" ? "warmup" : "strength"}
+          initialCategory={category === "all" ? "strength" : category}
           onSaved={(exercise) => {
             // On its own it's added straight away, as before; alongside
             // others it joins the selection.
@@ -123,7 +195,7 @@ export function ExercisePicker({
       </div>
 
       <div className="flex flex-col gap-2 px-4 py-3">
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
           {CATEGORY_TABS.map((tab) => {
             const selected = category === tab.value;
             return (
@@ -163,50 +235,14 @@ export function ExercisePicker({
         // Without the footer, the list itself reaches the home indicator.
         style={replacing ? { paddingBottom: "max(12px, env(safe-area-inset-bottom))" } : undefined}
       >
-        {results.map((exercise) => {
-          const order = selectedIds.indexOf(exercise.id);
-          const selected = order !== -1;
-          return (
-            <li key={exercise.id}>
-              <button
-                type="button"
-                aria-pressed={replacing ? undefined : selected}
-                onClick={() => toggleSelected(exercise.id)}
-                className="flex w-full items-center gap-3 py-3 text-left"
-              >
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-base font-medium">{exercise.name}</span>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                    {[
-                      isWarmupExercise(exercise) ? "warm-up" : null,
-                      exercise.equipment,
-                      ...exercise.primaryMuscles,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </span>
-                {!replacing && (
-                  <span
-                    aria-hidden="true"
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
-                      selected
-                        ? "border-accent bg-accent text-accent-foreground"
-                        : "border-zinc-300 dark:border-zinc-700"
-                    }`}
-                  >
-                    {selected &&
-                      (selectedIds.length > 1 ? (
-                        order + 1
-                      ) : (
-                        <Check className="h-4 w-4" strokeWidth={2.5} />
-                      ))}
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
+        {suggestions.length > 0 && (
+          <>
+            <li className={SECTION_LABEL}>Suggested</li>
+            {suggestions.map(renderRow)}
+            {listed.length > 0 && <li className={SECTION_LABEL}>All exercises</li>}
+          </>
+        )}
+        {listed.map(renderRow)}
         {results.length === 0 && (
           <li className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
             No exercises match.

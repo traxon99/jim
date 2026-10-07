@@ -1,7 +1,11 @@
 import {
+  type TrainingGoal,
+  WEEKLY_SET_TARGETS,
   deletedSessionExerciseIds,
   groupByWeek,
+  isStrengthExercise,
   resolveCurrentRows,
+  weeklySetStatusByMuscle,
   weeklyVolumeByMuscle,
 } from "@jim/core";
 import { type DbOrTx, exercises, sessionExercises, sessions, sets, users } from "@jim/db";
@@ -15,44 +19,55 @@ export interface VolumeReportInput {
   groupBy: VolumeGroupBy;
   from: string;
   to: string;
+  /** Which weekly set range to check muscles against (issue #395). */
+  goal?: TrainingGoal;
 }
 
-interface ResolvedSet {
+export interface ResolvedSet {
+  sessionId: string;
   completedAt: Date;
   weight: number | null;
   reps: number | null;
   exerciseId: string;
 }
 
-async function resolvedSetsInRange(tx: DbOrTx, from: Date, to: Date): Promise<ResolvedSet[]> {
+export async function resolvedSetsInRange(
+  tx: DbOrTx,
+  from: Date,
+  to: Date,
+): Promise<ResolvedSet[]> {
   const exerciseRows = await tx.select().from(sessionExercises);
   // Sets from a deleted workout don't count as volume (issue #200).
   const deleted = deletedSessionExerciseIds(
     await tx.select({ id: sessions.id, deletedAt: sessions.deletedAt }).from(sessions),
     exerciseRows,
   );
-  const exerciseIdBySessionExercise = new Map(
-    exerciseRows.filter((row) => !deleted.has(row.id)).map((row) => [row.id, row.exerciseId]),
+  const sessionExerciseById = new Map(
+    exerciseRows.filter((row) => !deleted.has(row.id)).map((row) => [row.id, row]),
   );
 
-  const setRows = resolveCurrentRows(await tx.select().from(sets)).filter((set) => !set.deletedAt);
+  // Only working sets are volume: warm-up sets are left out (issue #395).
+  const setRows = resolveCurrentRows(await tx.select().from(sets)).filter(
+    (set) => !set.deletedAt && set.kind !== "warmup",
+  );
 
   const result: ResolvedSet[] = [];
   for (const set of setRows) {
     if (set.completedAt < from || set.completedAt > to) continue;
-    const exerciseId = exerciseIdBySessionExercise.get(set.sessionExerciseId);
-    if (!exerciseId) continue;
+    const sessionExercise = sessionExerciseById.get(set.sessionExerciseId);
+    if (!sessionExercise) continue;
     result.push({
+      sessionId: sessionExercise.sessionId,
       completedAt: set.completedAt,
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
-      exerciseId,
+      exerciseId: sessionExercise.exerciseId,
     });
   }
   return result;
 }
 
-async function exercisesById(
+export async function exercisesById(
   tx: DbOrTx,
   exerciseIds: readonly string[],
 ): Promise<Map<string, typeof exercises.$inferSelect>> {
@@ -61,7 +76,7 @@ async function exercisesById(
   return new Map(rows.map((row) => [row.id, row]));
 }
 
-async function weekStartFor(tx: DbOrTx, userId: string): Promise<number> {
+export async function weekStartFor(tx: DbOrTx, userId: string): Promise<number> {
   const [user] = await tx.select().from(users).where(eq(users.id, userId));
   return user?.weekStart ?? 0;
 }
@@ -111,7 +126,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
     const muscleSets = resolved
       .map((set) => {
         const exercise = exerciseRows.get(set.exerciseId);
-        if (!exercise) return null;
+        if (!exercise || !isStrengthExercise(exercise)) return null;
         return {
           completedAt: set.completedAt,
           weight: set.weight,
@@ -122,10 +137,15 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
       })
       .filter((set): set is NonNullable<typeof set> => set !== null);
 
+    const goal = input.goal ?? "hypertrophy";
     const groups = weeklyVolumeByMuscle(muscleSets, weekStart);
     return groups.map((group) => ({
       weekStart: group.weekStart.toISOString(),
       volumeByMuscle: group.volumeByMuscle,
+      setsByMuscle: group.setsByMuscle,
+      goal,
+      targetSets: WEEKLY_SET_TARGETS[goal],
+      setStatusByMuscle: weeklySetStatusByMuscle(group.setsByMuscle, goal),
     }));
   });
 }

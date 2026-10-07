@@ -3,6 +3,7 @@
 import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
+import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
@@ -114,7 +115,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
   if (rawSessions === undefined || activeSession) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -128,7 +129,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
         <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
         {/* Your routines come first (issue #329); the ways to start without
-          one and the DPR invite follow. */}
+          one and the PRP invite follow. */}
         {routineGroups.length > 0 && (
           <div className="flex flex-col gap-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">

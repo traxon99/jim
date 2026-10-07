@@ -17,7 +17,17 @@ interface Props {
   titleId?: string;
 }
 
-/** RPE column title, opened into an info menu (issue #163) explaining the scale — mirrors SetKindMenu's open/close behavior but is purely informational, not a selector. Anchored to its own right edge (issue #183), not left like SetKindMenu, since RPE sits near the end of the row — opening leftward keeps the popup inside the table instead of pushing past the edge. */
+/**
+ * RPE column title, opened into an info menu (issues #163, #412) explaining
+ * the scale. Purely informational, not a selector; closes like SetKindMenu.
+ *
+ * The menu is centered in the exercise card rather than under the narrow RPE
+ * column, where it ran off the left edge (#410). Neither this wrapper nor any
+ * cell above it is positioned, so the menu's containing block is the card's
+ * `relative` <section>: `left-1/2 -translate-x-1/2` centers it there, and,
+ * with no `top`, it keeps its in-flow spot just under the RPE header. That also
+ * puts it outside the table's `overflow-x-clip`, so nothing clips it.
+ */
 export function RpeInfoMenu({ large = false, titleId }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -39,7 +49,7 @@ export function RpeInfoMenu({ large = false, titleId }: Props) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative inline-block text-left">
+    <div ref={rootRef} className="inline-block text-left">
       <button
         id={titleId}
         type="button"
@@ -59,7 +69,7 @@ export function RpeInfoMenu({ large = false, titleId }: Props) {
         />
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-10 mt-1 w-64 max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)] overflow-y-auto rounded-md border border-zinc-200 bg-white p-3 text-left shadow-md dark:border-zinc-700 dark:bg-zinc-900">
+        <div className="absolute left-1/2 z-10 mt-1 w-64 max-w-[calc(100%-1rem)] max-h-[calc(100vh-2rem)] -translate-x-1/2 overflow-y-auto rounded-md border border-zinc-200 bg-white p-3 text-left shadow-md dark:border-zinc-700 dark:bg-zinc-900">
           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
             RPE (Rate of Perceived Exertion): how hard a set felt, from 5 to 10 — higher is harder.
           </p>

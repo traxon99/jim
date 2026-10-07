@@ -1,6 +1,8 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
 import { db } from "@/lib/db/schema";
 import {
   formatProgramWeek,
@@ -10,7 +12,7 @@ import {
   searchRoutines,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Flame, Layers, Plus } from "lucide-react";
+import { Flame, Layers, Link2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CollapsibleSection } from "./collapsible-section";
@@ -30,6 +32,8 @@ const VIEWS: { value: View; label: string }[] = [
 export function RoutinesList({ userId }: { userId: string }) {
   // Your Routines / Explore (issue #141).
   const [view, setView] = useState<View>("mine");
+  // Paste a share link (issue #254).
+  const [linkCardOpen, setLinkCardOpen] = useState(false);
   // Dexie live query: re-renders whenever the local set of routines changes,
   // with no network on the read path (docs/ARCHITECTURE.md §1).
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
@@ -108,7 +112,7 @@ export function RoutinesList({ userId }: { userId: string }) {
   if (allRoutines === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -118,16 +122,28 @@ export function RoutinesList({ userId }: { userId: string }) {
       <PageHeader
         title="Routines"
         actions={
-          <Link
-            href="/routines/new"
-            aria-label="New routine"
-            data-ripple
-            className={FLOATING_BUTTON}
-          >
-            <Plus className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-          </Link>
+          <>
+            <button
+              type="button"
+              onClick={() => setLinkCardOpen(true)}
+              aria-label="Add from a link"
+              data-ripple
+              className={FLOATING_BUTTON}
+            >
+              <Link2 className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+            </button>
+            <Link
+              href="/routines/new"
+              aria-label="New routine"
+              data-ripple
+              className={FLOATING_BUTTON}
+            >
+              <Plus className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+            </Link>
+          </>
         }
       />
+      {linkCardOpen && <OpenShareLinkCard onClose={() => setLinkCardOpen(false)} />}
       <div className={PAGE_BODY}>
         <div
           role="tablist"

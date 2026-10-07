@@ -3,12 +3,18 @@
  * "PR" stamped into it. Pure CSS so it stays crisp at any size and needs no
  * image asset.
  */
-export function PrBadge({ className = "" }: { className?: string }) {
+export function PrBadge({
+  label = "Personal record",
+  className = "",
+}: {
+  label?: string;
+  className?: string;
+}) {
   return (
     <span
       role="img"
-      aria-label="Personal record"
-      title="Personal record"
+      aria-label={label}
+      title={label}
       className={`pointer-events-none inline-flex select-none items-center justify-center rounded-[3px] px-[3px] font-sans text-[9px] font-extrabold leading-[13px] tracking-wider ${className}`}
       style={{
         // Fine brushed grain over a metallic gold sweep.

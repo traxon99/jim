@@ -50,7 +50,7 @@ export interface PersonalRecordStats {
 }
 
 /** A PR set this recently is highlighted as "New" on the PR page (issue #237). */
-export const RECENT_PR_DAYS = 7;
+const RECENT_PR_DAYS = 7;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

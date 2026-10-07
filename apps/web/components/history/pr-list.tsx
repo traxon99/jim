@@ -1,12 +1,16 @@
 "use client";
 
+import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { PrSparkline } from "@/components/history/pr-sparkline";
+import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
+import { bodyweightLookup } from "@/lib/bodyweight";
 import { db } from "@/lib/db/schema";
+import { recordPostDraft } from "@/lib/friends/post-drafts";
 import { toPersonalRecordEntries } from "@/lib/history/pr-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
-import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
+import { strengthProfileFromSettings, strengthProfileOn } from "@/lib/strength-standards/profile";
 import {
   type PersonalRecordSortKey,
   type PrKind,
@@ -123,6 +127,12 @@ export function PrList() {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
 
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
+  const bodyMeasurements = useLiveQuery(() => db.bodyMeasurements.toArray(), []);
+  // A past PR's badge uses what the user weighed that day (issue #249).
+  const bodyweightAt = useMemo(
+    () => bodyweightLookup(bodyMeasurements ?? [], settings.units),
+    [bodyMeasurements, settings.units],
+  );
 
   // Every live PR row, not just the current bests: the stat tiles count
   // them and the sparklines trace them.
@@ -173,13 +183,18 @@ export function PrList() {
       .map(([exerciseId, records]) => {
         const exercise = exerciseById.get(exerciseId);
         const standardLift = standardLiftForSlug(exercise?.slug);
-        const oneRepMax = records.find((r) => r.kind === "1rm")?.value ?? null;
+        const oneRepMaxRecord = records.find((r) => r.kind === "1rm");
+        const oneRepMax = oneRepMaxRecord?.value ?? null;
+        const profileThen =
+          strengthProfile && oneRepMaxRecord
+            ? strengthProfileOn(strengthProfile, bodyweightAt, oneRepMaxRecord.achievedAt)
+            : null;
 
         const standard =
-          standardLift && strengthProfile && oneRepMax
+          standardLift && profileThen && oneRepMax
             ? {
-                tier: tierForOneRepMax(standardLift, oneRepMax, strengthProfile),
-                thresholds: liftStandardThresholds(standardLift, strengthProfile),
+                tier: tierForOneRepMax(standardLift, oneRepMax, profileThen),
+                thresholds: liftStandardThresholds(standardLift, profileThen),
               }
             : null;
 
@@ -215,7 +230,7 @@ export function PrList() {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [current, entries, exerciseById, strengthProfile, settings.units, now]);
+  }, [current, entries, exerciseById, strengthProfile, bodyweightAt, settings.units, now]);
 
   // Muscle and equipment choices come only from exercises that have PRs,
   // so no filter option can empty the page on its own.
@@ -285,7 +300,7 @@ export function PrList() {
   ) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -524,12 +539,18 @@ export function PrList() {
                           </li>
                         ))}
                       </ul>
-                      <Link
-                        href={`/exercises/${group.exerciseId}`}
-                        className="py-1 text-sm font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
-                      >
-                        View 1RM chart and history
-                      </Link>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Link
+                          href={`/exercises/${group.exerciseId}`}
+                          className="py-1 text-sm font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
+                        >
+                          View 1RM chart and history
+                        </Link>
+                        <PostToFriendsButton
+                          draft={recordPostDraft(group.name, group.headlineRecord, settings.units)}
+                          className="min-h-11 rounded-lg px-2 text-sm font-medium text-zinc-600 dark:text-zinc-400"
+                        />
+                      </div>
                     </div>
                   )}
                 </section>

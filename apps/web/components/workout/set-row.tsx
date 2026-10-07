@@ -32,9 +32,10 @@ function sizesFor(large: boolean) {
     input: large
       ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 py-2 text-center text-3xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
       : "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+    // pl-2 keeps the label off the tinted row's rounded edge (issue #391).
     indexCell: large
-      ? "py-3 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
-      : "py-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+      ? "py-3 pl-2 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
+      : "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
     // Logged values line up under the centered entry inputs at the same size.
     cell: large
       ? "py-3 pr-3 align-middle text-center text-3xl tabular-nums"
@@ -44,8 +45,8 @@ function sizesFor(large: boolean) {
       : "py-2 pr-2 align-middle text-center text-xl tabular-nums text-zinc-500 dark:text-zinc-500",
     // `relative` anchors the swipe-to-delete strip (issue #350).
     actionCell: large
-      ? "relative py-3 pl-1 align-middle text-right whitespace-nowrap"
-      : "relative py-2 pl-1 align-middle text-right whitespace-nowrap",
+      ? "relative py-3 pl-1 pr-1 align-middle text-right whitespace-nowrap"
+      : "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
     // The buttons are block-level flex boxes, so without a row wrapper two of
     // them stack and the row doubles in height the moment a set is logged
     // (issue #157) — keep them side by side so logging happens in place.
@@ -182,10 +183,12 @@ export function SetRow({
 
   return (
     // A tinted row marks the set done at a glance (issue #319), like Strong's
-    // and Hevy's completed rows.
+    // and Hevy's completed rows. Each one is its own soft, rounded pill (issue
+    // #391) rather than a solid block split by divider lines; the table's
+    // border-spacing puts the gap between them.
     <tr
       {...swipe.rowProps}
-      className={`border-b border-zinc-100 bg-accent/10 last:border-0 dark:border-zinc-800 ${swipe.rowProps.className}`}
+      className={`[&>td]:bg-accent/[0.07] [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg ${swipe.rowProps.className}`}
     >
       <td className={sizes.indexCell}>
         <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
@@ -206,7 +209,7 @@ export function SetRow({
           <button
             type="button"
             onClick={() => setEditingField("rpe")}
-            aria-label="Add RPE for DPR"
+            aria-label="Add RPE for PRP"
             className="min-h-11 w-full rounded-md border border-dashed border-accent px-1 text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300"
           >
             Add RPE

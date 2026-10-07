@@ -1,7 +1,9 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
+import { ShareLinkButton } from "@/components/sharing/share-link-button";
 import {
   preferencesAction,
   removeExerciseAction,
@@ -18,6 +20,7 @@ import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { routineItemSummary } from "@/lib/routines/summary";
 import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { buildRoutineSnapshot } from "@/lib/sharing/local";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -26,6 +29,7 @@ import {
   type SupersetChange,
   duplicateRoutine,
   formSuperset,
+  isCardioExercise,
   isWarmupExercise,
   isWarmupRoutine,
   nextSupersetGroup,
@@ -101,6 +105,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         name: string;
         mechanic: "compound" | "isolation" | null;
         warmup: { timed: boolean } | null;
+        cardio: boolean;
       }
     >();
     for (const exercise of exercises ?? []) {
@@ -108,6 +113,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         name: exercise.name,
         mechanic: exercise.mechanic,
         warmup: isWarmupExercise(exercise) ? { timed: exercise.trackingType === "time" } : null,
+        cardio: isCardioExercise(exercise),
       });
     }
     return map;
@@ -203,6 +209,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         targetRestSeconds: null,
         targetDurationSeconds: null,
         targetWeight: null,
+        progressionRule: null,
         notes: null,
         updatedAt: now,
         deviceId,
@@ -282,7 +289,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   if (routine === undefined || rawItems === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -308,7 +315,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         <BackLink href="/routines" label="Routines" />
       </div>
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
             <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
             {routine.name}
@@ -337,14 +344,17 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
             Done
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            aria-label="Edit routine"
-            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
-          >
-            <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <div className="flex shrink-0 items-start">
+            <ShareLinkButton title={routine.name} build={() => buildRoutineSnapshot(routine.id)} />
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Edit routine"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500"
+            >
+              <Pencil className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -426,7 +436,11 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           {items.map((item) => {
             const info = exercisesById.get(item.exerciseId);
             const label = labels.get(item.id);
-            const summary = routineItemSummary(item, settings.units, info?.warmup?.timed ?? false);
+            const summary = routineItemSummary(
+              item,
+              settings.units,
+              (info?.warmup?.timed ?? false) || (info?.cardio ?? false),
+            );
             return (
               <li key={item.id} className="flex flex-col gap-0.5 py-3">
                 <span className="flex items-center gap-2 text-base font-medium">
@@ -470,7 +484,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                   ]}
                   exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                   warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
+                  cardio={exercisesById.get(item.exerciseId)?.cardio ?? false}
                   units={settings.units}
+                  dprFocused={dprContext?.lifts.has(item.exerciseId) ?? false}
                   onUpdate={(patch) => handleUpdateItem(item, patch)}
                 />
               ))}

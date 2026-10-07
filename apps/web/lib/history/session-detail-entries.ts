@@ -1,5 +1,5 @@
 import type { ExerciseRow, PersonalRecordRow, SessionExerciseRow, SetRow } from "@/lib/db/schema";
-import { type PrKind, resolveCurrentRows } from "@jim/core";
+import { type PrKind, isVisiblePrKind, resolveCurrentRows } from "@jim/core";
 
 export interface SessionDetailSet {
   id: string;
@@ -12,6 +12,7 @@ export interface SessionDetailSet {
   /** Rest taken before the set and its target (issue #233). */
   restSeconds: number | null;
   restTargetSeconds: number | null;
+  /** PR kinds the set achieved that show outside the PR page (`isVisiblePrKind`). */
   prKinds: PrKind[];
 }
 
@@ -26,8 +27,8 @@ export interface SessionDetailExercise {
 /**
  * "Session detail: every exercise, every set, PRs achieved" (STORIES.md S7)
  * — every current (resolved, non-deleted) set for one session, grouped by
- * exercise in routine order, each set tagged with whichever PR kinds it
- * achieved.
+ * exercise in routine order, each set tagged with whichever visible PR kinds
+ * it achieved (only e1RM, issue #389).
  */
 export function buildSessionDetailExercises(
   sessionId: string,
@@ -51,7 +52,7 @@ export function buildSessionDetailExercises(
 
   const prKindsBySetId = new Map<string, PrKind[]>();
   for (const record of personalRecords) {
-    if (record.deletedAt || !record.setId) continue;
+    if (record.deletedAt || !record.setId || !isVisiblePrKind(record.kind)) continue;
     const list = prKindsBySetId.get(record.setId);
     if (list) {
       list.push(record.kind);

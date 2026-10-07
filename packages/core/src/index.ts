@@ -1,4 +1,6 @@
 export * from "./access-tokens";
+export * from "./body";
+export * from "./cardio";
 export * from "./data-transfer";
 export * from "./dpr";
 export * from "./exercises";
@@ -6,8 +8,10 @@ export * from "./explore";
 export * from "./history";
 export * from "./one-rep-max";
 export * from "./programs";
+export * from "./progression";
 export * from "./routines";
 export * from "./sessions";
+export * from "./sharing";
 export * from "./social";
 export * from "./strength-standards";
 export * from "./supersets";

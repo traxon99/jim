@@ -212,7 +212,7 @@ describe("dpr_status", () => {
     expect(bench?.repRanges).toEqual([{ low: 6, high: 8 }]);
     expect(bench?.e1rm).toMatchObject({ baseline: 240, goal: 260 });
     // Squat has no RPE yet.
-    expect(squat?.nextCall).toMatchObject({ call: "insufficient", reason: "Add RPE for DPR" });
+    expect(squat?.nextCall).toMatchObject({ call: "insufficient", reason: "Add RPE for PRP" });
     expect(squat?.e1rm).toEqual({ baseline: null, current: null, goal: null });
     expect(squat?.status).toBeNull();
   });

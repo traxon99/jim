@@ -81,23 +81,23 @@ describe("decision log lines", () => {
   });
 
   it.each([
-    [decision({}), /· ↑ 185→190 · 3×8 @ RPE 7\.5$/],
+    [decision({}), /· UP ↑ 185→190 · 3×8 @ RPE 7\.5$/],
     [
       decision({ call: "hold", weight: 185, reason: "Missed 8/7/5 @ RPE 9 — holding (1/3)" }),
-      /· = 185 · Missed/,
+      /· STAY → 185 · Missed/,
     ],
     [
       decision({ call: "deload", weight: 165, reason: "Missed 3 in a row — deload 10%" }),
-      /· ↓ 185→165 · Missed 3/,
+      /· DOWN ↓ 185→165 · Missed 3/,
     ],
     [
       decision({
         call: "insufficient",
         weight: 185,
         previousWeight: 185,
-        reason: "Add RPE for DPR",
+        reason: "Add RPE for PRP",
       }),
-      /· \? 185 · Add RPE for DPR$/,
+      /· RPE \? 185 · Add RPE for PRP$/,
     ],
   ])("%#", (d, pattern) => {
     expect(

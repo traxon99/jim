@@ -1,4 +1,6 @@
+import { bodyweightOnDate, bodyweightSeries } from "@/lib/bodyweight/series";
 import type {
+  BodyMeasurementRow,
   ExerciseRow,
   PersonalRecordRow,
   ProgramRoutineRow,
@@ -16,7 +18,7 @@ import {
   type TrainingStreak,
   deletedSessionExerciseIds,
   deriveAchievements,
-  isWarmupExercise,
+  isStrengthExercise,
   resolveCurrentRows,
   standardLiftForSlug,
   trainingStreak,
@@ -32,6 +34,8 @@ export interface AchievementTables {
   personalRecords: readonly PersonalRecordRow[];
   programs: readonly ProgramRow[];
   programRoutines: readonly ProgramRoutineRow[];
+  /** Weigh-in history, so badges use the bodyweight on each lift's date (issue #247). */
+  bodyMeasurements?: readonly BodyMeasurementRow[];
 }
 
 export interface AchievementData {
@@ -63,7 +67,7 @@ export function buildAchievementData(
     if (!sessionExercise || deleted.has(sessionExercise.id)) continue;
     if (!finishedIds.has(sessionExercise.sessionId)) continue;
     const exercise = exerciseById.get(sessionExercise.exerciseId);
-    if (!exercise || isWarmupExercise(exercise)) continue;
+    if (!exercise || !isStrengthExercise(exercise)) continue;
     sets.push({
       sessionId: sessionExercise.sessionId,
       completedAt: set.completedAt,
@@ -105,6 +109,7 @@ export function buildAchievementData(
     units: settings.units,
     bodyweight: bodyweight != null && Number.isFinite(bodyweight) ? bodyweight : null,
     strengthProfile: strengthProfileFromSettings(settings, now),
+    bodyweightOn: bodyweightOnDate(bodyweightSeries(tables.bodyMeasurements ?? [], settings.units)),
     strengthRecords,
   });
 

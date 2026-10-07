@@ -26,4 +26,16 @@ export const EXERCISE_ALIASES: Record<string, readonly string[]> = {
   "wide-grip-lat-pulldown": ["lat pulldown", "lat pull down"],
   "one-arm-dumbbell-row": ["sa row", "single arm row"],
   "romanian-deadlift": ["rdl", "bb rdl"],
+  // Everyday names for free-exercise-db's cardio (issue #423).
+  "running-treadmill": ["treadmill run", "treadmill"],
+  "jogging-treadmill": ["treadmill jog"],
+  "walking-treadmill": ["treadmill walk"],
+  bicycling: ["cycling (outdoor)", "cycling", "bike ride"],
+  "bicycling-stationary": ["stationary bike", "exercise bike", "spin bike"],
+  "rowing-stationary": ["rowing machine", "rower", "erg"],
+  "elliptical-trainer": ["elliptical"],
+  stairmaster: ["stair climber", "stairs"],
+  "rope-jumping": ["jump rope", "skipping"],
+  "prowler-sprint": ["sled push sprint"],
+  "trail-running-walking": ["trail run", "hike"],
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, db } from "@/lib/db/schema";
@@ -10,10 +11,12 @@ import {
   type Muscle,
   applyExerciseEdit,
   exerciseCategoryOf,
+  normalizeVideoUrl,
   slugify,
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -23,10 +26,26 @@ const TRACKING_TYPES = [
   "distance",
   "bodyweight",
   "weighted_bodyweight",
+  "distance_time",
 ] as const;
 
 // Warm-ups/stretches are only ever logged for reps or for time (issue #59).
 const WARMUP_TRACKING_TYPES = ["bodyweight", "time"] as const;
+
+// Cardio is logged for distance and/or time (issue #423).
+const CARDIO_TRACKING_TYPES = ["distance_time", "time", "distance"] as const;
+
+const CARDIO_TRACKING_LABELS: Record<(typeof CARDIO_TRACKING_TYPES)[number], string> = {
+  distance_time: "distance and time",
+  time: "time",
+  distance: "distance",
+};
+
+function defaultTrackingType(category: ExerciseCategory): (typeof TRACKING_TYPES)[number] {
+  if (category === "warmup") return "bodyweight";
+  if (category === "cardio") return "distance_time";
+  return "weight_reps";
+}
 
 interface Props {
   userId: string;
@@ -62,10 +81,11 @@ export function ExerciseForm({
   const [equipment, setEquipment] = useState("");
   const [category, setCategory] = useState<ExerciseCategory>(initialCategory);
   const [trackingType, setTrackingType] = useState<(typeof TRACKING_TYPES)[number]>(
-    initialCategory === "warmup" ? "bodyweight" : "weight_reps",
+    defaultTrackingType(initialCategory),
   );
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
+  const [videoUrlText, setVideoUrlText] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Populate the form once the existing row loads (edit mode).
@@ -77,16 +97,34 @@ export function ExerciseForm({
     setTrackingType(existing.trackingType);
     setPrimaryMuscles([...existing.primaryMuscles]);
     setInstructionsText(existing.instructions.join("\n"));
+    setVideoUrlText(existing.videoUrl ?? "");
   }, [existing]);
+
+  const trackingOptionsFor = (next: ExerciseCategory): readonly string[] =>
+    next === "warmup"
+      ? WARMUP_TRACKING_TYPES
+      : next === "cardio"
+        ? CARDIO_TRACKING_TYPES
+        : TRACKING_TYPES;
 
   function handleCategoryChange(next: ExerciseCategory) {
     setCategory(next);
-    if (next === "warmup" && !(WARMUP_TRACKING_TYPES as readonly string[]).includes(trackingType)) {
-      setTrackingType("bodyweight");
+    if (!trackingOptionsFor(next).includes(trackingType)) {
+      setTrackingType(defaultTrackingType(next));
     }
   }
 
-  const trackingOptions = category === "warmup" ? WARMUP_TRACKING_TYPES : TRACKING_TYPES;
+  const trackingOptions = trackingOptionsFor(
+    category,
+  ) as readonly (typeof TRACKING_TYPES)[number][];
+
+  function trackingLabel(t: (typeof TRACKING_TYPES)[number]): string {
+    if (category === "warmup") return t === "time" ? "time" : "reps";
+    if (category === "cardio") {
+      return CARDIO_TRACKING_LABELS[t as keyof typeof CARDIO_TRACKING_LABELS] ?? t;
+    }
+    return t.replace(/_/g, " ");
+  }
 
   function toggleMuscle(muscle: Muscle) {
     setPrimaryMuscles((current) =>
@@ -105,6 +143,7 @@ export function ExerciseForm({
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
+    const videoUrl = normalizeVideoUrl(videoUrlText);
 
     let entity: ExerciseRow;
 
@@ -125,6 +164,7 @@ export function ExerciseForm({
         category,
         instructions,
         imageUrls: [],
+        videoUrl,
         isArchived: false,
         createdAt: now,
         updatedAt: now,
@@ -141,6 +181,7 @@ export function ExerciseForm({
           category,
           primaryMuscles,
           instructions,
+          videoUrl,
         },
         userId,
         uuidv7,
@@ -174,7 +215,7 @@ export function ExerciseForm({
   if (mode === "edit" && existing === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -201,9 +242,10 @@ export function ExerciseForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-2 py-2 text-sm font-medium underline underline-offset-4"
+            aria-label="Back"
+            className="flex min-h-11 min-w-11 items-center justify-center"
           >
-            Back
+            <ChevronLeft className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </button>
         )}
       </div>
@@ -240,10 +282,17 @@ export function ExerciseForm({
           >
             <option value="strength">Strength</option>
             <option value="warmup">Warm-up / stretch</option>
+            <option value="cardio">Cardio</option>
           </select>
           {category === "warmup" && (
             <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
               Logged for reps or time, and tracked by how often you do it rather than for PRs.
+            </span>
+          )}
+          {category === "cardio" && (
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              Logged for distance and/or time, with records for longest distance, longest time and
+              fastest pace. Doesn't count toward muscle volume.
             </span>
           )}
         </label>
@@ -257,7 +306,7 @@ export function ExerciseForm({
           >
             {trackingOptions.map((t) => (
               <option key={t} value={t}>
-                {category === "warmup" ? (t === "time" ? "time" : "reps") : t.replace(/_/g, " ")}
+                {trackingLabel(t)}
               </option>
             ))}
           </select>
@@ -295,6 +344,21 @@ export function ExerciseForm({
             rows={5}
             className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Demo video link
+          <input
+            type="url"
+            inputMode="url"
+            value={videoUrlText}
+            onChange={(event) => setVideoUrlText(event.target.value)}
+            placeholder="https://youtube.com/…"
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+          />
+          <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+            Optional. Without one, the exercise links to a YouTube search for its form.
+          </span>
         </label>
 
         <button

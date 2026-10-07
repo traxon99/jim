@@ -2,6 +2,7 @@
 
 import { runSyncCycle } from "@/lib/sync/engine";
 import { getSyncStatus, subscribeSyncStatus } from "@/lib/sync/status";
+import { RotateCw } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 export function SyncStatusIndicator() {
@@ -25,9 +26,10 @@ export function SyncStatusIndicator() {
       <button
         type="button"
         onClick={() => void runSyncCycle()}
-        className="underline underline-offset-2"
+        aria-label="Retry sync"
+        className="flex min-h-8 min-w-8 items-center justify-center"
       >
-        Retry
+        <RotateCw className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
       </button>
     </output>
   );

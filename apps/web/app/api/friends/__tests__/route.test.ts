@@ -66,7 +66,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
     signInAs(USER_B, "bob@example.com");
     const listed = await (await friends.GET()).json();
     expect(listed.friends).toMatchObject([
-      { userId: USER_A, username: "ally", status: "pending", direction: "incoming" },
+      { userId: USER_A, username: "ally", avatar: null, status: "pending", direction: "incoming" },
     ]);
 
     const accepted = await friends.PATCH(jsonRequest("PATCH", { userId: USER_A, accept: true }));

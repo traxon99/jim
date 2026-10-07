@@ -190,6 +190,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
           trackingType: "weight_reps",
           instructions: ["Curl it."],
           imageUrls: [],
+          videoUrl: null,
           isArchived: false,
           createdAt: now,
           updatedAt: now,
@@ -217,7 +218,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
     );
   });
 
-  it("round-trips a program's duration and a DPR block with its lifts", async () => {
+  it("round-trips a program's duration and a PRP block with its lifts", async () => {
     const { cursor: cursorBefore } = await (await pull(0)).json();
     const catalog = (await (await pull(0)).json()).changes.exercises;
     const exerciseId = catalog[0].id as string;

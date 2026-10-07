@@ -1,16 +1,18 @@
 "use client";
 
+import type { RoutineIconColor } from "@jim/core";
 import { type AnimationEvent, type ReactNode, useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   /** Id of the card's heading, for aria-labelledby. */
   labelledBy: string;
   onClose: () => void;
   /**
-   * "bottom" anchors the card to the bottom of the screen, as a sheet, so
-   * its main action is in thumb reach (the pre-workout sheet, issue #333).
+   * A routine icon color to glow under the card when the frosted glass card
+   * style is on (globals.css `.tinted-card`, issue #374).
    */
-  placement?: "center" | "bottom";
+  tint?: RoutineIconColor;
   /** Gets `close`, which plays the exit fade before calling onClose. */
   children: (close: () => void) => ReactNode;
 }
@@ -19,8 +21,12 @@ interface Props {
  * A card floating centered over the blurred page (issue #278): the shell of
  * the pre-workout sheet and the DPR details card (issue #284). Tapping the
  * backdrop or pressing Escape closes it.
+ *
+ * Portaled to <body> so it never depends on where it's rendered from: the DPR
+ * card opened from a routine row was trapped under the rows after it, which
+ * painted straight through the card (docs/PWA.md §4, issue #387).
  */
-export function FloatingCard({ labelledBy, onClose, placement = "center", children }: Props) {
+export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
   // Closing plays the exit fade (globals.css .sheet-backdrop) before handing
   // control back; reduced motion skips straight to onClose, since no
   // animationend would ever fire.
@@ -61,7 +67,13 @@ export function FloatingCard({ labelledBy, onClose, placement = "center", childr
     };
   }, []);
 
-  return (
+  // Portals need the DOM, so the card appears once mounted (it's only ever
+  // opened by a tap or a client-side route, so there's no visible delay).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return createPortal(
     // z-20: a full-screen overlay, above the tab bar and in-flow chrome
     // (docs/PWA.md §4). Only shown from the Workout tab, never alongside
     // FocusView or the exercise picker. The card floats centered, inset from
@@ -69,9 +81,7 @@ export function FloatingCard({ labelledBy, onClose, placement = "center", childr
     <div
       data-closing={closing}
       onAnimationEnd={handleAnimationEnd}
-      className={`sheet-backdrop fixed inset-0 z-20 flex justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm ${
-        placement === "bottom" ? "items-end" : "items-center"
-      }`}
+      className="sheet-backdrop fixed inset-0 z-20 flex items-center justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm"
       style={{
         paddingTop: "max(16px, env(safe-area-inset-top))",
         paddingBottom: "max(16px, env(safe-area-inset-bottom))",
@@ -88,10 +98,14 @@ export function FloatingCard({ labelledBy, onClose, placement = "center", childr
       />
       <section
         aria-labelledby={labelledBy}
-        className="sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+        data-tint={tint}
+        className={`sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 ${
+          tint ? "tinted-card" : ""
+        }`}
       >
         {children(requestClose)}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

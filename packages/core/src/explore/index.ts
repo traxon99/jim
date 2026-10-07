@@ -1,4 +1,4 @@
 export * from "./catalog";
 export * from "./curated-exercises";
-export * from "./maddys-split";
+export * from "./programs";
 export * from "./templates";

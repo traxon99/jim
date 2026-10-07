@@ -3,8 +3,7 @@ import { type FocusExerciseCandidate, isFocusExerciseComplete } from "./focus-ex
 /**
  * How many of an exercise's planned sets are still unlogged: the rows the
  * routine's target or last time's workout calls for (at least one), minus
- * the indices already logged. Unlike `plannedSetIndices`, this never grows
- * an extra row once the plan is done — zero means the plan is finished.
+ * the indices already logged — zero means the plan is finished.
  */
 export function remainingPlannedSetCount(
   targetSetCount: number | null,

@@ -4,7 +4,6 @@ import {
   type DprSet,
   decideNextWeight,
   decisionLog,
-  dprStateKey,
   resolveRepRange,
   sessionsForKey,
 } from "../decide";
@@ -106,7 +105,7 @@ describe("decideNextWeight — misses and deloads", () => {
   });
 
   it("resets the miss streak once the weight changes", () => {
-    const sessions = [s3(28, 180, 5), s3(25, 200, 5), s3(22, 200, 5)];
+    const sessions = [s3(28, 195, 5), s3(25, 200, 5), s3(22, 200, 5)];
     const d = decide(sessions);
     expect(d.call).toBe("hold");
     expect(d.streak).toBe(1);
@@ -147,13 +146,13 @@ describe("decideNextWeight — RPE and set kinds", () => {
 
   it("is insufficient when no session has RPE, using the last weight", () => {
     const d = decide([s3(28, 185, 8, null)], "moderate", { fallbackWeight: 135 });
-    expect(d).toMatchObject({ call: "insufficient", weight: 185, reason: "Add RPE for DPR" });
+    expect(d).toMatchObject({ call: "insufficient", weight: 185, reason: "Add RPE for PRP" });
   });
 
   it("skips a session missing RPE and decides from the last eligible one", () => {
     const d = decide([s3(28, 185, 8, null), s3(25, 185, 8, 7)]);
     expect(d.call).toBe("increase");
-    expect(d.reason).toContain("Add RPE for DPR");
+    expect(d.reason).toContain("Add RPE for PRP");
   });
 
   it("treats one missing RPE as making the whole session ineligible", () => {
@@ -173,9 +172,112 @@ describe("decideNextWeight — RPE and set kinds", () => {
   });
 
   it("learns from an overridden weight", () => {
-    // DPR suggested 190 but the user did 195 and hit it.
-    const d = decide([s3(28, 195, 8), s3(25, 185, 8)]);
+    // DPR suggested 190 but the user did 195 and hit it, near the RPE cap.
+    const d = decide([s3(28, 195, 8, 7.5), s3(25, 185, 8)]);
     expect(d.weight).toBe(200);
+  });
+});
+
+describe("decideNextWeight — ramped sets (issue #385)", () => {
+  /** Two lead-in sets building to `top`. */
+  function ramped(n: number, top: number, reps: number, rpe: number | null = 7.5): DprSession {
+    return session(n, [
+      working(top - 20, reps, rpe === null ? null : rpe - 1.5),
+      working(top - 10, reps, rpe === null ? null : rpe - 1),
+      working(top, reps, rpe),
+    ]);
+  }
+
+  it("judges a ramped session by its top set", () => {
+    const d = decide([ramped(28, 190, 8, 7.5)]);
+    expect(d).toMatchObject({ call: "increase", weight: 195, previousWeight: 190 });
+    expect(d.reason).toBe("Hit 1×8 @ 190, RPE 7.5");
+  });
+
+  it("doesn't let easy lead-in sets carry a hard top set", () => {
+    expect(decide([ramped(28, 190, 8, 8.5)]).call).toBe("hold");
+  });
+
+  it("only needs RPE on the top sets", () => {
+    const s = session(28, [working(170, 8, null), working(180, 8, null), working(190, 8, 7)]);
+    expect(decide([s]).call).toBe("increase");
+  });
+
+  it("counts a missed top set, not lighter lead-ins hitting their reps", () => {
+    const sessions = [ramped(28, 200, 5, 8), ramped(25, 200, 5, 8), ramped(22, 200, 5, 8)];
+    expect(decide(sessions).call).toBe("deload");
+  });
+});
+
+describe("decideNextWeight — RPE sanity check (issue #385)", () => {
+  // 185 × 8 @ RPE 8.5 is a steady ~243 e1RM, just over moderate's cap.
+  const history = [s3(19, 185, 8, 8.5), s3(16, 185, 8, 8.5), s3(13, 185, 8, 8.5)];
+
+  it("judges a too-low RPE at what history expects", () => {
+    const d = decide([s3(28, 185, 8, 4), ...history]);
+    expect(d.call).toBe("hold");
+    expect(d.reason).toContain("RPE 4 looks low for this load, judged as 8.5");
+  });
+
+  it("still takes a plausible easier session at its word", () => {
+    expect(decide([s3(28, 185, 8, 7), ...history]).call).toBe("increase");
+  });
+
+  it("doesn't count a too-high RPE as a miss or toward a deload", () => {
+    const d = decide([s3(28, 185, 6, 10), s3(25, 185, 5, 9.5), ...history], "conservative");
+    expect(d.call).toBe("hold");
+    expect(d.reason).toContain("RPE looks high vs your history");
+    expect(d.streak).toBe(0);
+  });
+
+  it("accepts a new normal once it repeats", () => {
+    const bad = [s3(31, 185, 5, 10), s3(28, 185, 5, 10), s3(25, 185, 5, 10)];
+    // Two off sessions in a row move the baseline, so the third is a real miss…
+    expect(decide([...bad, ...history], "conservative", { now: day(32) })).toMatchObject({
+      call: "hold",
+      streak: 1,
+    });
+    // …and the fourth makes it two in a row.
+    expect(
+      decide([s3(34, 185, 5, 10), ...bad, ...history], "conservative", { now: day(35) }).call,
+    ).toBe("deload");
+  });
+
+  it("needs two earlier sessions before second-guessing an RPE", () => {
+    expect(decide([s3(28, 185, 8, 4), s3(25, 185, 8, 8)]).call).toBe("increase");
+  });
+});
+
+describe("decideNextWeight — outperforming PRP (issue #385)", () => {
+  it("programs from the session when the user beats PRP's weight at a low RPE", () => {
+    // DPR suggested 190 off 185 × 8; the user did 205 × 8 @ RPE 6.
+    const d = decide([s3(28, 205, 8, 6), s3(25, 185, 8, 7.5)]);
+    expect(d.call).toBe("increase");
+    // e1RM 287 → 6 reps @ RPE 8 ≈ 226, capped at +10% of 205 → 225.
+    expect(d.weight).toBe(225);
+    expect(d.previousWeight).toBe(205);
+    expect(d.reason).toBe("Beat PRP's 190 with 3×8 @ RPE 6 — stronger than your history shows");
+  });
+
+  it("counts reps past the top of the range at PRP's weight", () => {
+    const d = decide([s3(28, 190, 12, 6), s3(25, 185, 8, 7.5)]);
+    expect(d.reason).toContain("Beat PRP's 190");
+    expect(d.weight).toBeGreaterThan(195);
+  });
+
+  it("skips the conservative preset's second qualifying session", () => {
+    const d = decide([s3(28, 195, 8, 6), s3(25, 185, 8, 7)], "conservative");
+    expect(d.call).toBe("increase");
+    expect(d.weight).toBeGreaterThan(197.5);
+  });
+
+  it("stays a normal call when the RPE isn't low", () => {
+    const d = decide([s3(28, 205, 8, 7.5), s3(25, 185, 8, 7.5)]);
+    expect(d).toMatchObject({ call: "increase", weight: 210 });
+  });
+
+  it("needs history to beat", () => {
+    expect(decide([s3(28, 205, 8, 5)]).weight).toBe(210);
   });
 });
 
@@ -240,7 +342,6 @@ describe("per-range isolation", () => {
         now: day(30),
       }),
     ).toMatchObject({ call: "hold", weight: 165 });
-    expect(dprStateKey("bench", heavy)).not.toBe(dprStateKey("bench", volume));
   });
 });
 

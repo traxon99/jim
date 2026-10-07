@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { LoadingText } from "@/components/loading-text";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import {
   preferencesAction,
@@ -10,6 +11,7 @@ import {
   supersetMemberIds,
 } from "@/components/supersets/superset-actions";
 import { SupersetPickerCard } from "@/components/supersets/superset-picker-card";
+import { CardioExerciseSection } from "@/components/workout/cardio-exercise-section";
 import { primeRestAlertAudio } from "@/lib/audio/rest-alert";
 import { mutate } from "@/lib/db/mutate";
 import {
@@ -19,9 +21,12 @@ import {
   type SetRow,
   db,
 } from "@/lib/db/schema";
-import { dprCallFor } from "@/lib/dpr/calls";
+import { dprCallFor, dprVolumeSets } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { ruleCallFor, ruleOf } from "@/lib/progression/calls";
+import { useRuleSnapshot } from "@/lib/progression/use-rule-snapshot";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
+import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -30,6 +35,7 @@ import {
   type PaceExercise,
   type SupersetChange,
   formSuperset,
+  isCardioExercise,
   isFocusExerciseComplete,
   isLastRemainingSet,
   isWarmupComplete,
@@ -64,7 +70,7 @@ import { WarmupExerciseSection } from "./warmup-exercise-section";
  */
 function plannedSetCountFor(
   item: SessionExerciseRow,
-  target: RoutineExerciseRow | undefined,
+  target: Pick<RoutineExerciseRow, "targetSets"> | undefined,
 ): number | null {
   const targetSets = target?.targetSets ?? null;
   const warmupSets = item.warmupSets ?? 0;
@@ -75,6 +81,8 @@ function plannedSetCountFor(
 export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Issue #226: an ad hoc workout's Add exercise menu suggests a few lifts.
+  const [suggestedExerciseIds, setSuggestedExerciseIds] = useState<string[]>([]);
   // The exercise whose ⋯ Replace Exercise opened the picker (issue #271).
   const [replacingId, setReplacingId] = useState<string | null>(null);
   // The exercise whose Create/Edit Superset card is open (issue #360).
@@ -157,6 +165,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
     return map;
   }, [rawRoutineExercises]);
+  const hasRules = useMemo(
+    () => [...targetByExerciseId.values()].some((item) => ruleOf(item) !== null),
+    [targetByExerciseId],
+  );
+  const ruleSnapshot = useRuleSnapshot(hasRules, dprContext?.snapshot ?? null);
 
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
   const idsKey = sessionExerciseIds.join(",");
@@ -185,16 +198,44 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     [setCompletedAtBySessionExerciseId],
   );
 
-  const focusCandidates = useMemo<FocusViewExercise[]>(
-    () =>
-      sessionExercises.map((se) => ({
+  const workingSetCountBySessionExerciseId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const set of resolveCurrentRows(rawSets ?? [])) {
+      if (set.deletedAt || set.kind === "warmup") continue;
+      map.set(set.sessionExerciseId, (map.get(set.sessionExerciseId) ?? 0) + 1);
+    }
+    return map;
+  }, [rawSets]);
+
+  // A main exercise is done once its working sets are: warm-up sets, from
+  // the ⋯ menu or a set switched to one, ride on top of the routine's
+  // target rather than counting toward it. A warm-up block's exercises log
+  // nothing but warm-ups, so there every set counts.
+  const focusCandidates = useMemo<FocusViewExercise[]>(() => {
+    const warmupIds = new Set(warmupItems.map((se) => se.id));
+    return sessionExercises.map((se) => {
+      const target = targetByExerciseId.get(se.exerciseId);
+      const isWarmupItem = warmupIds.has(se.id);
+      return {
         id: se.id,
         name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
-        loggedSetCount: setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0,
-        targetSetCount: plannedSetCountFor(se, targetByExerciseId.get(se.exerciseId)),
-      })),
-    [sessionExercises, exerciseById, setCompletedAtBySessionExerciseId, targetByExerciseId],
-  );
+        loggedSetCount: isWarmupItem
+          ? (setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0)
+          : (workingSetCountBySessionExerciseId.get(se.id) ?? 0),
+        targetSetCount: isWarmupItem
+          ? plannedSetCountFor(se, target)
+          : (dprVolumeSets(dprContext, se.exerciseId, target) ?? target?.targetSets ?? null),
+      };
+    });
+  }, [
+    sessionExercises,
+    warmupItems,
+    exerciseById,
+    setCompletedAtBySessionExerciseId,
+    workingSetCountBySessionExerciseId,
+    targetByExerciseId,
+    dprContext,
+  ]);
 
   // Issue #232: once every planned set is logged the lifter is at the bottom
   // of the page, so Finish is offered there too. Warm-ups don't count, same
@@ -227,13 +268,23 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     () =>
       mainItems.map((se) => {
         const target = targetByExerciseId.get(se.exerciseId);
+        const volumeSets = dprVolumeSets(dprContext, se.exerciseId, target);
         return {
-          targetSetCount: plannedSetCountFor(se, target),
+          targetSetCount: plannedSetCountFor(
+            se,
+            volumeSets === null ? target : { targetSets: volumeSets },
+          ),
           restSeconds: se.restSeconds ?? target?.targetRestSeconds ?? defaultRestSeconds,
           setCompletedAt: setCompletedAtBySessionExerciseId.get(se.id) ?? [],
         };
       }),
-    [mainItems, targetByExerciseId, setCompletedAtBySessionExerciseId, defaultRestSeconds],
+    [
+      mainItems,
+      targetByExerciseId,
+      setCompletedAtBySessionExerciseId,
+      defaultRestSeconds,
+      dprContext,
+    ],
   );
 
   // Issue #231: no rest after the workout's final set — there's no next set
@@ -424,7 +475,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   if (session === undefined || rawSessionExercises === undefined || notFound) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -434,6 +485,14 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   }
 
   const excludeExerciseIds = new Set(sessionExercises.map((se) => se.exerciseId));
+
+  function openPicker() {
+    setSuggestedExerciseIds([]);
+    setPickerOpen(true);
+    // Only ad hoc workouts: a routine already says what to do.
+    if (session?.routineId) return;
+    void suggestExercisesFromDb(userId, [...excludeExerciseIds]).then(setSuggestedExerciseIds);
+  }
 
   function hasLogged(itemId: string) {
     return (setCompletedAtBySessionExerciseId.get(itemId)?.length ?? 0) > 0;
@@ -458,6 +517,33 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         />
       );
     }
+    if (exercise && isCardioExercise(exercise)) {
+      return (
+        <CardioExerciseSection
+          key={item.id}
+          userId={userId}
+          item={item}
+          exercise={exercise}
+          target={target}
+          settings={settings}
+          large={large}
+          onSetLogged={(restSeconds, remainingPlannedSets) =>
+            handleSetLogged(item.id, restSeconds, remainingPlannedSets)
+          }
+          actions={[
+            ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
+            ...supersetActions(
+              mainItems,
+              mainItems.findIndex((se) => se.id === item.id),
+              (changes) => void applySupersetChanges(changes),
+              () => setSupersetFromId(item.id),
+            ),
+            preferencesAction(item.exerciseId, router.push),
+            removeExerciseAction(() => void handleRemoveExercise(item.id)),
+          ]}
+        />
+      );
+    }
     return (
       <SessionExerciseSection
         key={item.id}
@@ -469,6 +555,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         settings={settings}
         dpr={
           dprContext ? dprCallFor(dprContext, item.exerciseId, target, session?.intensity) : null
+        }
+        volumeSets={dprVolumeSets(dprContext, item.exerciseId, target)}
+        rule={
+          ruleSnapshot
+            ? ruleCallFor({
+                snapshot: ruleSnapshot,
+                exerciseId: item.exerciseId,
+                target,
+                exercise,
+                settings,
+              })
+            : null
         }
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}
@@ -651,7 +749,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
       <button
         type="button"
-        onClick={() => setPickerOpen(true)}
+        onClick={openPicker}
         className="min-h-11 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
       >
         Add exercise
@@ -681,6 +779,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         <ExercisePicker
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
+          suggestedExerciseIds={suggestedExerciseIds}
           onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
           onClose={() => setPickerOpen(false)}
         />

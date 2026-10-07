@@ -20,7 +20,7 @@ export function setKindLabel(kind: string): string {
 }
 
 /** What a warm-up set shows in place of a set number (issue #220). */
-export const WARMUP_SET_LABEL = "W";
+const WARMUP_SET_LABEL = "W";
 
 /**
  * The label each set shows in its Set column, in display order (issue #220):
@@ -34,4 +34,17 @@ export function setNumberLabels(kinds: readonly string[]): string[] {
     number += 1;
     return String(number);
   });
+}
+
+/**
+ * Set indices whose current row is a deleted warm-up (issue #438). Those
+ * indices aren't planned again as fresh warm-up rows: the tombstone syncs,
+ * so the deletion sticks across devices and reloads.
+ */
+export function deletedWarmupIndices(
+  currentRows: readonly { setIndex: number; kind: string; deletedAt?: Date | null }[],
+): Set<number> {
+  return new Set(
+    currentRows.filter((row) => row.deletedAt && row.kind === "warmup").map((row) => row.setIndex),
+  );
 }

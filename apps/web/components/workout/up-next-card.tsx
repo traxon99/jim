@@ -90,7 +90,8 @@ export function UpNextCard({ starting, onStart }: Props) {
     return (
       <section
         aria-label="Rest day"
-        className="flex flex-col gap-3 rounded-xl border border-accent p-4"
+        data-tint="indigo"
+        className="tinted-card flex flex-col gap-3 rounded-xl border border-accent p-4"
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -131,7 +132,8 @@ export function UpNextCard({ starting, onStart }: Props) {
   return (
     <section
       aria-label="Suggested workout"
-      className="flex flex-col gap-3 rounded-xl border border-accent p-4"
+      data-tint={routine.iconColor}
+      className="tinted-card flex flex-col gap-3 rounded-xl border border-accent p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -167,7 +169,7 @@ export function UpNextCard({ starting, onStart }: Props) {
         type="button"
         onClick={() => onStart(routine.id, routine.name)}
         disabled={starting}
-        className="min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
+        className="tinted-action min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
       >
         {next.reason === "next-scheduled" && next.doneToday
           ? "Start it now"

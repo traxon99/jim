@@ -22,11 +22,6 @@ export const ANALYSIS_RANGES: readonly {
 
 export const DEFAULT_ANALYSIS_RANGE: AnalysisRange = "12w";
 
-/** Parses an untrusted value (e.g. a `?range=` search param), falling back to the default. */
-export function parseAnalysisRange(value: unknown): AnalysisRange {
-  return ANALYSIS_RANGES.find((range) => range.id === value)?.id ?? DEFAULT_ANALYSIS_RANGE;
-}
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
@@ -95,7 +96,7 @@ export function HistoryHome() {
   if (loading) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }

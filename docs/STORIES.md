@@ -192,9 +192,10 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - Streamable HTTP transport, OAuth 2.1 via the SDK's `authProvider`
 - Personal access tokens (Settings → Connect Claude) for clients without OAuth, hashed at rest (#246)
 - User-scoped token under RLS — **no service-role key** (ADR-006)
-- Read tools: `list_workouts`, `get_workout`, `exercise_history`, `get_prs`, `volume_report`, `search_exercises`, `list_routines`, `get_routine` (#370)
-- Write tools: `create_routine`, `update_routine`, `schedule_workout`, `log_past_workout`, `upsert_exercise`, `merge_exercises`
-- Every write tool accepts `dry_run` to preview without writing; `merge_exercises` previews by default (#245)
+- Read tools: `list_workouts`, `get_workout`, `exercise_history`, `get_prs`, `volume_report`, `weekly_summary` (#409), `search_exercises`, `list_routines`, `get_routine` (#370), `get_body_measurements` (#249), `list_warmup_templates`, `list_programs`, `list_scheduled_workouts`, `get_settings` (#435)
+- Write tools: `create_routine`, `update_routine`, `schedule_workout`, `log_past_workout`, `upsert_exercise`, `merge_exercises`, plus (#435) `create_warmup`, `delete_routine`, `create_program`, `update_program`, `delete_program`, `cancel_scheduled_workout`, `delete_workout`, `log_body_measurement`, `delete_body_measurement`, `update_settings`
+- Parity rule (#435): if a user can do it in the app, it likely belongs in the MCP
+- Every write tool accepts `dry_run` to preview without writing; `merge_exercises`, `delete_routine`, `delete_program` and `delete_workout` preview by default (#245)
 - All computation via `packages/core`, so MCP numbers and phone numbers cannot drift
 - Deployed and reachable
 
@@ -234,8 +235,8 @@ Deferred from v1. Roughly grouped by what would most improve the app once the co
 **Logging depth** — supersets as a first-class UI · RPE/RIR capture · automatic warmup-set
 generation · 1RM test tracking · exercise notes and form cues
 
-**Data** — Apple Health XML importer (ADR-009) ·
-body measurements beyond bodyweight
+**Data** — nothing open: the Apple Health bodyweight importer (ADR-009) shipped in #247, and body
+measurements beyond bodyweight in #249
 
 **Programming** — program templates (5/3/1, GZCLP) · progression rules that auto-advance loads ·
 deload detection

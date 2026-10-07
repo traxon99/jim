@@ -16,12 +16,14 @@ import {
   type DprContext,
   buildDprContext,
   dprBadge,
+  dprCallCounts,
   dprCallFor,
   dprCallSummary,
   dprCallsForRoutine,
-  dprChipText,
   dprGoalLine,
   dprRepsPlaceholder,
+  dprVolumeLine,
+  dprVolumeSets,
   dprWeightPlaceholder,
   dprWhyLine,
   needsRpeNudge,
@@ -130,6 +132,7 @@ const block: DprBlockRow = {
   status: "active",
   aggressiveness: "moderate",
   experience: "intermediate",
+  volumeMode: false,
   programId: null,
   createdAt: daysAgo(20),
   updatedAt: daysAgo(20),
@@ -177,11 +180,11 @@ function target(exerciseId: string, position: number): RoutineExerciseRow {
   } as RoutineExerciseRow;
 }
 
-describe("in-session DPR (issue #212)", () => {
-  it("prefills a focused lift's working sets with DPR's weight and the bottom of the range", async () => {
+describe("in-session PRP (issue #212)", () => {
+  it("prefills a focused lift's working sets with PRP's weight and the bottom of the range", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();
-    if (!ctx) throw new Error("expected a DPR context");
+    if (!ctx) throw new Error("expected a PRP context");
 
     const info = dprCallFor(ctx, BENCH, target(BENCH, 0));
     expect(info?.decision.call).toBe("increase");
@@ -191,7 +194,34 @@ describe("in-session DPR (issue #212)", () => {
     expect(dprWeightPlaceholder(info, "warmup")).toBeNull();
   });
 
-  it("logs the DPR weight for a blank field, and the typed weight for an override", async () => {
+  it("gives no PRP call to a lift the routine gives a custom rule (issue #255)", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await context();
+    if (!ctx) throw new Error("expected a PRP context");
+
+    const withRule = {
+      ...target(BENCH, 0),
+      progressionRule: { type: "linear" as const, increment: 5 },
+    };
+    expect(dprCallFor(ctx, BENCH, withRule)).toBeNull();
+    expect(dprCallsForRoutine(ctx, [withRule])).toEqual([]);
+  });
+
+  it("ramps the working sets up to PRP's weight as the top set (issue #385)", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await context();
+    if (!ctx) throw new Error("expected a PRP context");
+
+    const info = dprCallFor(ctx, BENCH, target(BENCH, 0));
+    const weights = [0, 1, 2].map((ordinal) =>
+      dprWeightPlaceholder(info, "working", { ordinal, count: 3 }),
+    );
+    expect(weights).toEqual(["170", "180", "190"]);
+    // A set added past the plan stays at the top weight.
+    expect(dprWeightPlaceholder(info, "working", { ordinal: 3, count: 3 })).toBe("190");
+  });
+
+  it("logs the PRP weight for a blank field, and the typed weight for an override", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();
     const info = ctx && dprCallFor(ctx, BENCH, target(BENCH, 0));
@@ -226,13 +256,13 @@ describe("in-session DPR (issue #212)", () => {
     const ctx = await context();
     const info = ctx && dprCallFor(ctx, BENCH, target(BENCH, 0));
     if (!info) throw new Error("expected a call");
-    expect(dprBadge(info.decision.call).symbol).toBe("↑");
-    expect(dprWhyLine(info.decision, "lb")).toBe("DPR: hit 3×8 @ RPE 7 last time → +5 lb");
+    expect(dprBadge(info.decision.call)).toMatchObject({ word: "UP", symbol: "↑" });
+    expect(dprWhyLine(info.decision, "lb")).toBe("PRP: hit 3×8 @ RPE 7 last time → +5 lb");
 
-    expect(dprBadge("hold").symbol).toBe("=");
-    expect(dprBadge("deload").symbol).toBe("↓");
-    expect(dprBadge("reenter").symbol).toBe("↓");
-    expect(dprBadge("insufficient").symbol).toBe("?");
+    expect(dprBadge("hold")).toMatchObject({ word: "STAY", symbol: "→" });
+    expect(dprBadge("deload")).toMatchObject({ word: "DOWN", symbol: "↓" });
+    expect(dprBadge("reenter")).toMatchObject({ word: "EASE", symbol: "↘" });
+    expect(dprBadge("insufficient")).toMatchObject({ word: "RPE", symbol: "?" });
   });
 
   it("explains a layoff", async () => {
@@ -240,7 +270,7 @@ describe("in-session DPR (issue #212)", () => {
     const ctx = await context();
     const info = ctx && dprCallFor(ctx, BENCH, target(BENCH, 0));
     expect(info && dprWhyLine(info.decision, "lb")).toBe(
-      "DPR: 18 days off — easing back in 5% → 190 lb",
+      "PRP: 18 days off — easing back in 5% → 190 lb",
     );
   });
 
@@ -254,7 +284,7 @@ describe("in-session DPR (issue #212)", () => {
   it("leaves non-focused lifts alone", async () => {
     await logSession(SQUAT, 3, 315, 8, 7);
     const ctx = await context();
-    if (!ctx) throw new Error("expected a DPR context");
+    if (!ctx) throw new Error("expected a PRP context");
     const info = dprCallFor(ctx, SQUAT, target(SQUAT, 0));
     expect(info).toBeNull();
     expect(dprWeightPlaceholder(info, "working")).toBeNull();
@@ -270,27 +300,21 @@ describe("in-session DPR (issue #212)", () => {
   });
 });
 
-describe("Workout tab chips (issue #213)", () => {
+describe("Routine PRP calls (issue #213)", () => {
   it("lists only focused lifts in the routine, in routine order", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     await logSession(ROW, 3, 120, 6, 9.5);
     const ctx = await context();
-    if (!ctx) throw new Error("expected a DPR context");
+    if (!ctx) throw new Error("expected a PRP context");
     const calls = dprCallsForRoutine(ctx, [target(ROW, 2), target(SQUAT, 1), target(BENCH, 0)]);
     expect(calls.map((c) => c.exerciseId)).toEqual([BENCH, ROW]);
-    expect(
-      calls.map((c) => dprChipText(ctx.exercises.get(c.exerciseId)?.name ?? "", c.decision)),
-    ).toEqual(["Bench ↑ 190", "Row = 120"]);
+    expect(calls.map((c) => [c.decision.call, c.decision.weight])).toEqual([
+      ["increase", 190],
+      ["hold", 120],
+    ]);
   });
 
-  it("shows '? add RPE' when DPR can't make a call", async () => {
-    await logSession(BENCH, 3, 185, 8, null);
-    const ctx = await context();
-    const info = ctx && dprCallFor(ctx, BENCH, target(BENCH, 0));
-    expect(info && dprChipText("OHP", info.decision)).toBe("OHP ? add RPE");
-  });
-
-  it("hides everything when DPR is off or no block is running", async () => {
+  it("hides everything when PRP is off or no block is running", async () => {
     expect(await context(false)).toBeNull();
     expect(
       buildDprContext({
@@ -308,14 +332,19 @@ describe("Workout tab chips (issue #213)", () => {
     const calls = (["hold", "increase", "increase", "light"] as const).map(
       (call) => ({ decision: { call } }) as DprCallInfo,
     );
-    expect(dprCallSummary(calls)).toBe("↑2 =1 ↓1");
+    expect(dprCallCounts(calls)).toEqual([
+      { call: "increase", count: 2 },
+      { call: "hold", count: 1 },
+      { call: "light", count: 1 },
+    ]);
+    expect(dprCallSummary(calls)).toBe("UP ↑2 STAY →1 LIGHT ↓1");
     expect(dprCallSummary([])).toBe("");
   });
 
   it("describes goal status for the chip popover", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();
-    if (!ctx) throw new Error("expected a DPR context");
+    if (!ctx) throw new Error("expected a PRP context");
     const line = dprGoalLine(ctx, BENCH);
     expect(line?.status).not.toBeNull();
     expect(line?.text).toMatch(/^(ahead|on track|behind) · e1RM \d+ → 242 by /);
@@ -338,7 +367,7 @@ describe("pre-workout sheet (issue #235)", () => {
   it("lists the routine in order with calls for the picked intensity", async () => {
     await logSession(BENCH, 3, 185, 8, 7);
     const ctx = await context();
-    if (!ctx) throw new Error("expected a DPR context");
+    if (!ctx) throw new Error("expected a PRP context");
     const items = [
       { ...target(SQUAT, 1), id: "b", targetSets: 3 },
       { ...target(BENCH, 0), id: "a", targetSets: 3 },
@@ -362,7 +391,7 @@ describe("pre-workout sheet (issue #235)", () => {
     });
   });
 
-  it("lists a routine without DPR calls when DPR is off (issue #282)", () => {
+  it("lists a routine without PRP calls when PRP is off (issue #282)", () => {
     const items = [
       { ...target(SQUAT, 1), id: "b", targetSets: 3 },
       { ...target(BENCH, 0), id: "a", targetSets: 3 },
@@ -375,7 +404,7 @@ describe("pre-workout sheet (issue #235)", () => {
   });
 
   it("has a badge and why line for a light call", () => {
-    expect(dprBadge("light").label).toBe("DPR: light day");
+    expect(dprBadge("light").label).toBe("PRP: light day");
     expect(
       dprWhyLine(
         {
@@ -388,6 +417,69 @@ describe("pre-workout sheet (issue #235)", () => {
         },
         "lb",
       ),
-    ).toBe("DPR: light day — 165 instead of 185");
+    ).toBe("PRP: light day — 165 instead of 185");
+  });
+});
+
+describe("mesocycle mode (issue #250)", () => {
+  const chestBench = {
+    ...exercise(BENCH, "Bench", "barbell"),
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["triceps"],
+  } as ExerciseRow;
+  const working = (count: number) =>
+    Array.from({ length: count }, () => ({
+      kind: "working" as const,
+      weight: 100,
+      reps: 8,
+      rpe: 7,
+    }));
+  // A block started 8 days ago: 6 chest sets the week before, then 6 at an
+  // easy RPE in week 1, so week 2 plans 8.
+  const volumeBlock: DprBlockRow = { ...block, startedAt: daysAgo(8), volumeMode: true };
+  const snapshot = {
+    history: [daysAgo(12), daysAgo(6)].map((date) => ({
+      exerciseId: BENCH,
+      repRange: { low: 6, high: 8 },
+      date,
+      sets: working(6),
+    })),
+    routineRanges: [],
+    usageRows: [],
+    firstSessionAt: daysAgo(12),
+    completedSessionCount: 2,
+  };
+  const build = (b: DprBlockRow) =>
+    buildDprContext({
+      settings: { ...DEFAULT_SETTINGS, dprEnabled: true },
+      blocks: [b],
+      lifts: [],
+      exercises: [chestBench],
+      snapshot,
+      now: new Date(),
+    });
+
+  it("scales a routine's sets by the muscle's weekly plan", () => {
+    const ctx = build(volumeBlock);
+    expect(ctx?.volume?.get("chest")?.current).toMatchObject({ week: 2, planned: 8 });
+    expect(dprVolumeSets(ctx, BENCH, { targetSets: 3 })).toBe(4);
+    expect(dprVolumeLine(4, 3)).toBe("PRP volume: 4 sets this week (routine: 3)");
+  });
+
+  it("leaves set counts alone with the mode off or no routine count", () => {
+    const off = build({ ...volumeBlock, volumeMode: false });
+    expect(off?.volume).toBeNull();
+    expect(dprVolumeSets(off, BENCH, { targetSets: 3 })).toBeNull();
+    expect(dprVolumeSets(build(volumeBlock), BENCH, { targetSets: null })).toBeNull();
+    expect(dprVolumeSets(null, BENCH, { targetSets: 3 })).toBeNull();
+  });
+
+  it("leaves an exercise with its own progression rule (issue #255) alone", () => {
+    expect(
+      dprVolumeSets(build(volumeBlock), BENCH, {
+        targetSets: 3,
+        progressionRule: { type: "linear", increment: 5 },
+      } as RoutineExerciseRow),
+    ).toBeNull();
   });
 });

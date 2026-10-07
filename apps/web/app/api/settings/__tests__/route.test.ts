@@ -52,6 +52,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "system",
       accentColor: "zinc",
       fontFamily: "sans",
+      cardStyle: "plain",
       showPaceTracker: true,
       sex: null,
       birthdate: null,
@@ -91,6 +92,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("rejects an invalid card style", async () => {
+    const response = await patch({ cardStyle: "neon" });
+    expect(response.status).toBe(400);
+  });
+
   it("rejects a non-boolean pace tracker toggle", async () => {
     const response = await patch({ showPaceTracker: "no" });
     expect(response.status).toBe(400);
@@ -116,7 +122,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ bodyweight: 0 })).status).toBe(400);
   });
 
-  it("rejects invalid DPR settings", async () => {
+  it("rejects invalid PRP settings", async () => {
     expect((await patch({ dprEnabled: "yes" })).status).toBe(400);
     expect((await patch({ dprAggressiveness: "reckless" })).status).toBe(400);
     expect((await patch({ dprExperience: "elite" })).status).toBe(400);
@@ -127,7 +133,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ dprPromptDismissedAt: "soon" })).status).toBe(400);
   });
 
-  it("round-trips every DPR setting", async () => {
+  it("round-trips every PRP setting", async () => {
     const dismissedAt = "2026-09-20T12:00:00.000Z";
     const fields = {
       dprEnabled: true,
@@ -156,6 +162,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       colorScheme: "dark",
       accentColor: "blue",
       fontFamily: "serif",
+      cardStyle: "glass",
       showPaceTracker: false,
       sex: "female",
       birthdate: "1990-06-15",
@@ -169,6 +176,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(body.colorScheme).toBe("dark");
     expect(body.accentColor).toBe("blue");
     expect(body.fontFamily).toBe("serif");
+    expect(body.cardStyle).toBe("glass");
     expect(body.showPaceTracker).toBe(false);
     expect(body.sex).toBe("female");
     expect(body.birthdate).toBe("1990-06-15");
@@ -180,6 +188,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.colorScheme).toBe("dark");
     expect(again.accentColor).toBe("blue");
     expect(again.fontFamily).toBe("serif");
+    expect(again.cardStyle).toBe("glass");
     expect(again.showPaceTracker).toBe(false);
     expect(again.sex).toBe("female");
     expect(again.birthdate).toBe("1990-06-15");

@@ -76,6 +76,10 @@ default branch, named for the feature (`feat/<short-slug>`, matching whatever co
 
 ## 4. Implement
 
+**First, read `docs/LESSONS.md` in full** — every run, not just the first. It's the ledger of bugs
+that already shipped and the pre-ship checklist that prevents them, and it changes as fixes land.
+Keep its checklist in mind while building, not only at the end.
+
 Build the feature. Standard engineering judgment applies here — same as any other task: keep the
 diff scoped to what was asked, follow the patterns already in the surrounding code (this repo's
 `AGENTS.md`/`CLAUDE.md` and `docs/ARCHITECTURE.md`/`docs/DECISIONS.md` explain the load-bearing
@@ -83,7 +87,24 @@ conventions — local-first IndexedDB, append-only sets, foreground-driven sync 
 and add or update tests where the change touches logic worth locking down (`packages/core`,
 `lib/sync`, `lib/db`, `lib/history` all have existing test suites to extend as a model).
 
+**Keep the MCP server at parity with the app.** If a user can do something in the app, it likely
+belongs in the MCP server (`apps/mcp`) too, so Claude can do it for them. When this run adds or
+changes something a user can do (create, edit, delete, log or configure), add or update the
+matching MCP tool in the same PR: a read tool for anything new to look at, a write tool with
+`dry_run` for anything new to change (defaulting `dry_run` to true for deletes and other
+hard-to-undo actions), registered in `apps/mcp/src/server.ts`, covered by a test under
+`apps/mcp/src/tools/__tests__/`, and listed in `docs/STORIES.md` S8. If you're unsure whether a
+feature belongs in the MCP (for example it publishes to other people, or only makes sense on the
+phone, like the rest timer), ask the user in the chat instead of guessing, and keep building the
+rest while you wait.
+
 ## 5. Verify locally
+
+Go through the `docs/LESSONS.md` pre-ship checklist against your actual diff, item by item for
+everything it touches, and fix what it catches. **If this run fixes a bug, add a row to the top of
+that file's ledger** (issue/PR, what broke, cause, rule), and add the rule to the checklist (and to
+`docs/PWA.md` for layout/iOS lessons) if it isn't covered yet. That's how the next run avoids
+shipping the same bug.
 
 Before anything gets pushed, run what CI would run so a red check is a surprise, not the
 expected outcome:
@@ -126,7 +147,8 @@ bumps) — everything else updates it.
 
 Commit, push, and open the PR. Check for a PR template first (per the harness's standing PR
 instructions) and populate it; if there's none, structure the body as Summary / Verification. This
-is also where the documentation from step 6 lands — embed the written verification summary (and a
+is also where the documentation from step 6 lands (tick the template's "Lessons check" boxes
+only for what you actually checked) — embed the written verification summary (and a
 screenshot, if one was taken) in the body, don't leave it only in chat.
 
 Reference the tracking issue with a closing keyword — **`Fixes #NN`** (`Closes #NN` / `Resolves #NN`

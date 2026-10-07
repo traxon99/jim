@@ -117,8 +117,11 @@ An `absolute` popup anchored near the edge of the screen extends past the viewpo
 scroll container's bounds (#167, #168). The pattern now:
 
 - **Open away from the nearest edge.** `SetKindMenu` sits at the left of the row and anchors
-  `left-0`. `RpeInfoMenu` and the ⋯ `ExerciseActionsMenu` sit near the right and anchor
-  `right-0`, so they open leftward (#183, #184, #269).
+  `left-0`. the ⋯ `ExerciseActionsMenu` sits near the right and anchors
+  `right-0`, so it opens leftward (#184, #269). `RpeInfoMenu` was cut off on the left that way
+  (#410), so its menu is centered in the exercise card instead: the card `<section>` is
+  `relative`, nothing between it and the menu is positioned, and the menu uses
+  `left-1/2 -translate-x-1/2` with no `top`, so it stays just under its trigger (#412).
 - **Cap its size to the viewport:** `max-w-[calc(100vw-2rem)]`, plus
   `max-h-[calc(100vh-2rem)] overflow-y-auto` if it can be tall.
 - A `fixed`, viewport-centered overlay with a backdrop can never affect scroll bounds, so use one
@@ -145,8 +148,18 @@ The current scale:
 | z | What |
 |---|---|
 | `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `RpeInfoMenu`, `ExerciseActionsMenu` |
-| `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together) |
+| `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together), `FloatingCard` (portaled to `<body>`) |
 | `z-50` | Boot `LoadingScreen` (above everything) |
+
+**A z-index only competes inside its stacking context, and `fixed` doesn't escape it.** The DPR
+details card (`FloatingCard`, `fixed inset-0 z-20`) was rendered from inside a routine row in the
+Workout tab's list, so the rows after it, their play buttons and DPR badges painted straight through
+the card and its blur on iPhone (#387). Every button carries `position: relative; overflow: hidden`
+for the tap ripple (§7), and the tabs live inside the shell's own scroller, so an overlay rendered
+deep in a list is at the mercy of whatever its ancestors and later siblings do. The rule: **any
+overlay that can be opened from inside a list row, card or other in-flow component renders through
+`createPortal(..., document.body)`**, like `FloatingCard` now does. Reuse `FloatingCard` rather than
+hand-rolling another `fixed inset-0` div; if you must, portal it.
 
 A new full-screen overlay goes at `z-20` or above. Add a comment next to the class saying what it
 has to beat and why, like `exercise-picker.tsx` does. Then open it over every screen it can
@@ -242,6 +255,13 @@ the exact same in-memory JS, React state included, indefinitely.
 - **Timers:** never count with `setInterval`. Store an absolute end time and recompute it on
   resume. Anything that must happen while backgrounded (the rest-timer alert) is a server-sent
   Web Push, because the page's JS isn't running then (ARCHITECTURE constraint 4, ADR-014).
+- **The boot splash waits for everything** (`lib/boot/gate.ts`). On a full page load,
+  `LoadingScreen` stays up until the window has loaded, fonts and images are in, every boot task has
+  settled and the DOM has gone quiet; a 15s backstop lifts it if something hangs. Every IndexedDB
+  query counts as a boot task automatically (`lib/boot/dexie-boot-middleware.ts`). A new loading
+  state that waits on the network should render `LoadingText` or call `useBootTask(pending)`, or
+  the app can be revealed with it still loading. The gate latches: later loading never brings the
+  splash back. A cold open (first load of a session, `lib/boot/cold-open.ts`) plays the intro.
 - **Wake lock:** Safari releases it whenever the page is hidden, so `lib/wake-lock.ts` requests it
   again on every `visibilitychange` back to visible.
 - **No Background Sync on iOS.** Sync is foreground-driven only (ARCHITECTURE constraint 1).

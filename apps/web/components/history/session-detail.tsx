@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -11,18 +12,18 @@ import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setKindLabel, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
-import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
+import { PR_KIND_LABELS } from "@/lib/workout/summary-exercises";
+import {
+  deriveUntitledSessionName,
+  distanceUnitFor,
+  formatTimedSet,
+  resolveCurrentRows,
+  summarizeSession,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-
-const PR_LABELS: Record<string, string> = {
-  "1rm": "1RM",
-  weight: "Weight",
-  volume: "Volume",
-  reps_at_weight: "Reps",
-};
 
 export function SessionDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -105,7 +106,7 @@ export function SessionDetail({ id }: { id: string }) {
   if (session === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">Loading…</p>
+        <LoadingText />
       </main>
     );
   }
@@ -234,11 +235,7 @@ export function SessionDetail({ id }: { id: string }) {
                           ? `${set.weight} × ${set.reps}`
                           : set.reps != null
                             ? `${set.reps} reps`
-                            : set.durationSeconds != null
-                              ? `${set.durationSeconds}s`
-                              : set.distance != null
-                                ? `${set.distance}`
-                                : "—"}
+                            : (formatTimedSet(set, distanceUnitFor(settings.units)) ?? "—")}
                       </span>
                       {set.kind !== "working" && set.kind !== "warmup" && (
                         <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
@@ -254,7 +251,7 @@ export function SessionDetail({ id }: { id: string }) {
                             key={kind}
                             className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
                           >
-                            PR · {PR_LABELS[kind] ?? kind}
+                            PR · {PR_KIND_LABELS[kind] ?? kind}
                           </span>
                         ))}
                       </span>

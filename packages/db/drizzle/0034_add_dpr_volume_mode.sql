@@ -1,0 +1,1 @@
+ALTER TABLE "dpr_blocks" ADD COLUMN "volume_mode" boolean DEFAULT false NOT NULL;

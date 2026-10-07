@@ -1,3 +1,5 @@
+import type { ExperienceLevel } from "../dpr/goal";
+import type { DprBlockWeeks, DprPresetName } from "../dpr/presets";
 import type { WarmupTemplate, WarmupTemplateItem } from "../warmups/templates";
 
 export interface RoutineTemplateItem extends WarmupTemplateItem {
@@ -24,9 +26,30 @@ export interface RoutineTemplate {
 }
 
 export interface ProgramTemplateDay {
-  /** 0 = Sunday .. 6 = Saturday, matching program_routines.weekday. */
-  weekday: number;
+  /**
+   * 0 = Sunday .. 6 = Saturday, matching program_routines.weekday. Null in a
+   * sequence program, where the days rotate in order instead.
+   */
+  weekday: number | null;
   routine: RoutineTemplate;
+}
+
+/** How a program template sets up Dynamic Progression when it's added (issue #243). */
+export interface ProgramTemplateDpr {
+  preset: DprPresetName;
+  weeks: DprBlockWeeks;
+  /** Catalog slugs of the lifts DPR should progress, at most DPR_MAX_FOCUS. */
+  focusSlugs: readonly string[];
+}
+
+/** What Explore's program cards show and filter on (issue #243). */
+export interface ProgramTemplateInfo {
+  level: ExperienceLevel;
+  daysPerWeek: number;
+  goal: "strength" | "hypertrophy" | "general";
+  /** One line on how the program progresses, shown on its card. */
+  progression: string;
+  dpr: ProgramTemplateDpr | null;
 }
 
 /** A program plus the routines it schedules, added together in one tap. */
@@ -34,7 +57,7 @@ export interface ProgramTemplate {
   key: string;
   name: string;
   notes: string;
-  mode: "weekly";
+  mode: "weekly" | "sequence";
   days: readonly ProgramTemplateDay[];
   /** Routines that come with the program but aren't on its schedule (e.g. an abs finisher). */
   extraRoutines: readonly RoutineTemplate[];
@@ -107,4 +130,9 @@ export function instantiateRoutineTemplate(
     items,
     missingSlugs,
   };
+}
+
+/** A program offered on Explore: a template plus what its card shows (issue #243). */
+export interface ExploreProgramTemplate extends ProgramTemplate {
+  info: ProgramTemplateInfo;
 }
