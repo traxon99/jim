@@ -54,6 +54,12 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] Sets are append-only and sync is foreground-driven (`docs/DECISIONS.md`). Don't edit rows in
       place.
 
+**Routing and the install gate**
+- [ ] Reading the URL during render? Use `usePathname`/`useSearchParams`, not `window.location`,
+      which still holds the previous page during a client-side navigation (#444).
+- [ ] Adding a page a desktop browser must reach (portal, auth)? Check it against
+      `isInstallGateExempt` in a non-installed desktop browser (#444).
+
 **Release**
 - [ ] `LATEST_RELEASE_NOTE` in `apps/web/lib/pwa/notifications.ts` describes *this* change. Every
       merge re-sends it, so a stale note goes out again (#115).
@@ -68,6 +74,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #444 | Forgot password on desktop web showed "Install Jim" and pages only loaded after a refresh | Recovery pages weren't exempt from the install gate, and the gate read `window.location.search` mid-navigation, before the URL updated | Read route state from the router (`usePathname`/`useSearchParams`), never `window.location` during render |
 | #445 | History calendar shading stayed green whatever accent color was picked | Intensity classes hard-coded `emerald-*` instead of the accent tokens | Tint themed UI with `bg-accent`/`text-accent-foreground`, never a fixed palette color |
 | #440 | PR sets pushed the set table past the card, clipping the ✓ column | The 🎉 PR marker sat inline beside the weight and widened the Weight column | Pin badges on table cells (`absolute` in a `relative` cell) so they add no column width |
 | #438 | Deleting one warm-up set brought the warm-ups back after a sync | A deleted set's index was planned again as a fresh warm-up row (`index < warmupSets`), ignoring its synced tombstone | A planned row must not reappear where a synced tombstone says the user deleted it |

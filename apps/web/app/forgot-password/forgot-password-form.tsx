@@ -6,7 +6,7 @@ import { useState } from "react";
 
 type Status = "idle" | "submitting" | "sent" | "error";
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ next }: { next: string }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -17,7 +17,10 @@ export function ForgotPasswordForm() {
 
     const supabase = createClient();
     const redirectUrl = new URL("/auth/confirm", window.location.origin);
-    redirectUrl.searchParams.set("next", "/reset-password");
+    redirectUrl.searchParams.set(
+      "next",
+      next === "/" ? "/reset-password" : `/reset-password?next=${encodeURIComponent(next)}`,
+    );
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl.toString(),
@@ -70,7 +73,10 @@ export function ForgotPasswordForm() {
         </p>
       )}
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        <Link href="/login" className="font-medium underline underline-offset-4">
+        <Link
+          href={next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+          className="font-medium underline underline-offset-4"
+        >
           Back to sign in
         </Link>
       </p>

@@ -11,6 +11,7 @@ import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Playfair_Display, Roboto } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 
 // The default ("sans") font choice (Profile > Appearance > Font).
@@ -88,7 +89,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <RippleEffect />
         <ColorSchemeEffect />
         <AppReveal>
-          <InstallGate>{children}</InstallGate>
+          {/* InstallGate reads the query string (useSearchParams), which needs a
+              Suspense boundary. It renders nothing on the server anyway. */}
+          <Suspense fallback={null}>
+            <InstallGate>{children}</InstallGate>
+          </Suspense>
         </AppReveal>
         <StatusBarScrim />
       </body>

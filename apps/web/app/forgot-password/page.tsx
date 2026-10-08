@@ -1,6 +1,10 @@
+import { safeNextPath } from "@/lib/pwa/install-gate-exempt";
 import { ForgotPasswordForm } from "./forgot-password-form";
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage(props: PageProps<"/forgot-password">) {
+  // Where to land after the reset, e.g. /portal for a desktop sign-in (#444).
+  const next = safeNextPath((await props.searchParams).next);
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
       <div>
@@ -9,7 +13,7 @@ export default function ForgotPasswordPage() {
           Enter your email and we'll send you a link to reset your password.
         </p>
       </div>
-      <ForgotPasswordForm />
+      <ForgotPasswordForm next={next} />
     </main>
   );
 }

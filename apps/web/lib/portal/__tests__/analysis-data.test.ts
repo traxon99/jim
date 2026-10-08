@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isInstallGateExempt } from "../../pwa/install-gate-exempt";
+import { isInstallGateExempt, safeNextPath } from "../../pwa/install-gate-exempt";
 import { buildPortalSets } from "../analysis-data";
 
 const COMPLETED_AT = new Date("2026-03-02T18:00:00.000Z");
@@ -80,5 +80,24 @@ describe("isInstallGateExempt", () => {
     expect(isInstallGateExempt("/login", "?next=/portalfoo")).toBe(false);
     expect(isInstallGateExempt("/portalfoo", "")).toBe(false);
     expect(isInstallGateExempt("/history", "")).toBe(false);
+  });
+
+  it("lets password recovery through from any browser (#444)", () => {
+    expect(isInstallGateExempt("/forgot-password", "")).toBe(true);
+    expect(isInstallGateExempt("/reset-password", "next=%2Fportal")).toBe(true);
+    expect(isInstallGateExempt("/auth/auth-code-error", "")).toBe(true);
+    expect(isInstallGateExempt("/forgot-passwordx", "")).toBe(false);
+  });
+});
+
+describe("safeNextPath", () => {
+  it("keeps same-origin paths and drops anything else", () => {
+    expect(safeNextPath("/portal")).toBe("/portal");
+    expect(safeNextPath("/reset-password?next=%2Fportal")).toBe("/reset-password?next=%2Fportal");
+    expect(safeNextPath(undefined)).toBe("/");
+    expect(safeNextPath(["/portal"])).toBe("/");
+    expect(safeNextPath("https://evil.example")).toBe("/");
+    expect(safeNextPath("//evil.example")).toBe("/");
+    expect(safeNextPath("/\\evil.example")).toBe("/");
   });
 });
