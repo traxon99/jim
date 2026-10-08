@@ -61,6 +61,19 @@
   --accent-foreground: #ffffff;
 }
 
+/* Pastel pink is the one exception to "one color in both schemes": the soft
+   pink that reads well on the dark background is too faint for text-accent
+   links on white, so light mode uses a slightly deeper pastel. Both carry
+   dark text, since white on pastel is unreadable. */
+:root[data-accent="pink"] {
+  --accent: #f48fb1;
+  --accent-foreground: #4a0d24;
+}
+
+:root.dark[data-accent="pink"] {
+  --accent: #f9a8d4;
+}
+
 /* Font choices (Profile > Appearance > Font, apps/web/components/profile/font-family-section.tsx).
    Applied via `data-font` on <html> (components/color-scheme-effect.tsx). "sans" (the default)
    needs no rule here — it's the plain `body` font-family below. */

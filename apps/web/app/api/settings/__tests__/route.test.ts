@@ -87,6 +87,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(response.status).toBe(400);
   });
 
+  it("accepts the pastel pink accent color", async () => {
+    const response = await patch({ accentColor: "pink" });
+    expect(response.status).toBe(200);
+    expect((await response.json()).accentColor).toBe("pink");
+  });
+
   it("rejects an invalid font family", async () => {
     const response = await patch({ fontFamily: "comic-sans" });
     expect(response.status).toBe(400);

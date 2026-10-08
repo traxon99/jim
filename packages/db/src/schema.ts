@@ -58,6 +58,7 @@ export const accentColorEnum = pgEnum("accent_color", [
   "purple",
   "orange",
   "rose",
+  "pink",
 ]);
 
 export const fontFamilyEnum = pgEnum("font_family", ["sans", "serif", "mono"]);
