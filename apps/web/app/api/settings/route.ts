@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 const UNITS = new Set(["lb", "kg"]);
 const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
-const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose"]);
+const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose", "pink"]);
 const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 const CARD_STYLES = new Set(["plain", "glass"]);
 const SEXES = new Set(["male", "female"]);
@@ -30,7 +30,7 @@ interface SettingsPayload {
   defaultRestSeconds: number;
   weekStart: number;
   colorScheme: "system" | "light" | "dark";
-  accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose";
+  accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose" | "pink";
   fontFamily: "sans" | "serif" | "mono";
   cardStyle: "plain" | "glass";
   showPaceTracker: boolean;
