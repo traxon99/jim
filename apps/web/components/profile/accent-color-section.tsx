@@ -13,6 +13,7 @@ const OPTIONS: { value: SettingsRow["accentColor"]; label: string; swatchClassNa
   { value: "purple", label: "Purple", swatchClassName: "bg-[#9333ea]" },
   { value: "orange", label: "Orange", swatchClassName: "bg-[#ea580c]" },
   { value: "rose", label: "Rose", swatchClassName: "bg-[#e11d48]" },
+  { value: "pink", label: "Pastel pink", swatchClassName: "bg-[#f48fb1] dark:bg-[#f9a8d4]" },
 ];
 
 // Same "applies immediately, no Save button" pattern as ColorSchemeSection —

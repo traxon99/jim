@@ -1,0 +1,1 @@
+ALTER TYPE "public"."accent_color" ADD VALUE 'pink';
