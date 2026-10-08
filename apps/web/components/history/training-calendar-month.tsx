@@ -8,10 +8,10 @@ const WEEKDAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 
 /** Shading from lightest to darkest, by a day's share of your biggest day's volume. */
 const INTENSITY_LEVELS = [
-  "bg-emerald-300/60 dark:bg-emerald-500/35",
-  "bg-emerald-400/60 dark:bg-emerald-500/60",
-  "bg-emerald-500/80 text-white dark:bg-emerald-500/70",
-  "bg-emerald-600 text-white dark:bg-emerald-500",
+  "bg-accent/25",
+  "bg-accent/50",
+  "bg-accent/75 text-accent-foreground",
+  "bg-accent text-accent-foreground",
 ] as const;
 
 function intensityClass(volume: number, maxVolume: number): string {
