@@ -4,7 +4,7 @@ import { PORTAL_PATH, isInstallGateExempt } from "@/lib/pwa/install-gate-exempt"
 import { type InstallPlatform, detectInstallPlatform } from "@/lib/pwa/platform";
 import { STANDALONE_MEDIA_QUERY, isStandalone } from "@/lib/pwa/standalone";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type InstallState = "checking" | "installed" | "not-installed";
@@ -59,6 +59,10 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<InstallState>("checking");
   const [platform, setPlatform] = useState<InstallPlatform>("other");
   const pathname = usePathname();
+  // From the router, not window.location: during a client-side navigation
+  // this renders before the URL bar updates, so window.location.search still
+  // held the previous page's query and the gate stuck until a refresh (#444).
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const update = () => setState(isStandalone() ? "installed" : "not-installed");
@@ -72,10 +76,7 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
 
   if (state === "checking") return null;
 
-  // `window` is safe here: state only leaves "checking" after mount. Read
-  // directly rather than via useSearchParams, which would force every page
-  // under the root layout into a Suspense boundary for one param.
-  if (state === "not-installed" && isInstallGateExempt(pathname, window.location.search)) {
+  if (state === "not-installed" && isInstallGateExempt(pathname, searchParams.toString())) {
     return children;
   }
 

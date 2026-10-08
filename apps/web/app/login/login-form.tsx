@@ -75,7 +75,12 @@ export function LoginForm({ next }: { next: string }) {
         </p>
       )}
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        <Link href="/forgot-password" className="font-medium underline underline-offset-4">
+        <Link
+          href={
+            next === "/" ? "/forgot-password" : `/forgot-password?next=${encodeURIComponent(next)}`
+          }
+          className="font-medium underline underline-offset-4"
+        >
           Forgot password?
         </Link>
       </p>

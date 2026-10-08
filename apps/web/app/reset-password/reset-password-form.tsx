@@ -6,7 +6,7 @@ import { useState } from "react";
 
 type Status = "idle" | "submitting" | "error";
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ next }: { next: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,7 +33,7 @@ export function ResetPasswordForm() {
       return;
     }
 
-    router.replace("/");
+    router.replace(next);
     router.refresh();
   }
 
