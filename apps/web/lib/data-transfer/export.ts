@@ -128,8 +128,8 @@ const JSON_EXPORT_VERSION = 1;
 /**
  * Everything the user owns: workouts (with each exercise's name alongside
  * its id, since catalog exercises aren't included), routines, programs,
- * custom exercises, PRs, bodyweight, DPR blocks and settings (DPR config
- * included).
+ * custom exercises, PRs, bodyweight, DPR blocks, gyms and settings (DPR
+ * config included).
  */
 export async function buildJsonExport(database: JimDatabase = db): Promise<string> {
   const history = await loadLiveHistory(database);
@@ -142,6 +142,7 @@ export async function buildJsonExport(database: JimDatabase = db): Promise<strin
     bodyMeasurements,
     dprBlocks,
     dprBlockLifts,
+    gyms,
     settings,
   ] = await Promise.all([
     database.routines.toArray(),
@@ -152,6 +153,7 @@ export async function buildJsonExport(database: JimDatabase = db): Promise<strin
     database.bodyMeasurements.toArray(),
     database.dprBlocks.toArray(),
     database.dprBlockLifts.toArray(),
+    database.gyms.toArray(),
     database.settings.get("me"),
   ]);
   const exerciseName = new Map(history.exercises.map((exercise) => [exercise.id, exercise.name]));
@@ -186,6 +188,7 @@ export async function buildJsonExport(database: JimDatabase = db): Promise<strin
     bodyMeasurements: live(bodyMeasurements),
     dprBlocks: live(dprBlocks),
     dprBlockLifts: live(dprBlockLifts.filter((lift) => liveBlockIds.has(lift.blockId))),
+    gyms: live(gyms),
   };
   return JSON.stringify(data, null, 2);
 }

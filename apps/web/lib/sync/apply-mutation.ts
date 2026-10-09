@@ -5,6 +5,7 @@ import {
   dprBlockLifts,
   dprBlocks,
   exercises,
+  gyms,
   personalRecords,
   programRoutines,
   programs,
@@ -407,6 +408,31 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(dprBlockLifts.updatedAt, dprBlockLifts.deviceId),
+        });
+      return;
+    }
+
+    case "gyms": {
+      // createdAt kept on insert, absent from the update set (as programs).
+      const dated = normalizeDates(entity as typeof gyms.$inferInsert, SYNC_DATE_FIELDS.gyms);
+      const { serverSeq: _serverSeq, ...row } = dated;
+      await tx
+        .insert(gyms)
+        .values({ ...row, userId })
+        .onConflictDoUpdate({
+          target: gyms.id,
+          set: {
+            name: excluded(gyms.name),
+            address: excluded(gyms.address),
+            notes: excluded(gyms.notes),
+            isDefault: excluded(gyms.isDefault),
+            position: excluded(gyms.position),
+            updatedAt: excluded(gyms.updatedAt),
+            deviceId: excluded(gyms.deviceId),
+            deletedAt: excluded(gyms.deletedAt),
+            serverSeq: sql`nextval('sync_seq')`,
+          },
+          setWhere: lwwGuard(gyms.updatedAt, gyms.deviceId),
         });
       return;
     }

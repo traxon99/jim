@@ -713,6 +713,36 @@ export const bodyMeasurements = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// gyms — places the user trains (issue #451). A user-owned, last-write-wins
+// row like programs. `isDefault` marks the home gym; the app keeps at most
+// one live row flagged. Equipment details (issue #450) will hang off a gym.
+// ---------------------------------------------------------------------------
+
+export const gyms = pgTable(
+  "gyms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    address: text("address"),
+    notes: text("notes"),
+    isDefault: boolean("is_default").notNull().default(false),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("gyms", table.userId),
+    index("gyms_server_seq").on(table.serverSeq),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // scheduled_workouts — planned sessions written by the MCP server (S8's
 // `schedule_workout`). Deliberately its own table rather than a `sessions`
 // row with a future `startedAt`: the phone treats any `sessions` row with

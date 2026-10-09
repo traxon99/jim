@@ -16,6 +16,7 @@ export const SYNC_TABLES = [
   "programRoutines",
   "dprBlocks",
   "dprBlockLifts",
+  "gyms",
 ] as const;
 
 export type SyncTable = (typeof SYNC_TABLES)[number];

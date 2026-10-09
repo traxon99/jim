@@ -21,6 +21,7 @@ import { getBodyMeasurements } from "./tools/get-body-measurements.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
+import { createGym, deleteGym, listGyms, updateGym } from "./tools/gyms.js";
 import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
@@ -825,6 +826,88 @@ export function createMcpServer(context: UserContext): McpServer {
     async ({ dry_run, ...input }) => {
       try {
         return json(await deleteBodyMeasurement(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "list_gyms",
+    {
+      title: "List gyms",
+      description:
+        "Read-only. The gyms the user trains at, home gym first, with each one's address and notes.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return json(await listGyms(context));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "create_gym",
+    {
+      title: "Create gym",
+      description: `Add a gym the user trains at. The first gym becomes the home gym; pass makeHome to make a later one home.${PREVIEW_HINT}`,
+      inputSchema: {
+        name: z.string(),
+        address: z.string().optional(),
+        notes: z.string().optional(),
+        makeHome: z.boolean().optional().describe("Make this the home gym"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await createGym(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "update_gym",
+    {
+      title: "Update gym",
+      description: `Rename a gym, change its address or notes, or make it the home gym. Omitted fields stay as they are; an empty string clears address or notes.${PREVIEW_HINT}`,
+      inputSchema: {
+        gym: z.string().describe("Gym id, or its exact name"),
+        name: z.string().optional(),
+        address: z.string().optional(),
+        notes: z.string().optional(),
+        makeHome: z.boolean().optional().describe("true makes this the home gym"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await updateGym(context, { ...input, dryRun: dry_run }));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "delete_gym",
+    {
+      title: "Delete gym",
+      description:
+        "Delete a gym. If it was the home gym, the next gym becomes home. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        gym: z.string().describe("Gym id, or its exact name"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    async ({ dry_run, ...input }) => {
+      try {
+        return json(await deleteGym(context, { ...input, dryRun: dry_run }));
       } catch (error) {
         return toolError(error);
       }

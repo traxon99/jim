@@ -132,6 +132,10 @@ body_measurements  id, user_id, kind, value, unit, measured_at
                    kind: bodyweight|body_fat|neck|chest|waist|hips|arms|thighs|calves
                    unit: lb|kg|in|cm|pct (as entered; readers convert)
 
+gyms               id, user_id, name, address?, notes?, is_default, position
+                   -- places the user trains; one live row is the home gym (#451).
+                   -- equipment details (#450) will attach here
+
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 
 friendships        id, requester_id, addressee_id, status(pending|accepted),
@@ -192,6 +196,7 @@ under RLS, the same as an OAuth session.
 | `list_routines(folder?, query?)` | Every routine, logged or not, with exercise count and last performed |
 | `get_routine(routine)` | One routine's ordered exercises and targets, in the shape `update_routine` takes |
 | `get_body_measurements(kinds?, from?, to?)` | Bodyweight, body fat and circumferences over time, with latest value and change |
+| `list_gyms()` | The gyms the user trains at, home gym first |
 
 **Write tools**
 
@@ -202,6 +207,7 @@ under RLS, the same as an OAuth session.
 | `schedule_workout(routine_id, date)` | Plan a session |
 | `log_past_workout(started_at, exercises[], ...)` | Record an already-finished workout, with PRs |
 | `upsert_exercise(...)` / `merge_exercises(keep_id, merge_id)` | Catalog management |
+| `create_gym` / `update_gym` / `delete_gym` | Manage gyms and the home gym (`delete_gym` previews by default) |
 
 Writes land in Postgres and reach the phone on the next pull.
 
