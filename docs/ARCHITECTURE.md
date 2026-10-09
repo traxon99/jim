@@ -105,7 +105,9 @@ exercises          id, owner_id (NULL = global seed), name, aliases[]
                    mechanic(compound|isolation), force(push|pull|static), level,
                    tracking_type(weight_reps|time|distance|bodyweight|weighted_bodyweight),
                    category(strength|warmup),
-                   instructions[], image_urls[], is_archived
+                   instructions[], image_urls[], is_archived,
+                   machine_brand?, machine_model?, pulley_type(single|double)?,
+                   gym_id? → gyms                     -- machine details (#450)
                    -- editing a seed row clones it into a user-owned row (copy-on-write)
 
 routines           id, user_id, name, notes, position, folder,
@@ -191,7 +193,7 @@ under RLS, the same as an OAuth session.
 | `get_prs(exercise?, kind?)` | Personal records |
 | `volume_report(group_by, from, to, goal?)` | Working-set volume by muscle, exercise or week; by muscle, weekly sets checked against the strength or hypertrophy range |
 | `weekly_summary(date?, weeks?, goal?)` | One training week (or the last few): workouts, working sets and volume, per muscle against the goal's set range, and per exercise |
-| `search_exercises(query, muscles?, equipment?)` | Catalog search |
+| `search_exercises(query, muscles?, equipment?)` | Catalog search, with machine make/model, pulley and gym when set |
 | `dpr_status()` | Dynamic Progression: block, each focused lift's next call, e1RM vs goal, recent decisions |
 | `list_routines(folder?, query?)` | Every routine, logged or not, with exercise count and last performed |
 | `get_routine(routine)` | One routine's ordered exercises and targets, in the shape `update_routine` takes |
@@ -206,7 +208,7 @@ under RLS, the same as an OAuth session.
 | `update_routine(routine_id, ...)` | Amend a program |
 | `schedule_workout(routine_id, date)` | Plan a session |
 | `log_past_workout(started_at, exercises[], ...)` | Record an already-finished workout, with PRs |
-| `upsert_exercise(...)` / `merge_exercises(keep_id, merge_id)` | Catalog management |
+| `upsert_exercise(...)` / `merge_exercises(keep_id, merge_id)` | Catalog management; `upsert_exercise` also sets machine make/model, pulley type and gym (#450) |
 | `create_gym` / `update_gym` / `delete_gym` | Manage gyms and the home gym (`delete_gym` previews by default) |
 
 Writes land in Postgres and reach the phone on the next pull.

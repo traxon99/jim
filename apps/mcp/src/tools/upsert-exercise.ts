@@ -1,9 +1,11 @@
-import { applyExerciseEdit, slugify, uuidv7 } from "@jim/core";
+import { type PulleyType, applyExerciseEdit, cleanMachineText, slugify, uuidv7 } from "@jim/core";
+import type { DbOrTx } from "@jim/db";
 import { exercises } from "@jim/db";
 import { eq, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
+import { findGym } from "./gyms.js";
 import { ExerciseNotFoundError } from "./resolve-exercise.js";
 import type { ExerciseRow } from "./resolve-exercise.js";
 
@@ -21,8 +23,28 @@ export interface UpsertExerciseInput {
   trackingType?: ExerciseRow["trackingType"];
   instructions?: string[];
   isArchived?: boolean;
+  /** Machine details (issue #450). An empty string clears make or model. */
+  machineBrand?: string;
+  machineModel?: string;
+  /** "none" clears it (not a cable machine). */
+  pulleyType?: PulleyType | "none";
+  /** Gym id or exact name (issue #451); an empty string clears it. */
+  gym?: string;
   /** Preview only: run every check and return the result, then roll back (#245). */
   dryRun?: boolean;
+}
+
+async function machineEdits(tx: DbOrTx, input: UpsertExerciseInput): Promise<Partial<ExerciseRow>> {
+  return {
+    ...(input.machineBrand !== undefined && { machineBrand: cleanMachineText(input.machineBrand) }),
+    ...(input.machineModel !== undefined && { machineModel: cleanMachineText(input.machineModel) }),
+    ...(input.pulleyType !== undefined && {
+      pulleyType: input.pulleyType === "none" ? null : input.pulleyType,
+    }),
+    ...(input.gym !== undefined && {
+      gymId: input.gym.trim() === "" ? null : (await findGym(tx, input.gym)).id,
+    }),
+  };
 }
 
 export async function upsertExercise(context: UserContext, input: UpsertExerciseInput) {
@@ -49,6 +71,7 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
         trackingType: input.trackingType,
         instructions: input.instructions ?? [],
         isArchived: input.isArchived ?? false,
+        ...(await machineEdits(tx, input)),
         updatedAt: now,
         deviceId: MCP_DEVICE_ID,
       });
@@ -74,6 +97,7 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
       ...(input.trackingType !== undefined && { trackingType: input.trackingType }),
       ...(input.instructions !== undefined && { instructions: input.instructions }),
       ...(input.isArchived !== undefined && { isArchived: input.isArchived }),
+      ...(await machineEdits(tx, input)),
     };
 
     const { action, entity } = applyExerciseEdit(current, edits, context.userId, uuidv7);

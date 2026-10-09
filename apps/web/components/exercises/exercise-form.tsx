@@ -4,12 +4,18 @@ import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, db } from "@/lib/db/schema";
+import { sortGyms } from "@/lib/gyms";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type ExerciseCategory,
+  MACHINE_TEXT_MAX,
   MUSCLES,
   type Muscle,
+  PULLEY_LABELS,
+  PULLEY_TYPES,
+  type PulleyType,
   applyExerciseEdit,
+  cleanMachineText,
   exerciseCategoryOf,
   normalizeVideoUrl,
   slugify,
@@ -17,6 +23,7 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -86,7 +93,13 @@ export function ExerciseForm({
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
   const [videoUrlText, setVideoUrlText] = useState("");
+  const [machineBrand, setMachineBrand] = useState("");
+  const [machineModel, setMachineModel] = useState("");
+  const [pulleyType, setPulleyType] = useState<PulleyType | null>(null);
+  const [gymId, setGymId] = useState("");
   const [saving, setSaving] = useState(false);
+  const gymRows = useLiveQuery(() => db.gyms.toArray(), []);
+  const gyms = sortGyms(gymRows ?? []);
 
   // Populate the form once the existing row loads (edit mode).
   useEffect(() => {
@@ -98,6 +111,10 @@ export function ExerciseForm({
     setPrimaryMuscles([...existing.primaryMuscles]);
     setInstructionsText(existing.instructions.join("\n"));
     setVideoUrlText(existing.videoUrl ?? "");
+    setMachineBrand(existing.machineBrand ?? "");
+    setMachineModel(existing.machineModel ?? "");
+    setPulleyType(existing.pulleyType ?? null);
+    setGymId(existing.gymId ?? "");
   }, [existing]);
 
   const trackingOptionsFor = (next: ExerciseCategory): readonly string[] =>
@@ -144,6 +161,13 @@ export function ExerciseForm({
       .map((line) => line.trim())
       .filter(Boolean);
     const videoUrl = normalizeVideoUrl(videoUrlText);
+    // A gym deleted since it was picked reads as no gym (issue #451).
+    const machine = {
+      machineBrand: cleanMachineText(machineBrand),
+      machineModel: cleanMachineText(machineModel),
+      pulleyType,
+      gymId: gyms.some((gym) => gym.id === gymId) ? gymId : null,
+    };
 
     let entity: ExerciseRow;
 
@@ -165,6 +189,7 @@ export function ExerciseForm({
         instructions,
         imageUrls: [],
         videoUrl,
+        ...machine,
         isArchived: false,
         createdAt: now,
         updatedAt: now,
@@ -182,6 +207,7 @@ export function ExerciseForm({
           primaryMuscles,
           instructions,
           videoUrl,
+          ...machine,
         },
         userId,
         uuidv7,
@@ -272,6 +298,86 @@ export function ExerciseForm({
             className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
         </label>
+
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-sm font-medium">Machine details (optional)</legend>
+          <div className="flex gap-2">
+            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
+              Make
+              <input
+                type="text"
+                value={machineBrand}
+                maxLength={MACHINE_TEXT_MAX}
+                onChange={(event) => setMachineBrand(event.target.value)}
+                placeholder="Hammer Strength"
+                className="min-w-0 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
+              Model
+              <input
+                type="text"
+                value={machineModel}
+                maxLength={MACHINE_TEXT_MAX}
+                onChange={(event) => setMachineModel(event.target.value)}
+                placeholder="Iso-Lateral Row"
+                className="min-w-0 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              />
+            </label>
+          </div>
+          <div className="flex flex-col gap-1 text-xs font-medium">
+            Pulley
+            <fieldset className="grid grid-cols-3 gap-2" aria-label="Pulley">
+              {([null, ...PULLEY_TYPES] as const).map((option) => (
+                <button
+                  key={option ?? "none"}
+                  type="button"
+                  onClick={() => setPulleyType(option)}
+                  aria-pressed={pulleyType === option}
+                  className={`flex min-h-11 min-w-0 items-center justify-center rounded-lg border px-2 text-sm font-medium ${
+                    pulleyType === option
+                      ? "border-accent bg-accent text-accent-foreground"
+                      : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+                  }`}
+                >
+                  {option ? PULLEY_LABELS[option].replace(" pulley", "") : "N/A"}
+                </button>
+              ))}
+            </fieldset>
+          </div>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            Gym
+            <select
+              value={gyms.some((gym) => gym.id === gymId) ? gymId : ""}
+              onChange={(event) => setGymId(event.target.value)}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            >
+              <option value="">Any gym</option>
+              {gyms.map((gym) => (
+                <option key={gym.id} value={gym.id}>
+                  {gym.name}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              {gyms.length === 0 ? (
+                <>
+                  Add your gyms in {/* Embedded in the picker, a link would leave the workout. */}
+                  {onSaved ? (
+                    "Settings → Gyms"
+                  ) : (
+                    <Link href="/profile/gyms" className="underline underline-offset-4">
+                      Settings → Gyms
+                    </Link>
+                  )}{" "}
+                  to tie this machine to one.
+                </>
+              ) : (
+                "Which gym this machine is at, so loads on different machines stay apart."
+              )}
+            </span>
+          </label>
+        </fieldset>
 
         <label className="flex flex-col gap-1 text-sm font-medium">
           Type

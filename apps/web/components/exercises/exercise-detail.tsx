@@ -7,6 +7,7 @@ import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line"
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import {
+  PULLEY_LABELS,
   computeCardioBests,
   deletedSessionExerciseIds,
   distanceUnitFor,
@@ -18,11 +19,12 @@ import {
   formatTimedSet,
   isCardioExercise,
   isWarmupExercise,
+  machineName,
   resolveCurrentRows,
   warmupFrequency,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ExternalLink, Pencil } from "lucide-react";
+import { ExternalLink, MapPin, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo } from "react";
@@ -50,6 +52,13 @@ export function ExerciseDetail({
   const titleId = useId();
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  // The machine's gym (issue #451); a deleted gym reads as none.
+  const gym = useLiveQuery(async () => {
+    const gymId = exercise?.gymId;
+    if (!gymId) return null;
+    const row = await db.gyms.get(gymId);
+    return row && !row.deletedAt ? row : null;
+  }, [exercise?.gymId]);
   const distanceUnit = distanceUnitFor(settings.units);
 
   // Every current (non-superseded, non-deleted) set logged against this
@@ -157,6 +166,8 @@ export function ExerciseDetail({
   const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
   // Rows synced before the column existed have no videoUrl at all.
   const demo = exerciseDemo({ name: exercise.name, videoUrl: exercise.videoUrl ?? null });
+  const machine = machineName(exercise);
+  const pulley = exercise.pulleyType ? PULLEY_LABELS[exercise.pulleyType] : null;
 
   return (
     <FloatingCard labelledBy={titleId} onClose={closeToList}>
@@ -221,6 +232,23 @@ export function ExerciseDetail({
               <ExternalLink className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
               {demo.custom ? "Watch demo video" : "Find a demo video"}
             </a>
+
+            {(machine || pulley || gym) && (
+              <section className="flex flex-col gap-1">
+                <h2 className="text-sm font-semibold">Machine</h2>
+                {(machine || pulley) && (
+                  <p className="allow-pwa-select text-sm text-zinc-700 dark:text-zinc-300">
+                    {[machine, pulley].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {gym && (
+                  <p className="flex min-w-0 items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    <MapPin className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                    <span className="truncate">At {gym.name}</span>
+                  </p>
+                )}
+              </section>
+            )}
 
             {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">

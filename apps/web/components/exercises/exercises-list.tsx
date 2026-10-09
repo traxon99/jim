@@ -12,6 +12,7 @@ import {
   filterExercises,
   isCardioExercise,
   isWarmupExercise,
+  machineName,
   preferOwnedExercises,
   searchExercises,
   sortExercisesByUsage,
@@ -31,6 +32,13 @@ export function ExercisesList({ userId }: { userId: string }) {
   // Dexie live query: re-renders whenever the local catalog changes (a pull
   // landing, a new custom exercise), with no network on the read path.
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
+  // Gym names for machine rows (issue #450), so two "Lat Pulldown"s at
+  // different gyms can be told apart. Deleted gyms are left out.
+  const gymNames = useLiveQuery(
+    async () =>
+      new Map((await db.gyms.toArray()).filter((g) => !g.deletedAt).map((g) => [g.id, g.name])),
+    [],
+  );
 
   // Every (non-deleted) sessionExercise joined with its (non-deleted)
   // session's startedAt — the same shape previous-set-lookup.ts builds —
@@ -122,6 +130,8 @@ export function ExercisesList({ userId }: { userId: string }) {
                 isWarmupExercise(exercise) ? "warm-up" : null,
                 isCardioExercise(exercise) ? "cardio" : null,
                 exercise.equipment,
+                machineName(exercise),
+                exercise.gymId ? gymNames?.get(exercise.gymId) : null,
                 ...exercise.primaryMuscles,
               ]
                 .filter(Boolean)

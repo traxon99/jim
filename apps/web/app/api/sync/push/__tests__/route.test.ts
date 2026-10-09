@@ -124,6 +124,71 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.deleted_at).not.toBeNull();
   });
 
+  it("applies an exercise's machine details and gym (issue #450)", async () => {
+    const gymId = uuidv7();
+    const exerciseRowId = uuidv7();
+    const now = new Date().toISOString();
+    const body = await (
+      await push([
+        {
+          id: uuidv7(),
+          table: "gyms",
+          entity: {
+            id: gymId,
+            name: "Garage",
+            address: null,
+            notes: null,
+            isDefault: true,
+            position: 0,
+            createdAt: now,
+            updatedAt: now,
+            deviceId: "device-a",
+            deletedAt: null,
+          },
+        },
+        {
+          id: uuidv7(),
+          table: "exercises",
+          entity: {
+            id: exerciseRowId,
+            slug: "lat-pulldown",
+            name: "Lat Pulldown",
+            aliases: [],
+            primaryMuscles: ["lats"],
+            secondaryMuscles: [],
+            equipment: "cable",
+            mechanic: null,
+            force: null,
+            level: null,
+            trackingType: "weight_reps",
+            category: "strength",
+            instructions: [],
+            imageUrls: [],
+            videoUrl: null,
+            machineBrand: "Life Fitness",
+            machineModel: "Signature",
+            pulleyType: "double",
+            gymId,
+            isArchived: false,
+            createdAt: now,
+            updatedAt: now,
+            deviceId: "device-a",
+          },
+        },
+      ])
+    ).json();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual(["applied", "applied"]);
+    const [row] = await admin<
+      { machine_brand: string; machine_model: string; pulley_type: string; gym_id: string }[]
+    >`SELECT machine_brand, machine_model, pulley_type, gym_id FROM exercises WHERE id = ${exerciseRowId}`;
+    expect(row).toEqual({
+      machine_brand: "Life Fitness",
+      machine_model: "Signature",
+      pulley_type: "double",
+      gym_id: gymId,
+    });
+  });
+
   it("is idempotent: replaying the same mutation id is a no-op the second time", async () => {
     const routineId = uuidv7();
     const mutationId = uuidv7();

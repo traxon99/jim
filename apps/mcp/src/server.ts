@@ -340,7 +340,8 @@ export function createMcpServer(context: UserContext): McpServer {
     "search_exercises",
     {
       title: "Search exercises",
-      description: "Search the exercise catalog by name/alias, muscle group, and/or equipment.",
+      description:
+        "Search the exercise catalog by name/alias, muscle group, and/or equipment. Results include machine make/model, pulley type and gym when set.",
       inputSchema: {
         query: z.string().optional(),
         muscles: z.array(z.string()).optional(),
@@ -525,6 +526,19 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional(),
         instructions: z.array(z.string()).optional(),
         isArchived: z.boolean().optional(),
+        machineBrand: z
+          .string()
+          .optional()
+          .describe("Machine make, e.g. Hammer Strength. Empty clears"),
+        machineModel: z.string().optional().describe("Machine model. Empty clears"),
+        pulleyType: z
+          .enum(["single", "double", "none"])
+          .optional()
+          .describe("Cable machine pulley setup; none = not a cable machine"),
+        gym: z
+          .string()
+          .optional()
+          .describe("Gym id or exact name (see list_gyms) the machine is at. Empty clears"),
         dry_run: dryRunParam(false),
       },
     },

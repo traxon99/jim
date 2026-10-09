@@ -8,3 +8,4 @@ export * from "./slugify";
 export * from "./usage";
 export * from "./demo-video";
 export * from "./body-map";
+export * from "./machine";

@@ -28,7 +28,15 @@ export type SessionExerciseRow = typeof sessionExercises.$inferSelect;
 export type SetRow = typeof sets.$inferSelect;
 export type PersonalRecordRow = typeof personalRecords.$inferSelect;
 export type BodyMeasurementRow = typeof bodyMeasurements.$inferSelect;
-export type ExerciseRow = typeof exercises.$inferSelect;
+type ExerciseSelect = typeof exercises.$inferSelect;
+/**
+ * Machine details (issue #450) are optional here: rows cached before those
+ * columns existed don't carry them until they next sync, and every reader
+ * treats a missing value as unset.
+ */
+type ExerciseMachineFields = "machineBrand" | "machineModel" | "pulleyType" | "gymId";
+export type ExerciseRow = Omit<ExerciseSelect, ExerciseMachineFields> &
+  Partial<Pick<ExerciseSelect, ExerciseMachineFields>>;
 export type ProgramRow = typeof programs.$inferSelect;
 export type ProgramRoutineRow = typeof programRoutines.$inferSelect;
 export type DprBlockRow = typeof dprBlocks.$inferSelect;

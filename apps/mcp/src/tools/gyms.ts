@@ -43,7 +43,7 @@ async function liveGyms(tx: DbOrTx): Promise<GymRow[]> {
     .orderBy(asc(gyms.position), asc(gyms.createdAt));
 }
 
-async function findGym(tx: DbOrTx, key: string): Promise<GymRow> {
+export async function findGym(tx: DbOrTx, key: string): Promise<GymRow> {
   const trimmed = key.trim();
   const all = await liveGyms(tx);
   const candidates = UUID_RE.test(trimmed)

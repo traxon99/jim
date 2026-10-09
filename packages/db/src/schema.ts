@@ -1,6 +1,7 @@
 import {
   MUSCLES,
   POST_KINDS,
+  PULLEY_TYPES,
   type ProgressionRule,
   REACTION_KINDS,
   ROUTINE_ICON_COLORS,
@@ -98,6 +99,9 @@ export const trackingTypeEnum = pgEnum("tracking_type", [
 // workout. Cardio (issue #423) is logged for time and/or distance, sits in
 // the workout alongside strength, and stays out of volume and the body map.
 export const exerciseCategoryEnum = pgEnum("exercise_category", ["strength", "warmup", "cardio"]);
+
+// Issue #450: a cable machine's pulley setup; null = not a cable machine / unknown.
+export const pulleyTypeEnum = pgEnum("pulley_type", [...PULLEY_TYPES]);
 
 // A "warmup" routine is a reusable warm-up block (e.g. "Leg warm-up") that a
 // strength routine can link to as its warm-up (routines.warmup_routine_id).
@@ -275,6 +279,13 @@ export const exercises = pgTable(
     // any; exercises without one fall back to a YouTube search (core's
     // exerciseDemo).
     videoUrl: text("video_url"),
+    // Optional machine details (issue #450) and the gym the machine is at
+    // (issue #451). A tombstoned gym leaves gymId pointing at it; readers
+    // treat a deleted gym as none.
+    machineBrand: text("machine_brand"),
+    machineModel: text("machine_model"),
+    pulleyType: pulleyTypeEnum("pulley_type"),
+    gymId: uuid("gym_id").references((): AnyPgColumn => gyms.id, { onDelete: "set null" }),
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S4): user-owned rows (custom or cloned, ADR-008) are

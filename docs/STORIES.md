@@ -193,7 +193,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - Personal access tokens (Settings → Connect Claude) for clients without OAuth, hashed at rest (#246)
 - User-scoped token under RLS — **no service-role key** (ADR-006)
 - Read tools: `list_workouts`, `get_workout`, `exercise_history`, `get_prs`, `volume_report`, `weekly_summary` (#409), `search_exercises`, `list_routines`, `get_routine` (#370), `get_body_measurements` (#249), `list_warmup_templates`, `list_programs`, `list_scheduled_workouts`, `get_settings` (#435), `list_gyms` (#451)
-- Write tools: `create_routine`, `update_routine`, `schedule_workout`, `log_past_workout`, `upsert_exercise`, `merge_exercises`, plus (#435) `create_warmup`, `delete_routine`, `create_program`, `update_program`, `delete_program`, `cancel_scheduled_workout`, `delete_workout`, `log_body_measurement`, `delete_body_measurement`, `update_settings`, plus (#451) `create_gym`, `update_gym`, `delete_gym`
+- Write tools: `create_routine`, `update_routine`, `schedule_workout`, `log_past_workout`, `upsert_exercise` (machine details and gym, #450), `merge_exercises`, plus (#435) `create_warmup`, `delete_routine`, `create_program`, `update_program`, `delete_program`, `cancel_scheduled_workout`, `delete_workout`, `log_body_measurement`, `delete_body_measurement`, `update_settings`, plus (#451) `create_gym`, `update_gym`, `delete_gym`
 - Parity rule (#435): if a user can do it in the app, it likely belongs in the MCP
 - Every write tool accepts `dry_run` to preview without writing; `merge_exercises`, `delete_routine`, `delete_program` and `delete_workout` preview by default (#245)
 - All computation via `packages/core`, so MCP numbers and phone numbers cannot drift

@@ -1,4 +1,6 @@
-import { filterExercises, preferOwnedExercises, searchExercises } from "@jim/core";
+import { filterExercises, machineName, preferOwnedExercises, searchExercises } from "@jim/core";
+import { gyms } from "@jim/db";
+import { isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 import { visibleExercises } from "./resolve-exercise.js";
@@ -24,6 +26,9 @@ export async function searchExercisesTool(context: UserContext, input: SearchExe
       : rows;
     const filtered = filterExercises(byMuscle, { equipment: input.equipment });
     const ranked = input.query ? searchExercises(filtered, input.query) : filtered;
+    const gymNames = new Map(
+      (await tx.select().from(gyms).where(isNull(gyms.deletedAt))).map((g) => [g.id, g.name]),
+    );
 
     return ranked.slice(0, 50).map((row) => ({
       id: row.id,
@@ -34,6 +39,10 @@ export async function searchExercisesTool(context: UserContext, input: SearchExe
       equipment: row.equipment,
       trackingType: row.trackingType,
       isCustom: row.ownerId !== null,
+      // Machine details (issue #450), only when set.
+      ...(machineName(row) ? { machine: machineName(row) } : {}),
+      ...(row.pulleyType ? { pulleyType: row.pulleyType } : {}),
+      ...(row.gymId && gymNames.has(row.gymId) ? { gym: gymNames.get(row.gymId) } : {}),
     }));
   });
 }
