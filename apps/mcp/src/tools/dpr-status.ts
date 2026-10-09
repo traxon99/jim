@@ -133,6 +133,7 @@ export function dprStatusFromRows(input: DprStatusInput) {
         nextCall: {
           call: decision.call,
           weight: decision.weight,
+          targetReps: decision.targetReps,
           reason: decision.reason,
           repRange,
         },

@@ -56,7 +56,11 @@ export interface DprDecision {
   weight: number | null;
   /** The weight the call is made from (last lifted), for "+5 lb" style deltas; null with no history. */
   previousWeight: number | null;
-  /** Rep target to aim for at that weight: the bottom of the range after any change. */
+  /**
+   * Rep target to aim for at that weight: the bottom of the range after any
+   * change; on a hold, one more rep than last time's worst top set (capped to
+   * the range), or a repeat after a miss or a high-RPE one-off (issue #448).
+   */
   targetReps: number | null;
   /** Short, user-facing, e.g. "Hit 3×8 @ RPE 7.5". */
   reason: string;
@@ -419,29 +423,41 @@ function decideCore(input: DecideInput, detectOutperformance: boolean): DprDecis
     };
   }
 
+  const lastReps = Math.min(...latestEligible.topSets.map((s) => s.reps));
+  const clampReps = (reps: number) => Math.min(repRange.high, Math.max(repRange.low, reps));
   let reason: string;
   let streak: number;
+  let targetReps: number;
   if (missStreak > 0) {
     reason = `Missed ${describe(latestEligible)} — holding (${missStreak}/${preset.deloadAfterMisses})`;
     streak = missStreak;
+    targetReps = clampReps(lastReps);
   } else if (qualifyingStreak > 0) {
     reason = `Hit ${describe(latestEligible)} — ${qualifyingStreak}/${preset.qualifyingSessions} to go up`;
     streak = qualifyingStreak;
+    targetReps = repRange.high;
   } else if (latestEligible.rpeCheck === "high") {
     reason = `${describe(latestEligible)} — RPE looks high vs your history, holding`;
     streak = 0;
+    targetReps = clampReps(lastReps);
   } else if (latestEligible.topSets.every((s) => s.reps >= repRange.high)) {
     reason = `Hit ${describe(latestEligible)} — RPE over ${formatNumber(rpeCapFor(latestEligible, preset))} cap, holding`;
     streak = 0;
+    targetReps = repRange.high;
   } else {
-    reason = `${describe(latestEligible)} — aim for ${repRange.high} on every set`;
+    // Double progression: add a rep each session until every set hits the top.
+    targetReps = clampReps(lastReps + 1);
+    reason =
+      targetReps < repRange.high
+        ? `${describe(latestEligible)} — aim for ${targetReps}, then ${repRange.high} on every set`
+        : `${describe(latestEligible)} — aim for ${repRange.high} on every set`;
     streak = 0;
   }
   return {
     call: "hold",
     weight: current,
     previousWeight: current,
-    targetReps: null,
+    targetReps,
     reason:
       reason + (latestEligible.rpeCheck === "high" ? "" : rpeNote(latestEligible)) + skippedNote,
     streak,

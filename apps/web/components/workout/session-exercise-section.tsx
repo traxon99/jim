@@ -358,8 +358,8 @@ export function SessionExerciseSection({
   // matching the warm-up logger) rather than typed into the field. Logging
   // with the field left blank falls back to this suggestion, same as a
   // warm-up set left blank falls back to its target. For a DPR-focused lift
-  // (issue #212), DPR's weight — and after a change, the bottom of the rep
-  // range — replaces both on working sets, still just a placeholder.
+  // (issue #212), DPR's weight and rep target (issue #448) replace both on
+  // working sets, still just a placeholder.
   function remainingAfterLogging(index: number): number {
     return remainingPlannedSetCount(
       plannedTotal,
