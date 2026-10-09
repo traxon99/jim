@@ -277,7 +277,7 @@ export function dprWeightPlaceholder(
   return formatWeight(ramp[set?.ordinal ?? -1] ?? info.decision.weight);
 }
 
-/** After any weight change, aim for the bottom of the range; else null ("last time" reps). */
+/** The call's rep target for working sets (issue #448); null falls back to "last time" reps. */
 export function dprRepsPlaceholder(info: DprCallInfo | null, kind: string): string | null {
   if (!info || kind !== "working" || info.decision.targetReps === null) return null;
   return String(info.decision.targetReps);

@@ -71,6 +71,31 @@ describe("decideNextWeight — increases", () => {
     expect(d.reason).toBe("Hit 3×8 @ RPE 7");
   });
 
+  it("aims for one more rep than last time on a hold (issue #448)", () => {
+    const d = decide([s3(28, 185, 6)], "moderate", { high: 10 });
+    expect(d.call).toBe("hold");
+    expect(d.targetReps).toBe(7);
+    expect(d.reason).toBe("3×6 @ RPE 7 — aim for 7, then 10 on every set");
+  });
+
+  it("counts from the worst top set and caps at the top of the range", () => {
+    const uneven = session(28, [working(185, 8), working(185, 7), working(185, 6)]);
+    expect(decide([uneven], "moderate", { high: 10 }).targetReps).toBe(7);
+    const d = decide([s3(28, 185, 7)]);
+    expect(d.targetReps).toBe(8);
+    expect(d.reason).toBe("3×7 @ RPE 7 — aim for 8 on every set");
+  });
+
+  it("repeats the top of the range on an over-cap RPE hold", () => {
+    expect(decide([s3(28, 185, 8, 8.5)]).targetReps).toBe(8);
+  });
+
+  it("aims for the bottom of the range after a miss", () => {
+    const d = decide([s3(28, 185, 4)]);
+    expect(d.call).toBe("hold");
+    expect(d.targetReps).toBe(6);
+  });
+
   it("explains an over-cap RPE hold", () => {
     expect(decide([s3(28, 185, 8, 8.5)]).reason).toContain("RPE over 8 cap");
   });

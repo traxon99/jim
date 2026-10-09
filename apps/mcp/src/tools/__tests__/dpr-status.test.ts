@@ -190,6 +190,7 @@ describe("dpr_status", () => {
     expect(bench?.nextCall).toEqual({
       call: call.decision.call,
       weight: call.decision.weight,
+      targetReps: call.decision.targetReps,
       reason: call.decision.reason,
       repRange: call.repRange,
     });
@@ -207,6 +208,7 @@ describe("dpr_status", () => {
     expect(bench?.nextCall).toMatchObject({
       call: "hold",
       weight: 200,
+      targetReps: 6,
       repRange: { low: 6, high: 8 },
     });
     expect(bench?.repRanges).toEqual([{ low: 6, high: 8 }]);
