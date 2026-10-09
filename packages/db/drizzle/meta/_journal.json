@@ -281,6 +281,13 @@
       "when": 1791483705386,
       "tag": "0039_add_pink_accent",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791511118734,
+      "tag": "0040_add_gyms",
+      "breakpoints": true
     }
   ]
 }

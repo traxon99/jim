@@ -5,6 +5,7 @@ import {
   dprBlockLifts,
   dprBlocks,
   exercises,
+  gyms,
   personalRecords,
   programRoutines,
   programs,
@@ -35,6 +36,7 @@ const PULL_TABLES = [
   ["programRoutines", programRoutines, programRoutines.serverSeq],
   ["dprBlocks", dprBlocks, dprBlocks.serverSeq],
   ["dprBlockLifts", dprBlockLifts, dprBlockLifts.serverSeq],
+  ["gyms", gyms, gyms.serverSeq],
   ["scheduledWorkouts", scheduledWorkouts, scheduledWorkouts.serverSeq],
 ] as const;
 

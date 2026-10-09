@@ -4,6 +4,7 @@ import type {
   dprBlockLifts,
   dprBlocks,
   exercises,
+  gyms,
   personalRecords,
   programRoutines,
   programs,
@@ -32,6 +33,7 @@ export type ProgramRow = typeof programs.$inferSelect;
 export type ProgramRoutineRow = typeof programRoutines.$inferSelect;
 export type DprBlockRow = typeof dprBlocks.$inferSelect;
 export type DprBlockLiftRow = typeof dprBlockLifts.$inferSelect;
+export type GymRow = typeof gyms.$inferSelect;
 
 export interface SyncTableRowMap {
   routines: RoutineRow;
@@ -46,6 +48,7 @@ export interface SyncTableRowMap {
   programRoutines: ProgramRoutineRow;
   dprBlocks: DprBlockRow;
   dprBlockLifts: DprBlockLiftRow;
+  gyms: GymRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -104,6 +107,7 @@ export class JimDatabase extends Dexie {
   programRoutines!: EntityTable<ProgramRoutineRow, "id">;
   dprBlocks!: EntityTable<DprBlockRow, "id">;
   dprBlockLifts!: EntityTable<DprBlockLiftRow, "id">;
+  gyms!: EntityTable<GymRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -130,6 +134,9 @@ export class JimDatabase extends Dexie {
     this.version(3).stores({
       dprBlocks: "id, status, updatedAt, deletedAt",
       dprBlockLifts: "id, blockId, exerciseId",
+    });
+    this.version(4).stores({
+      gyms: "id, updatedAt, deletedAt",
     });
   }
 }

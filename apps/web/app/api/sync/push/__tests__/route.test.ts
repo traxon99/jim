@@ -83,6 +83,47 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.user_id).toBe(USER_A);
   });
 
+  it("applies a gym, then a later edit and tombstone (issue #451)", async () => {
+    const gymId = uuidv7();
+    const created = new Date("2026-10-09T10:00:00Z");
+    const gym = {
+      id: gymId,
+      name: "Iron Temple",
+      address: "1 Main St",
+      notes: null,
+      isDefault: true,
+      position: 0,
+      createdAt: created.toISOString(),
+      updatedAt: created.toISOString(),
+      deviceId: "device-a",
+      deletedAt: null,
+    };
+    const later = new Date("2026-10-09T11:00:00Z").toISOString();
+    const body = await (
+      await push([
+        { id: uuidv7(), table: "gyms", entity: gym },
+        {
+          id: uuidv7(),
+          table: "gyms",
+          entity: {
+            ...gym,
+            name: "Iron Temple Downtown",
+            isDefault: false,
+            updatedAt: later,
+            deletedAt: later,
+          },
+        },
+      ])
+    ).json();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual(["applied", "applied"]);
+
+    const [row] = await admin<
+      { name: string; user_id: string; is_default: boolean; deleted_at: string | null }[]
+    >`SELECT name, user_id, is_default, deleted_at FROM gyms WHERE id = ${gymId}`;
+    expect(row).toMatchObject({ name: "Iron Temple Downtown", user_id: USER_A, is_default: false });
+    expect(row?.deleted_at).not.toBeNull();
+  });
+
   it("is idempotent: replaying the same mutation id is a no-op the second time", async () => {
     const routineId = uuidv7();
     const mutationId = uuidv7();
