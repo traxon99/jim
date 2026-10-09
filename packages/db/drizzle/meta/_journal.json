@@ -288,6 +288,13 @@
       "when": 1791511118734,
       "tag": "0040_add_gyms",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791511873730,
+      "tag": "0041_add_exercise_machine_details",
+      "breakpoints": true
     }
   ]
 }
