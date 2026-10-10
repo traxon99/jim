@@ -111,6 +111,17 @@ A flex row with a title and a set of links or buttons: the part that can grow ne
 scrolls within itself. The History page nav pushed the whole page wider once a third link was
 added (#182, #189). This bites whenever a feature adds "just one more" item to an existing row.
 
+### Forms and native controls
+
+Native form elements bring their own minimum widths, which `min-w-0` on a child doesn't override.
+A `<fieldset>` defaults to `min-inline-size: min-content`, so a row of two inputs inside one made
+the whole Edit exercise form wider than the screen (#458). `globals.css` now resets
+`fieldset { min-width: 0 }` and `app/__tests__/layout-guards.test.ts` keeps it there. `<input>` and
+`<select>` also have an intrinsic width (an input is about 20 characters wide by default, a select
+is as wide as its longest option), so in a flex or grid row give the control **and** every
+flex/grid item between it and the row `min-w-0`. Check any new form at 393px with every optional
+section showing.
+
 ### Popups and dropdowns
 
 An `absolute` popup anchored near the edge of the screen extends past the viewport and grows the
@@ -134,6 +145,8 @@ scroll container's bounds (#167, #168). The pattern now:
 - [ ] Open the popup, then try to scroll sideways. The page shouldn't move.
 - [ ] Row items that can grow have `min-w-0` and either truncate (`truncate`) or scroll
       (`overflow-x-auto`).
+- [ ] Forms: no sideways scroll at 393px with every optional section open and long values typed
+      in. Don't put `min-w-min`/`min-w-fit` on a `<fieldset>`.
 
 ---
 

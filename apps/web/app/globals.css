@@ -298,6 +298,16 @@ body {
   color: var(--foreground);
 }
 
+/* Browsers give <fieldset> `min-inline-size: min-content`, so it refuses to be
+   narrower than its widest row of inputs and pushes the form off the right edge
+   of a 393px screen, even when every child has `min-w-0` (#458). Tailwind's
+   preflight doesn't reset it. In the base layer so a utility can still win. */
+@layer base {
+  fieldset {
+    min-width: 0;
+  }
+}
+
 /* Global iOS hygiene (docs/ARCHITECTURE.md §6) */
 * {
   touch-action: manipulation;
