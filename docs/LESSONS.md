@@ -33,6 +33,11 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       real-length text (#327, #182).
 - [ ] Adding a badge or icon to a table cell? Pin it (`absolute` in a `relative` cell) instead of
       setting it inline, or it widens the column and pushes the row past the card (#440).
+- [ ] Building or changing a form? Load it at 393 px with every optional section showing and the
+      longest realistic values, then try to scroll sideways. Native elements carry their own
+      minimum widths: `<fieldset>` defaults to `min-width: min-content` (reset globally in
+      `globals.css`, so never give one `min-w-min`/`min-w-fit`), and `<input>`/`<select>` keep an
+      intrinsic width unless they and every flex/grid ancestor have `min-w-0` (#458).
 - [ ] Use `PageHeader` for a tab's header instead of building a one-off one (#309).
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
@@ -74,6 +79,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #458 | Edit exercise ran off the right edge: Model, the third Pulley button and the Gym picker were cut off | The Machine details `<fieldset>` kept the browser default `min-width: min-content`, so the Make/Model input row forced it wider than the screen despite `min-w-0` on the children | Reset `fieldset { min-width: 0 }` globally (guarded by a test); check every form at 393 px with all sections showing |
 | #456 | Plank was logged by reps instead of seconds | The seed classifier gave every body-only strength exercise `bodyweight`, including isometric holds | Classify exercises by how they're measured: holds (plank, wall sit) are `time`, not reps |
 | #444 | Forgot password on desktop web showed "Install Jim" and pages only loaded after a refresh | Recovery pages weren't exempt from the install gate, and the gate read `window.location.search` mid-navigation, before the URL updated | Read route state from the router (`usePathname`/`useSearchParams`), never `window.location` during render |
 | #445 | History calendar shading stayed green whatever accent color was picked | Intensity classes hard-coded `emerald-*` instead of the accent tokens | Tint themed UI with `bg-accent`/`text-accent-foreground`, never a fixed palette color |
