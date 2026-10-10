@@ -13,6 +13,9 @@ const BODYWEIGHT_EQUIPMENT = new Set(["body only", null]);
 // Cardio done in place, where only the time means anything (issue #423).
 const TIME_ONLY_CARDIO = /\b(rope jumping|stairmaster|step mill)\b/i;
 
+// Isometric holds are measured in seconds, not reps (issue #456).
+const TIMED_HOLD = /\b(planks?|side bridge|wall sit|l-sit|dead hang|hollow hold)\b/i;
+
 /**
  * free-exercise-db has no tracking_type field, so this assigns one per
  * exercise. Every branch is a judgment call, not a fact recovered from the
@@ -29,7 +32,7 @@ export function classifyTrackingType(exercise: TrackingTypeInput): TrackingType 
     return TIME_ONLY_CARDIO.test(exercise.name) ? "time" : "distance_time";
   }
   if (BODYWEIGHT_EQUIPMENT.has(exercise.equipment)) {
-    return "bodyweight";
+    return TIMED_HOLD.test(exercise.name) ? "time" : "bodyweight";
   }
   return "weight_reps";
 }

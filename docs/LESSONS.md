@@ -74,6 +74,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #456 | Plank was logged by reps instead of seconds | The seed classifier gave every body-only strength exercise `bodyweight`, including isometric holds | Classify exercises by how they're measured: holds (plank, wall sit) are `time`, not reps |
 | #444 | Forgot password on desktop web showed "Install Jim" and pages only loaded after a refresh | Recovery pages weren't exempt from the install gate, and the gate read `window.location.search` mid-navigation, before the URL updated | Read route state from the router (`usePathname`/`useSearchParams`), never `window.location` during render |
 | #445 | History calendar shading stayed green whatever accent color was picked | Intensity classes hard-coded `emerald-*` instead of the accent tokens | Tint themed UI with `bg-accent`/`text-accent-foreground`, never a fixed palette color |
 | #440 | PR sets pushed the set table past the card, clipping the ✓ column | The 🎉 PR marker sat inline beside the weight and widened the Weight column | Pin badges on table cells (`absolute` in a `relative` cell) so they add no column width |

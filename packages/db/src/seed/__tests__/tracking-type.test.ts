@@ -45,6 +45,21 @@ describe("classifyTrackingType", () => {
     ).toBe("time");
   });
 
+  it("classifies bodyweight isometric holds as time", () => {
+    for (const name of ["Plank", "Side Plank", "Wall Sit"]) {
+      expect(classifyTrackingType({ name, category: "strength", equipment: "body only" })).toBe(
+        "time",
+      );
+    }
+    expect(
+      classifyTrackingType({
+        name: "Weighted Plank",
+        category: "strength",
+        equipment: "body only",
+      }),
+    ).toBe("weighted_bodyweight");
+  });
+
   it("classifies a named weighted-bodyweight movement over its category", () => {
     expect(
       classifyTrackingType({ name: "Weighted Pull Ups", category: "strength", equipment: null }),
