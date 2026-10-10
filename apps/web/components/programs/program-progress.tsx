@@ -3,7 +3,11 @@
 import { db } from "@/lib/db/schema";
 import { buildProgramProgressSets } from "@/lib/programs/progress-data";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { type ProgramProgress as Progress, summarizeProgramProgress } from "@jim/core";
+import {
+  type ProgramProgress as Progress,
+  exerciseDisplayName,
+  summarizeProgramProgress,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 
@@ -44,7 +48,9 @@ export function ProgramProgress({
       sessions,
       sets: buildProgramProgressSets(sessions, sessionExercises, exercises, sets),
     });
-    const names = new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
+    const names = new Map(
+      exercises.map((exercise) => [exercise.id, exerciseDisplayName(exercise)]),
+    );
     return { progress, names };
   }, [routineKey, sinceTime]);
 

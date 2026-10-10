@@ -4,7 +4,13 @@ import type { DprBlockLiftRow, DprBlockRow, ExerciseRow, SettingsRow } from "@/l
 import { updateBlockFocus } from "@/lib/dpr/block";
 import type { DprSnapshot } from "@/lib/dpr/data";
 import { patchSettings } from "@/lib/settings";
-import { DPR_MAX_FOCUS, DPR_PRESET_NAMES, type DprPresetName, focusCandidates } from "@jim/core";
+import {
+  DPR_MAX_FOCUS,
+  DPR_PRESET_NAMES,
+  type DprPresetName,
+  exerciseDisplayName,
+  focusCandidates,
+} from "@jim/core";
 import { useMemo, useState } from "react";
 import { PRESET_LABELS, presetSummary } from "./labels";
 
@@ -104,7 +110,7 @@ export function BlockEditor({
           {options.map((exercise) => (
             <li key={exercise.id}>
               <label className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm">
-                <span className="min-w-0 truncate">{exercise.name}</span>
+                <span className="min-w-0 truncate">{exerciseDisplayName(exercise)}</span>
                 <input
                   type="checkbox"
                   checked={focus.includes(exercise.id)}

@@ -1,5 +1,5 @@
 import type { ExerciseRow, PersonalRecordRow, SessionExerciseRow, SetRow } from "@/lib/db/schema";
-import { type PrKind, isVisiblePrKind, resolveCurrentRows } from "@jim/core";
+import { type PrKind, exerciseDisplayName, isVisiblePrKind, resolveCurrentRows } from "@jim/core";
 
 export interface SessionDetailSet {
   id: string;
@@ -37,7 +37,9 @@ export function buildSessionDetailExercises(
   sets: readonly SetRow[],
   personalRecords: readonly PersonalRecordRow[],
 ): SessionDetailExercise[] {
-  const exerciseNames = new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
+  const exerciseNames = new Map(
+    exercises.map((exercise) => [exercise.id, exerciseDisplayName(exercise)]),
+  );
 
   const resolvedSets = resolveCurrentRows(sets).filter((set) => !set.deletedAt);
   const setsBySessionExercise = new Map<string, SetRow[]>();

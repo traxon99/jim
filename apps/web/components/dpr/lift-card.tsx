@@ -10,7 +10,7 @@ import {
   formatLogEntry,
   liftGoal,
 } from "@/lib/dpr/calls";
-import { e1rmSeries, liftDecisionLog, liftProgress } from "@jim/core";
+import { e1rmSeries, exerciseDisplayName, liftDecisionLog, liftProgress } from "@jim/core";
 import { CallMark } from "./call-mark";
 import { GoalChart } from "./goal-chart";
 import { formatWeight } from "./labels";
@@ -45,7 +45,9 @@ export function LiftCard({ context, lift }: { context: DprContext; lift: DprBloc
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 text-base font-semibold">{exercise?.name ?? "Exercise"}</h3>
+        <h3 className="min-w-0 text-base font-semibold">
+          {exercise ? exerciseDisplayName(exercise) : "Exercise"}
+        </h3>
         {progress.status && <StatusPill status={progress.status} />}
       </div>
 

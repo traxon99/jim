@@ -6,6 +6,7 @@ import {
   describeRoutineChanges,
   saveSessionChangesToRoutine,
 } from "@/lib/routines/session-changes";
+import { exerciseDisplayName } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
 
@@ -49,7 +50,9 @@ export function SaveRoutineChangesCard({ session }: { session: SessionRow }) {
     ) : null;
   }
 
-  const nameById = new Map((exercises ?? []).flatMap((e) => (e ? [[e.id, e.name]] : [])));
+  const nameById = new Map(
+    (exercises ?? []).flatMap((e) => (e ? [[e.id, exerciseDisplayName(e)]] : [])),
+  );
   const lines = describeRoutineChanges(
     comparison.changes,
     (exerciseId) => nameById.get(exerciseId) ?? "an exercise",

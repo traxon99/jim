@@ -4,6 +4,7 @@ import { ExerciseForm } from "@/components/exercises/exercise-form";
 import { db } from "@/lib/db/schema";
 import {
   type ExerciseCategory,
+  exerciseDisplayName,
   filterExercises,
   isCardioExercise,
   isWarmupExercise,
@@ -113,7 +114,7 @@ export function ExercisePicker({
           className="flex w-full items-center gap-3 py-3 text-left"
         >
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-base font-medium">{exercise.name}</span>
+            <span className="text-base font-medium">{exerciseDisplayName(exercise)}</span>
             <span className="text-xs text-zinc-500 dark:text-zinc-500">
               {[
                 isWarmupExercise(exercise) ? "warm-up" : null,

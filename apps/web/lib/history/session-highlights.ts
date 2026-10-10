@@ -1,5 +1,5 @@
 import type { ExerciseRow, SessionExerciseRow, SetRow } from "@/lib/db/schema";
-import { resolveCurrentRows } from "@jim/core";
+import { exerciseDisplayName, resolveCurrentRows } from "@jim/core";
 
 export interface ExerciseHighlight {
   exerciseName: string;
@@ -35,7 +35,9 @@ export function buildSessionHighlights(
   exercises: readonly Pick<ExerciseRow, "id" | "name">[],
   sets: readonly HighlightSet[],
 ): Map<string, ExerciseHighlight[]> {
-  const nameById = new Map(exercises.map((exercise) => [exercise.id, exercise.name]));
+  const nameById = new Map(
+    exercises.map((exercise) => [exercise.id, exerciseDisplayName(exercise)]),
+  );
 
   const setsBySessionExercise = new Map<string, HighlightSet[]>();
   for (const set of resolveCurrentRows(sets)) {

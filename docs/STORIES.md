@@ -118,6 +118,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 **Acceptance criteria**
 - [ ] Searching "bench" ranks barbell bench press first
 - [ ] An alias search ("OHP") finds the overhead press
+- [ ] Searching a machine's make or model ("Hammer Strength") finds the exercise, and its name shows the machine ("Lat Pulldown (Hammer Strength Iso-Lateral)") in workouts, routines and history (#460)
 - [ ] A custom exercise survives a full sync round-trip
 - [ ] Editing a seed exercise leaves the global row untouched and creates a user-owned clone
 - [ ] Archiving an exercise used in past sessions leaves that history intact and readable

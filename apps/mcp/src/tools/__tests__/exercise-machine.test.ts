@@ -48,6 +48,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("exercise machine details (#450)
     });
   });
 
+  it("finds an exercise by its machine make or model (#460)", async () => {
+    const found = await searchExercisesTool(context, { query: "signature pulldown" });
+    expect(found.map((row) => row.machine)).toEqual(["Life Fitness Signature Pulldown"]);
+  });
+
   it("clears fields, and hides a deleted gym", async () => {
     const [clone] = await searchExercisesTool(context, { query: "lat pulldown" });
     await upsertExercise(context, { id: clone?.id, machineModel: "", pulleyType: "none" });

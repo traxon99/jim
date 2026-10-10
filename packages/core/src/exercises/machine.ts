@@ -1,3 +1,5 @@
+import { normalize } from "../fuzzy-text";
+
 /**
  * Optional machine details on an exercise (issue #450): who made it, the
  * model, its pulley setup, and the gym it's at (issue #451). They tell two
@@ -33,4 +35,16 @@ export function machineName(details: MachineDetails): string | null {
     .map((part) => part?.trim())
     .filter((part): part is string => Boolean(part));
   return parts.length > 0 ? parts.join(" ") : null;
+}
+
+/**
+ * The name to show for an exercise (issue #460): "Lat Pulldown (Hammer
+ * Strength Iso-Lateral)", so two Lat Pulldowns on different machines read
+ * apart in workouts, routines and history. Left as the bare name when no
+ * make/model is set, or when the name already says it.
+ */
+export function exerciseDisplayName(exercise: { name: string } & MachineDetails): string {
+  const machine = machineName(exercise);
+  if (!machine || normalize(exercise.name).includes(normalize(machine))) return exercise.name;
+  return `${exercise.name} (${machine})`;
 }

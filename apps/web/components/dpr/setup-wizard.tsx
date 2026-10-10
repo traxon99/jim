@@ -14,6 +14,7 @@ import {
   EXPERIENCE_LEVELS,
   type ExperienceLevel,
   blockWeeksForProgram,
+  exerciseDisplayName,
   focusCandidates,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -99,7 +100,10 @@ export function SetupWizard({
       }),
     [snapshot, focus, weeks, preset, level, now, prefill],
   );
-  const namesById = useMemo(() => new Map(exercises.map((e) => [e.id, e.name])), [exercises]);
+  const namesById = useMemo(
+    () => new Map(exercises.map((e) => [e.id, exerciseDisplayName(e)])),
+    [exercises],
+  );
 
   if (candidates.length === 0) {
     return (
@@ -207,7 +211,9 @@ export function SetupWizard({
                 onClick={() => toggleFocus(candidate.exercise.id)}
                 className={`${optionClass(selected)} disabled:opacity-50`}
               >
-                <span className="text-base font-medium">{candidate.exercise.name}</span>
+                <span className="text-base font-medium">
+                  {exerciseDisplayName(candidate.exercise)}
+                </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-500">
                   {candidate.frequency} {candidate.frequency === 1 ? "session" : "sessions"} in 90
                   days

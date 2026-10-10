@@ -5,6 +5,7 @@ import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header
 import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
 import { db } from "@/lib/db/schema";
 import {
+  exerciseDisplayName,
   formatProgramWeek,
   groupRoutinesByFolder,
   isWarmupRoutine,
@@ -72,7 +73,9 @@ export function RoutinesList({ userId }: { userId: string }) {
   );
 
   const exerciseNamesByRoutineId = useMemo(() => {
-    const nameById = new Map((allExercises ?? []).map((exercise) => [exercise.id, exercise.name]));
+    const nameById = new Map(
+      (allExercises ?? []).map((exercise) => [exercise.id, exerciseDisplayName(exercise)]),
+    );
     const names = new Map<string, string[]>();
     for (const item of allRoutineExercises ?? []) {
       if (item.deletedAt) continue;

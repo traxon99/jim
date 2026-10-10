@@ -14,4 +14,7 @@ export interface CatalogExercise {
    * #59) don't carry it — absent reads as "strength" (see exerciseCategoryOf).
    */
   category?: "strength" | "warmup" | "cardio" | null;
+  /** Machine make and model (issue #450), searchable like an alias (#460). */
+  machineBrand?: string | null;
+  machineModel?: string | null;
 }

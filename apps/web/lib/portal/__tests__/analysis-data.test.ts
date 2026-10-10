@@ -71,6 +71,20 @@ describe("buildPortalSets", () => {
   });
 });
 
+describe("buildPortalSets — machine names (#460)", () => {
+  it("names an exercise with its machine make and model", () => {
+    const result = buildPortalSets(
+      sessions,
+      sessionExercises,
+      [{ ...exercises[0], machineBrand: "Hammer Strength", machineModel: "Incline" }],
+      [setRow()],
+    );
+    expect(result.exercises).toEqual([
+      { id: "bench", name: "Bench Press (Hammer Strength Incline)" },
+    ]);
+  });
+});
+
 describe("isInstallGateExempt", () => {
   it("lets the portal and sign-in on the way to it through, and nothing else", () => {
     expect(isInstallGateExempt("/portal", "")).toBe(true);

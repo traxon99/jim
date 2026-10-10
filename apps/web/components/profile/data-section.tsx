@@ -16,7 +16,7 @@ import {
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
-import { type WeightUnit, WorkoutCsvError } from "@jim/core";
+import { type WeightUnit, WorkoutCsvError, exerciseDisplayName } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Download, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
@@ -44,7 +44,8 @@ export function DataSection({ userId }: { userId: string }) {
   const units = settings?.units ?? DEFAULT_SETTINGS.units;
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
   const exerciseName = useMemo(
-    () => new Map((exercises ?? []).map((exercise) => [exercise.id, exercise.name])),
+    () =>
+      new Map((exercises ?? []).map((exercise) => [exercise.id, exerciseDisplayName(exercise)])),
     [exercises],
   );
 

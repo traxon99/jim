@@ -51,6 +51,7 @@ import {
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   clampRpe,
+  exerciseDisplayName,
   isVisiblePrKind,
   nearestLoadableWeight,
   plannedSetRowCount,
@@ -817,7 +818,7 @@ export function SessionExerciseSection({
           {supersetLabel && <SupersetBadge label={supersetLabel} />}
           {exercise ? (
             <button type="button" onClick={() => setDetailOpen(true)} className="min-w-0 text-left">
-              {exercise.name}
+              {exerciseDisplayName(exercise)}
             </button>
           ) : (
             <span className="min-w-0">Exercise</span>
@@ -980,7 +981,8 @@ export function SessionExerciseSection({
       {stickyEditing && (
         <ExerciseDialog title="Sticky note" onClose={closeSticky}>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Shows on {exercise?.name ?? "this exercise"} in every workout until you change it.
+            Shows on {exercise ? exerciseDisplayName(exercise) : "this exercise"} in every workout
+            until you change it.
           </p>
           <textarea
             value={stickyDraft}
@@ -1021,8 +1023,8 @@ export function SessionExerciseSection({
       {restEditing && (
         <ExerciseDialog title="Rest timer" onClose={closeRest}>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Rest after each set of {exercise?.name ?? "this exercise"} in this workout. Now{" "}
-            {formatRest(restSeconds)}.
+            Rest after each set of {exercise ? exerciseDisplayName(exercise) : "this exercise"} in
+            this workout. Now {formatRest(restSeconds)}.
           </p>
           <div className="grid grid-cols-4 gap-2">
             {REST_PRESETS.map((seconds) => (
