@@ -1,5 +1,5 @@
 import { isShortRest, resolveCurrentRows, restStats } from "@jim/core";
-import { exercises, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
+import { exercises, gyms, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
@@ -14,6 +14,9 @@ export async function getWorkout(context: UserContext, sessionId: string) {
   return withUser(context, async (tx) => {
     const [session] = await tx.select().from(sessions).where(eq(sessions.id, sessionId));
     if (!session || session.deletedAt) throw new WorkoutNotFoundError(sessionId);
+    const [gym] = session.gymId
+      ? await tx.select().from(gyms).where(eq(gyms.id, session.gymId))
+      : [];
 
     const exerciseRows = await tx
       .select()
@@ -70,6 +73,8 @@ export async function getWorkout(context: UserContext, sessionId: string) {
       bodyweight: session.bodyweight == null ? null : Number(session.bodyweight),
       // The pre-workout "how hard today?" pick (issue #235); null when not asked.
       intensity: session.intensity,
+      // The pre-workout gym pick (issue #454); a deleted gym reads as none.
+      gym: gym && !gym.deletedAt ? { id: gym.id, name: gym.name } : null,
       // Rest compliance across the session (issue #233).
       rest: restStats(setRows),
       exercises: exerciseRows.map((row) => ({

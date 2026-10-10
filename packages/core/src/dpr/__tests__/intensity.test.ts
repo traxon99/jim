@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DprDecision } from "../decide";
-import { applyIntensity } from "../intensity";
+import { DEFAULT_SESSION_INTENSITY, applyIntensity } from "../intensity";
 
 function decision(overrides: Partial<DprDecision> = {}): DprDecision {
   return {
@@ -56,5 +56,13 @@ describe("applyIntensity", () => {
   it("leaves a no-history call alone on light", () => {
     const d = decision({ call: "insufficient", weight: 95, previousWeight: null, targetReps: 6 });
     expect(applyIntensity(d, "light", 2.5)).toBe(d);
+  });
+});
+
+describe("DEFAULT_SESSION_INTENSITY (issue #454)", () => {
+  it("takes PRP's call unless the user picks otherwise", () => {
+    expect(DEFAULT_SESSION_INTENSITY).toBe("push");
+    const d = decision();
+    expect(applyIntensity(d, DEFAULT_SESSION_INTENSITY, 2.5)).toBe(d);
   });
 });

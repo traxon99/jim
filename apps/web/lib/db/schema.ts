@@ -23,7 +23,12 @@ import { bootQueryMiddleware } from "../boot/dexie-boot-middleware";
 // ships to the browser) rather than being hand-duplicated and drifting.
 export type RoutineRow = typeof routines.$inferSelect;
 export type RoutineExerciseRow = typeof routineExercises.$inferSelect;
-export type SessionRow = typeof sessions.$inferSelect;
+type SessionSelect = typeof sessions.$inferSelect;
+/**
+ * The session's gym (issue #454) is optional here, like an exercise's
+ * machine details: rows cached before the column existed don't carry it.
+ */
+export type SessionRow = Omit<SessionSelect, "gymId"> & Partial<Pick<SessionSelect, "gymId">>;
 export type SessionExerciseRow = typeof sessionExercises.$inferSelect;
 export type SetRow = typeof sets.$inferSelect;
 export type PersonalRecordRow = typeof personalRecords.$inferSelect;

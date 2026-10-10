@@ -12,7 +12,9 @@ import { LIGHT_DAY_PCT } from "./presets";
 
 export const SESSION_INTENSITIES: readonly SessionIntensity[] = ["light", "maintain", "push"];
 
-export const DEFAULT_SESSION_INTENSITY: SessionIntensity = "maintain";
+// Push takes PRP's call as is, so starting from the pre-workout sheet follows
+// PRP unless the user picks otherwise (issue #454).
+export const DEFAULT_SESSION_INTENSITY: SessionIntensity = "push";
 
 export const SESSION_INTENSITY_LABELS: Readonly<Record<SessionIntensity, string>> = {
   light: "Go light",

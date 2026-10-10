@@ -15,6 +15,7 @@ import { and, eq, inArray, lt } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
+import { findGym } from "./gyms.js";
 import { resolveExercise } from "./resolve-exercise.js";
 import { RoutineNotFoundError } from "./update-routine.js";
 
@@ -45,6 +46,8 @@ export interface LogPastWorkoutInput {
   routineId?: string;
   notes?: string;
   bodyweight?: number;
+  /** The gym it was at (issue #454), by name or id; none when omitted. */
+  gym?: string;
   exercises: LogPastWorkoutExerciseInput[];
   /** Preview only: run every check and return the result, then roll back (#245). */
   dryRun?: boolean;
@@ -138,6 +141,8 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       routineName = routine.name;
     }
 
+    const gym = input.gym ? await findGym(tx, input.gym) : null;
+
     const now = new Date();
     const sessionId = uuidv7();
     const name = input.name ?? routineName;
@@ -150,6 +155,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       endedAt,
       notes: input.notes ?? null,
       bodyweight: input.bodyweight == null ? null : String(input.bodyweight),
+      gymId: gym?.id ?? null,
       updatedAt: now,
       deviceId: MCP_DEVICE_ID,
     });
@@ -252,6 +258,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       id: sessionId,
       name,
       routineId: input.routineId ?? null,
+      gym: gym ? { id: gym.id, name: gym.name } : null,
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
       totalVolume: summary.totalVolume,

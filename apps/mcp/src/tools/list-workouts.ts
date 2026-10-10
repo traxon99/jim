@@ -1,5 +1,5 @@
 import { resolveCurrentRows, summarizeSession } from "@jim/core";
-import { personalRecords, sessionExercises, sessions, sets } from "@jim/db";
+import { gyms, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
 import { and, desc, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
@@ -51,6 +51,10 @@ export async function listWorkouts(context: UserContext, input: ListWorkoutsInpu
           .where(and(inArray(personalRecords.setId, setIds), isNull(personalRecords.deletedAt)))
       : [];
     const prSetIds = new Set(prRows.map((pr) => pr.setId));
+    // The pre-workout gym pick (issue #454); a deleted gym reads as none.
+    const gymNames = new Map(
+      (await tx.select().from(gyms).where(isNull(gyms.deletedAt))).map((g) => [g.id, g.name]),
+    );
 
     const sessionExerciseIdsBySession = new Map<string, string[]>();
     for (const row of exerciseRows) {
@@ -84,6 +88,7 @@ export async function listWorkouts(context: UserContext, input: ListWorkoutsInpu
         id: session.id,
         name: session.name,
         routineId: session.routineId,
+        gym: (session.gymId && gymNames.get(session.gymId)) ?? null,
         startedAt: session.startedAt.toISOString(),
         endedAt: (session.endedAt as Date).toISOString(),
         totalVolume: summary.totalVolume,
