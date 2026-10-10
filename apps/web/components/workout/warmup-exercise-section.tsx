@@ -5,7 +5,7 @@ import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
-import { resolveCurrentRows } from "@jim/core";
+import { exerciseDisplayName, resolveCurrentRows } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
@@ -92,7 +92,7 @@ export function WarmupExerciseSection({
           <h3 className={large ? "text-2xl font-bold" : "text-base font-semibold"}>
             {exercise ? (
               <button type="button" onClick={() => setDetailOpen(true)} className="text-left">
-                {exercise.name}
+                {exerciseDisplayName(exercise)}
               </button>
             ) : (
               "Warm-up"

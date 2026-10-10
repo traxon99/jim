@@ -199,3 +199,31 @@ describe("searchExercises", () => {
     });
   });
 });
+
+describe("searchExercises — machine make/model (#460)", () => {
+  const plain = exercise({ name: "Lat Pulldown" });
+  const hammer = exercise({
+    id: "hammer",
+    name: "Lat Pulldown",
+    machineBrand: "Hammer Strength",
+    machineModel: "Iso-Lateral",
+  });
+  const lifeFitness = exercise({ id: "lf", name: "Seated Row", machineBrand: "Life Fitness" });
+  const all = [plain, hammer, lifeFitness];
+
+  it("finds an exercise by its make or model", () => {
+    expect(searchExercises(all, "hammer strength").map((e) => e.id)).toEqual(["hammer"]);
+    expect(searchExercises(all, "iso lateral").map((e) => e.id)).toEqual(["hammer"]);
+    expect(searchExercises(all, "life fitness").map((e) => e.id)).toEqual(["lf"]);
+  });
+
+  it("matches the name and the machine together", () => {
+    expect(searchExercises(all, "pulldown hammer").map((e) => e.id)).toEqual(["hammer"]);
+  });
+
+  it("still finds every variant by the bare name", () => {
+    expect(searchExercises(all, "lat pulldown").map((e) => e.id)).toEqual(
+      expect.arrayContaining(["Lat Pulldown", "hammer"]),
+    );
+  });
+});

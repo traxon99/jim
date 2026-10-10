@@ -9,10 +9,10 @@ import {
   type ExerciseSortKey,
   buildExerciseUsage,
   dedupeCatalogNames,
+  exerciseDisplayName,
   filterExercises,
   isCardioExercise,
   isWarmupExercise,
-  machineName,
   preferOwnedExercises,
   searchExercises,
   sortExercisesByUsage,
@@ -124,13 +124,12 @@ export function ExercisesList({ userId }: { userId: string }) {
           className="flex items-center justify-between gap-2 py-3"
         >
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-base font-medium">{exercise.name}</span>
+            <span className="text-base font-medium">{exerciseDisplayName(exercise)}</span>
             <span className="text-xs text-zinc-500 dark:text-zinc-500">
               {[
                 isWarmupExercise(exercise) ? "warm-up" : null,
                 isCardioExercise(exercise) ? "cardio" : null,
                 exercise.equipment,
-                machineName(exercise),
                 exercise.gymId ? gymNames?.get(exercise.gymId) : null,
                 ...exercise.primaryMuscles,
               ]

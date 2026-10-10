@@ -34,6 +34,7 @@ import { useWakeLock } from "@/lib/wake-lock";
 import {
   type PaceExercise,
   type SupersetChange,
+  exerciseDisplayName,
   formSuperset,
   isCardioExercise,
   isFocusExerciseComplete,
@@ -218,7 +219,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       const isWarmupItem = warmupIds.has(se.id);
       return {
         id: se.id,
-        name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
+        name: (() => {
+          const exercise = exerciseById.get(se.exerciseId);
+          return exercise ? exerciseDisplayName(exercise) : "Exercise";
+        })(),
         loggedSetCount: isWarmupItem
           ? (setCompletedAtBySessionExerciseId.get(se.id)?.length ?? 0)
           : (workingSetCountBySessionExerciseId.get(se.id) ?? 0),
@@ -805,7 +809,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             <SupersetPickerCard
               exercises={mainItems.map((se) => ({
                 id: se.id,
-                name: exerciseById.get(se.exerciseId)?.name ?? "Exercise",
+                name: (() => {
+                  const exercise = exerciseById.get(se.exerciseId);
+                  return exercise ? exerciseDisplayName(exercise) : "Exercise";
+                })(),
               }))}
               initialSelectedIds={memberIds}
               editing={editing}

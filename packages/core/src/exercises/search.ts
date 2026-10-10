@@ -1,4 +1,5 @@
 import { normalize, scoreField, scoreFieldTokens, tokenQuality, words } from "../fuzzy-text";
+import { exerciseDisplayName, machineName } from "./machine";
 import type { CatalogExercise } from "./types";
 
 /**
@@ -85,9 +86,13 @@ function scoreExercise(exercise: Normalized, query: string, queryWords: readonly
 }
 
 function normalizeExercise(exercise: CatalogExercise): Normalized {
+  // A machine's make/model searches like an alias (issue #460): on its own
+  // ("hammer strength") and with the name ("pulldown hammer strength").
+  const machine = machineName(exercise);
+  const machineAliases = machine ? [machine, exerciseDisplayName(exercise)] : [];
   return {
     name: normalize(exercise.name),
-    aliases: exercise.aliases.map(normalize),
+    aliases: [...exercise.aliases, ...machineAliases].map(normalize),
     metadataWords: words(
       normalize(
         [exercise.equipment ?? "", ...exercise.primaryMuscles, ...exercise.secondaryMuscles].join(

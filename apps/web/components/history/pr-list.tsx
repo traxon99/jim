@@ -17,6 +17,7 @@ import {
   RECENT_PR_SECTION_DAYS,
   type StrengthStandardTier,
   currentPersonalRecords,
+  exerciseDisplayName,
   filterExercises,
   isRecentPersonalRecord,
   liftStandardThresholds,
@@ -218,7 +219,7 @@ export function PrList() {
 
         return {
           exerciseId,
-          name: exercise?.name ?? "Unknown exercise",
+          name: exercise ? exerciseDisplayName(exercise) : "Unknown exercise",
           records: records.sort((a, b) => a.kind.localeCompare(b.kind)),
           headlineRecord,
           headline: oneRepMax ?? heaviest,

@@ -16,6 +16,7 @@ import {
   deletedSessionExerciseIds,
   detectCardioRecords,
   distanceUnitFor,
+  exerciseDisplayName,
   formatCardioSet,
   formatDuration,
   formatPace,
@@ -210,7 +211,7 @@ export function CardioExerciseSection({
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className={large ? "text-2xl font-bold" : "text-base font-semibold"}>
             <button type="button" onClick={() => setDetailOpen(true)} className="text-left">
-              {exercise.name}
+              {exerciseDisplayName(exercise)}
             </button>
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-500">

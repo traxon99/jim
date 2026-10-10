@@ -342,7 +342,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Search exercises",
       description:
-        "Search the exercise catalog by name/alias, muscle group, and/or equipment. Results include machine make/model, pulley type and gym when set.",
+        "Search the exercise catalog by name/alias or machine make/model, muscle group, and/or equipment. Results include machine make/model, pulley type and gym when set.",
       inputSchema: {
         query: z.string().optional(),
         muscles: z.array(z.string()).optional(),

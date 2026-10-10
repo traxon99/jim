@@ -47,7 +47,13 @@ export async function loadPortalData(): Promise<PortalData> {
       exerciseIds.length === 0
         ? []
         : await tx
-            .select({ id: exercises.id, name: exercises.name, category: exercises.category })
+            .select({
+              id: exercises.id,
+              name: exercises.name,
+              category: exercises.category,
+              machineBrand: exercises.machineBrand,
+              machineModel: exercises.machineModel,
+            })
             .from(exercises)
             .where(inArray(exercises.id, exerciseIds));
 

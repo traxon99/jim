@@ -1,4 +1,9 @@
-import { type ExerciseCategory, isStrengthExercise, resolveCurrentRows } from "@jim/core";
+import {
+  type ExerciseCategory,
+  exerciseDisplayName,
+  isStrengthExercise,
+  resolveCurrentRows,
+} from "@jim/core";
 
 interface PortalSessionRow {
   id: string;
@@ -27,6 +32,8 @@ interface PortalExerciseRow {
   id: string;
   name: string;
   category?: ExerciseCategory | null;
+  machineBrand?: string | null;
+  machineModel?: string | null;
 }
 
 /**
@@ -102,6 +109,6 @@ export function buildPortalSets(
     sets: result,
     exercises: exercises
       .filter((exercise) => usedExerciseIds.has(exercise.id))
-      .map((exercise) => ({ id: exercise.id, name: exercise.name })),
+      .map((exercise) => ({ id: exercise.id, name: exerciseDisplayName(exercise) })),
   };
 }
