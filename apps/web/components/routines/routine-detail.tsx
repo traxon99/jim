@@ -17,6 +17,7 @@ import { PreWorkoutSheet } from "@/components/workout/pre-workout-sheet";
 import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { useGyms } from "@/lib/gyms/use-gyms";
 import { routineItemSummary } from "@/lib/routines/summary";
 import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -60,6 +61,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   const dprContext = useDprContext();
+  const gyms = useGyms();
 
   const routine = useLiveQuery(async () => (await db.routines.get(id)) ?? null, [id]);
   const rawItems = useLiveQuery(
@@ -237,10 +239,10 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     await applySupersetChanges(normalizeSupersets(items.filter((other) => other.id !== item.id)));
   }
 
-  async function startRoutine(intensity: SessionIntensity | null) {
+  async function startRoutine(intensity: SessionIntensity | null, gymId: string | null) {
     setStarting(true);
     try {
-      const sessionId = await startSessionFromRoutineId(userId, id, intensity);
+      const sessionId = await startSessionFromRoutineId(userId, id, intensity, db, gymId);
       router.push(`/workout/${sessionId}`);
     } catch {
       // Nothing was started; let the button be tapped again.
@@ -248,11 +250,12 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     }
   }
 
-  // DPR users pick today's intensity in the pre-workout sheet first, as on
-  // the Workout tab; everyone else starts straight away.
+  // DPR users pick today's intensity, and users with gyms a gym (issue #454),
+  // in the pre-workout sheet first, as on the Workout tab; everyone else
+  // starts straight away.
   function handleStart() {
-    if (dprContext) setSheetOpen(true);
-    else void startRoutine(null);
+    if (dprContext || (gyms && gyms.length > 0)) setSheetOpen(true);
+    else void startRoutine(null, null);
   }
 
   async function handleDuplicate() {
@@ -536,7 +539,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           routineId={routine.id}
           routineName={routine.name}
           starting={starting}
-          onStart={(intensity) => void startRoutine(intensity)}
+          onStart={(intensity, gymId) => void startRoutine(intensity, gymId)}
           onCancel={closeSheet}
         />
       )}

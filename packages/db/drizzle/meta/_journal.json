@@ -295,6 +295,13 @@
       "when": 1791511873730,
       "tag": "0041_add_exercise_machine_details",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1791659258854,
+      "tag": "0042_add_session_gym",
+      "breakpoints": true
     }
   ]
 }

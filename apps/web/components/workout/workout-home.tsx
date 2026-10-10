@@ -9,6 +9,7 @@ import { RoutineIcon } from "@/components/routines/routine-icon";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { useGyms } from "@/lib/gyms/use-gyms";
 import { formatLastDone, lastDoneByRoutine } from "@/lib/routines/last-done";
 import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/start-session";
@@ -31,6 +32,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
   const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const dprContext = useDprContext();
+  const gyms = useGyms();
   const itemsByRoutine = useLiveQuery(async () => {
     const map = new Map<string, RoutineExerciseRow[]>();
     if (!dprContext) return map;
@@ -94,11 +96,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
 
   const closePreview = useCallback(() => setPreview(null), []);
 
-  // DPR users see today's targets and pick an intensity first (issue #235);
-  // everyone else starts straight away.
+  // DPR users see today's targets and pick an intensity first (issue #235),
+  // and users with gyms pick one (issue #454); everyone else starts straight
+  // away.
   function handleChooseRoutine(routineId: string, routineName: string) {
-    if (dprContext) setPreview({ id: routineId, name: routineName });
-    else void handleStartFromRoutine(routineId, null);
+    if (dprContext || (gyms && gyms.length > 0)) setPreview({ id: routineId, name: routineName });
+    else void handleStartFromRoutine(routineId, null, null);
   }
 
   // Tapping a routine previews it in the sheet, DPR or not (issue #282).
@@ -106,9 +109,13 @@ export function WorkoutHome({ userId }: { userId: string }) {
     if (!starting) setPreview({ id: routineId, name: routineName });
   }
 
-  async function handleStartFromRoutine(routineId: string, intensity: SessionIntensity | null) {
+  async function handleStartFromRoutine(
+    routineId: string,
+    intensity: SessionIntensity | null,
+    gymId: string | null,
+  ) {
     setStarting(true);
-    const sessionId = await startSessionFromRoutineId(userId, routineId, intensity);
+    const sessionId = await startSessionFromRoutineId(userId, routineId, intensity, db, gymId);
     router.push(`/workout/${sessionId}`);
   }
 
@@ -221,7 +228,9 @@ export function WorkoutHome({ userId }: { userId: string }) {
             routineId={preview.id}
             routineName={preview.name}
             starting={starting}
-            onStart={(intensity) => void handleStartFromRoutine(preview.id, intensity)}
+            onStart={(intensity, gymId) =>
+              void handleStartFromRoutine(preview.id, intensity, gymId)
+            }
             onCancel={closePreview}
           />
         )}

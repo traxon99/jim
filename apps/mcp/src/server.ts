@@ -129,7 +129,8 @@ export function createMcpServer(context: UserContext): McpServer {
     "list_workouts",
     {
       title: "List workouts",
-      description: "Finished workout sessions with summary stats (volume, duration, PR count).",
+      description:
+        "Finished workout sessions with summary stats (volume, duration, PR count) and the gym each was at.",
       inputSchema: {
         from: z.string().datetime().optional().describe("ISO date/time lower bound"),
         to: z.string().datetime().optional().describe("ISO date/time upper bound"),
@@ -150,7 +151,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Get workout",
       description:
-        "Full detail for one workout session: every exercise, every set (with rest taken vs target), PRs achieved, and the session's intensity pick.",
+        "Full detail for one workout session: every exercise, every set (with rest taken vs target), PRs achieved, the session's intensity pick and the gym it was at.",
       inputSchema: { sessionId: z.string().describe("Session id") },
     },
     async ({ sessionId }) => {
@@ -466,6 +467,10 @@ export function createMcpServer(context: UserContext): McpServer {
         routineId: z.string().optional().describe("The routine this workout followed, if any"),
         notes: z.string().optional(),
         bodyweight: z.number().positive().optional(),
+        gym: z
+          .string()
+          .optional()
+          .describe("The gym it was at, by name or id from list_gyms; none when omitted"),
         exercises: z
           .array(
             z.object({

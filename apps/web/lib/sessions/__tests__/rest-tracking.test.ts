@@ -245,3 +245,24 @@ describe("session intensity (issue #235)", () => {
     expect((await testDb.sessions.get(sessionId))?.intensity).toBeNull();
   });
 });
+
+describe("session gym (issue #454)", () => {
+  it("stores the pre-workout gym pick on the session and syncs it", async () => {
+    const sessionId = await startSessionFromRoutine(
+      USER_ID,
+      { id: "routine", name: "Push" },
+      [routineItem(BENCH, 0, 120)],
+      testDb,
+      "push",
+      "gym-1",
+    );
+    expect((await testDb.sessions.get(sessionId))?.gymId).toBe("gym-1");
+    const outbox = await testDb.outbox.toArray();
+    expect(outbox.find((m) => m.table === "sessions")?.entity).toMatchObject({ gymId: "gym-1" });
+  });
+
+  it("leaves it null when none was picked", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    expect((await testDb.sessions.get(sessionId))?.gymId).toBeNull();
+  });
+});

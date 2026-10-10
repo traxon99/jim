@@ -563,6 +563,10 @@ export const sessions = pgTable(
     // Chosen on the pre-workout sheet (issue #235); null when none was asked
     // (DPR off, or an empty workout). Adjusts this session's DPR calls only.
     intensity: sessionIntensityEnum("intensity"),
+    // The gym picked on the pre-workout sheet (issue #454); null when none.
+    // A tombstoned gym leaves gymId pointing at it; readers treat a deleted
+    // gym as none.
+    gymId: uuid("gym_id").references((): AnyPgColumn => gyms.id, { onDelete: "set null" }),
     deviceId: text("device_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

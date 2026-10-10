@@ -5,6 +5,7 @@ import { FloatingCard } from "@/components/floating-card";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { type DprContext, dprBadge } from "@/lib/dpr/calls";
+import { useGyms } from "@/lib/gyms/use-gyms";
 import { buildPreWorkoutRows } from "@/lib/workout/pre-workout-preview";
 import {
   DEFAULT_SESSION_INTENSITY,
@@ -22,8 +23,11 @@ interface Props {
   routineId: string;
   routineName: string;
   starting: boolean;
-  /** Null without DPR: the session records no intensity pick. */
-  onStart: (intensity: SessionIntensity | null) => void;
+  /**
+   * Null intensity without DPR: the session records no intensity pick. Gym is
+   * the picked gym's id (issue #454), null for none.
+   */
+  onStart: (intensity: SessionIntensity | null, gymId: string | null) => void;
   onCancel: () => void;
 }
 
@@ -36,6 +40,7 @@ function formatWeight(n: number): string {
  * DPR users also get today's targets and "How hard do you want to push
  * today?" — Go light / Maintain / Push — with the targets following the pick
  * before the workout starts. Without DPR it's a plain preview (issue #282).
+ * Users with gyms pick where they're training, home gym first (issue #454).
  */
 export function PreWorkoutSheet({
   context,
@@ -46,6 +51,15 @@ export function PreWorkoutSheet({
   onCancel,
 }: Props) {
   const [intensity, setIntensity] = useState<SessionIntensity>(DEFAULT_SESSION_INTENSITY);
+  const gyms = useGyms();
+  // Undefined until the user picks: follows the home gym as gyms load.
+  const [pickedGymId, setPickedGymId] = useState<string | null | undefined>(undefined);
+  const gymId =
+    pickedGymId === undefined
+      ? (gyms?.[0]?.id ?? null)
+      : gyms?.some((gym) => gym.id === pickedGymId)
+        ? pickedGymId
+        : null;
   const routine = useLiveQuery(() => db.routines.get(routineId), [routineId]);
   const items = useLiveQuery(
     () => db.routineExercises.where("routineId").equals(routineId).toArray(),
@@ -116,6 +130,23 @@ export function PreWorkoutSheet({
           </ul>
 
           <div className="flex touch-none flex-col gap-3 border-t border-zinc-200 px-4 pt-3 pb-4 dark:border-zinc-800">
+            {gyms && gyms.length > 0 && (
+              <label className="flex items-center gap-3 text-sm font-semibold">
+                Gym
+                <select
+                  value={gymId ?? ""}
+                  onChange={(event) => setPickedGymId(event.target.value || null)}
+                  className="min-h-11 min-w-0 flex-1 truncate rounded-lg border border-zinc-300 bg-white px-3 text-sm font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                >
+                  {gyms.map((gym) => (
+                    <option key={gym.id} value={gym.id}>
+                      {gym.name}
+                    </option>
+                  ))}
+                  <option value="">No gym</option>
+                </select>
+              </label>
+            )}
             {context && (
               <fieldset className="flex flex-col gap-2">
                 <legend className="mb-2 text-sm font-semibold">
@@ -153,7 +184,7 @@ export function PreWorkoutSheet({
               </button>
               <button
                 type="button"
-                onClick={() => onStart(context ? intensity : null)}
+                onClick={() => onStart(context ? intensity : null, gymId)}
                 disabled={starting}
                 className="tinted-action min-h-11 flex-[2] rounded-lg bg-accent px-4 text-base font-medium text-accent-foreground disabled:opacity-50"
               >

@@ -25,6 +25,7 @@ export async function startEmptySession(
     notes: null,
     bodyweight: null,
     intensity: null,
+    gymId: null,
     deviceId,
     updatedAt: now,
     deletedAt: null,
@@ -47,6 +48,8 @@ export async function startSessionFromRoutine(
   database: JimDatabase = db,
   /** The pre-workout sheet's "how hard today?" pick (issue #235); DPR users only. */
   intensity: SessionIntensity | null = null,
+  /** The pre-workout sheet's gym pick (issue #454); null for none. */
+  gymId: string | null = null,
 ): Promise<string> {
   const deviceId = await getDeviceId(database);
   const now = new Date();
@@ -62,6 +65,7 @@ export async function startSessionFromRoutine(
     notes: null,
     bodyweight: null,
     intensity,
+    gymId,
     deviceId,
     updatedAt: now,
     deletedAt: null,
@@ -121,6 +125,7 @@ export async function startSessionFromRoutineId(
   routineId: string,
   intensity: SessionIntensity | null = null,
   database: JimDatabase = db,
+  gymId: string | null = null,
 ): Promise<string> {
   const routine = await database.routines.get(routineId);
   const items = await database.routineExercises.where("routineId").equals(routineId).toArray();
@@ -134,5 +139,6 @@ export async function startSessionFromRoutineId(
     items.filter((item) => !item.deletedAt),
     database,
     intensity,
+    gymId,
   );
 }

@@ -415,6 +415,53 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(unlinked?.warmup_routine_id).toBeNull();
   });
 
+  it("applies a session's gym (issue #454)", async () => {
+    const gymId = uuidv7();
+    const sessionId = uuidv7();
+    const now = new Date().toISOString();
+    const body = await (
+      await push([
+        {
+          id: uuidv7(),
+          table: "gyms",
+          entity: {
+            id: gymId,
+            name: "Garage",
+            address: null,
+            notes: null,
+            isDefault: true,
+            position: 0,
+            createdAt: now,
+            updatedAt: now,
+            deviceId: "device-a",
+            deletedAt: null,
+          },
+        },
+        {
+          id: uuidv7(),
+          table: "sessions",
+          entity: {
+            id: sessionId,
+            routineId: null,
+            name: null,
+            endedAt: null,
+            notes: null,
+            bodyweight: null,
+            intensity: "push",
+            gymId,
+            deviceId: "device-a",
+            updatedAt: now,
+            deletedAt: null,
+          },
+        },
+      ])
+    ).json();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual(["applied", "applied"]);
+    const [row] = await admin<{ gym_id: string }[]>`
+      SELECT gym_id FROM sessions WHERE id = ${sessionId}`;
+    expect(row?.gym_id).toBe(gymId);
+  });
+
   it("logs a full workout (session + session_exercise + set) in one batch", async () => {
     const sessionId = uuidv7();
     const sessionExerciseId = uuidv7();

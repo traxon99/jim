@@ -117,7 +117,7 @@ routine_exercises  id, routine_id, exercise_id, position, superset_group,
                    target_duration_seconds, notes
 
 sessions           id, user_id, routine_id?, name, started_at, ended_at,
-                   notes, bodyweight?, device_id, updated_at
+                   notes, bodyweight?, intensity?, gym_id?, device_id, updated_at
 session_exercises  id, session_id, exercise_id, position, superset_group, notes,
                    sticky_note, rest_seconds, warmup_sets
 
