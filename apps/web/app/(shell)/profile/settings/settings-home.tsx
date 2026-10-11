@@ -14,7 +14,7 @@ import { SharingSection } from "@/components/profile/sharing-section";
 import { UsernameSection } from "@/components/profile/username-section";
 import { WorkoutSection } from "@/components/profile/workout-section";
 import { APP_VERSION } from "@/lib/version";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { SignOutButton } from "./sign-out-button";
 
@@ -36,6 +36,27 @@ export function SettingsHome({
       />
       <div className={`items-center text-center ${PAGE_BODY}`}>
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}
+        {/* Reruns the new-user walkthrough any time (issue #464). */}
+        <Link
+          href="/profile/setup?from=settings"
+          data-ripple
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-zinc-300 px-4 py-2 text-left text-sm font-medium dark:border-zinc-700"
+        >
+          <span className="flex min-w-0 items-center gap-2">
+            <Sparkles
+              className="h-4 w-4 shrink-0 text-accent"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+            <span className="flex min-w-0 flex-col">
+              Setup walkthrough
+              <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+                Home gym, program, PRP and theme in a few steps
+              </span>
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+        </Link>
         {/* Moved from Profile (issue #331); every section here saves as you go. */}
         <ProfilePictureSection />
         <UsernameSection />

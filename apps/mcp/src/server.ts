@@ -1004,6 +1004,12 @@ export function createMcpServer(context: UserContext): McpServer {
         fontFamily: z.enum(fontFamilyEnum.enumValues).optional(),
         cardStyle: z.enum(cardStyleEnum.enumValues).optional(),
         showPaceTracker: z.boolean().optional(),
+        advancedFeatures: z
+          .boolean()
+          .optional()
+          .describe(
+            "Advanced (true) or Simple (false) mode: Simple hides the RPE column (unless PRP is on) and the pace tracker",
+          ),
         sex: z.enum(sexEnum.enumValues).nullable().optional(),
         birthdate: z
           .string()

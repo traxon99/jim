@@ -54,6 +54,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       fontFamily: "sans",
       cardStyle: "plain",
       showPaceTracker: true,
+      advancedFeatures: true,
       sex: null,
       birthdate: null,
       heightCm: null,
@@ -65,6 +66,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       dprDefaultRepLow: 6,
       dprDefaultRepHigh: 10,
       dprPromptDismissedAt: null,
+      // A brand-new account hasn't been through the setup walkthrough (issue #464).
+      onboardedAt: null,
     });
 
     const rows = await admin`SELECT id, email FROM public.users WHERE id = ${USER_A}`;
@@ -106,6 +109,19 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
   it("rejects a non-boolean pace tracker toggle", async () => {
     const response = await patch({ showPaceTracker: "no" });
     expect(response.status).toBe(400);
+  });
+
+  it("rejects a non-boolean advanced features toggle or a bad onboarding date", async () => {
+    expect((await patch({ advancedFeatures: "yes" })).status).toBe(400);
+    expect((await patch({ onboardedAt: "not a date" })).status).toBe(400);
+  });
+
+  it("saves Simple mode and marks setup done", async () => {
+    const at = "2026-10-11T12:00:00.000Z";
+    const body = await (await patch({ advancedFeatures: false, onboardedAt: at })).json();
+    expect(body).toMatchObject({ advancedFeatures: false, onboardedAt: at });
+    const again = await (await GET()).json();
+    expect(again).toMatchObject({ advancedFeatures: false, onboardedAt: at });
   });
 
   it("rejects an invalid sex", async () => {

@@ -34,6 +34,7 @@ interface SettingsPayload {
   fontFamily: "sans" | "serif" | "mono";
   cardStyle: "plain" | "glass";
   showPaceTracker: boolean;
+  advancedFeatures: boolean;
   sex: "male" | "female" | null;
   birthdate: string | null;
   heightCm: string | null;
@@ -45,6 +46,7 @@ interface SettingsPayload {
   dprDefaultRepLow: number;
   dprDefaultRepHigh: number;
   dprPromptDismissedAt: string | null;
+  onboardedAt: string | null;
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -59,6 +61,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     fontFamily: row.fontFamily,
     cardStyle: row.cardStyle,
     showPaceTracker: row.showPaceTracker,
+    advancedFeatures: row.advancedFeatures,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm,
@@ -70,6 +73,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     dprDefaultRepLow: row.dprDefaultRepLow,
     dprDefaultRepHigh: row.dprDefaultRepHigh,
     dprPromptDismissedAt: row.dprPromptDismissedAt?.toISOString() ?? null,
+    onboardedAt: row.onboardedAt?.toISOString() ?? null,
   };
 }
 
@@ -135,6 +139,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("showPaceTracker" in candidate && typeof candidate.showPaceTracker !== "boolean") {
     return false;
   }
+  if ("advancedFeatures" in candidate && typeof candidate.advancedFeatures !== "boolean") {
+    return false;
+  }
   if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
     return false;
   }
@@ -190,6 +197,10 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     const value = candidate.dprPromptDismissedAt;
     if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return false;
   }
+  if ("onboardedAt" in candidate && candidate.onboardedAt !== null) {
+    const value = candidate.onboardedAt;
+    if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return false;
+  }
   return true;
 }
 
@@ -238,6 +249,7 @@ export async function PATCH(request: Request) {
       if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;
       if (body.cardStyle !== undefined) patch.cardStyle = body.cardStyle;
       if (body.showPaceTracker !== undefined) patch.showPaceTracker = body.showPaceTracker;
+      if (body.advancedFeatures !== undefined) patch.advancedFeatures = body.advancedFeatures;
       if (body.sex !== undefined) patch.sex = body.sex;
       if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
       if (body.heightCm !== undefined) {
@@ -257,6 +269,9 @@ export async function PATCH(request: Request) {
       if (body.dprPromptDismissedAt !== undefined) {
         patch.dprPromptDismissedAt =
           body.dprPromptDismissedAt === null ? null : new Date(body.dprPromptDismissedAt);
+      }
+      if (body.onboardedAt !== undefined) {
+        patch.onboardedAt = body.onboardedAt === null ? null : new Date(body.onboardedAt);
       }
 
       const [row] = await tx.update(users).set(patch).where(eq(users.id, userId)).returning();

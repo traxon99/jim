@@ -191,22 +191,38 @@ export async function addExploreProgram(
   const { programId, missingSlugs } = await addProgramTemplate(userId, template, database);
   if (options.activate) await setActiveProgram(programId, database);
 
-  let dprError: string | null = null;
-  const dpr = template.info.dpr;
-  if (options.startDpr && dpr) {
-    const settings = await getCachedSettings(database);
-    dprError = await startDprForProgram(
-      userId,
-      programId,
-      {
-        focusSlugs: dpr.focusSlugs,
-        weeks: dpr.weeks,
-        preset: dpr.preset,
-        experience: settings.dprExperience ?? template.info.level,
-      },
-      database,
-      settingsPatcher,
-    );
-  }
+  const dprError = options.startDpr
+    ? await startExploreProgramDpr(userId, programId, template, database, settingsPatcher)
+    : null;
   return { programId, missingSlugs, dprError };
+}
+
+/**
+ * Starts PRP on an added Explore program's focus lifts (see addExploreProgram).
+ * The setup walkthrough (issue #464) adds the program a step before the user
+ * picks PRP, so it calls this on its own. A template with no PRP mapping
+ * starts nothing. Returns a message for the user, or null.
+ */
+export async function startExploreProgramDpr(
+  userId: string,
+  programId: string,
+  template: ExploreProgramTemplate,
+  database: JimDatabase = db,
+  settingsPatcher: typeof patchSettings = patchSettings,
+): Promise<string | null> {
+  const dpr = template.info.dpr;
+  if (!dpr) return null;
+  const settings = await getCachedSettings(database);
+  return startDprForProgram(
+    userId,
+    programId,
+    {
+      focusSlugs: dpr.focusSlugs,
+      weeks: dpr.weeks,
+      preset: dpr.preset,
+      experience: settings.dprExperience ?? template.info.level,
+    },
+    database,
+    settingsPatcher,
+  );
 }

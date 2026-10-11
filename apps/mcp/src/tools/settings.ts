@@ -18,6 +18,7 @@ function toSettings(row: UserRow) {
     fontFamily: row.fontFamily,
     cardStyle: row.cardStyle,
     showPaceTracker: row.showPaceTracker,
+    advancedFeatures: row.advancedFeatures,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm == null ? null : Number(row.heightCm),

@@ -100,6 +100,7 @@ export type SettingsRow = Pick<
   | "fontFamily"
   | "cardStyle"
   | "showPaceTracker"
+  | "advancedFeatures"
   | "sex"
   | "birthdate"
   | "heightCm"
@@ -111,6 +112,7 @@ export type SettingsRow = Pick<
   | "dprDefaultRepLow"
   | "dprDefaultRepHigh"
   | "dprPromptDismissedAt"
+  | "onboardedAt"
 > & { id: "me" };
 
 export class JimDatabase extends Dexie {

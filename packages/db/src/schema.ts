@@ -201,6 +201,13 @@ export const users = pgTable(
     cardStyle: cardStyleEnum("card_style").notNull().default("plain"),
     // Whether the live pace tracker card shows during a workout.
     showPaceTracker: boolean("show_pace_tracker").notNull().default(true),
+    // Advanced features (issue #464): the RPE column and pace tracker. Off is
+    // "Simple" mode for new lifters; on keeps the app as it always was.
+    advancedFeatures: boolean("advanced_features").notNull().default(true),
+    // When the user finished or skipped the setup walkthrough (issue #464).
+    // Null means a new user who hasn't seen it yet; existing rows were
+    // backfilled so only new sign-ups get it.
+    onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
 
     // Profile fields feeding the strength-standards lookup (packages/core):
     // sex and bodyweight select the standards table, age adjusts it. All

@@ -19,6 +19,8 @@ interface Props {
   isPr: boolean;
   /** A focused lift's working set logged without RPE doesn't count for DPR (issue #212). */
   rpeNudge?: boolean;
+  /** False in Simple mode without PRP (issue #464): the RPE column is left out. */
+  showRpe?: boolean;
   large?: boolean;
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
@@ -149,6 +151,7 @@ export function SetRow({
   previous,
   isPr,
   rpeNudge = false,
+  showRpe = true,
   large = false,
   onEdit,
   onChangeKind,
@@ -204,20 +207,22 @@ export function SetRow({
         )}
       </td>
       <td className={sizes.cell}>{editable("reps", "reps", set.reps)}</td>
-      <td className={sizes.metaCell}>
-        {rpeNudge && editingField !== "rpe" ? (
-          <button
-            type="button"
-            onClick={() => setEditingField("rpe")}
-            aria-label="Add RPE for PRP"
-            className="min-h-11 w-full rounded-md border border-dashed border-accent px-1 text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300"
-          >
-            Add RPE
-          </button>
-        ) : (
-          editable("rpe", "RPE", set.rpe)
-        )}
-      </td>
+      {showRpe && (
+        <td className={sizes.metaCell}>
+          {rpeNudge && editingField !== "rpe" ? (
+            <button
+              type="button"
+              onClick={() => setEditingField("rpe")}
+              aria-label="Add RPE for PRP"
+              className="min-h-11 w-full rounded-md border border-dashed border-accent px-1 text-xs font-medium leading-tight text-zinc-700 dark:text-zinc-300"
+            >
+              Add RPE
+            </button>
+          ) : (
+            editable("rpe", "RPE", set.rpe)
+          )}
+        </td>
+      )}
       <td className={sizes.actionCell}>
         <div className={sizes.actionGroup}>
           <span role="img" aria-label="Logged" className={sizes.doneMark}>
