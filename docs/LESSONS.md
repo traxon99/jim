@@ -79,6 +79,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #466 | Settings showed two Progression buttons | Settings home had its own Progression link and `DprSettings` (inside Workout) added another | One entry point per destination on a screen; grep the page's child components for the same `href` before adding a link |
 | #458 | Edit exercise ran off the right edge: Model, the third Pulley button and the Gym picker were cut off | The Machine details `<fieldset>` kept the browser default `min-width: min-content`, so the Make/Model input row forced it wider than the screen despite `min-w-0` on the children | Reset `fieldset { min-width: 0 }` globally (guarded by a test); check every form at 393 px with all sections showing |
 | #456 | Plank was logged by reps instead of seconds | The seed classifier gave every body-only strength exercise `bodyweight`, including isometric holds | Classify exercises by how they're measured: holds (plank, wall sit) are `time`, not reps |
 | #444 | Forgot password on desktop web showed "Install Jim" and pages only loaded after a refresh | Recovery pages weren't exempt from the install gate, and the gate read `window.location.search` mid-navigation, before the URL updated | Read route state from the router (`usePathname`/`useSearchParams`), never `window.location` during render |
