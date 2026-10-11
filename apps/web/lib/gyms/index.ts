@@ -1,14 +1,16 @@
 import { mutate } from "@/lib/db/mutate";
 import { type GymRow, type JimDatabase, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
-import { uuidv7 } from "@jim/core";
+import { gymCoordinates, uuidv7 } from "@jim/core";
 
 /**
  * Gyms (issue #451): the places a user trains. Each is a `gyms` row written
  * through the outbox, so the list works offline and syncs. One live gym is
  * the home gym (`isDefault`); the first gym added becomes it, and deleting
  * it hands the role to the next one. This is the base that equipment
- * details (issue #450) attach to.
+ * details (issue #450) attach to. An address can be pinned to a real place
+ * (issue #462): picking a place stores its coordinates, which the Analysis
+ * map uses.
  */
 
 export const GYM_NAME_MAX = 80;
@@ -18,6 +20,9 @@ export const GYM_NOTES_MAX = 500;
 export interface GymInput {
   name: string;
   address?: string | null;
+  /** Where the address resolved to; only kept when both are valid and there's an address. */
+  latitude?: number | null;
+  longitude?: number | null;
   notes?: string | null;
 }
 
@@ -39,17 +44,26 @@ function cleanText(value: string | null | undefined, max: number): string | null
 }
 
 /** Trims and validates a gym's fields; returns an error message, or the cleaned fields. */
-export function cleanGymInput(
-  input: GymInput,
-):
-  | { ok: true; name: string; address: string | null; notes: string | null }
+export function cleanGymInput(input: GymInput):
+  | {
+      ok: true;
+      name: string;
+      address: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      notes: string | null;
+    }
   | { ok: false; error: string } {
   const name = cleanText(input.name, GYM_NAME_MAX);
   if (!name) return { ok: false, error: "Give your gym a name" };
+  const address = cleanText(input.address, GYM_ADDRESS_MAX);
+  const coordinates = address ? gymCoordinates(input) : null;
   return {
     ok: true,
     name,
-    address: cleanText(input.address, GYM_ADDRESS_MAX),
+    address,
+    latitude: coordinates?.latitude ?? null,
+    longitude: coordinates?.longitude ?? null,
     notes: cleanText(input.notes, GYM_NOTES_MAX),
   };
 }
@@ -67,6 +81,8 @@ export async function addGym(
     userId: input.userId,
     name: cleaned.name,
     address: cleaned.address,
+    latitude: cleaned.latitude,
+    longitude: cleaned.longitude,
     notes: cleaned.notes,
     isDefault: live.length === 0,
     position: live.reduce((max, row) => Math.max(max, row.position + 1), 0),
@@ -91,6 +107,8 @@ export async function updateGym(
     ...row,
     name: cleaned.name,
     address: cleaned.address,
+    latitude: cleaned.latitude,
+    longitude: cleaned.longitude,
     notes: cleaned.notes,
     updatedAt: new Date(),
     deviceId: await getDeviceId(database),

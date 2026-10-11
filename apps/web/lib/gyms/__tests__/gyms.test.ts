@@ -61,6 +61,48 @@ describe("updateGym", () => {
   });
 });
 
+describe("gym coordinates (#462)", () => {
+  it("keeps a picked place's coordinates with the address", async () => {
+    const gym = await addGym(
+      {
+        userId: USER_ID,
+        name: "Gold's",
+        address: "360 Hampton Dr",
+        latitude: 33.99,
+        longitude: -118.47,
+      },
+      testDb,
+    );
+    expect(gym).toMatchObject({ latitude: 33.99, longitude: -118.47 });
+    const outbox = await testDb.outbox.toArray();
+    expect(outbox[0]).toMatchObject({ entity: { latitude: 33.99, longitude: -118.47 } });
+  });
+
+  it("drops coordinates without an address, or when either is invalid", () => {
+    expect(cleanGymInput({ name: "A", latitude: 1, longitude: 2 })).toMatchObject({
+      latitude: null,
+      longitude: null,
+    });
+    expect(cleanGymInput({ name: "A", address: "x", latitude: 95, longitude: 2 })).toMatchObject({
+      latitude: null,
+      longitude: null,
+    });
+    expect(cleanGymInput({ name: "A", address: "x", latitude: 1, longitude: null })).toMatchObject({
+      latitude: null,
+      longitude: null,
+    });
+  });
+
+  it("clears the pin when the address is edited to plain text", async () => {
+    const gym = await addGym(
+      { userId: USER_ID, name: "A", address: "1 Main St", latitude: 1, longitude: 2 },
+      testDb,
+    );
+    const updated = await updateGym(gym, { name: "A", address: "2 Side St" }, testDb);
+    expect(updated).toMatchObject({ address: "2 Side St", latitude: null, longitude: null });
+  });
+});
+
 describe("setDefaultGym", () => {
   it("moves the home flag so only one gym holds it", async () => {
     const first = await addGym({ userId: USER_ID, name: "A" }, testDb);

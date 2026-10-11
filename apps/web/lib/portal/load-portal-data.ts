@@ -1,7 +1,7 @@
 import { withUserDb } from "@/lib/db/user-scoped";
-import { exercises, sessionExercises, sessions, sets, users } from "@jim/db";
+import { exercises, gyms, sessionExercises, sessions, sets, users } from "@jim/db";
 import { eq, inArray } from "drizzle-orm";
-import { type PortalData, buildPortalSets } from "./analysis-data";
+import { type PortalData, buildPortalGyms, buildPortalSets } from "./analysis-data";
 
 /**
  * Reads everything the web portal (issue #38) analyses straight from
@@ -19,8 +19,25 @@ export async function loadPortalData(): Promise<PortalData> {
       .from(users)
       .where(eq(users.id, userId));
     const sessionRows = await tx
-      .select({ id: sessions.id, deletedAt: sessions.deletedAt })
+      .select({
+        id: sessions.id,
+        gymId: sessions.gymId,
+        startedAt: sessions.startedAt,
+        endedAt: sessions.endedAt,
+        deletedAt: sessions.deletedAt,
+      })
       .from(sessions);
+    const gymRows = await tx
+      .select({
+        id: gyms.id,
+        name: gyms.name,
+        address: gyms.address,
+        latitude: gyms.latitude,
+        longitude: gyms.longitude,
+        isDefault: gyms.isDefault,
+        deletedAt: gyms.deletedAt,
+      })
+      .from(gyms);
     const sessionExerciseRows = await tx
       .select({
         id: sessionExercises.id,
@@ -63,6 +80,7 @@ export async function loadPortalData(): Promise<PortalData> {
       units: settings?.units ?? "lb",
       weekStart: settings?.weekStart ?? 0,
       ...buildPortalSets(sessionRows, sessionExerciseRows, exerciseRows, setRows),
+      ...buildPortalGyms(gymRows, sessionRows),
     };
   });
 }

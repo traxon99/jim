@@ -429,6 +429,8 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
           set: {
             name: excluded(gyms.name),
             address: excluded(gyms.address),
+            latitude: excluded(gyms.latitude),
+            longitude: excluded(gyms.longitude),
             notes: excluded(gyms.notes),
             isDefault: excluded(gyms.isDefault),
             position: excluded(gyms.position),

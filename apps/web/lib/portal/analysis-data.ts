@@ -1,6 +1,7 @@
 import {
   type ExerciseCategory,
   exerciseDisplayName,
+  gymCoordinates,
   isStrengthExercise,
   resolveCurrentRows,
 } from "@jim/core";
@@ -53,6 +54,22 @@ export interface PortalExercise {
   name: string;
 }
 
+/** A gym pinned to a real place (issue #462), for the Analysis map. */
+export interface PortalGym {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  isHome: boolean;
+}
+
+/** One finished workout at a pinned gym: when it started, as an ISO string. */
+export interface PortalGymVisit {
+  gymId: string;
+  startedAt: string;
+}
+
 /** Everything the portal dashboard renders, serializable across the server/client boundary. */
 export interface PortalData {
   email: string;
@@ -60,6 +77,73 @@ export interface PortalData {
   weekStart: number;
   sets: PortalSet[];
   exercises: PortalExercise[];
+  gyms: PortalGym[];
+  gymVisits: PortalGymVisit[];
+}
+
+interface PortalGymRow {
+  id: string;
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  isDefault: boolean;
+  deletedAt: Date | null;
+}
+
+interface PortalGymSessionRow {
+  gymId: string | null;
+  startedAt: Date;
+  endedAt: Date | null;
+  deletedAt: Date | null;
+}
+
+/**
+ * The Analysis map's data (issue #462): live gyms that are matched to a
+ * real place, and every finished, not-deleted workout logged at one of
+ * them. Gyms with a typed-only address have nowhere to go on a map, so
+ * they're left out.
+ */
+export function buildPortalGyms(
+  gyms: readonly PortalGymRow[],
+  sessions: readonly PortalGymSessionRow[],
+): { gyms: PortalGym[]; gymVisits: PortalGymVisit[] } {
+  const pinned: PortalGym[] = [];
+  for (const gym of gyms) {
+    if (gym.deletedAt) continue;
+    const coordinates = gymCoordinates(gym);
+    if (!coordinates) continue;
+    pinned.push({
+      id: gym.id,
+      name: gym.name,
+      address: gym.address,
+      ...coordinates,
+      isHome: gym.isDefault,
+    });
+  }
+  const pinnedIds = new Set(pinned.map((gym) => gym.id));
+  const gymVisits = sessions
+    .filter((session) => !session.deletedAt && session.endedAt && session.gymId)
+    .filter((session) => pinnedIds.has(session.gymId as string))
+    .map((session) => ({
+      gymId: session.gymId as string,
+      startedAt: session.startedAt.toISOString(),
+    }));
+  return { gyms: pinned, gymVisits };
+}
+
+/** Workouts per gym id started at or after `since` (all time when null). */
+export function countGymVisits(
+  visits: readonly PortalGymVisit[],
+  since: Date | null,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  const from = since?.getTime() ?? Number.NEGATIVE_INFINITY;
+  for (const visit of visits) {
+    if (new Date(visit.startedAt).getTime() < from) continue;
+    counts.set(visit.gymId, (counts.get(visit.gymId) ?? 0) + 1);
+  }
+  return counts;
 }
 
 /**

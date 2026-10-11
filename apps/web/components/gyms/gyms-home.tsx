@@ -4,7 +4,6 @@ import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import type { GymRow } from "@/lib/db/schema";
 import {
-  GYM_ADDRESS_MAX,
   GYM_NAME_MAX,
   GYM_NOTES_MAX,
   addGym,
@@ -15,9 +14,11 @@ import {
   updateGym,
 } from "@/lib/gyms";
 import { runSyncCycle } from "@/lib/sync/engine";
+import { gymCoordinates } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { MapPin, Pencil, Star } from "lucide-react";
 import { useMemo, useState } from "react";
+import { AddressField } from "./address-field";
 
 const inputClass =
   "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
@@ -25,10 +26,12 @@ const inputClass =
 interface Draft {
   name: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   notes: string;
 }
 
-const EMPTY_DRAFT: Draft = { name: "", address: "", notes: "" };
+const EMPTY_DRAFT: Draft = { name: "", address: "", latitude: null, longitude: null, notes: "" };
 
 function GymFields({ draft, onChange }: { draft: Draft; onChange: (draft: Draft) => void }) {
   return (
@@ -44,17 +47,11 @@ function GymFields({ draft, onChange }: { draft: Draft; onChange: (draft: Draft)
           className={inputClass}
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs font-medium">
-        Address (optional)
-        <input
-          type="text"
-          value={draft.address}
-          maxLength={GYM_ADDRESS_MAX}
-          autoComplete="street-address"
-          onChange={(event) => onChange({ ...draft, address: event.target.value })}
-          className={inputClass}
-        />
-      </label>
+      <AddressField
+        value={draft}
+        inputClass={inputClass}
+        onChange={(address) => onChange({ ...draft, ...address })}
+      />
       <label className="flex flex-col gap-1 text-xs font-medium">
         Notes (optional)
         <textarea
@@ -73,6 +70,7 @@ function GymFields({ draft, onChange }: { draft: Draft; onChange: (draft: Draft)
  * Settings → Gyms (issue #451): the places you train. Reads and writes
  * IndexedDB, so it works offline; gyms sync through the outbox. The home gym
  * is starred and listed first. Equipment (issue #450) will attach to a gym.
+ * An address matched to a real place (issue #462) gets an accent pin.
  */
 export function GymsHome({ userId }: { userId: string }) {
   const rows = useLiveQuery(() => db.gyms.toArray(), []);
@@ -107,7 +105,14 @@ export function GymsHome({ userId }: { userId: string }) {
 
   function startEdit(gym: GymRow) {
     setEditingId(gym.id);
-    setEditDraft({ name: gym.name, address: gym.address ?? "", notes: gym.notes ?? "" });
+    const coordinates = gymCoordinates(gym);
+    setEditDraft({
+      name: gym.name,
+      address: gym.address ?? "",
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
+      notes: gym.notes ?? "",
+    });
     setEditError(null);
   }
 
@@ -219,11 +224,12 @@ export function GymsHome({ userId }: { userId: string }) {
                     {gym.address && (
                       <span className="flex min-w-0 items-center gap-1 text-xs text-zinc-500 dark:text-zinc-500">
                         <MapPin
-                          className="h-3 w-3 shrink-0"
+                          className={`h-3 w-3 shrink-0 ${gymCoordinates(gym) ? "text-accent" : ""}`}
                           strokeWidth={1.75}
                           aria-hidden="true"
                         />
                         <span className="truncate">{gym.address}</span>
+                        {gymCoordinates(gym) && <span className="sr-only">(on your map)</span>}
                       </span>
                     )}
                     {gym.isDefault && (
