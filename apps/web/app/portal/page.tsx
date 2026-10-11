@@ -2,6 +2,9 @@ import { PortalDashboard } from "@/components/portal/portal-dashboard";
 import { UnauthenticatedError } from "@/lib/db/user-scoped";
 import { loadPortalData } from "@/lib/portal/load-portal-data";
 import type { Metadata } from "next";
+// The Analysis gym map's (issue #462) Leaflet styles; the library itself
+// loads on demand inside components/portal/gym-map.tsx.
+import "leaflet/dist/leaflet.css";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {

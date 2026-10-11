@@ -7,6 +7,7 @@ export * from "./exercises";
 export * from "./explore";
 export * from "./history";
 export * from "./one-rep-max";
+export * from "./places";
 export * from "./programs";
 export * from "./progression";
 export * from "./routines";

@@ -765,3 +765,28 @@ body.pwa .allow-pwa-select {
     animation: none;
   }
 }
+
+/* Analysis gym map (issue #462, components/portal/gym-map.tsx): Leaflet draws
+   gyms as SVG circles; CSS beats its fill/stroke attributes, so the dots take
+   the accent color and an outline matching the page in either scheme. The
+   map container clips with clip-path too: iOS doesn't clip the dark-mode
+   tile filter to border-radius (#374). */
+.gym-map-marker {
+  fill: var(--accent);
+  stroke: var(--background);
+}
+
+/* No dark tiles without an API key, so dark mode inverts the light ones. */
+.dark .gym-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+.dark .leaflet-tooltip {
+  background: #18181b;
+  border-color: #3f3f46;
+  color: #fafafa;
+}
+
+.dark .leaflet-tooltip-top::before {
+  border-top-color: #3f3f46;
+}

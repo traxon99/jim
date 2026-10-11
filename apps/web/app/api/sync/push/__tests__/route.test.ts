@@ -124,6 +124,40 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.deleted_at).not.toBeNull();
   });
 
+  it("applies a gym's coordinates and clears them on a later edit (issue #462)", async () => {
+    const gymId = uuidv7();
+    const created = new Date("2026-10-11T10:00:00Z").toISOString();
+    const gym = {
+      id: gymId,
+      name: "Gold's",
+      address: "360 Hampton Dr",
+      latitude: 33.9971,
+      longitude: -118.4719,
+      notes: null,
+      isDefault: true,
+      position: 0,
+      createdAt: created,
+      updatedAt: created,
+      deviceId: "device-a",
+      deletedAt: null,
+    };
+    await push([{ id: uuidv7(), table: "gyms", entity: gym }]);
+    const select = () =>
+      admin<{ latitude: number | null; longitude: number | null }[]>`
+        SELECT latitude, longitude FROM gyms WHERE id = ${gymId}`;
+    expect((await select())[0]).toEqual({ latitude: 33.9971, longitude: -118.4719 });
+
+    const later = new Date("2026-10-11T11:00:00Z").toISOString();
+    await push([
+      {
+        id: uuidv7(),
+        table: "gyms",
+        entity: { ...gym, address: "Typed", latitude: null, longitude: null, updatedAt: later },
+      },
+    ]);
+    expect((await select())[0]).toEqual({ latitude: null, longitude: null });
+  });
+
   it("applies an exercise's machine details and gym (issue #450)", async () => {
     const gymId = uuidv7();
     const exerciseRowId = uuidv7();

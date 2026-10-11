@@ -16,6 +16,7 @@ import {
   boolean,
   check,
   date,
+  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -742,6 +743,11 @@ export const gyms = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     address: text("address"),
+    // Where the address resolved to (issue #462), set when the user picks a
+    // real place for it. Both null for a typed-only address; the Analysis
+    // map only pins gyms that have them.
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     notes: text("notes"),
     isDefault: boolean("is_default").notNull().default(false),
     position: integer("position").notNull().default(0),

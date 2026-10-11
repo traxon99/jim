@@ -46,7 +46,13 @@ export type ProgramRow = typeof programs.$inferSelect;
 export type ProgramRoutineRow = typeof programRoutines.$inferSelect;
 export type DprBlockRow = typeof dprBlocks.$inferSelect;
 export type DprBlockLiftRow = typeof dprBlockLifts.$inferSelect;
-export type GymRow = typeof gyms.$inferSelect;
+type GymSelect = typeof gyms.$inferSelect;
+/**
+ * A gym's coordinates (issue #462) are optional here, like an exercise's
+ * machine details: rows cached before the columns existed don't carry them.
+ */
+export type GymRow = Omit<GymSelect, "latitude" | "longitude"> &
+  Partial<Pick<GymSelect, "latitude" | "longitude">>;
 
 export interface SyncTableRowMap {
   routines: RoutineRow;

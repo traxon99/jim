@@ -21,7 +21,7 @@ import { getBodyMeasurements } from "./tools/get-body-measurements.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
-import { createGym, deleteGym, listGyms, updateGym } from "./tools/gyms.js";
+import { createGym, deleteGym, findPlaces, listGyms, updateGym } from "./tools/gyms.js";
 import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
@@ -856,12 +856,31 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "List gyms",
       description:
-        "Read-only. The gyms the user trains at, home gym first, with each one's address and notes.",
+        "Read-only. The gyms the user trains at, home gym first, with each one's address, notes and, when the address is matched to a real place, its coordinates (onMap).",
       inputSchema: {},
     },
     async () => {
       try {
         return json(await listGyms(context));
+      } catch (error) {
+        return toolError(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "search_places",
+    {
+      title: "Search places",
+      description:
+        "Read-only. Look up real places (OpenStreetMap) matching a gym's name or address, the way the app's address field does. Pass the chosen place's label as address with its latitude and longitude to create_gym or update_gym to put the gym on the Analysis map.",
+      inputSchema: {
+        query: z.string().describe("A gym name and/or address, at least 3 characters"),
+      },
+    },
+    async (input) => {
+      try {
+        return json(await findPlaces(input));
       } catch (error) {
         return toolError(error);
       }
@@ -876,6 +895,15 @@ export function createMcpServer(context: UserContext): McpServer {
       inputSchema: {
         name: z.string(),
         address: z.string().optional(),
+        latitude: z
+          .number()
+          .min(-90)
+          .max(90)
+          .optional()
+          .describe(
+            "From search_places; pins the address on the map. Needs longitude and an address",
+          ),
+        longitude: z.number().min(-180).max(180).optional().describe("From search_places"),
         notes: z.string().optional(),
         makeHome: z.boolean().optional().describe("Make this the home gym"),
         dry_run: dryRunParam(false),
@@ -894,11 +922,21 @@ export function createMcpServer(context: UserContext): McpServer {
     "update_gym",
     {
       title: "Update gym",
-      description: `Rename a gym, change its address or notes, or make it the home gym. Omitted fields stay as they are; an empty string clears address or notes.${PREVIEW_HINT}`,
+      description: `Rename a gym, change its address or notes, pin its address to a real place, or make it the home gym. Omitted fields stay as they are; an empty string clears address or notes. A new address without latitude/longitude unpins the gym from the map.${PREVIEW_HINT}`,
       inputSchema: {
         gym: z.string().describe("Gym id, or its exact name"),
         name: z.string().optional(),
         address: z.string().optional(),
+        latitude: z
+          .number()
+          .min(-90)
+          .max(90)
+          .optional()
+          .describe(
+            "From search_places; pins the address on the map. Needs longitude and an address",
+          ),
+        longitude: z.number().min(-180).max(180).optional().describe("From search_places"),
+
         notes: z.string().optional(),
         makeHome: z.boolean().optional().describe("true makes this the home gym"),
         dry_run: dryRunParam(false),

@@ -198,7 +198,8 @@ under RLS, the same as an OAuth session.
 | `list_routines(folder?, query?)` | Every routine, logged or not, with exercise count and last performed |
 | `get_routine(routine)` | One routine's ordered exercises and targets, in the shape `update_routine` takes |
 | `get_body_measurements(kinds?, from?, to?)` | Bodyweight, body fat and circumferences over time, with latest value and change |
-| `list_gyms()` | The gyms the user trains at, home gym first |
+| `list_gyms()` | The gyms the user trains at, home gym first, with map coordinates when the address is matched (#462) |
+| `search_places(query)` | Real places (OpenStreetMap via Photon) matching a gym's name or address, to pin it on the map (#462) |
 
 **Write tools**
 
@@ -209,7 +210,7 @@ under RLS, the same as an OAuth session.
 | `schedule_workout(routine_id, date)` | Plan a session |
 | `log_past_workout(started_at, exercises[], ...)` | Record an already-finished workout, with PRs |
 | `upsert_exercise(...)` / `merge_exercises(keep_id, merge_id)` | Catalog management; `upsert_exercise` also sets machine make/model, pulley type and gym (#450) |
-| `create_gym` / `update_gym` / `delete_gym` | Manage gyms and the home gym (`delete_gym` previews by default) |
+| `create_gym` / `update_gym` / `delete_gym` | Manage gyms, the home gym and each gym's map pin (`delete_gym` previews by default) |
 
 Writes land in Postgres and reach the phone on the next pull.
 
