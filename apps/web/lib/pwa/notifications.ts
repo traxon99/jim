@@ -18,8 +18,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * place the notification's content lives, and every production deploy
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
-export const LATEST_RELEASE_NOTE =
-  "New setup walkthrough in Settings: pick your home gym, a program, Simple or Advanced mode, PRP and colors.";
+export const LATEST_RELEASE_NOTE = "Settings no longer shows the Progression button twice.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
