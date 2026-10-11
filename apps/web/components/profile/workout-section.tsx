@@ -31,6 +31,7 @@ export function WorkoutSection() {
   const units = cached?.units ?? DEFAULT_SETTINGS.units;
   const restSeconds = cached?.defaultRestSeconds ?? DEFAULT_SETTINGS.defaultRestSeconds;
   const showPaceTracker = cached?.showPaceTracker ?? DEFAULT_SETTINGS.showPaceTracker;
+  const advancedFeatures = cached?.advancedFeatures ?? DEFAULT_SETTINGS.advancedFeatures;
   const [error, setError] = useState<string | null>(null);
 
   // A rest value set before this picker existed may not be one of the
@@ -43,7 +44,12 @@ export function WorkoutSection() {
     patch: Partial<
       Pick<
         SettingsRow,
-        "units" | "defaultRestSeconds" | "showPaceTracker" | "dprEnabled" | "dprEquipmentIncrements"
+        | "units"
+        | "defaultRestSeconds"
+        | "showPaceTracker"
+        | "advancedFeatures"
+        | "dprEnabled"
+        | "dprEquipmentIncrements"
       >
     >,
   ) {
@@ -96,17 +102,37 @@ export function WorkoutSection() {
         </select>
       </label>
 
+      {/* Simple mode (issue #464) hides these during a workout; PRP keeps RPE. */}
       <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
-        Show pace tracker
+        <span className="flex flex-col gap-0.5">
+          Advanced features
+          <span className="font-normal text-zinc-500 dark:text-zinc-500">
+            RPE column and pace tracker during a workout
+          </span>
+        </span>
         <input
           type="checkbox"
           role="switch"
-          aria-checked={showPaceTracker}
-          checked={showPaceTracker}
-          onChange={(event) => void save({ showPaceTracker: event.target.checked })}
+          aria-checked={advancedFeatures}
+          checked={advancedFeatures}
+          onChange={(event) => void save({ advancedFeatures: event.target.checked })}
           className={SWITCH_CLASS}
         />
       </label>
+
+      {advancedFeatures && (
+        <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
+          Show pace tracker
+          <input
+            type="checkbox"
+            role="switch"
+            aria-checked={showPaceTracker}
+            checked={showPaceTracker}
+            onChange={(event) => void save({ showPaceTracker: event.target.checked })}
+            className={SWITCH_CLASS}
+          />
+        </label>
+      )}
 
       <DprSettings settings={cached ?? DEFAULT_SETTINGS} onSave={save} />
 

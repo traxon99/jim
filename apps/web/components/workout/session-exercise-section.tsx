@@ -39,6 +39,7 @@ import {
 } from "@/lib/sessions/set-actions";
 import { type SetKind, deletedWarmupIndices, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
+import { showsRpe } from "@/lib/settings/features";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -296,6 +297,8 @@ export function SessionExerciseSection({
   // packages/core has published standards for, and only once sex + bodyweight
   // are on the profile (age is optional — see strengthProfileFromSettings).
   const standardLift = useMemo(() => standardLiftForSlug(exercise?.slug), [exercise?.slug]);
+  // Simple mode drops the RPE column unless PRP needs it (issue #464).
+  const showRpe = showsRpe(settings);
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
   function defaultDraft(index: number): DraftValues {
@@ -725,9 +728,11 @@ export function SessionExerciseSection({
         {/* Reps and RPE are pinned narrow (issue #323) so, beside the Prev
             column, Weight still fits "315.5" at text-xl on a ~325px table. */}
         <th className={`w-11 text-center ${sizes.headerCell}`}>Reps</th>
-        <th className={`w-12 text-center ${sizes.headerCell}`}>
-          <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
-        </th>
+        {showRpe && (
+          <th className={`w-12 text-center ${sizes.headerCell}`}>
+            <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
+          </th>
+        )}
         <th className={sizes.headerCell} />
       </tr>
     </thead>
@@ -751,6 +756,7 @@ export function SessionExerciseSection({
         previous={<td className={sizes.prevCell}>{previousValues(set.setIndex)}</td>}
         isPr={set.kind !== "warmup" && prsBySetId.has(set.id)}
         rpeNudge={needsRpeNudge(dpr !== null, set)}
+        showRpe={showRpe}
         onEdit={(patch) => void handleEdit(set, patch)}
         onChangeKind={(kind) => void handleChangeKind(set, kind)}
         onDelete={() => void handleDelete(set)}
@@ -790,7 +796,7 @@ export function SessionExerciseSection({
             </td>
             <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
             <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
-            <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>
+            {showRpe && <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>}
             <td className={sizes.actionCell}>
               <div className="flex min-w-22 items-center justify-end">
                 {index === nextIndex && repeatButton}

@@ -9,18 +9,21 @@ import { DEFAULT_SETTINGS } from "./defaults";
  * defaults) in place on failure — a stale bar weight is a much smaller
  * problem than blocking logging on a network call.
  */
-type SettingsPayload = Omit<SettingsRow, "id" | "dprPromptDismissedAt"> & {
+type SettingsPayload = Omit<SettingsRow, "id" | "dprPromptDismissedAt" | "onboardedAt"> & {
   dprPromptDismissedAt?: string | null;
+  onboardedAt?: string | null;
 };
 
 /** The API sends timestamps as ISO strings; the cached row keeps Dates. */
 function toCachedRow(payload: SettingsPayload): SettingsRow {
   const dismissed = payload.dprPromptDismissedAt;
+  const onboarded = payload.onboardedAt;
   return {
     ...DEFAULT_SETTINGS,
     ...payload,
     id: "me",
     dprPromptDismissedAt: dismissed ? new Date(dismissed) : null,
+    onboardedAt: onboarded ? new Date(onboarded) : null,
   };
 }
 

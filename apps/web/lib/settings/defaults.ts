@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   fontFamily: "sans",
   cardStyle: "plain",
   showPaceTracker: true,
+  advancedFeatures: true,
   sex: null,
   birthdate: null,
   heightCm: null,
@@ -24,4 +25,5 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   dprDefaultRepLow: 6,
   dprDefaultRepHigh: 10,
   dprPromptDismissedAt: null,
+  onboardedAt: null,
 };

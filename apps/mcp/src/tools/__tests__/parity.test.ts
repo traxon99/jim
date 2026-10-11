@@ -277,6 +277,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       units: "lb",
       defaultBarWeight: 45,
       dprEnabled: false,
+      advancedFeatures: true,
     });
     const preview = await updateSettings(context, { defaultRestSeconds: 120, dryRun: true });
     expect(preview.settings.defaultRestSeconds).toBe(120);
@@ -287,8 +288,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       availablePlates: [20, 10, 5, 2.5, 1.25],
       dprEnabled: true,
       sex: "male",
+      advancedFeatures: false,
     });
     expect(result.changed.sort()).toEqual([
+      "advancedFeatures",
       "availablePlates",
       "defaultRestSeconds",
       "dprEnabled",
@@ -299,6 +302,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       availablePlates: [20, 10, 5, 2.5, 1.25],
       dprEnabled: true,
       sex: "male",
+      advancedFeatures: false,
     });
     await expect(updateSettings(context, { dprDefaultRepLow: 20 })).rejects.toThrow(/above/);
     await expect(updateSettings(context, {})).rejects.toThrow(/Nothing to change/);

@@ -7,7 +7,12 @@ import {
 } from "@jim/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type ExerciseRow, type JimDatabase, createTestDb } from "../../db/schema";
-import { addExploreProgram, addProgramTemplate, addRoutineTemplate } from "../add-template";
+import {
+  addExploreProgram,
+  addProgramTemplate,
+  addRoutineTemplate,
+  startExploreProgramDpr,
+} from "../add-template";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -222,5 +227,28 @@ describe("addExploreProgram (against Dexie)", () => {
     );
     expect(second.dprError).toContain("already have");
     expect(await testDb.dprBlocks.count()).toBe(1);
+  });
+
+  it("can start PRP on a program added earlier (the setup walkthrough's order)", async () => {
+    await seedAllTemplateSlugs();
+    const patch = vi.fn(async () => ({ ok: true as const }));
+    const { programId } = await addExploreProgram(
+      USER_ID,
+      FIVE_BY_FIVE,
+      { activate: true, startDpr: false },
+      testDb,
+      patch,
+    );
+    expect(await testDb.dprBlocks.count()).toBe(0);
+
+    const message = await startExploreProgramDpr(USER_ID, programId, FIVE_BY_FIVE, testDb, patch);
+
+    expect(message).toBeNull();
+    const [block] = await testDb.dprBlocks.toArray();
+    expect(block).toMatchObject({ programId, status: "active" });
+    expect(patch).toHaveBeenCalledWith(
+      { dprEnabled: true, dprExperience: "novice", dprAggressiveness: "aggressive" },
+      testDb,
+    );
   });
 });

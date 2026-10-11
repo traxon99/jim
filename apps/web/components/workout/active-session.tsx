@@ -28,7 +28,7 @@ import { useRuleSnapshot } from "@/lib/progression/use-rule-snapshot";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
-import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { DEFAULT_SETTINGS, showsPaceTracker } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
 import {
@@ -626,7 +626,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         </div>
       </div>
 
-      {(settings.showPaceTracker ?? DEFAULT_SETTINGS.showPaceTracker) && (
+      {showsPaceTracker(settings) && (
         <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
       )}
 
