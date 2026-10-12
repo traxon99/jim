@@ -18,6 +18,7 @@ import {
   programs,
   routineExercises,
   routines,
+  scheduledWorkouts,
   sessionExercises,
   sessions,
   sets,
@@ -41,6 +42,7 @@ import {
   buildExerciseIndex,
   buildPortalExerciseDetail,
 } from "./exercises-data";
+import { type PortalPlansData, buildPortalPlansData } from "./plans-data";
 import type { PortalProgressionData } from "./progression-data";
 import { type PortalRecordsData, serializeRecordEntries } from "./records-data";
 import { type PortalVolumeData, serializeVolumeSets } from "./volume-data";
@@ -560,5 +562,55 @@ export async function loadProgressionData(): Promise<PortalProgressionData> {
       routines: routineRows,
       routineExercises: routineExerciseRows,
     };
+  });
+}
+
+/**
+ * The Routines section (issue #470): routines with their exercises and
+ * targets, programs with their schedules, and scheduled workouts.
+ */
+export async function loadPlansData(): Promise<PortalPlansData> {
+  return withUserDb(async (tx, userId) => {
+    const [settings] = await tx
+      .select({ units: users.units, weekStart: users.weekStart })
+      .from(users)
+      .where(eq(users.id, userId));
+    const routineRows = await tx.select().from(routines);
+    const routineExerciseRows = await tx.select().from(routineExercises);
+    const programRows = await tx.select().from(programs);
+    const programRoutineRows = await tx.select().from(programRoutines);
+    const scheduledRows = await tx
+      .select({
+        id: scheduledWorkouts.id,
+        routineId: scheduledWorkouts.routineId,
+        scheduledFor: scheduledWorkouts.scheduledFor,
+        notes: scheduledWorkouts.notes,
+        deletedAt: scheduledWorkouts.deletedAt,
+      })
+      .from(scheduledWorkouts);
+    const sessionRows = await tx
+      .select({
+        routineId: sessions.routineId,
+        startedAt: sessions.startedAt,
+        endedAt: sessions.endedAt,
+        deletedAt: sessions.deletedAt,
+      })
+      .from(sessions);
+    const exerciseIds = [...new Set(routineExerciseRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+    return buildPortalPlansData({
+      units: settings?.units ?? "lb",
+      weekStart: settings?.weekStart ?? 0,
+      routines: routineRows,
+      routineExercises: routineExerciseRows,
+      exercises: exerciseRows,
+      programs: programRows,
+      programRoutines: programRoutineRows,
+      sessions: sessionRows,
+      scheduled: scheduledRows,
+    });
   });
 }
