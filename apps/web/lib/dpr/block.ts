@@ -19,7 +19,6 @@ import {
   type StandardLift,
   baselineE1rm,
   computeGoal,
-  currentBlockOf,
   inferExperience,
   standardLiftForSlug,
   uuidv7,
@@ -28,19 +27,7 @@ import { type DprSnapshot, e1rmSeries } from "./data";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The block DPR is running now (active or in its deload week), newest first wins. */
-export function currentBlock(blocks: readonly DprBlockRow[]): DprBlockRow | null {
-  return currentBlockOf(blocks);
-}
-
-export function liveBlockLifts(
-  lifts: readonly DprBlockLiftRow[],
-  blockId: string,
-): DprBlockLiftRow[] {
-  return lifts
-    .filter((lift) => lift.blockId === blockId && !lift.deletedAt)
-    .sort((a, b) => a.position - b.position);
-}
+export { currentBlock, lastCompletedBlock, liveBlockLifts } from "./block-select";
 
 export interface ExperienceGuess {
   level: ExperienceLevel;
@@ -279,15 +266,6 @@ export function shouldShowDprPrompt(
     !settings.dprEnabled &&
     settings.dprPromptDismissedAt === null &&
     completedSessionCount >= DPR_PROMPT_MIN_SESSIONS
-  );
-}
-
-/** The most recently started block that's finished — the next block prefills from it. */
-export function lastCompletedBlock(blocks: readonly DprBlockRow[]): DprBlockRow | null {
-  return (
-    blocks
-      .filter((block) => !block.deletedAt && block.status === "completed")
-      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())[0] ?? null
   );
 }
 

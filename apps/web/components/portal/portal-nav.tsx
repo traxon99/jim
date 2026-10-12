@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Scale,
+  TrendingUp,
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,6 +32,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   cardio: Footprints,
   body: Scale,
   records: Trophy,
+  progression: TrendingUp,
 };
 
 /**

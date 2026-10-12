@@ -23,7 +23,7 @@ import {
   volumeAdjustedSets,
   workingSetWeights,
 } from "@jim/core";
-import { currentBlock, liveBlockLifts } from "./block";
+import { currentBlock, liveBlockLifts } from "./block-select";
 import { type DprSnapshot, defaultRepRange } from "./data";
 
 /**
