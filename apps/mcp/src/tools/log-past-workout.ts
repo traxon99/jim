@@ -11,14 +11,14 @@ import {
   tracksRepsAtWeight,
   uuidv7,
 } from "@jim/core";
-import { type DbOrTx, personalRecords, routines, sessionExercises, sessions, sets } from "@jim/db";
+import { type DbOrTx, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
 import { and, eq, gt, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
+import { findRoutine } from "./find-routine.js";
 import { findGym } from "./gyms.js";
 import { resolveExercise } from "./resolve-exercise.js";
-import { RoutineNotFoundError } from "./update-routine.js";
 
 type SetKind = typeof sets.$inferInsert.kind & string;
 
@@ -221,12 +221,9 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
   if (totalSets === 0) throw new Error("A logged workout needs at least one set.");
 
   return withUserWrite(context, input.dryRun ?? false, async (tx) => {
-    let routineName: string | null = null;
-    if (input.routineId) {
-      const [routine] = await tx.select().from(routines).where(eq(routines.id, input.routineId));
-      if (!routine || routine.deletedAt) throw new RoutineNotFoundError(input.routineId);
-      routineName = routine.name;
-    }
+    // An id or the routine's exact name, like every other routine tool (#514).
+    const routine = input.routineId ? await findRoutine(tx, input.routineId) : null;
+    const routineName = routine?.name ?? null;
 
     const gym = input.gym ? await findGym(tx, input.gym) : null;
 
@@ -236,7 +233,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
     await tx.insert(sessions).values({
       id: sessionId,
       userId: context.userId,
-      routineId: input.routineId ?? null,
+      routineId: routine?.id ?? null,
       name,
       startedAt,
       endedAt,
@@ -352,7 +349,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
     return {
       id: sessionId,
       name,
-      routineId: input.routineId ?? null,
+      routineId: routine?.id ?? null,
       gym: gym ? { id: gym.id, name: gym.name } : null,
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),

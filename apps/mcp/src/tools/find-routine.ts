@@ -4,7 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-class RoutineLookupError extends Error {}
+export class RoutineLookupError extends Error {}
 
 export type RoutineRow = typeof routines.$inferSelect;
 
