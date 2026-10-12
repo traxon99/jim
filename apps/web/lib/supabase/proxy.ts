@@ -52,6 +52,12 @@ export async function updateSession(request: NextRequest) {
     isSharePreviewRequest(request.nextUrl.pathname, request.headers.get("user-agent"));
 
   if (!claims?.data?.claims && !isPublicPath) {
+    // API callers (the sync engine, fetch clients) need a status they can
+    // act on. A redirect to /login would be followed by fetch and come back
+    // as a 200 HTML page that fails to parse as JSON (#487).
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+    }
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);

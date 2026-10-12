@@ -1,6 +1,6 @@
 import { type JimDatabase, type SyncMetaRow, db } from "../db/schema";
 import { applyPulledRows } from "./apply-pulled-rows";
-import { setSyncStatus } from "./status";
+import { getSyncStatus, setSyncStatus } from "./status";
 
 const META_ID = "meta" as const;
 
@@ -14,6 +14,31 @@ async function getMeta(database: JimDatabase): Promise<SyncMetaRow> {
 
 export async function getDeviceId(database: JimDatabase = db): Promise<string> {
   return (await getMeta(database)).deviceId;
+}
+
+/**
+ * Surfaces a failed request: `signed-out` for a 401, so the user is asked to
+ * sign in again rather than shown a generic error forever (#487), `error`
+ * for anything else.
+ */
+async function reportFailure(database: JimDatabase, response?: Response): Promise<void> {
+  const count = await database.outbox.count();
+  setSyncStatus(
+    response?.status === 401 ? { kind: "signed-out", count } : { kind: "error", count },
+  );
+}
+
+/**
+ * Parses a sync response body, or returns null when it isn't the JSON the
+ * route sends (e.g. a captive portal's HTML page).
+ */
+async function readJson<T>(response: Response): Promise<T | null> {
+  if (response.redirected) return null;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 async function refreshStatusFromOutbox(database: JimDatabase): Promise<void> {
@@ -57,17 +82,21 @@ export async function drainOutbox(
         }),
       });
     } catch {
-      setSyncStatus({ kind: "error", count: await database.outbox.count() });
+      await reportFailure(database);
       return;
     }
 
     if (!response.ok) {
-      setSyncStatus({ kind: "error", count: await database.outbox.count() });
+      await reportFailure(database, response);
       return;
     }
 
-    const { results } = (await response.json()) as { results: { id: string; status: string }[] };
-    const settled = results
+    const body = await readJson<{ results: { id: string; status: string }[] }>(response);
+    if (!body) {
+      await reportFailure(database);
+      return;
+    }
+    const settled = body.results
       .filter((result) => result.status === "applied" || result.status === "duplicate")
       .map((result) => result.id);
     await database.outbox.bulkDelete(settled);
@@ -87,15 +116,19 @@ export async function pullChanges(
   try {
     response = await fetchImpl(`/api/sync/pull?since=${meta.cursor}`);
   } catch {
-    setSyncStatus({ kind: "error", count: await database.outbox.count() });
+    await reportFailure(database);
     return;
   }
   if (!response.ok) {
-    setSyncStatus({ kind: "error", count: await database.outbox.count() });
+    await reportFailure(database, response);
     return;
   }
 
-  const body = (await response.json()) as { cursor: number; changes: Record<string, unknown[]> };
+  const body = await readJson<{ cursor: number; changes: Record<string, unknown[]> }>(response);
+  if (!body) {
+    await reportFailure(database);
+    return;
+  }
   for (const [tableName, rows] of Object.entries(body.changes)) {
     await applyPulledRows(database, tableName, rows);
   }
@@ -114,6 +147,8 @@ export async function runSyncCycle(
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
   await drainOutbox(database, fetchImpl);
+  // A signed-out push would only be refused again by the pull.
+  if (getSyncStatus().kind === "signed-out") return;
   await pullChanges(database, fetchImpl);
 }
 
@@ -143,7 +178,9 @@ export function startSyncEngine(
   onBootCycle?.(bootCycle);
 
   const runInBackground = () => {
-    void run();
+    run().catch((error: unknown) => {
+      console.error("[sync] cycle failed:", error);
+    });
   };
   const onVisibilityChange = () => {
     if (document.visibilityState === "visible") runInBackground();

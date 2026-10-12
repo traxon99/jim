@@ -1,7 +1,9 @@
 export type SyncStatus =
   | { kind: "synced" }
   | { kind: "pending"; count: number }
-  | { kind: "error"; count: number };
+  | { kind: "error"; count: number }
+  /** The server answered 401: the session expired or was revoked. */
+  | { kind: "signed-out"; count: number };
 
 type Listener = () => void;
 

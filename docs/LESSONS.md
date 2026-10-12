@@ -81,6 +81,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #487 | After the session expired, sync stopped sending sets but still showed "Pending" with no way to sign in | The proxy redirected `/api/*` to `/login`; `fetch` followed it and the engine's `response.json()` threw on the HTML, so no status was ever set | API routes answer 401 JSON, never a redirect; sync treats 401 as `signed-out` and never assumes a body is JSON |
 | #486 | A `/login?next=https://…` link could send a signed-in user to another site | Login, signup and the email-confirm route passed `next` to a redirect without the `safeNextPath` check the reset pages used | Every `?next=` that feeds a redirect goes through `safeNextPath` |
 | #466 | Settings showed two Progression buttons | Settings home had its own Progression link and `DprSettings` (inside Workout) added another | One entry point per destination on a screen; grep the page's child components for the same `href` before adding a link |
 | #458 | Edit exercise ran off the right edge: Model, the third Pulley button and the Gym picker were cut off | The Machine details `<fieldset>` kept the browser default `min-width: min-content`, so the Make/Model input row forced it wider than the screen despite `min-w-0` on the children | Reset `fieldset { min-width: 0 }` globally (guarded by a test); check every form at 393 px with all sections showing |
