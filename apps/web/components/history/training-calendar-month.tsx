@@ -7,14 +7,14 @@ const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: "long", year: "
 const WEEKDAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 
 /** Shading from lightest to darkest, by a day's share of your biggest day's volume. */
-const INTENSITY_LEVELS = [
+export const INTENSITY_LEVELS = [
   "bg-accent/25",
   "bg-accent/50",
   "bg-accent/75 text-accent-foreground",
   "bg-accent text-accent-foreground",
 ] as const;
 
-function intensityClass(volume: number, maxVolume: number): string {
+export function intensityClass(volume: number, maxVolume: number): string {
   if (volume <= 0) return "";
   const ratio = maxVolume > 0 ? volume / maxVolume : 0;
   if (ratio > 0.75) return INTENSITY_LEVELS[3];

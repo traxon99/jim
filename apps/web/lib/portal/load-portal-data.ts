@@ -1,4 +1,5 @@
 import { withUserDb } from "@/lib/db/user-scoped";
+import { buildAchievementData } from "@/lib/history/achievement-data";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildPersonalRecordEntries } from "@/lib/history/pr-groups";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -8,6 +9,8 @@ import {
   exercises,
   gyms,
   personalRecords,
+  programRoutines,
+  programs,
   sessionExercises,
   sessions,
   sets,
@@ -22,6 +25,7 @@ import {
   buildPortalWorkouts,
 } from "./analysis-data";
 import { type PortalBodyData, buildPortalBodyData } from "./body-data";
+import { type PortalCalendarData, serializeAchievements } from "./calendar-data";
 import {
   type PortalExerciseDetail,
   type PortalExerciseIndexRow,
@@ -387,6 +391,79 @@ export async function loadVolumeData(): Promise<PortalVolumeData> {
       sets: serializeVolumeSets(
         buildMuscleVolumeSets(sessionRows, sessionExerciseRows, exerciseRows, setRows),
       ),
+    };
+  });
+}
+
+/**
+ * The Calendar section (issue #470): every finished workout for the
+ * heatmap, and achievements derived the way the phone's Profile derives
+ * them (`buildAchievementData`). The streak itself is counted in the
+ * browser, since its weeks follow the browser's time zone; only the weekly
+ * target comes from here.
+ */
+export async function loadCalendarData(): Promise<PortalCalendarData> {
+  return withUserDb(async (tx, userId) => {
+    const [settings] = await tx
+      .select({
+        units: users.units,
+        weekStart: users.weekStart,
+        bodyweight: users.bodyweight,
+        sex: users.sex,
+        birthdate: users.birthdate,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+    const sessionRows = await tx.select().from(sessions);
+    const sessionExerciseRows = await tx.select().from(sessionExercises);
+    const setRows = await tx.select().from(sets);
+    const prRows = await tx.select().from(personalRecords);
+    const programRows = await tx.select().from(programs);
+    const programRoutineRows = await tx.select().from(programRoutines);
+    const measurementRows = await tx.select().from(bodyMeasurements);
+    const gymRows = await tx
+      .select({ id: gyms.id, name: gyms.name, deletedAt: gyms.deletedAt })
+      .from(gyms);
+    const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+
+    const resolvedSettings = {
+      units: settings?.units ?? "lb",
+      weekStart: settings?.weekStart ?? 0,
+      bodyweight: settings?.bodyweight ?? null,
+      sex: settings?.sex ?? null,
+      birthdate: settings?.birthdate ?? null,
+    } as const;
+    const { achievements, streak } = buildAchievementData(
+      {
+        sessions: sessionRows,
+        sessionExercises: sessionExerciseRows,
+        exercises: exerciseRows,
+        sets: setRows,
+        personalRecords: prRows,
+        programs: programRows,
+        programRoutines: programRoutineRows,
+        bodyMeasurements: measurementRows,
+      },
+      resolvedSettings,
+      new Date(),
+    );
+    return {
+      units: resolvedSettings.units,
+      weekStart: resolvedSettings.weekStart,
+      weeklyTarget: streak.weeklyTarget,
+      workouts: buildPortalWorkoutRows(
+        sessionRows,
+        sessionExerciseRows,
+        exerciseRows,
+        setRows,
+        prRows,
+        gymRows,
+      ),
+      achievements: serializeAchievements(achievements),
     };
   });
 }

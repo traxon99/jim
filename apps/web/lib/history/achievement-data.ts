@@ -51,7 +51,7 @@ export interface AchievementData {
  */
 export function buildAchievementData(
   tables: AchievementTables,
-  settings: SettingsRow,
+  settings: Pick<SettingsRow, "units" | "weekStart" | "bodyweight" | "sex" | "birthdate">,
   now: Date,
 ): AchievementData {
   const finished = tables.sessions.filter((session) => session.endedAt && !session.deletedAt);
