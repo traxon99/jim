@@ -51,15 +51,28 @@ export function normalizeEquipment(text: string | null | undefined): EquipmentBu
   return "other";
 }
 
+/**
+ * The step PRP moves a lift by. For a bar loaded in pairs, the default never
+ * goes below one pair of the user's smallest plate: a 2.5 lb step with
+ * 2.5 lb plates suggested 137.5 lb, which needs 1.25s (issue #496). A step
+ * the user set themselves is kept as is.
+ */
 export function resolveIncrement(
   equipment: string | null | undefined,
   units: WeightUnits,
   userOverrides?: IncrementOverrides | null,
+  plates?: readonly (number | string)[] | null,
 ): number {
   const bucket = normalizeEquipment(equipment);
   const override = userOverrides?.[bucket]?.[units];
   if (override !== undefined && override > 0) return override;
-  return DEFAULT_INCREMENTS[bucket][units];
+  const step = DEFAULT_INCREMENTS[bucket][units];
+  if (bucket !== "barbell" && bucket !== "ez-bar") return step;
+  const smallest = Math.min(
+    ...(plates ?? []).map(Number).filter((p) => Number.isFinite(p) && p > 0),
+  );
+  if (!Number.isFinite(smallest)) return step;
+  return Math.max(step, Math.round(2 * smallest * 100) / 100);
 }
 
 export type RoundMode = "nearest" | "down" | "up";

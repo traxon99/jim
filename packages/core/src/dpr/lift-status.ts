@@ -32,6 +32,8 @@ export interface DprUserSettings {
   aggressiveness: DprPresetName;
   increments: IncrementOverrides;
   defaultRange: RepRange;
+  /** The user's plate sizes, so barbell steps stay loadable (issue #496). */
+  plates?: readonly (number | string)[];
 }
 
 export interface DprBlockInfo {
@@ -88,7 +90,12 @@ export function callForLift(input: {
     snapshot.routineRanges,
     settings.defaultRange,
   );
-  const increment = resolveIncrement(input.equipment, settings.units, settings.increments);
+  const increment = resolveIncrement(
+    input.equipment,
+    settings.units,
+    settings.increments,
+    settings.plates,
+  );
   let decision = decideNextWeight({
     sessions: sessionsForKey(snapshot.history, exerciseId, repRange),
     repRange,
@@ -197,7 +204,12 @@ export function liftDecisionLog(input: {
   now: Date;
 }): DprLogEntry[] {
   const { snapshot, exerciseId, settings, now } = input;
-  const increment = resolveIncrement(input.equipment, settings.units, settings.increments);
+  const increment = resolveIncrement(
+    input.equipment,
+    settings.units,
+    settings.increments,
+    settings.plates,
+  );
   const ranges = new Map<string, RepRange>();
   for (const entry of snapshot.history) {
     if (entry.exerciseId !== exerciseId) continue;
