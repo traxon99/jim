@@ -109,6 +109,7 @@ export function HistoryHome() {
       <nav className="grid grid-cols-3 gap-2 px-4">
         <Link
           href="/history/prs"
+          data-ripple
           className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
         >
           <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
@@ -116,6 +117,7 @@ export function HistoryHome() {
         </Link>
         <Link
           href="/history/volume"
+          data-ripple
           className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
         >
           <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
@@ -123,6 +125,7 @@ export function HistoryHome() {
         </Link>
         <Link
           href="/portal"
+          data-ripple
           className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
         >
           <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
