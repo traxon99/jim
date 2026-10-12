@@ -7,7 +7,14 @@ import {
   parseAnalysisRange,
   portalHref,
 } from "@/lib/portal/sections";
-import { ChevronLeft, Dumbbell, History, LayoutDashboard, type LucideIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  Dumbbell,
+  History,
+  LayoutDashboard,
+  type LucideIcon,
+  Scale,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -15,6 +22,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   overview: LayoutDashboard,
   workouts: History,
   exercises: Dumbbell,
+  body: Scale,
 };
 
 /**
@@ -61,7 +69,11 @@ export function PortalNav({ email }: { email: string }) {
                     : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+                <Icon
+                  className="hidden h-4 w-4 shrink-0 md:block"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
                 {section.label}
               </Link>
             </li>
