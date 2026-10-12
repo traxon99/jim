@@ -21,6 +21,12 @@ import {
   buildPortalWorkouts,
 } from "./analysis-data";
 import { type PortalBodyData, buildPortalBodyData } from "./body-data";
+import {
+  type PortalExerciseDetail,
+  type PortalExerciseIndexRow,
+  buildExerciseIndex,
+  buildPortalExerciseDetail,
+} from "./exercises-data";
 import { type PortalRecordsData, serializeRecordEntries } from "./records-data";
 import {
   type PortalWorkoutDetail,
@@ -95,7 +101,7 @@ async function readTrainingData(tx: DbOrTx, userId: string) {
     ...portalSets,
     workouts: buildPortalWorkouts(sessionRows, portalSets.sets, exerciseRows),
   };
-  return { data, sessionRows };
+  return { data, sessionRows, sessionExerciseRows, setRows, exerciseRows };
 }
 
 /**
@@ -124,9 +130,21 @@ export async function loadOverviewData(): Promise<PortalOverviewData> {
   });
 }
 
-/** The Exercises section's strength table and e1RM chart (issue #470). */
-export async function loadStrengthData(): Promise<PortalTrainingData> {
-  return withUserDb(async (tx, userId) => (await readTrainingData(tx, userId)).data);
+/**
+ * The Exercises section (issue #470): the strength table and e1RM chart,
+ * plus every exercise ever logged for the searchable list.
+ */
+export async function loadStrengthData(): Promise<
+  PortalTrainingData & { exerciseIndex: PortalExerciseIndexRow[] }
+> {
+  return withUserDb(async (tx, userId) => {
+    const { data, sessionRows, sessionExerciseRows, setRows, exerciseRows } =
+      await readTrainingData(tx, userId);
+    return {
+      ...data,
+      exerciseIndex: buildExerciseIndex(sessionRows, sessionExerciseRows, exerciseRows, setRows),
+    };
+  });
 }
 
 /** The Workouts section's table: every finished workout (issue #470). */
@@ -279,6 +297,56 @@ export async function loadRecordsData(): Promise<PortalRecordsData> {
       })),
       strengthProfile: settings ? strengthProfileFromSettings(settings) : null,
       bodyweight: buildPortalBodyData(measurementRows, units).bodyweight,
+    };
+  });
+}
+
+/** One exercise's desktop page (issue #470), or null when it isn't the user's to see. */
+export async function loadExerciseDetail(
+  exerciseId: string,
+): Promise<{ units: "lb" | "kg"; detail: PortalExerciseDetail | null }> {
+  return withUserDb(async (tx, userId) => {
+    const [settings] = await tx
+      .select({ units: users.units })
+      .from(users)
+      .where(eq(users.id, userId));
+    const units = settings?.units ?? "lb";
+    const [exercise] = await tx.select().from(exercises).where(eq(exercises.id, exerciseId));
+    if (!exercise) return { units, detail: null };
+    const sessionExerciseRows = await tx
+      .select()
+      .from(sessionExercises)
+      .where(eq(sessionExercises.exerciseId, exerciseId));
+    const sessionIds = [...new Set(sessionExerciseRows.map((row) => row.sessionId))];
+    const sessionRows =
+      sessionIds.length === 0
+        ? []
+        : await tx.select().from(sessions).where(inArray(sessions.id, sessionIds));
+    const sessionExerciseIds = sessionExerciseRows.map((row) => row.id);
+    const setRows =
+      sessionExerciseIds.length === 0
+        ? []
+        : await tx.select().from(sets).where(inArray(sets.sessionExerciseId, sessionExerciseIds));
+    const prRows = await tx
+      .select()
+      .from(personalRecords)
+      .where(eq(personalRecords.exerciseId, exerciseId));
+    const [gym] = exercise.gymId
+      ? await tx
+          .select({ name: gyms.name, deletedAt: gyms.deletedAt })
+          .from(gyms)
+          .where(eq(gyms.id, exercise.gymId))
+      : [];
+    return {
+      units,
+      detail: buildPortalExerciseDetail(
+        exercise,
+        sessionRows,
+        sessionExerciseRows,
+        setRows,
+        prRows,
+        gym,
+      ),
     };
   });
 }
