@@ -1,7 +1,12 @@
 import { withUserDb } from "@/lib/db/user-scoped";
 import { exercises, gyms, sessionExercises, sessions, sets, users } from "@jim/db";
 import { eq, inArray } from "drizzle-orm";
-import { type PortalData, buildPortalGyms, buildPortalSets } from "./analysis-data";
+import {
+  type PortalData,
+  buildPortalGyms,
+  buildPortalSets,
+  buildPortalWorkouts,
+} from "./analysis-data";
 
 /**
  * Reads everything the web portal (issue #38) analyses straight from
@@ -21,6 +26,7 @@ export async function loadPortalData(): Promise<PortalData> {
     const sessionRows = await tx
       .select({
         id: sessions.id,
+        name: sessions.name,
         gymId: sessions.gymId,
         startedAt: sessions.startedAt,
         endedAt: sessions.endedAt,
@@ -70,16 +76,19 @@ export async function loadPortalData(): Promise<PortalData> {
               category: exercises.category,
               machineBrand: exercises.machineBrand,
               machineModel: exercises.machineModel,
+              primaryMuscles: exercises.primaryMuscles,
             })
             .from(exercises)
             .where(inArray(exercises.id, exerciseIds));
 
     const settings = settingsRows[0];
+    const portalSets = buildPortalSets(sessionRows, sessionExerciseRows, exerciseRows, setRows);
     return {
       email,
       units: settings?.units ?? "lb",
       weekStart: settings?.weekStart ?? 0,
-      ...buildPortalSets(sessionRows, sessionExerciseRows, exerciseRows, setRows),
+      ...portalSets,
+      workouts: buildPortalWorkouts(sessionRows, portalSets.sets, exerciseRows),
       ...buildPortalGyms(gymRows, sessionRows),
     };
   });

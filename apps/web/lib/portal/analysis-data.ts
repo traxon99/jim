@@ -1,5 +1,6 @@
 import {
   type ExerciseCategory,
+  deriveUntitledSessionName,
   exerciseDisplayName,
   gymCoordinates,
   isStrengthExercise,
@@ -54,6 +55,16 @@ export interface PortalExercise {
   name: string;
 }
 
+/**
+ * A workout a chart point can open (issue #468): its title as History shows
+ * it, and when it started, as an ISO string.
+ */
+export interface PortalWorkout {
+  id: string;
+  title: string;
+  startedAt: string;
+}
+
 /** A gym pinned to a real place (issue #462), for the Analysis map. */
 export interface PortalGym {
   id: string;
@@ -77,6 +88,7 @@ export interface PortalData {
   weekStart: number;
   sets: PortalSet[];
   exercises: PortalExercise[];
+  workouts: PortalWorkout[];
   gyms: PortalGym[];
   gymVisits: PortalGymVisit[];
 }
@@ -195,4 +207,51 @@ export function buildPortalSets(
       .filter((exercise) => usedExerciseIds.has(exercise.id))
       .map((exercise) => ({ id: exercise.id, name: exerciseDisplayName(exercise) })),
   };
+}
+
+interface PortalWorkoutSessionRow {
+  id: string;
+  name: string | null;
+  startedAt: Date;
+  deletedAt: Date | null;
+}
+
+interface PortalWorkoutExerciseRow {
+  id: string;
+  primaryMuscles?: readonly string[] | null;
+}
+
+/**
+ * The workouts behind the portal's chart points (issue #468): every live
+ * session that has at least one set on the dashboard, titled the way the
+ * History list titles it, so a tooltip and the workout card read the same as
+ * the phone. Unnamed workouts get the derived "Monday · Chest" name
+ * (`deriveUntitledSessionName`, feedback issue #36).
+ */
+export function buildPortalWorkouts(
+  sessions: readonly PortalWorkoutSessionRow[],
+  sets: readonly PortalSet[],
+  exercises: readonly PortalWorkoutExerciseRow[],
+): PortalWorkout[] {
+  const musclesByExercise = new Map(
+    exercises.map((exercise) => [exercise.id, exercise.primaryMuscles ?? []]),
+  );
+  const setsBySession = new Map<string, { primaryMuscles: readonly string[] }[]>();
+  for (const set of sets) {
+    const list = setsBySession.get(set.sessionId) ?? [];
+    list.push({ primaryMuscles: musclesByExercise.get(set.exerciseId) ?? [] });
+    setsBySession.set(set.sessionId, list);
+  }
+
+  const workouts: PortalWorkout[] = [];
+  for (const session of sessions) {
+    const sessionSets = setsBySession.get(session.id);
+    if (session.deletedAt || !sessionSets) continue;
+    workouts.push({
+      id: session.id,
+      title: session.name?.trim() || deriveUntitledSessionName(session.startedAt, sessionSets),
+      startedAt: session.startedAt.toISOString(),
+    });
+  }
+  return workouts;
 }

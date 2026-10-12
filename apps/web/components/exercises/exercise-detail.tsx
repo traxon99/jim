@@ -349,7 +349,15 @@ export function ExerciseDetail({
               <section>
                 <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
                 <div className="mt-2">
-                  <OneRepMaxChart points={oneRepMaxPoints} />
+                  <OneRepMaxChart
+                    points={oneRepMaxPoints}
+                    units={settings.units}
+                    // Opened over an active workout (onClose set), a tap stays put
+                    // rather than navigating away mid-session (issue #468).
+                    onSelectPoint={
+                      onClose ? undefined : (point) => router.push(`/history/${point.sessionId}`)
+                    }
+                  />
                 </div>
               </section>
             )}

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { isInstallGateExempt, safeNextPath } from "../../pwa/install-gate-exempt";
-import { buildPortalGyms, buildPortalSets, countGymVisits } from "../analysis-data";
+import {
+  buildPortalGyms,
+  buildPortalSets,
+  buildPortalWorkouts,
+  countGymVisits,
+} from "../analysis-data";
 
 const COMPLETED_AT = new Date("2026-03-02T18:00:00.000Z");
 
@@ -193,5 +198,44 @@ describe("buildPortalGyms (#462)", () => {
         ["b", 1],
       ]),
     );
+  });
+});
+
+describe("buildPortalWorkouts (#468)", () => {
+  const set = (sessionId: string, exerciseId = "bench") => ({
+    exerciseId,
+    sessionId,
+    completedAt: COMPLETED_AT.toISOString(),
+    weight: 225,
+    reps: 5,
+  });
+  // A Monday, so the derived name is predictable.
+  const startedAt = new Date(2026, 2, 2, 18);
+
+  it("titles named workouts by their name and unnamed ones like History does", () => {
+    const workouts = buildPortalWorkouts(
+      [
+        { id: "named", name: "  Push day ", startedAt, deletedAt: null },
+        { id: "unnamed", name: null, startedAt, deletedAt: null },
+      ],
+      [set("named"), set("unnamed")],
+      [{ id: "bench", primaryMuscles: ["chest"] }],
+    );
+    expect(workouts).toEqual([
+      { id: "named", title: "Push day", startedAt: startedAt.toISOString() },
+      { id: "unnamed", title: "Monday · Chest", startedAt: startedAt.toISOString() },
+    ]);
+  });
+
+  it("leaves out deleted workouts and ones with no charted sets", () => {
+    const workouts = buildPortalWorkouts(
+      [
+        { id: "deleted", name: "Gone", startedAt, deletedAt: new Date() },
+        { id: "empty", name: "Cardio only", startedAt, deletedAt: null },
+      ],
+      [set("deleted")],
+      [],
+    );
+    expect(workouts).toEqual([]);
   });
 });
