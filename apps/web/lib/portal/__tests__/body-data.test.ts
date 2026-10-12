@@ -1,6 +1,12 @@
 import type { BodyMeasurementRow } from "@/lib/db/schema";
 import { describe, expect, it } from "vitest";
-import { buildPortalBodyData, summarizeTrend, toTrendPoints, trendPointsSince } from "../body-data";
+import {
+  buildPortalBodyData,
+  measurementPointsInRange,
+  summarizeTrend,
+  toTrendPoints,
+  trendPointsSince,
+} from "../body-data";
 
 function row(overrides: Partial<BodyMeasurementRow>): BodyMeasurementRow {
   return {
@@ -28,6 +34,20 @@ describe("buildPortalBodyData", () => {
     expect(data.bodyweight.map((point) => point.id)).toEqual(["a", "b"]);
     expect(data.bodyweight[1]?.value).toBeCloseTo(176.37, 1);
   });
+
+  it("puts each measurement in its display unit", () => {
+    const data = buildPortalBodyData(
+      [
+        row({ id: "w1", kind: "waist", value: "81.28", unit: "cm" }),
+        row({ id: "bf", kind: "body_fat", value: "18.50", unit: "pct" }),
+      ],
+      "lb",
+    );
+    expect(data.measurements.waist.map((point) => point.value)).toEqual([32]);
+    expect(data.measurements.body_fat[0]?.value).toBe(18.5);
+    expect(data.measurements.calves).toEqual([]);
+    expect(data.bodyweight).toEqual([]);
+  });
 });
 
 describe("summarizeTrend", () => {
@@ -52,5 +72,19 @@ describe("summarizeTrend", () => {
   it("is null with nothing in range", () => {
     expect(summarizeTrend(trendPointsSince(points, new Date("2027-01-01")))).toBeNull();
     expect(trendPointsSince(points, null)).toHaveLength(3);
+  });
+});
+
+describe("measurementPointsInRange", () => {
+  const points = toTrendPoints([
+    { id: "old", measuredAt: "2025-01-01T08:00:00Z", value: 34 },
+    { id: "mid", measuredAt: "2025-12-01T08:00:00Z", value: 33 },
+    { id: "new", measuredAt: "2026-02-01T08:00:00Z", value: 32 },
+  ]);
+
+  it("counts back from the latest entry, as the phone does", () => {
+    expect(measurementPointsInRange(points, "3m").map((p) => p.id)).toEqual(["mid", "new"]);
+    expect(measurementPointsInRange(points, "1y").map((p) => p.id)).toEqual(["mid", "new"]);
+    expect(measurementPointsInRange(points, "all")).toHaveLength(3);
   });
 });

@@ -213,7 +213,7 @@ export async function loadWorkoutDetail(
   });
 }
 
-/** The Body section: every weigh-in (issue #470). */
+/** The Body section: every weigh-in and measurement (issue #470). */
 export async function loadBodyData(): Promise<PortalBodyData> {
   return withUserDb(async (tx, userId) => {
     const settingsRows = await tx
