@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #539 | `cancel_scheduled_workout` and `delete_body_measurement` deleted on the first MCP call with no preview | They kept the write-tool default `dry_run: false` while every other delete previews | Any MCP tool that deletes or cancels takes `dryRunParam(true)`; the dry-run defaults test lists them |
 | #543 | Offline, Settings left the username field on "Loading…" forever, Profile and Shared links went blank, and Friends' "Change" went to the wrong page | The fetches ignored `!result.ok`, and the link still pointed at `/profile` after editing moved to Settings | A failed load shows the error with a Try again button (like `FriendsScreen`); when a feature moves, grep for links to its old home |
 | #530 | Setup "Try again" after a failed save added the same gym twice | `addGym` succeeded but `setDefaultGym` threw, and the retry ran `addGym` again | A retry must resume after the step that already committed: remember the created row and repeat only the failed step |
 | #522 | The filter-count badge on Exercises was clipped | The badge was a child of the filter `<button>`, and the global ripple rule gives every button `overflow: hidden` | Never hang a badge off a button that sticks out of it; put it on a `relative` wrapper beside the button |

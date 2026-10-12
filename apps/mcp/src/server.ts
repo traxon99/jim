@@ -46,7 +46,7 @@ function toolError(error: unknown) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
 }
 
-/** Shared by every write tool (#245). `merge_exercises` overrides the default to `true`. */
+/** Shared by every write tool (#245). Destructive tools (merges and deletes) pass `true`. */
 function dryRunParam(defaultValue: boolean) {
   return z
     .boolean()
@@ -774,8 +774,9 @@ export function createMcpServer(context: UserContext): McpServer {
     "cancel_scheduled_workout",
     {
       title: "Cancel scheduled workout",
-      description: `Remove a planned workout (id from list_scheduled_workouts).${PREVIEW_HINT}`,
-      inputSchema: { id: z.string(), dry_run: dryRunParam(false) },
+      description:
+        "Remove a planned workout (id from list_scheduled_workouts). dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: { id: z.string(), dry_run: dryRunParam(true) },
     },
     async ({ dry_run, ...input }) => {
       try {
@@ -839,8 +840,9 @@ export function createMcpServer(context: UserContext): McpServer {
     "delete_body_measurement",
     {
       title: "Delete body measurement",
-      description: `Delete one measurement entry (its id from get_body_measurements).${PREVIEW_HINT}`,
-      inputSchema: { id: z.string(), dry_run: dryRunParam(false) },
+      description:
+        "Delete one measurement entry (its id from get_body_measurements). dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: { id: z.string(), dry_run: dryRunParam(true) },
     },
     async ({ dry_run, ...input }) => {
       try {
