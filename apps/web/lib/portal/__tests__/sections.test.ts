@@ -10,6 +10,7 @@ describe("activePortalSection", () => {
   it("marks a section on its own route and anything under it", () => {
     expect(activePortalSection("/portal/exercises")).toBe("exercises");
     expect(activePortalSection("/portal/exercises/some-id")).toBe("exercises");
+    expect(activePortalSection("/portal/workouts/some-id")).toBe("workouts");
   });
 
   it("doesn't match a section by prefix alone", () => {

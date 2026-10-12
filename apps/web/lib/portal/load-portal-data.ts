@@ -1,5 +1,14 @@
 import { withUserDb } from "@/lib/db/user-scoped";
-import { type DbOrTx, exercises, gyms, sessionExercises, sessions, sets, users } from "@jim/db";
+import {
+  type DbOrTx,
+  exercises,
+  gyms,
+  personalRecords,
+  sessionExercises,
+  sessions,
+  sets,
+  users,
+} from "@jim/db";
 import { eq, inArray } from "drizzle-orm";
 import {
   type PortalOverviewData,
@@ -8,6 +17,12 @@ import {
   buildPortalSets,
   buildPortalWorkouts,
 } from "./analysis-data";
+import {
+  type PortalWorkoutDetail,
+  type PortalWorkoutRow,
+  buildPortalWorkoutDetail,
+  buildPortalWorkoutRows,
+} from "./workouts-data";
 
 /**
  * Every working set the user has logged, joined and resolved, plus the
@@ -107,4 +122,91 @@ export async function loadOverviewData(): Promise<PortalOverviewData> {
 /** The Exercises section's strength table and e1RM chart (issue #470). */
 export async function loadStrengthData(): Promise<PortalTrainingData> {
   return withUserDb(async (tx, userId) => (await readTrainingData(tx, userId)).data);
+}
+
+/** The Workouts section's table: every finished workout (issue #470). */
+export async function loadWorkoutRows(): Promise<{
+  units: "lb" | "kg";
+  workouts: PortalWorkoutRow[];
+}> {
+  return withUserDb(async (tx, userId) => {
+    const settingsRows = await tx
+      .select({ units: users.units })
+      .from(users)
+      .where(eq(users.id, userId));
+    const sessionRows = await tx.select().from(sessions);
+    const sessionExerciseRows = await tx.select().from(sessionExercises);
+    const setRows = await tx.select().from(sets);
+    const prRows = await tx.select().from(personalRecords);
+    const gymRows = await tx
+      .select({ id: gyms.id, name: gyms.name, deletedAt: gyms.deletedAt })
+      .from(gyms);
+    const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+    return {
+      units: settingsRows[0]?.units ?? "lb",
+      workouts: buildPortalWorkoutRows(
+        sessionRows,
+        sessionExerciseRows,
+        exerciseRows,
+        setRows,
+        prRows,
+        gymRows,
+      ),
+    };
+  });
+}
+
+/** One workout in full for /portal/workouts/[id], or null when it's gone. */
+export async function loadWorkoutDetail(
+  sessionId: string,
+): Promise<{ units: "lb" | "kg"; workout: PortalWorkoutDetail | null }> {
+  return withUserDb(async (tx, userId) => {
+    const settingsRows = await tx
+      .select({ units: users.units })
+      .from(users)
+      .where(eq(users.id, userId));
+    const units = settingsRows[0]?.units ?? "lb";
+    const [session] = await tx.select().from(sessions).where(eq(sessions.id, sessionId));
+    if (!session) return { units, workout: null };
+    const sessionExerciseRows = await tx
+      .select()
+      .from(sessionExercises)
+      .where(eq(sessionExercises.sessionId, sessionId));
+    const sessionExerciseIds = sessionExerciseRows.map((row) => row.id);
+    const setRows =
+      sessionExerciseIds.length === 0
+        ? []
+        : await tx.select().from(sets).where(inArray(sets.sessionExerciseId, sessionExerciseIds));
+    const setIds = setRows.map((row) => row.id);
+    const prRows =
+      setIds.length === 0
+        ? []
+        : await tx.select().from(personalRecords).where(inArray(personalRecords.setId, setIds));
+    const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+    const gymRows = session.gymId
+      ? await tx
+          .select({ id: gyms.id, name: gyms.name, deletedAt: gyms.deletedAt })
+          .from(gyms)
+          .where(eq(gyms.id, session.gymId))
+      : [];
+    return {
+      units,
+      workout: buildPortalWorkoutDetail(
+        session,
+        sessionExerciseRows,
+        exerciseRows,
+        setRows,
+        prRows,
+        gymRows,
+      ),
+    };
+  });
 }
