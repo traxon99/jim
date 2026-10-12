@@ -88,3 +88,24 @@ export function bodyweightLookup(
 ): (date: Date) => number | null {
   return bodyweightOnDate(bodyweightSeries(rows, units));
 }
+
+const DAY_MS = 86_400_000;
+
+/** Each point's average over the trailing `days` days of entries. */
+export function trailingAverage(
+  points: readonly Pick<MeasurementPoint, "measuredAt" | "value">[],
+  days: number,
+): number[] {
+  return points.map((point, index) => {
+    const from = point.measuredAt.getTime() - (days - 1) * DAY_MS;
+    let sum = 0;
+    let count = 0;
+    for (let i = index; i >= 0; i--) {
+      const earlier = points[i];
+      if (!earlier || earlier.measuredAt.getTime() < from) break;
+      sum += earlier.value;
+      count++;
+    }
+    return count === 0 ? point.value : sum / count;
+  });
+}

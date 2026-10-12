@@ -1,6 +1,7 @@
 import { withUserDb } from "@/lib/db/user-scoped";
 import {
   type DbOrTx,
+  bodyMeasurements,
   exercises,
   gyms,
   personalRecords,
@@ -17,6 +18,7 @@ import {
   buildPortalSets,
   buildPortalWorkouts,
 } from "./analysis-data";
+import { type PortalBodyData, buildPortalBodyData } from "./body-data";
 import {
   type PortalWorkoutDetail,
   type PortalWorkoutRow,
@@ -208,5 +210,17 @@ export async function loadWorkoutDetail(
         gymRows,
       ),
     };
+  });
+}
+
+/** The Body section: every weigh-in (issue #470). */
+export async function loadBodyData(): Promise<PortalBodyData> {
+  return withUserDb(async (tx, userId) => {
+    const settingsRows = await tx
+      .select({ units: users.units })
+      .from(users)
+      .where(eq(users.id, userId));
+    const rows = await tx.select().from(bodyMeasurements);
+    return buildPortalBodyData(rows, settingsRows[0]?.units ?? "lb");
   });
 }

@@ -1,30 +1,14 @@
 import type { MeasurementPoint } from "@/lib/bodyweight";
+import { trailingAverage } from "@/lib/bodyweight/series";
 
 const WIDTH = 320;
 const HEIGHT = 140;
 const PADDING = 10;
 /** Weigh-ins swing a kilo or two day to day; the trend is the 7-day average. */
-const BODYWEIGHT_TREND_DAYS = 7;
-const DAY_MS = 86_400_000;
+export const BODYWEIGHT_TREND_DAYS = 7;
 
 function formatValue(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
-}
-
-/** Each point's average over the trailing `days` days of entries. */
-function trailingAverage(points: readonly MeasurementPoint[], days: number): number[] {
-  return points.map((point, index) => {
-    const from = point.measuredAt.getTime() - (days - 1) * DAY_MS;
-    let sum = 0;
-    let count = 0;
-    for (let i = index; i >= 0; i--) {
-      const earlier = points[i];
-      if (!earlier || earlier.measuredAt.getTime() < from) break;
-      sum += earlier.value;
-      count++;
-    }
-    return count === 0 ? point.value : sum / count;
-  });
 }
 
 /**
