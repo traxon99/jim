@@ -132,6 +132,7 @@ describe("weeklyVolumeTotals", () => {
     ]);
     expect(weeks.map((week) => week.volume)).toEqual([1000, 0, 500]);
     expect(weeks.map((week) => week.workouts)).toEqual([1, 0, 1]);
+    expect(weeks.map((week) => week.sessionIds)).toEqual([["a"], [], ["b"]]);
   });
 
   it("starts at the first set's week for all time, and is empty with no history", () => {

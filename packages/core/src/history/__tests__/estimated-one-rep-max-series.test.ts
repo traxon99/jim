@@ -23,6 +23,8 @@ describe("estimatedOneRepMaxSeries", () => {
         date: set().completedAt,
         sessionId: "session-1",
         estimatedOneRepMax: estimateOneRepMax(225, 5),
+        weight: 225,
+        reps: 5,
       },
     ]);
   });
@@ -34,6 +36,7 @@ describe("estimatedOneRepMaxSeries", () => {
     ]);
     expect(points).toHaveLength(1);
     expect(points[0]?.estimatedOneRepMax).toBe(estimateOneRepMax(225, 5));
+    expect(points[0]).toMatchObject({ weight: 225, reps: 5 });
   });
 
   it("sorts multiple sessions oldest first", () => {

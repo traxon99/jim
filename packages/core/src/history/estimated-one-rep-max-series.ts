@@ -11,6 +11,9 @@ export interface OneRepMaxPoint {
   date: Date;
   sessionId: string;
   estimatedOneRepMax: number;
+  /** The set behind the estimate, so charts can show what was lifted (issue #468). */
+  weight: number;
+  reps: number;
 }
 
 /**
@@ -37,6 +40,8 @@ export function estimatedOneRepMaxSeries(
         date: set.completedAt,
         sessionId: set.sessionId,
         estimatedOneRepMax: value,
+        weight: set.weight,
+        reps: set.reps,
       });
     }
   }

@@ -166,6 +166,8 @@ export interface WeeklyVolumeTotal {
   volume: number;
   sets: number;
   workouts: number;
+  /** The week's workouts, so a tapped bar can list them (issue #468). */
+  sessionIds: string[];
 }
 
 /**
@@ -215,6 +217,7 @@ export function weeklyVolumeTotals(
       volume: total?.volume ?? 0,
       sets: total?.sets ?? 0,
       workouts: total?.sessionIds.size ?? 0,
+      sessionIds: total ? [...total.sessionIds] : [],
     });
   }
   return result;

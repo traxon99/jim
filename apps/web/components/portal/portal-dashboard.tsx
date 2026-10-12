@@ -1,6 +1,8 @@
 "use client";
 
+import { ChartTooltip } from "@/components/charts/chart-tooltip";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
+import { clientXToViewBox } from "@/lib/charts/chart-hover";
 import { type PortalData, countGymVisits } from "@/lib/portal/analysis-data";
 import {
   ANALYSIS_RANGES,
@@ -15,8 +17,9 @@ import {
 } from "@jim/core";
 import { ArrowDownRight, ArrowUpRight, ChevronLeft, Star } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useMemo, useState } from "react";
 import { GymMap } from "./gym-map";
+import { type HighlightedSet, PortalWorkoutCard } from "./portal-workout-card";
 
 const CHART_WIDTH = 640;
 const CHART_HEIGHT = 160;
@@ -33,9 +36,20 @@ function StatTile({ label, value }: { label: string; value: string }) {
 
 /**
  * Total volume per week as bars, with empty weeks left as visible gaps.
- * Uses the accent color like the phone's volume-by-muscle bars.
+ * Uses the accent color like the phone's volume-by-muscle bars. Hovering a
+ * week shows its totals; tapping it lists that week's workouts (issue #468).
  */
-function WeeklyVolumeChart({ weeks, units }: { weeks: WeeklyVolumeTotal[]; units: string }) {
+function WeeklyVolumeChart({
+  weeks,
+  units,
+  onSelectWeek,
+}: {
+  weeks: WeeklyVolumeTotal[];
+  units: string;
+  onSelectWeek: (week: WeeklyVolumeTotal) => void;
+}) {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
   if (weeks.every((week) => week.volume === 0)) {
     return (
       <p className="text-sm text-zinc-500 dark:text-zinc-500">No weighted sets in this range.</p>
@@ -46,34 +60,104 @@ function WeeklyVolumeChart({ weeks, units }: { weeks: WeeklyVolumeTotal[]; units
   const slot = (CHART_WIDTH - CHART_PADDING * 2) / weeks.length;
   const barWidth = Math.max(1, slot * 0.7);
   const average = weeks.reduce((sum, week) => sum + week.volume, 0) / weeks.length;
+  const barHeight = (week: WeeklyVolumeTotal) =>
+    max > 0 ? (week.volume / max) * (CHART_HEIGHT - CHART_PADDING * 2) : 0;
+
+  // Read from the pointer each time rather than `activeIndex`: on touch the
+  // pointerleave that clears it fires before the click.
+  function indexAt(event: MouseEvent<HTMLDivElement>): number {
+    const box = event.currentTarget.getBoundingClientRect();
+    const x = clientXToViewBox(event.clientX, box, CHART_WIDTH);
+    return Math.min(weeks.length - 1, Math.max(0, Math.floor((x - CHART_PADDING) / slot)));
+  }
+
+  const active = activeIndex == null ? undefined : weeks[activeIndex];
+  const focusIndex = activeIndex ?? weeks.length - 1;
+
+  function open(week: WeeklyVolumeTotal | undefined) {
+    if (week && week.sessionIds.length > 0) onSelectWeek(week);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const last = weeks.length - 1;
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
+      const step = event.key === "ArrowLeft" ? -1 : 1;
+      setActiveIndex((index) => Math.min(last, Math.max(0, (index ?? last + 1) + step)));
+    } else if ((event.key === "Enter" || event.key === " ") && activeIndex != null) {
+      event.preventDefault();
+      open(weeks[activeIndex]);
+    }
+  }
+
+  function describe(week: WeeklyVolumeTotal | undefined): string {
+    if (!week) return "";
+    return `Week of ${week.weekStart.toLocaleDateString()}: ${Math.round(week.volume).toLocaleString()} ${units}, ${week.sets} sets, ${week.workouts} workouts`;
+  }
 
   return (
     <div className="flex flex-col gap-1">
-      <svg
-        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-        className="w-full"
-        role="img"
-        aria-label={`Weekly volume over ${weeks.length} weeks, peaking at ${Math.round(max).toLocaleString()} ${units}`}
+      <div
+        className="relative cursor-pointer touch-pan-y"
+        // A slider in ARIA terms, like OneRepMaxChart: arrow keys step
+        // through weeks, Enter lists the week's workouts (issue #468).
+        role="slider"
+        tabIndex={0}
+        aria-label={`Weekly volume over ${weeks.length} weeks, peaking at ${Math.round(max).toLocaleString()} ${units}. Press Enter to list a week's workouts.`}
+        aria-valuemin={0}
+        aria-valuemax={weeks.length - 1}
+        aria-valuenow={focusIndex}
+        aria-valuetext={describe(weeks[focusIndex])}
+        onKeyDown={handleKeyDown}
+        onBlur={() => setActiveIndex(null)}
+        onPointerMove={(event) => setActiveIndex(indexAt(event))}
+        onPointerLeave={() => setActiveIndex(null)}
+        onClick={(event) => open(weeks[indexAt(event)])}
       >
-        {weeks.map((week, index) => {
-          const height = max > 0 ? (week.volume / max) * (CHART_HEIGHT - CHART_PADDING * 2) : 0;
-          return (
-            <rect
-              key={week.weekStart.toISOString()}
-              x={CHART_PADDING + index * slot + (slot - barWidth) / 2}
-              y={CHART_HEIGHT - CHART_PADDING - height}
-              width={barWidth}
-              height={height}
-              rx={Math.min(3, barWidth / 2)}
-              className="fill-accent"
-            >
-              <title>
-                {`Week of ${week.weekStart.toLocaleDateString()}: ${Math.round(week.volume).toLocaleString()} ${units} · ${week.sets} sets · ${week.workouts} workouts`}
-              </title>
-            </rect>
-          );
-        })}
-      </svg>
+        <svg
+          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+          className="block w-full"
+          aria-hidden="true"
+        >
+          {weeks.map((week, index) => {
+            const height = barHeight(week);
+            return (
+              <rect
+                key={week.weekStart.toISOString()}
+                x={CHART_PADDING + index * slot + (slot - barWidth) / 2}
+                y={CHART_HEIGHT - CHART_PADDING - height}
+                width={barWidth}
+                height={height}
+                rx={Math.min(3, barWidth / 2)}
+                className="fill-accent"
+                opacity={active && index !== activeIndex ? 0.55 : 1}
+              />
+            );
+          })}
+        </svg>
+        {active && activeIndex != null && (
+          <ChartTooltip
+            xFraction={(CHART_PADDING + (activeIndex + 0.5) * slot) / CHART_WIDTH}
+            yFraction={(CHART_HEIGHT - CHART_PADDING - barHeight(active)) / CHART_HEIGHT}
+          >
+            <span className="font-semibold">
+              Week of{" "}
+              {active.weekStart.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+            <span className="tabular-nums">
+              {Math.round(active.volume).toLocaleString()} {units}
+            </span>
+            <span className="text-zinc-500 dark:text-zinc-400">
+              {active.sets} set{active.sets === 1 ? "" : "s"} · {active.workouts} workout
+              {active.workouts === 1 ? "" : "s"}
+            </span>
+          </ChartTooltip>
+        )}
+      </div>
       <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-500">
         <span>{weeks[0]?.weekStart.toLocaleDateString()}</span>
         <span>
@@ -122,6 +206,12 @@ function ChangeCell({ change, percent }: { change: number; percent: number | nul
 export function PortalDashboard({ data }: { data: PortalData }) {
   const [range, setRange] = useState<AnalysisRange>(DEFAULT_ANALYSIS_RANGE);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  // The workout(s) a tapped chart point or bar opened (issue #468).
+  const [openWorkouts, setOpenWorkouts] = useState<{
+    sessionIds: string[];
+    listHeading?: string;
+    highlight?: HighlightedSet;
+  } | null>(null);
 
   const sets = useMemo<AnalysisSet[]>(
     () => data.sets.map((set) => ({ ...set, completedAt: new Date(set.completedAt) })),
@@ -130,6 +220,10 @@ export function PortalDashboard({ data }: { data: PortalData }) {
   const exerciseNames = useMemo(
     () => new Map(data.exercises.map((exercise) => [exercise.id, exercise.name])),
     [data.exercises],
+  );
+  const workouts = useMemo(
+    () => new Map(data.workouts.map((workout) => [workout.id, workout])),
+    [data.workouts],
   );
 
   const analysis = useMemo(() => {
@@ -215,7 +309,19 @@ export function PortalDashboard({ data }: { data: PortalData }) {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
                 Weekly volume
               </h2>
-              <WeeklyVolumeChart weeks={analysis.weeks} units={data.units} />
+              <WeeklyVolumeChart
+                weeks={analysis.weeks}
+                units={data.units}
+                onSelectWeek={(week) =>
+                  setOpenWorkouts({
+                    sessionIds: week.sessionIds,
+                    listHeading: `Week of ${week.weekStart.toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}`,
+                  })
+                }
+              />
             </section>
 
             <section className="flex flex-col gap-3">
@@ -278,7 +384,21 @@ export function PortalDashboard({ data }: { data: PortalData }) {
                       <h3 className="text-base font-semibold">
                         {exerciseNames.get(selectedTrend.exerciseId) ?? "Unknown exercise"}
                       </h3>
-                      <OneRepMaxChart points={selectedTrend.points} />
+                      <OneRepMaxChart
+                        points={selectedTrend.points}
+                        units={data.units}
+                        workoutTitle={(sessionId) => workouts.get(sessionId)?.title}
+                        onSelectPoint={(point) =>
+                          setOpenWorkouts({
+                            sessionIds: [point.sessionId],
+                            highlight: {
+                              exerciseId: selectedTrend.exerciseId,
+                              weight: point.weight,
+                              reps: point.reps,
+                            },
+                          })
+                        }
+                      />
                     </div>
                   )}
                 </div>
@@ -336,6 +456,16 @@ export function PortalDashboard({ data }: { data: PortalData }) {
           )}
         </section>
       </div>
+      {openWorkouts && (
+        <PortalWorkoutCard
+          {...openWorkouts}
+          sets={sets}
+          exerciseNames={exerciseNames}
+          workouts={workouts}
+          units={data.units}
+          onClose={() => setOpenWorkouts(null)}
+        />
+      )}
     </main>
   );
 }
