@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #516 | MCP `volume_report` by week/exercise counted warm-up and cardio exercises, so it disagreed with `weekly_summary` | Only the by-muscle grouping applied `isStrengthExercise` | Filter non-strength exercises where sets are loaded (`resolvedSetsInRange`), not per grouping |
 | #524 | After accepting a friend request, Home still showed the request badge and "Add a friend" | Home and Friends each held their own `useFriends()` state, and Home stays mounted under TabbedShell | Server data shown on more than one tab lives in one shared store, so an action on one tab updates the others |
 | #523 | Reopened the next morning, Home showed yesterday as today and the PRP block-end recap never appeared | Both screens took `new Date()` once (memoized at mount) and iOS resumes the suspended app with that state | Screens that depend on the date use `useToday()` and list it in their memo deps |
 | #521 | A drag on the "Add exercise" header scrolled the workout behind it, and the new-exercise form's Save could sit under the home indicator | The picker skipped the full-screen overlay rules: no scroll lock, no `touch-none` bars, no bottom safe area, not portaled | Every full-screen overlay follows docs/PWA.md §2 in full; check a new one against all five points |
