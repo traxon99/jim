@@ -13,8 +13,25 @@ import type { Db, DbOrTx } from "./client";
  * this with a caller-supplied id that hasn't been through signature
  * verification first, or it becomes an impersonation oracle.
  */
-export function runAsUser<T>(db: Db, userId: string, fn: (tx: DbOrTx) => Promise<T>): Promise<T> {
+export function runAsUser<T>(
+  db: Db,
+  userId: string,
+  fn: (tx: DbOrTx) => Promise<T>,
+  options: { exclusive?: boolean } = {},
+): Promise<T> {
   return db.transaction(async (tx) => {
+    // Every transaction for a user holds that user's advisory lock, shared,
+    // and the sync pull takes it exclusively (issue #488). server_seq values
+    // are drawn at nextval time but only become visible at commit, so a pull
+    // running beside an open write could see a later seq, advance its cursor
+    // past the earlier one and never pull it. Taking the lock before any
+    // nextval means the pull waits for in-flight writes to commit, and new
+    // ones wait for the pull, so its cursor never jumps a gap.
+    if (options.exclusive) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`);
+    } else {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock_shared(hashtextextended(${userId}, 0))`);
+    }
     await tx.execute(sql`SET LOCAL ROLE authenticated`);
     await tx.execute(sql`SELECT set_config('request.jwt.claim.sub', ${userId}, true)`);
     return fn(tx);

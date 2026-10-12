@@ -53,29 +53,30 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await withUserDb(async (tx) => {
-      const changes: Record<string, unknown[]> = {};
-      // The new cursor is the highest server_seq this user actually saw —
-      // not the sequence's own current value, which could include rows from
-      // other users (invisible under RLS) or rows from a still-in-flight
-      // concurrent transaction that hasn't committed yet. Advancing past
-      // those would skip them on every future pull. Rows from the same
-      // user's own concurrent pushes are the one gap this doesn't close;
-      // acceptable for now given how rarely that overlaps in practice
-      // (ADR-003: one person, one phone, one workout at a time).
-      let cursor = since;
+    const result = await withUserDb(
+      async (tx) => {
+        const changes: Record<string, unknown[]> = {};
+        // The new cursor is the highest server_seq this user actually saw —
+        // not the sequence's own current value, which could include rows from
+        // other users (invisible under RLS). Holding the user's lock
+        // exclusively (issue #488, see runAsUser) means none of this user's
+        // writes is still in flight, so no lower seq can commit after this
+        // pull and be skipped, and every table is read from the same state.
+        let cursor = since;
 
-      for (const [name, table, serverSeq] of PULL_TABLES) {
-        const rows = await pullTable(tx, table, serverSeq, since);
-        changes[name] = rows;
-        for (const row of rows) {
-          const seq = (row as { serverSeq: number }).serverSeq;
-          if (seq > cursor) cursor = seq;
+        for (const [name, table, serverSeq] of PULL_TABLES) {
+          const rows = await pullTable(tx, table, serverSeq, since);
+          changes[name] = rows;
+          for (const row of rows) {
+            const seq = (row as { serverSeq: number }).serverSeq;
+            if (seq > cursor) cursor = seq;
+          }
         }
-      }
 
-      return { cursor, changes };
-    });
+        return { cursor, changes };
+      },
+      { exclusive: true },
+    );
 
     return NextResponse.json(result);
   } catch (error) {
