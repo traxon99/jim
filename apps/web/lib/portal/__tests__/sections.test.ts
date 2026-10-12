@@ -16,6 +16,7 @@ describe("activePortalSection", () => {
     expect(activePortalSection("/portal/cardio")).toBe("cardio");
     expect(activePortalSection("/portal/body")).toBe("body");
     expect(activePortalSection("/portal/records")).toBe("records");
+    expect(activePortalSection("/portal/progression")).toBe("progression");
   });
 
   it("doesn't match a section by prefix alone", () => {

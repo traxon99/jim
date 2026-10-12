@@ -20,21 +20,24 @@ export function BlockRecap({
   units,
   onDeload,
   onNextBlock,
-  busy,
+  busy = false,
+  title = "Block complete",
 }: {
   block: DprBlockRow;
   recaps: readonly DprLiftRecap[];
   summary: DprBlockRecapSummary;
   exercises: ReadonlyMap<string, ExerciseRow>;
   units: string;
-  onDeload: () => void;
-  onNextBlock: () => void;
-  busy: boolean;
+  /** Without these the recap is read-only, as on desktop Analysis. */
+  onDeload?: () => void;
+  onNextBlock?: () => void;
+  busy?: boolean;
+  title?: string;
 }) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">Block complete</h2>
+        <h2 className="text-lg font-semibold">{title}</h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           {block.weeks} weeks from {formatDate(block.startedAt)}
           {summary.goalsSet > 0 && ` · ${summary.goalsHit} of ${summary.goalsSet} goals hit`}
@@ -82,24 +85,26 @@ export function BlockRecap({
         ))}
       </ul>
 
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onDeload}
-          className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
-        >
-          Take a deload week first
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onNextBlock}
-          className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground disabled:opacity-50"
-        >
-          Start next block
-        </button>
-      </div>
+      {onDeload && onNextBlock && (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onDeload}
+            className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
+          >
+            Take a deload week first
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onNextBlock}
+            className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground disabled:opacity-50"
+          >
+            Start next block
+          </button>
+        </div>
+      )}
     </section>
   );
 }

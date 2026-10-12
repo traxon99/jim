@@ -1,17 +1,23 @@
+import type { SettingsRow } from "@/lib/db/schema";
 import { withUserDb } from "@/lib/db/user-scoped";
 import { buildAchievementData } from "@/lib/history/achievement-data";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildPersonalRecordEntries } from "@/lib/history/pr-groups";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
+import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
   type DbOrTx,
   bodyMeasurements,
+  dprBlockLifts,
+  dprBlocks,
   exercises,
   gyms,
   personalRecords,
   programRoutines,
   programs,
+  routineExercises,
+  routines,
   sessionExercises,
   sessions,
   sets,
@@ -35,6 +41,7 @@ import {
   buildExerciseIndex,
   buildPortalExerciseDetail,
 } from "./exercises-data";
+import type { PortalProgressionData } from "./progression-data";
 import { type PortalRecordsData, serializeRecordEntries } from "./records-data";
 import { type PortalVolumeData, serializeVolumeSets } from "./volume-data";
 import {
@@ -508,5 +515,50 @@ export async function loadCardioData(): Promise<PortalCardioData> {
       setRows,
       settings?.units ?? "lb",
     );
+  });
+}
+
+/**
+ * The PRP section (issue #470): the rows the phone's /progression screen
+ * derives its calls and recaps from, plus the settings they read. Only the
+ * settings the phone caches cross to the browser.
+ */
+export async function loadProgressionData(): Promise<PortalProgressionData> {
+  return withUserDb(async (tx, userId) => {
+    const [user] = await tx.select().from(users).where(eq(users.id, userId));
+    const settings = { ...DEFAULT_SETTINGS };
+    if (user) {
+      for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof SettingsRow)[]) {
+        if (key !== "id") Object.assign(settings, { [key]: user[key] });
+      }
+    }
+    const blockRows = await tx.select().from(dprBlocks);
+    const liftRows = await tx.select().from(dprBlockLifts);
+    const sessionRows = await tx.select().from(sessions);
+    const sessionExerciseRows = await tx.select().from(sessionExercises);
+    const setRows = await tx.select().from(sets);
+    const routineRows = await tx.select().from(routines);
+    const routineExerciseRows = await tx.select().from(routineExercises);
+    const exerciseIds = [
+      ...new Set([
+        ...sessionExerciseRows.map((row) => row.exerciseId),
+        ...liftRows.map((row) => row.exerciseId),
+      ]),
+    ];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+    return {
+      settings,
+      blocks: blockRows,
+      lifts: liftRows,
+      exercises: exerciseRows,
+      sessions: sessionRows,
+      sessionExercises: sessionExerciseRows,
+      sets: setRows,
+      routines: routineRows,
+      routineExercises: routineExerciseRows,
+    };
   });
 }

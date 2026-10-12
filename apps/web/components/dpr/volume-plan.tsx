@@ -68,16 +68,18 @@ function MuscleRow({ plan }: { plan: MuscleVolumePlan }) {
  */
 export function VolumePlan({
   context,
-  busy,
+  busy = false,
   onToggle,
 }: {
   context: DprContext;
-  busy: boolean;
-  onToggle: (on: boolean) => void;
+  busy?: boolean;
+  /** Without it the plan is read-only, as on desktop Analysis. */
+  onToggle?: (on: boolean) => void;
 }) {
   const plans = context.volume ? [...context.volume.values()] : null;
 
   if (!plans) {
+    if (!onToggle) return null;
     return (
       <section className="flex flex-col gap-2 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
         <h2 className="text-base font-semibold">Grow weekly sets</h2>
@@ -115,14 +117,16 @@ export function VolumePlan({
           ))}
         </ul>
       )}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => onToggle(false)}
-        className="min-h-11 self-start text-sm font-medium text-zinc-600 disabled:opacity-50 dark:text-zinc-400"
-      >
-        Turn off mesocycle mode
-      </button>
+      {onToggle && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onToggle(false)}
+          className="min-h-11 self-start text-sm font-medium text-zinc-600 disabled:opacity-50 dark:text-zinc-400"
+        >
+          Turn off mesocycle mode
+        </button>
+      )}
     </section>
   );
 }
