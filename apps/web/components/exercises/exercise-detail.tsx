@@ -1,6 +1,6 @@
 "use client";
 
-import { BodyMap } from "@/components/exercises/body-map";
+import { BodyMap, muscleSummary } from "@/components/exercises/body-map";
 import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -415,17 +415,4 @@ export function ExerciseDetail({
       )}
     </FloatingCard>
   );
-}
-
-/** "Works chest; also triceps and shoulders", read out for the body map. */
-function muscleSummary(primary: readonly string[], secondary: readonly string[]): string {
-  const list = (muscles: readonly string[]) =>
-    muscles.length <= 1
-      ? muscles.join("")
-      : `${muscles.slice(0, -1).join(", ")} and ${muscles[muscles.length - 1]}`;
-  const parts = [];
-  if (primary.length > 0) parts.push(`Works ${list(primary)}`);
-  if (secondary.length > 0)
-    parts.push(`${primary.length > 0 ? "also" : "Also works"} ${list(secondary)}`);
-  return parts.join("; ");
 }

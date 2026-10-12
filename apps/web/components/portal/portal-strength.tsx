@@ -2,11 +2,14 @@
 
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import type { PortalTrainingData } from "@/lib/portal/analysis-data";
+import { type PortalExerciseIndexRow, exerciseMatchesSearch } from "@/lib/portal/exercises-data";
 import { analysisRangeStart, strengthTrends } from "@jim/core";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChartLine, ChevronRight, Search } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";
 import { type HighlightedSet, PortalWorkoutCard } from "./portal-workout-card";
+import { useIsClient } from "./use-is-client";
 import { NO_WORKOUTS_YET, usePortalTraining } from "./use-portal-training";
 
 function ChangeCell({ change, percent }: { change: number; percent: number | null }) {
@@ -36,13 +39,95 @@ function ChangeCell({ change, percent }: { change: number; percent: number | nul
   );
 }
 
+const CATEGORY_LABELS = { strength: null, warmup: "Warm-up", cardio: "Cardio" } as const;
+
+/**
+ * Every exercise ever logged, warm-ups and cardio included (issue #470),
+ * searchable by name, each opening its exercise page.
+ */
+function ExerciseIndex({ rows }: { rows: readonly PortalExerciseIndexRow[] }) {
+  const isClient = useIsClient();
+  const [query, setQuery] = useState("");
+  const matches = useMemo(
+    () => rows.filter((row) => exerciseMatchesSearch(row, query)),
+    [rows, query],
+  );
+  if (rows.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          Every exercise · {rows.length.toLocaleString()}
+        </h2>
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-200 px-3 md:max-w-xs md:flex-none dark:border-zinc-800">
+          <Search
+            className="h-4 w-4 shrink-0 text-zinc-400"
+            strokeWidth={1.75}
+            aria-hidden="true"
+          />
+          <span className="sr-only">Search exercises</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search exercises"
+            className="min-h-11 w-full min-w-0 bg-transparent text-base outline-none"
+          />
+        </label>
+      </div>
+      {matches.length === 0 ? (
+        <p className="text-sm text-zinc-500 dark:text-zinc-500">No exercises match.</p>
+      ) : (
+        <ul className="grid gap-x-6 divide-y divide-zinc-200 text-sm md:grid-cols-2 md:divide-y-0 dark:divide-zinc-800">
+          {matches.map((row) => {
+            const tag = CATEGORY_LABELS[row.category];
+            return (
+              <li key={row.id} className="md:border-b md:border-zinc-200 md:dark:border-zinc-800">
+                <Link
+                  href={`/portal/exercises/${row.id}`}
+                  className="flex min-w-0 items-center gap-3 py-2"
+                >
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="truncate font-medium">{row.name}</span>
+                    {tag && (
+                      <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        {tag}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-zinc-500 dark:text-zinc-500">
+                    {row.workouts.toLocaleString()} workout{row.workouts === 1 ? "" : "s"}
+                    {isClient &&
+                      ` · ${new Date(row.lastDoneAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}`}
+                  </span>
+                  <ChevronRight
+                    className="h-4 w-4 shrink-0 text-zinc-400"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 /**
  * The Analysis Exercises section (issues #38, #470): every lift's estimated
  * 1RM trend for the chosen range, with a chart for the selected one. The
  * numbers come from `packages/core`, so they match the phone's exercise
  * charts and PRs exactly.
  */
-export function PortalStrength({ data }: { data: PortalTrainingData }) {
+export function PortalStrength({
+  data,
+}: { data: PortalTrainingData & { exerciseIndex: PortalExerciseIndexRow[] } }) {
   const [range, setRange] = useAnalysisRange();
   const { sets, exerciseNames, workouts } = usePortalTraining(data);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -85,7 +170,10 @@ export function PortalStrength({ data }: { data: PortalTrainingData }) {
                       <th className="py-2 pr-3 text-right font-medium">Current</th>
                       <th className="py-2 pr-3 text-right font-medium">Change</th>
                       <th className="py-2 pr-3 text-right font-medium">Best ever</th>
-                      <th className="py-2 text-right font-medium">Sessions</th>
+                      <th className="py-2 pr-1 text-right font-medium">Sessions</th>
+                      <th className="w-10 py-2">
+                        <span className="sr-only">Chart</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -97,14 +185,12 @@ export function PortalStrength({ data }: { data: PortalTrainingData }) {
                           className={selected ? "bg-zinc-100 dark:bg-zinc-900" : undefined}
                         >
                           <td className="py-2 pr-3">
-                            <button
-                              type="button"
-                              aria-pressed={selected}
-                              onClick={() => setSelectedExerciseId(trend.exerciseId)}
-                              className="text-left font-medium underline-offset-4 hover:underline"
+                            <Link
+                              href={`/portal/exercises/${trend.exerciseId}`}
+                              className="font-medium underline-offset-4 hover:underline"
                             >
                               {exerciseNames.get(trend.exerciseId) ?? "Unknown exercise"}
-                            </button>
+                            </Link>
                           </td>
                           <td className="py-2 pr-3 text-right tabular-nums">
                             {Math.round(trend.current).toLocaleString()}
@@ -115,7 +201,26 @@ export function PortalStrength({ data }: { data: PortalTrainingData }) {
                           <td className="py-2 pr-3 text-right tabular-nums">
                             {Math.round(trend.allTimeBest).toLocaleString()}
                           </td>
-                          <td className="py-2 text-right tabular-nums">{trend.sessions}</td>
+                          <td className="py-2 pr-1 text-right tabular-nums">{trend.sessions}</td>
+                          <td className="py-1 text-right">
+                            <button
+                              type="button"
+                              aria-pressed={selected}
+                              aria-label={`Chart ${exerciseNames.get(trend.exerciseId) ?? "this exercise"}`}
+                              onClick={() => setSelectedExerciseId(trend.exerciseId)}
+                              className={`inline-flex h-9 w-9 items-center justify-center rounded-md ${
+                                selected
+                                  ? "text-zinc-900 dark:text-zinc-100"
+                                  : "text-zinc-400 hover:text-zinc-700 dark:text-zinc-600 dark:hover:text-zinc-300"
+                              }`}
+                            >
+                              <ChartLine
+                                className="h-4 w-4"
+                                strokeWidth={1.75}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -148,6 +253,7 @@ export function PortalStrength({ data }: { data: PortalTrainingData }) {
           )}
         </section>
       )}
+      <ExerciseIndex rows={data.exerciseIndex} />
       {openWorkout && (
         <PortalWorkoutCard
           {...openWorkout}
