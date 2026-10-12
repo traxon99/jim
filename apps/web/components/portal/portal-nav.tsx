@@ -8,6 +8,7 @@ import {
   portalHref,
 } from "@/lib/portal/sections";
 import {
+  CalendarDays,
   ChevronLeft,
   Dumbbell,
   Flame,
@@ -23,6 +24,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 const ICONS: Record<PortalSectionId, LucideIcon> = {
   overview: LayoutDashboard,
   workouts: History,
+  calendar: CalendarDays,
   exercises: Dumbbell,
   volume: Flame,
   body: Scale,
