@@ -81,14 +81,20 @@ export interface PortalGymVisit {
   startedAt: string;
 }
 
-/** Everything the portal dashboard renders, serializable across the server/client boundary. */
-export interface PortalData {
-  email: string;
+/**
+ * The working sets an Analysis section charts, serializable across the
+ * server/client boundary.
+ */
+export interface PortalTrainingData {
   units: "lb" | "kg";
   weekStart: number;
   sets: PortalSet[];
   exercises: PortalExercise[];
   workouts: PortalWorkout[];
+}
+
+/** What the Overview section (issue #470) renders: training data plus the gym map. */
+export interface PortalOverviewData extends PortalTrainingData {
   gyms: PortalGym[];
   gymVisits: PortalGymVisit[];
 }
