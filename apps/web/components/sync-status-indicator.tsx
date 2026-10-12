@@ -45,7 +45,7 @@ export function SyncStatusIndicator() {
         type="button"
         onClick={() => void runSyncCycle()}
         aria-label="Retry sync"
-        className="flex min-h-8 min-w-8 items-center justify-center"
+        className="flex min-h-11 min-w-11 items-center justify-center"
       >
         <RotateCw className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
       </button>

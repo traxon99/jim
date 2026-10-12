@@ -58,7 +58,7 @@ export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: 
         className={
           large
             ? "flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
-            : "flex flex-col items-start gap-0 rounded px-0.5 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-500"
+            : "flex min-h-11 flex-col items-start justify-center gap-0 rounded px-0.5 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-500"
         }
       >
         {large ? (
@@ -107,8 +107,8 @@ export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: 
               }}
               className={
                 option === kind
-                  ? "px-3 py-2 text-left text-sm font-medium text-accent"
-                  : "px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300"
+                  ? "min-h-11 px-3 py-2 text-left text-sm font-medium text-accent"
+                  : "min-h-11 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300"
               }
             >
               {setKindLabel(option)}

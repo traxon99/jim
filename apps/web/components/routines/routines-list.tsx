@@ -160,7 +160,7 @@ export function RoutinesList({ userId }: { userId: string }) {
               role="tab"
               aria-selected={view === option.value}
               onClick={() => setView(option.value)}
-              className={`min-h-9 rounded-md text-sm font-medium ${
+              className={`min-h-11 rounded-md text-sm font-medium ${
                 view === option.value
                   ? "bg-white shadow-sm dark:bg-zinc-800"
                   : "text-zinc-500 dark:text-zinc-500"

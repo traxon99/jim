@@ -209,7 +209,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
                     type="button"
                     aria-pressed={range === option.key}
                     onClick={() => setRange(option.key)}
-                    className={`flex min-h-9 flex-1 items-center justify-center rounded-lg text-sm font-medium ${
+                    className={`flex min-h-11 flex-1 items-center justify-center rounded-lg text-sm font-medium ${
                       range === option.key
                         ? "bg-accent text-accent-foreground"
                         : "text-zinc-600 dark:text-zinc-400"

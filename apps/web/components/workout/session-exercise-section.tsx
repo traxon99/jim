@@ -902,7 +902,7 @@ export function SessionExerciseSection({
         <button
           type="button"
           onClick={() => setSuggestionsOpen(true)}
-          className="self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+          className="flex min-h-11 items-center self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
         >
           Suggest weight
         </button>
@@ -916,7 +916,7 @@ export function SessionExerciseSection({
                 key={tier}
                 type="button"
                 onClick={() => updateDraft(nextIndex, { weight: String(suggestedWeights[tier]) })}
-                className="min-h-8 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+                className="min-h-11 rounded-full border border-zinc-300 px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
               >
                 {STRENGTH_TIER_LABELS[tier]} {suggestedWeights[tier]}
               </button>
@@ -990,7 +990,7 @@ export function SessionExerciseSection({
             setNotesOpen(true);
             setFocusNotes(true);
           }}
-          className="self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+          className="flex min-h-11 items-center self-start text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
         >
           + Add note
         </button>
