@@ -83,6 +83,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #497 | After merge_exercises, MCP tools still resolved names to the archived exercise, and a PRP block kept tracking the merged-away lift | Name resolution searched every exercise including archived ones, and the merge never touched `dpr_block_lifts` | Anything that repoints references to an exercise covers every table with an `exercise_id`, and name lookups skip archived rows |
 | #496 | PRP suggested 137.5 lb on a barbell when the smallest plates were 2.5 lb | The default barbell step was 2.5 lb, and PRP rounded to that step instead of to what the plates can load | A barbell step is never smaller than a pair of the user's smallest plate |
 | #494 | Workout volume and set counts on History, Home, the portal, the MCP and the friends feed included warm-up sets | `summarizeSession` summed every set it was given, and `friend_workouts` counted `*` | Count working sets only: summaries take each set's `kind` and skip warm-ups |
 | #493 | Tapping outside the Sticky note or Rest timer dialog did nothing | Its backdrop `<button>` used plain `absolute` (the #356 bug again), and the dialog rendered in place inside the exercise section | Backdrop buttons use `absolute!`; overlays opened from a list row portal to `<body>` |

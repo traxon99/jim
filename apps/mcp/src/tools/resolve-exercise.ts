@@ -12,9 +12,13 @@ export class ExerciseNotFoundError extends Error {
 
 export type ExerciseRow = typeof exercises.$inferSelect;
 
-/** Every exercise visible to this user under RLS: global seed rows plus their own clones/custom rows (ADR-008). */
+/**
+ * Every live exercise visible to this user under RLS: global seed rows plus
+ * their own clones/custom rows (ADR-008). Archived rows (merged away, issue
+ * #497) are left out, so a name never resolves to one.
+ */
 export async function visibleExercises(tx: DbOrTx): Promise<ExerciseRow[]> {
-  return tx.select().from(exercises);
+  return tx.select().from(exercises).where(eq(exercises.isArchived, false));
 }
 
 /**
@@ -32,6 +36,11 @@ export async function resolveExercise(
   if (UUID_RE.test(query)) {
     const [row] = await tx.select().from(exercises).where(eq(exercises.id, query));
     if (!row) throw new ExerciseNotFoundError(query);
+    if (row.isArchived) {
+      throw new Error(
+        `"${row.name}" is archived (merged into another exercise). Use search_exercises to find the one in use.`,
+      );
+    }
     return row;
   }
 
