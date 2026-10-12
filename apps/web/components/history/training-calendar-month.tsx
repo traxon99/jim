@@ -23,6 +23,16 @@ export function intensityClass(volume: number, maxVolume: number): string {
   return INTENSITY_LEVELS[0];
 }
 
+const LABEL_DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+
+/** Screen-reader name for a day cell, so trained and selected days aren't conveyed by color alone. */
+export function dayAriaLabel(date: Date, sessionCount: number, isSelected: boolean): string {
+  const parts = [LABEL_DATE_FORMAT.format(date)];
+  if (sessionCount > 0) parts.push(`${sessionCount} workout${sessionCount === 1 ? "" : "s"}`);
+  if (isSelected) parts.push("selected");
+  return parts.join(", ");
+}
+
 interface Props {
   month: Date;
   weekStart: number;
@@ -105,6 +115,8 @@ export function TrainingCalendarMonth({
                   key={key}
                   type="button"
                   onClick={() => onSelectDate(date)}
+                  aria-label={dayAriaLabel(date, day?.sessionCount ?? 0, isSelected)}
+                  aria-pressed={isSelected}
                   title={
                     day
                       ? `${date.toLocaleDateString()} — ${day.sessionCount} session${day.sessionCount > 1 ? "s" : ""}`
