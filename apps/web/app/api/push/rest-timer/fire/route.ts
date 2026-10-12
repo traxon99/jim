@@ -1,6 +1,6 @@
 import { withVerifiedUserDb } from "@/lib/db/user-scoped";
 import { restCompleteMessage } from "@/lib/pwa/notifications";
-import { isRestTimerFirePayload } from "@/lib/pwa/rest-timer-push";
+import { isRestTimerFirePayload, restTimerFireUrl } from "@/lib/pwa/rest-timer-push";
 import { fanOutPush } from "@/lib/pwa/send-push";
 import { configureWebPush, webpush } from "@/lib/pwa/web-push-server";
 import { pushSubscriptions, restTimerPushes } from "@jim/db";
@@ -12,7 +12,7 @@ import { NextResponse } from "next/server";
  * QStash's delayed callback for a rest period scheduled by
  * POST /api/push/rest-timer (docs/DECISIONS.md ADR-014). No session cookie
  * reaches here (proxy.ts lets this path through); the QStash signature over
- * the body is what authenticates it, and the body's userId is the one this
+ * the body, and the URL it was published to, is what authenticates it, and the body's userId is the one this
  * server wrote when the signed-in user started the rest.
  *
  * Sends only if the user's pending rest still ends at the same instant: a
@@ -26,7 +26,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "QStash signing keys are not configured" }, { status: 503 });
   }
   if (!signature) return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-  const valid = await new Receiver().verify({ signature, body: rawBody }).catch(() => false);
+  const valid = await new Receiver()
+    .verify({ signature, body: rawBody, url: restTimerFireUrl(request.url) })
+    .catch(() => false);
   if (!valid) return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
 
   let body: unknown;

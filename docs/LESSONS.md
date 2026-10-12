@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #534 | A QStash-signed rest-timer message could be replayed against any other endpoint that shares the signing key | The fire route verified only the body, not the URL the signature was issued for | Verify third-party webhook signatures against the URL too (`url:`), built by the same helper that publishes it |
 | #512 | MCP `log_past_workout` accepted RPE 1–4, which the app can't show or edit | The tool's schema hard-coded 1–10 instead of the app's 5–10 scale | Bounds for a value the app already limits come from the shared constants (`RPE_MIN`/`RPE_MAX`), never literals |
 | #539 | `cancel_scheduled_workout` and `delete_body_measurement` deleted on the first MCP call with no preview | They kept the write-tool default `dry_run: false` while every other delete previews | Any MCP tool that deletes or cancels takes `dryRunParam(true)`; the dry-run defaults test lists them |
 | #543 | Offline, Settings left the username field on "Loading…" forever, Profile and Shared links went blank, and Friends' "Change" went to the wrong page | The fetches ignored `!result.ok`, and the link still pointed at `/profile` after editing moved to Settings | A failed load shows the error with a Try again button (like `FriendsScreen`); when a feature moves, grep for links to its old home |
