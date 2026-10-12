@@ -298,3 +298,66 @@ describe("an expired session (#487)", () => {
     expect(getSyncStatus()).toEqual({ kind: "error", count: 0 });
   });
 });
+
+describe("runSyncCycle single-flight (#532)", () => {
+  /** A fetch whose pulls stay open until released, recording how many ran at once. */
+  function gatedFetch() {
+    const releases: Array<() => void> = [];
+    let active = 0;
+    let maxActive = 0;
+    const fetchMock = vi.fn(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise<void>((resolve) => releases.push(resolve));
+      active -= 1;
+      return jsonResponse({ cursor: 0, changes: {} });
+    });
+    return { fetchMock, releases, maxActive: () => maxActive };
+  }
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it("never runs two cycles at once and collapses callers into one follow-up", async () => {
+    const { fetchMock, releases, maxActive } = gatedFetch();
+
+    const first = runSyncCycle(testDb, fetchMock);
+    const second = runSyncCycle(testDb, fetchMock);
+    const third = runSyncCycle(testDb, fetchMock);
+    expect(second).toBe(third);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    releases[0]?.();
+    await first;
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    releases[1]?.();
+    await Promise.all([second, third]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(maxActive()).toBe(1);
+  });
+
+  it("starts a fresh cycle once the previous one has finished", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ cursor: 0, changes: {} }));
+
+    await runSyncCycle(testDb, fetchMock);
+    await runSyncCycle(testDb, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps separate databases independent", async () => {
+    const other = createTestDb(`jim-engine-test-${crypto.randomUUID()}`);
+    try {
+      const { fetchMock, releases } = gatedFetch();
+      const a = runSyncCycle(testDb, fetchMock);
+      const b = runSyncCycle(other, fetchMock);
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      for (const release of releases) release();
+      await Promise.all([a, b]);
+    } finally {
+      await other.delete();
+    }
+  });
+});

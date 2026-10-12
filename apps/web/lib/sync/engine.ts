@@ -196,19 +196,53 @@ export async function pullChanges(
   await refreshStatusFromOutbox(database);
 }
 
-/**
- * One full sync cycle: push before pull, so a local edit reaches the server
- * before this same cycle might otherwise pull back a now-stale version of
- * the same row from another device.
- */
-export async function runSyncCycle(
-  database: JimDatabase = db,
-  fetchImpl: typeof fetch = fetch,
-): Promise<void> {
+async function runSyncCycleOnce(database: JimDatabase, fetchImpl: typeof fetch): Promise<void> {
   await drainOutbox(database, fetchImpl);
   // A signed-out push would only be refused again by the pull.
   if (getSyncStatus().kind === "signed-out") return;
   await pullChanges(database, fetchImpl);
+}
+
+interface CycleState {
+  current: Promise<void>;
+  /** The one follow-up cycle callers join while `current` is still running. */
+  next: Promise<void> | null;
+}
+
+/** Per database, so tests with separate scratch databases never share a guard. */
+const cycles = new WeakMap<JimDatabase, CycleState>();
+
+function startCycle(database: JimDatabase, fetchImpl: typeof fetch): Promise<void> {
+  const state: CycleState = { current: runSyncCycleOnce(database, fetchImpl), next: null };
+  cycles.set(database, state);
+  const release = () => {
+    if (cycles.get(database) === state && !state.next) cycles.delete(database);
+  };
+  state.current.then(release, release);
+  return state.current;
+}
+
+/**
+ * One full sync cycle: push before pull, so a local edit reaches the server
+ * before this same cycle might otherwise pull back a now-stale version of
+ * the same row from another device.
+ *
+ * Single-flight (#532): boot, visibility, `online`, the interval and session
+ * finalize all call this, and overlapping cycles would POST the same batch
+ * twice and save the pull cursor out of order. A call made while a cycle is
+ * running joins one shared follow-up cycle that starts when it finishes (so
+ * an edit made mid-cycle is still pushed), however many callers pile up.
+ */
+export function runSyncCycle(
+  database: JimDatabase = db,
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const state = cycles.get(database);
+  if (!state) return startCycle(database, fetchImpl);
+  if (!state.next) {
+    state.next = state.current.catch(() => {}).then(() => startCycle(database, fetchImpl));
+  }
+  return state.next;
 }
 
 const SYNC_INTERVAL_MS = 60_000;

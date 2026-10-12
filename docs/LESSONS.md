@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #532 | Boot, visibility, `online`, the 60 s timer and finalize could each start a sync cycle while another ran, double-POSTing batches and saving the pull cursor out of order | `runSyncCycle` had no in-progress guard | Anything several triggers can start gets a single-flight guard: callers during a run share one follow-up run |
 | #529 | The History calendar showed trained and selected days by color only, so screen readers heard just a number | Day buttons had no `aria-label` or `aria-pressed`, and `title` isn't read on iOS | State shown by color or a ring also needs text: `aria-label` with the facts, and `aria-pressed` on toggles |
 | #505 | The production seed pulled `main` of a third-party dataset and cast its mechanic/force/level straight into db enums | A new upstream commit or odd value could change the catalog or fail the insert mid-deploy | Pin third-party data to a commit SHA and validate enum values before inserting (null if unknown) |
 | #535 | Another site could make a signed-in user's browser POST to our cookie-auth API routes | Nothing checked the `Origin` header on mutating `/api/*` requests | The proxy rejects a mutating `/api/*` request whose `Origin` isn't our own; server-to-server routes are exempted explicitly |
