@@ -7,30 +7,24 @@ import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { bodyweightLookup } from "@/lib/bodyweight";
 import { db } from "@/lib/db/schema";
 import { recordPostDraft } from "@/lib/friends/post-drafts";
-import { toPersonalRecordEntries } from "@/lib/history/pr-data";
+import {
+  buildPersonalRecordEntries,
+  buildPrGroups,
+  filterPrGroups,
+  prFilterOptions,
+} from "@/lib/history/pr-groups";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
-import { strengthProfileFromSettings, strengthProfileOn } from "@/lib/strength-standards/profile";
+import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
   type PersonalRecordSortKey,
   type PrKind,
   RECENT_PR_SECTION_DAYS,
   type StrengthStandardTier,
-  currentPersonalRecords,
-  exerciseDisplayName,
-  filterExercises,
   isRecentPersonalRecord,
-  liftStandardThresholds,
   nextTier,
-  personalRecordProgression,
   personalRecordStats,
-  platesPerSide,
   recentPersonalRecords,
-  searchExercises,
-  sortPersonalRecordGroups,
-  standardLiftForSlug,
-  tierForOneRepMax,
-  tracksRepsAtWeight,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronDown, Medal, SlidersHorizontal, Sparkles } from "lucide-react";
@@ -43,9 +37,6 @@ const PR_KIND_LABELS: Record<PrKind, string> = {
   volume: "Best single-set volume",
   reps_at_weight: "Most reps at a weight",
 };
-
-/** Which PR a collapsed card leads with, in order of preference. */
-const HEADLINE_KINDS: readonly PrKind[] = ["1rm", "weight", "volume", "reps_at_weight"];
 
 const SORT_OPTIONS: { value: PersonalRecordSortKey; label: string }[] = [
   { value: "recent", label: "Most recent" },
@@ -137,20 +128,17 @@ export function PrList() {
 
   // Every live PR row, not just the current bests: the stat tiles count
   // them and the sparklines trace them.
-  // "Most reps at a weight" rows logged for loaded exercises before issue
-  // #354 stopped recording them are left out too.
-  const entries = useMemo(() => {
-    const repsAtWeightIds = new Set(
-      (exercises ?? []).filter((e) => tracksRepsAtWeight(e.trackingType)).map((e) => e.id),
-    );
-    return toPersonalRecordEntries(
-      rawPersonalRecords ?? [],
-      rawSessions ?? [],
-      rawSessionExercises ?? [],
-      rawSets ?? [],
-    ).filter((entry) => entry.kind !== "reps_at_weight" || repsAtWeightIds.has(entry.exerciseId));
-  }, [rawPersonalRecords, rawSessions, rawSessionExercises, rawSets, exercises]);
-  const current = useMemo(() => currentPersonalRecords(entries), [entries]);
+  const entries = useMemo(
+    () =>
+      buildPersonalRecordEntries(
+        rawPersonalRecords ?? [],
+        rawSessions ?? [],
+        rawSessionExercises ?? [],
+        rawSets ?? [],
+        exercises ?? [],
+      ),
+    [rawPersonalRecords, rawSessions, rawSessionExercises, rawSets, exercises],
+  );
   // Captured once per load: "New" means set in the last week as of opening the page.
   const now = useMemo(() => new Date(), []);
   const stats = useMemo(() => personalRecordStats(entries, now), [entries, now]);
@@ -170,68 +158,18 @@ export function PrList() {
     [exercises],
   );
 
-  const byExercise = useMemo(() => {
-    const groups = new Map<string, typeof current>();
-    for (const record of current) {
-      const list = groups.get(record.exerciseId);
-      if (list) {
-        list.push(record);
-      } else {
-        groups.set(record.exerciseId, [record]);
-      }
-    }
-    return [...groups.entries()]
-      .map(([exerciseId, records]) => {
-        const exercise = exerciseById.get(exerciseId);
-        const standardLift = standardLiftForSlug(exercise?.slug);
-        const oneRepMaxRecord = records.find((r) => r.kind === "1rm");
-        const oneRepMax = oneRepMaxRecord?.value ?? null;
-        const profileThen =
-          strengthProfile && oneRepMaxRecord
-            ? strengthProfileOn(strengthProfile, bodyweightAt, oneRepMaxRecord.achievedAt)
-            : null;
-
-        const standard =
-          standardLift && profileThen && oneRepMax
-            ? {
-                tier: tierForOneRepMax(standardLift, oneRepMax, profileThen),
-                thresholds: liftStandardThresholds(standardLift, profileThen),
-              }
-            : null;
-
-        const heaviest = records.find((r) => r.kind === "weight")?.value ?? null;
-        const plates =
-          exercise?.equipment === "barbell" && heaviest != null
-            ? platesPerSide(heaviest, settings.units)
-            : 0;
-
-        // The 1RM climb reads best; fall back to heaviest weight for lifts
-        // that only have one.
-        const oneRepMaxProgression = personalRecordProgression(entries, exerciseId, "1rm");
-        const progression =
-          oneRepMaxProgression.length >= 2
-            ? oneRepMaxProgression
-            : personalRecordProgression(entries, exerciseId, "weight");
-
-        const headlineRecord =
-          HEADLINE_KINDS.map((kind) => records.find((r) => r.kind === kind)).find(Boolean) ??
-          records[0];
-
-        return {
-          exerciseId,
-          name: exercise ? exerciseDisplayName(exercise) : "Unknown exercise",
-          records: records.sort((a, b) => a.kind.localeCompare(b.kind)),
-          headlineRecord,
-          headline: oneRepMax ?? heaviest,
-          latestAt: new Date(Math.max(...records.map((r) => r.achievedAt.getTime()))),
-          standard,
-          plates,
-          progression,
-          hasRecent: records.some((r) => isRecentPersonalRecord(r, now)),
-        };
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [current, entries, exerciseById, strengthProfile, bodyweightAt, settings.units, now]);
+  const byExercise = useMemo(
+    () =>
+      buildPrGroups({
+        entries,
+        exercises: exercises ?? [],
+        strengthProfile,
+        bodyweightAt,
+        units: settings.units,
+        now,
+      }),
+    [entries, exercises, strengthProfile, bodyweightAt, settings.units, now],
+  );
 
   // Muscle and equipment choices come only from exercises that have PRs,
   // so no filter option can empty the page on its own.
@@ -242,33 +180,15 @@ export function PrList() {
         .filter((exercise) => exercise !== undefined),
     [byExercise, exerciseById],
   );
-  const { muscleOptions, equipmentOptions } = useMemo(() => {
-    const muscles = new Set<string>();
-    const equipmentSet = new Set<string>();
-    for (const exercise of prExercises) {
-      for (const m of exercise.primaryMuscles) muscles.add(m);
-      for (const m of exercise.secondaryMuscles) muscles.add(m);
-      if (exercise.equipment) equipmentSet.add(exercise.equipment);
-    }
-    return { muscleOptions: [...muscles].sort(), equipmentOptions: [...equipmentSet].sort() };
-  }, [prExercises]);
+  const { muscleOptions, equipmentOptions } = useMemo(
+    () => prFilterOptions(prExercises),
+    [prExercises],
+  );
 
-  const visibleGroups = useMemo(() => {
-    const sorted = sortPersonalRecordGroups(byExercise, sortKey);
-    if (!narrowed) return sorted;
-    const filtered = filterExercises(prExercises, {
-      muscle: muscle || undefined,
-      equipment: equipment || undefined,
-      includeArchived: true,
-    });
-    // A search ranks by relevance, like the exercise list; filters alone keep the chosen sort.
-    const ranked = query.trim() ? searchExercises(filtered, query) : filtered;
-    const rank = new Map(ranked.map((exercise, index) => [exercise.id, index]));
-    const matches = sorted.filter((group) => rank.has(group.exerciseId));
-    return query.trim()
-      ? matches.sort((a, b) => (rank.get(a.exerciseId) ?? 0) - (rank.get(b.exerciseId) ?? 0))
-      : matches;
-  }, [byExercise, sortKey, narrowed, prExercises, muscle, equipment, query]);
+  const visibleGroups = useMemo(
+    () => filterPrGroups(byExercise, prExercises, { query, muscle, equipment, sortKey }),
+    [byExercise, prExercises, query, muscle, equipment, sortKey],
+  );
 
   const recent = useMemo(
     () => recentPersonalRecords(entries, now).slice(0, RECENT_LIMIT),

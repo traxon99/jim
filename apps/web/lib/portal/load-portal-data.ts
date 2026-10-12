@@ -1,4 +1,6 @@
 import { withUserDb } from "@/lib/db/user-scoped";
+import { buildPersonalRecordEntries } from "@/lib/history/pr-groups";
+import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
   type DbOrTx,
   bodyMeasurements,
@@ -19,6 +21,7 @@ import {
   buildPortalWorkouts,
 } from "./analysis-data";
 import { type PortalBodyData, buildPortalBodyData } from "./body-data";
+import { type PortalRecordsData, serializeRecordEntries } from "./records-data";
 import {
   type PortalWorkoutDetail,
   type PortalWorkoutRow,
@@ -222,5 +225,60 @@ export async function loadBodyData(): Promise<PortalBodyData> {
       .where(eq(users.id, userId));
     const rows = await tx.select().from(bodyMeasurements);
     return buildPortalBodyData(rows, settingsRows[0]?.units ?? "lb");
+  });
+}
+
+/** The Records section: every live PR and what it needs to badge them (issue #470). */
+export async function loadRecordsData(): Promise<PortalRecordsData> {
+  return withUserDb(async (tx, userId) => {
+    const [settings] = await tx
+      .select({
+        units: users.units,
+        sex: users.sex,
+        birthdate: users.birthdate,
+        bodyweight: users.bodyweight,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+    const units = settings?.units ?? "lb";
+    const prRows = await tx.select().from(personalRecords);
+    const sessionRows = await tx.select().from(sessions);
+    const sessionExerciseRows = await tx.select().from(sessionExercises);
+    const setRows = await tx.select().from(sets);
+    const measurementRows = await tx.select().from(bodyMeasurements);
+    const exerciseIds = [...new Set(prRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+
+    const entries = buildPersonalRecordEntries(
+      prRows,
+      sessionRows,
+      sessionExerciseRows,
+      setRows,
+      exerciseRows,
+    );
+    return {
+      units,
+      entries: serializeRecordEntries(entries),
+      exercises: exerciseRows.map((exercise) => ({
+        id: exercise.id,
+        slug: exercise.slug,
+        name: exercise.name,
+        aliases: exercise.aliases,
+        ownerId: exercise.ownerId,
+        isArchived: exercise.isArchived,
+        primaryMuscles: exercise.primaryMuscles,
+        secondaryMuscles: exercise.secondaryMuscles,
+        equipment: exercise.equipment,
+        category: exercise.category,
+        trackingType: exercise.trackingType,
+        machineBrand: exercise.machineBrand ?? null,
+        machineModel: exercise.machineModel ?? null,
+      })),
+      strengthProfile: settings ? strengthProfileFromSettings(settings) : null,
+      bodyweight: buildPortalBodyData(measurementRows, units).bodyweight,
+    };
   });
 }
