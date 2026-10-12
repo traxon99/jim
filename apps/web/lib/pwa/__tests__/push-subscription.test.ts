@@ -18,6 +18,32 @@ describe("isPushSubscriptionPayload", () => {
     expect(isPushSubscriptionPayload({ ...valid, endpoint: "" })).toBe(false);
   });
 
+  it("accepts the known push service hosts", () => {
+    for (const endpoint of [
+      "https://web.push.apple.com/QAb",
+      "https://api.push.apple.com/3/device/x",
+      "https://fcm.googleapis.com/fcm/send/abc",
+      "https://updates.push.services.mozilla.com/wpush/v2/x",
+      "https://wns2-par02p.notify.windows.com/w/?token=x",
+    ]) {
+      expect(isPushSubscriptionPayload({ ...valid, endpoint }), endpoint).toBe(true);
+    }
+  });
+
+  it("rejects https endpoints on other hosts", () => {
+    for (const endpoint of [
+      "https://evil.example/x",
+      "https://fcm.googleapis.com.evil.example/x",
+      "https://evilfcm.googleapis.com/x",
+      "https://evil.example/web.push.apple.com",
+      "https://web.push.apple.com@evil.example/x",
+      "https://notify.windows.com.evil.example/x",
+      "https://127.0.0.1/x",
+    ]) {
+      expect(isPushSubscriptionPayload({ ...valid, endpoint }), endpoint).toBe(false);
+    }
+  });
+
   it("rejects missing or empty keys", () => {
     expect(isPushSubscriptionPayload({ endpoint: valid.endpoint })).toBe(false);
     expect(isPushSubscriptionPayload({ ...valid, keys: null })).toBe(false);

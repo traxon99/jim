@@ -15,7 +15,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 const { POST, DELETE } = await import("../route");
 
-const ENDPOINT = "https://push.example/device-1";
+const ENDPOINT = "https://fcm.googleapis.com/fcm/send/device-1";
 
 function request(method: "POST" | "DELETE", body: unknown) {
   return new Request("http://localhost/api/push/subscription", {
