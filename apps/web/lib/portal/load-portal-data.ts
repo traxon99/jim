@@ -54,6 +54,21 @@ import {
 } from "./workouts-data";
 
 /**
+ * The user's settings in the shape the phone caches them (`SettingsRow`),
+ * for the shared builders that read it. Only those columns leave the server.
+ */
+export async function readSettingsRow(tx: DbOrTx, userId: string): Promise<SettingsRow> {
+  const [user] = await tx.select().from(users).where(eq(users.id, userId));
+  const settings = { ...DEFAULT_SETTINGS };
+  if (user) {
+    for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof SettingsRow)[]) {
+      if (key !== "id") Object.assign(settings, { [key]: user[key] });
+    }
+  }
+  return settings;
+}
+
+/**
  * Every working set the user has logged, joined and resolved, plus the
  * workouts they belong to. Sequential rather than Promise.all: these share
  * one transaction's connection (runAsUser), which runs one statement at a
@@ -527,13 +542,7 @@ export async function loadCardioData(): Promise<PortalCardioData> {
  */
 export async function loadProgressionData(): Promise<PortalProgressionData> {
   return withUserDb(async (tx, userId) => {
-    const [user] = await tx.select().from(users).where(eq(users.id, userId));
-    const settings = { ...DEFAULT_SETTINGS };
-    if (user) {
-      for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof SettingsRow)[]) {
-        if (key !== "id") Object.assign(settings, { [key]: user[key] });
-      }
-    }
+    const settings = await readSettingsRow(tx, userId);
     const blockRows = await tx.select().from(dprBlocks);
     const liftRows = await tx.select().from(dprBlockLifts);
     const sessionRows = await tx.select().from(sessions);
@@ -612,5 +621,21 @@ export async function loadPlansData(): Promise<PortalPlansData> {
       sessions: sessionRows,
       scheduled: scheduledRows,
     });
+  });
+}
+
+/** How much the Export section's files will hold (issue #470). */
+export async function loadExportSummary(): Promise<{ workouts: number; weighIns: number }> {
+  return withUserDb(async (tx) => {
+    const sessionRows = await tx
+      .select({ endedAt: sessions.endedAt, deletedAt: sessions.deletedAt })
+      .from(sessions);
+    const measurementRows = await tx
+      .select({ kind: bodyMeasurements.kind, deletedAt: bodyMeasurements.deletedAt })
+      .from(bodyMeasurements);
+    return {
+      workouts: sessionRows.filter((row) => row.endedAt && !row.deletedAt).length,
+      weighIns: measurementRows.filter((row) => row.kind === "bodyweight" && !row.deletedAt).length,
+    };
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseWeightCsv, parseWeightUnit, weightEntryKey } from "../weight-csv";
+import { parseWeightCsv, parseWeightUnit, toWeightCsv, weightEntryKey } from "../weight-csv";
 import { WorkoutCsvError } from "../workout-csv";
 
 const STRONG_WEIGHT = [
@@ -182,5 +182,19 @@ describe("parseWeightCsv: a weight log pasted from notes", () => {
 
   it("explains the expected shape when nothing reads", () => {
     expect(() => parseWeightCsv("6/26/26 nope")).toThrow(/one weigh-in per line/);
+  });
+});
+
+describe("toWeightCsv", () => {
+  it("writes Strong's layout, which the import reads straight back", () => {
+    const entries = [
+      { measuredAt: new Date(2024, 0, 14, 6, 59, 0), value: 181, unit: "lb" as const },
+      { measuredAt: new Date(2024, 0, 15, 7, 5, 12), value: 82.35, unit: "kg" as const },
+    ];
+    const csv = toWeightCsv(entries);
+    expect(csv.split(/\r?\n/)[0]).toBe("Date,Measurement Type,Value,Unit");
+    const parsed = parseWeightCsv(csv);
+    expect(parsed.format).toBe("strong");
+    expect(parsed.entries).toEqual(entries);
   });
 });

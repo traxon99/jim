@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ClipboardList,
+  Download,
   Dumbbell,
   Flame,
   Footprints,
@@ -35,6 +36,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   records: Trophy,
   progression: TrendingUp,
   routines: ClipboardList,
+  export: Download,
 };
 
 /**

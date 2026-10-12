@@ -11,7 +11,8 @@ export type PortalSectionId =
   | "body"
   | "records"
   | "progression"
-  | "routines";
+  | "routines"
+  | "export";
 
 /**
  * The desktop Analysis sections (issue #470), in nav order. Each is its own
@@ -29,6 +30,7 @@ export const PORTAL_SECTIONS: readonly { id: PortalSectionId; label: string; hre
   { id: "records", label: "Records", href: `${PORTAL_PATH}/records` },
   { id: "progression", label: "PRP", href: `${PORTAL_PATH}/progression` },
   { id: "routines", label: "Routines", href: `${PORTAL_PATH}/routines` },
+  { id: "export", label: "Export", href: `${PORTAL_PATH}/export` },
 ];
 
 /** The section a /portal pathname belongs to, so the nav can mark it. */
