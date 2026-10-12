@@ -60,6 +60,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       place.
 
 **Routing and the install gate**
+- [ ] Redirecting to a `?next=` (or any URL from the request)? Pass it through `safeNextPath` so it
+      can only be a path on this origin (#486).
 - [ ] Reading the URL during render? Use `usePathname`/`useSearchParams`, not `window.location`,
       which still holds the previous page during a client-side navigation (#444).
 - [ ] Adding a page a desktop browser must reach (portal, auth)? Check it against
@@ -79,6 +81,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #486 | A `/login?next=https://…` link could send a signed-in user to another site | Login, signup and the email-confirm route passed `next` to a redirect without the `safeNextPath` check the reset pages used | Every `?next=` that feeds a redirect goes through `safeNextPath` |
 | #466 | Settings showed two Progression buttons | Settings home had its own Progression link and `DprSettings` (inside Workout) added another | One entry point per destination on a screen; grep the page's child components for the same `href` before adding a link |
 | #458 | Edit exercise ran off the right edge: Model, the third Pulley button and the Gym picker were cut off | The Machine details `<fieldset>` kept the browser default `min-width: min-content`, so the Make/Model input row forced it wider than the screen despite `min-w-0` on the children | Reset `fieldset { min-width: 0 }` globally (guarded by a test); check every form at 393 px with all sections showing |
 | #456 | Plank was logged by reps instead of seconds | The seed classifier gave every body-only strength exercise `bodyweight`, including isometric holds | Classify exercises by how they're measured: holds (plank, wall sit) are `time`, not reps |

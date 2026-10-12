@@ -30,6 +30,12 @@ export function isInstallGateExempt(pathname: string, search: string): boolean {
  */
 export function safeNextPath(next: string | string[] | undefined): string {
   if (typeof next !== "string" || !next.startsWith("/")) return "/";
+  // Browsers drop tabs and newlines from URLs, so "/\t/evil.example" would
+  // become the protocol-relative "//evil.example".
+  for (const char of next) {
+    const code = char.charCodeAt(0);
+    if (code < 0x20 || code === 0x7f) return "/";
+  }
   if (next.startsWith("//") || next.startsWith("/\\")) return "/";
   return next;
 }

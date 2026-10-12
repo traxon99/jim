@@ -1,8 +1,9 @@
+import { safeNextPath } from "@/lib/pwa/install-gate-exempt";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage(props: PageProps<"/login">) {
   const searchParams = await props.searchParams;
-  const next = typeof searchParams.next === "string" ? searchParams.next : "/";
+  const next = safeNextPath(searchParams.next);
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">

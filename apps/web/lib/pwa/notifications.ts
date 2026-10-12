@@ -18,8 +18,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * place the notification's content lives, and every production deploy
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
-export const LATEST_RELEASE_NOTE =
-  "Desktop Analysis now shows where your squat, bench, deadlift and press rank, and what the next tier takes.";
+export const LATEST_RELEASE_NOTE = "Sign-in links now always bring you back inside Jim.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
