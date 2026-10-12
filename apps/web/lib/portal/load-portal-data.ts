@@ -26,6 +26,7 @@ import {
 } from "./analysis-data";
 import { type PortalBodyData, buildPortalBodyData } from "./body-data";
 import { type PortalCalendarData, serializeAchievements } from "./calendar-data";
+import { type PortalCardioData, buildPortalCardioData } from "./cardio-data";
 import {
   type PortalExerciseDetail,
   type PortalExerciseIndexRow,
@@ -465,5 +466,62 @@ export async function loadCalendarData(): Promise<PortalCalendarData> {
       ),
       achievements: serializeAchievements(achievements),
     };
+  });
+}
+
+/**
+ * The Cardio section (issue #470): every cardio set in a live workout.
+ * The other sections leave cardio out (`isStrengthExercise`), so this is
+ * where it shows up on desktop.
+ */
+export async function loadCardioData(): Promise<PortalCardioData> {
+  return withUserDb(async (tx, userId) => {
+    const [settings] = await tx
+      .select({ units: users.units })
+      .from(users)
+      .where(eq(users.id, userId));
+    const sessionRows = await tx
+      .select({ id: sessions.id, deletedAt: sessions.deletedAt })
+      .from(sessions);
+    const sessionExerciseRows = await tx
+      .select({
+        id: sessionExercises.id,
+        sessionId: sessionExercises.sessionId,
+        exerciseId: sessionExercises.exerciseId,
+        deletedAt: sessionExercises.deletedAt,
+      })
+      .from(sessionExercises);
+    const setRows = await tx
+      .select({
+        id: sets.id,
+        sessionExerciseId: sets.sessionExerciseId,
+        completedAt: sets.completedAt,
+        distance: sets.distance,
+        durationSeconds: sets.durationSeconds,
+        supersedesId: sets.supersedesId,
+        deletedAt: sets.deletedAt,
+      })
+      .from(sets);
+    const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx
+            .select({
+              id: exercises.id,
+              name: exercises.name,
+              category: exercises.category,
+              machineBrand: exercises.machineBrand,
+              machineModel: exercises.machineModel,
+            })
+            .from(exercises)
+            .where(inArray(exercises.id, exerciseIds));
+    return buildPortalCardioData(
+      sessionRows,
+      sessionExerciseRows,
+      exerciseRows,
+      setRows,
+      settings?.units ?? "lb",
+    );
   });
 }

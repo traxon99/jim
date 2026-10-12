@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Dumbbell,
   Flame,
+  Footprints,
   History,
   LayoutDashboard,
   type LucideIcon,
@@ -27,6 +28,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   calendar: CalendarDays,
   exercises: Dumbbell,
   volume: Flame,
+  cardio: Footprints,
   body: Scale,
   records: Trophy,
 };
