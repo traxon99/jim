@@ -110,8 +110,9 @@ describe("buildPortalWorkoutRows", () => {
       gymName: "Iron Works",
       durationSeconds: 65 * 60,
       // Every current set counts, warm-ups included, as on the phone.
-      setCount: 3,
-      totalVolume: 100 * 10 + 200 * 5 + 210 * 5,
+      // The warm-up counts toward neither (issue #494).
+      setCount: 2,
+      totalVolume: 200 * 5 + 210 * 5,
       prCount: 1,
       exerciseNames: ["Bench Press"],
     });
@@ -185,7 +186,8 @@ describe("buildPortalWorkoutDetail", () => {
     expect(detail).not.toBeNull();
     expect(detail?.notes).toBe("Felt strong");
     expect(detail?.gymName).toBe("Iron Works");
-    expect(detail?.setCount).toBe(5);
+    // Working sets only: the warm-up is listed but not counted (issue #494).
+    expect(detail?.setCount).toBe(4);
     expect(detail?.prCount).toBe(1);
     expect(detail?.exercises.map((exercise) => exercise.supersetLabel)).toEqual(["A1", "A2", null]);
     const bench = detail?.exercises[0];

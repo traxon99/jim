@@ -163,6 +163,7 @@ export function buildPortalWorkoutDetail(
     sessionSets.map((set) => ({
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
+      kind: set.kind,
     })),
     session.startedAt,
     session.endedAt ?? session.startedAt,

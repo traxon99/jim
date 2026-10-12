@@ -1,10 +1,12 @@
 export interface SessionSummarySet {
   weight: number | null;
   reps: number | null;
+  /** Warm-up sets count toward neither volume nor sets (issue #494). */
+  kind?: string;
 }
 
 export interface SessionSummary {
-  /** Sum of weight * reps across every set with both (docs/ARCHITECTURE.md §4). */
+  /** Sum of weight * reps across every working set with both (docs/ARCHITECTURE.md §4). */
   totalVolume: number;
   durationSeconds: number;
   setCount: number;
@@ -23,8 +25,10 @@ export function summarizeSession(
   endedAt: Date,
   prCount = 0,
 ): SessionSummary {
+  // Working sets only, like volume by muscle and weekly_summary (LESSONS #395).
+  const working = sets.filter((set) => set.kind !== "warmup");
   let totalVolume = 0;
-  for (const set of sets) {
+  for (const set of working) {
     if (set.weight != null && set.reps != null) {
       totalVolume += set.weight * set.reps;
     }
@@ -32,5 +36,5 @@ export function summarizeSession(
 
   const durationSeconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
 
-  return { totalVolume, durationSeconds, setCount: sets.length, prCount };
+  return { totalVolume, durationSeconds, setCount: working.length, prCount };
 }

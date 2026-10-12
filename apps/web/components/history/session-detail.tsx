@@ -70,6 +70,7 @@ export function SessionDetail({ id }: { id: string }) {
       sets.map((set) => ({
         weight: set.weight == null ? null : Number(set.weight),
         reps: set.reps,
+        kind: set.kind,
       })),
       session.startedAt,
       session.endedAt ?? new Date(),

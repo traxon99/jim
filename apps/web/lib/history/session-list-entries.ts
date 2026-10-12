@@ -79,6 +79,7 @@ export function buildSessionListEntries(
         sessionSets.map((set) => ({
           weight: set.weight == null ? null : Number(set.weight),
           reps: set.reps,
+          kind: set.kind,
         })),
         session.startedAt,
         session.endedAt as Date,
