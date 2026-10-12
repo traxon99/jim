@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type JimDatabase, type RoutineRow, createTestDb } from "../../db/schema";
-import { PUSH_BATCH_SIZE, drainOutbox, pullChanges } from "../engine";
+import { PUSH_BATCH_SIZE, drainOutbox, pullChanges, runSyncCycle } from "../engine";
 import { getSyncStatus } from "../status";
 
 let testDb: JimDatabase;
@@ -179,5 +179,42 @@ describe("pullChanges", () => {
     await pullChanges(testDb, fetchMock);
 
     expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7");
+  });
+});
+
+describe("an expired session (#487)", () => {
+  it("reports signed-out on a 401 push, keeps the outbox and skips the pull", async () => {
+    await testDb.outbox.put({ id: "m1", table: "routines", entity: routine({ id: "r1" }) });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ error: "unauthenticated" }, { status: 401 }));
+
+    await runSyncCycle(testDb, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(await testDb.outbox.count()).toBe(1);
+    expect(getSyncStatus()).toEqual({ kind: "signed-out", count: 1 });
+  });
+
+  it("reports error instead of throwing when a push answers with HTML", async () => {
+    await testDb.outbox.put({ id: "m1", table: "routines", entity: routine({ id: "r1" }) });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("<html>Sign in</html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    );
+
+    await expect(drainOutbox(testDb, fetchMock)).resolves.toBeUndefined();
+    expect(await testDb.outbox.count()).toBe(1);
+    expect(getSyncStatus()).toEqual({ kind: "error", count: 1 });
+  });
+
+  it("keeps the cursor and reports error when a pull answers with HTML", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("<html></html>", { status: 200 }));
+
+    await expect(pullChanges(testDb, fetchMock)).resolves.toBeUndefined();
+    expect((await testDb.syncMeta.get("meta"))?.cursor).toBe(0);
+    expect(getSyncStatus()).toEqual({ kind: "error", count: 0 });
   });
 });
