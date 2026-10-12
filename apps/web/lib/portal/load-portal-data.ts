@@ -1,4 +1,5 @@
 import { withUserDb } from "@/lib/db/user-scoped";
+import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildPersonalRecordEntries } from "@/lib/history/pr-groups";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
@@ -28,6 +29,7 @@ import {
   buildPortalExerciseDetail,
 } from "./exercises-data";
 import { type PortalRecordsData, serializeRecordEntries } from "./records-data";
+import { type PortalVolumeData, serializeVolumeSets } from "./volume-data";
 import {
   type PortalWorkoutDetail,
   type PortalWorkoutRow,
@@ -346,6 +348,44 @@ export async function loadExerciseDetail(
         setRows,
         prRows,
         gym,
+      ),
+    };
+  });
+}
+
+/**
+ * The Volume section (issue #470): every working set joined to its
+ * exercise's muscles, the same sets the phone's Volume by muscle screen
+ * counts (`buildMuscleVolumeSets`). Weeks are grouped in the browser so
+ * they follow its time zone.
+ */
+export async function loadVolumeData(): Promise<PortalVolumeData> {
+  return withUserDb(async (tx, userId) => {
+    const [settings] = await tx
+      .select({ units: users.units, weekStart: users.weekStart })
+      .from(users)
+      .where(eq(users.id, userId));
+    const sessionRows = await tx.select().from(sessions);
+    const sessionExerciseRows = await tx.select().from(sessionExercises);
+    const setRows = await tx.select().from(sets);
+    const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
+    const exerciseRows =
+      exerciseIds.length === 0
+        ? []
+        : await tx
+            .select({
+              id: exercises.id,
+              category: exercises.category,
+              primaryMuscles: exercises.primaryMuscles,
+              secondaryMuscles: exercises.secondaryMuscles,
+            })
+            .from(exercises)
+            .where(inArray(exercises.id, exerciseIds));
+    return {
+      units: settings?.units ?? "lb",
+      weekStart: settings?.weekStart ?? 0,
+      sets: serializeVolumeSets(
+        buildMuscleVolumeSets(sessionRows, sessionExerciseRows, exerciseRows, setRows),
       ),
     };
   });

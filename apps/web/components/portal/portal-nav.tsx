@@ -10,6 +10,7 @@ import {
 import {
   ChevronLeft,
   Dumbbell,
+  Flame,
   History,
   LayoutDashboard,
   type LucideIcon,
@@ -23,6 +24,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   overview: LayoutDashboard,
   workouts: History,
   exercises: Dumbbell,
+  volume: Flame,
   body: Scale,
   records: Trophy,
 };
