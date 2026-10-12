@@ -1,7 +1,7 @@
 "use client";
 
 import { LoadingText } from "@/components/loading-text";
-import { BackLink } from "@/components/page-header";
+import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
@@ -137,146 +137,147 @@ export function SessionDetail({ id }: { id: string }) {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 px-4 py-4">
-      <div className="self-start">
-        <BackLink href="/history" label="History" />
-      </div>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <RoutineIconById routineId={session.routineId} className="h-5 w-5" />
-            {displayName}
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-500">
-            {/* "Mon, Sep 28 · 5:30 PM" rather than toLocaleString's seconds (issue #333). */}
-            {session.startedAt.toLocaleDateString(undefined, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })}{" "}
-            ·{" "}
-            {session.startedAt.toLocaleTimeString(undefined, {
-              hour: "numeric",
-              minute: "2-digit",
-            })}
-          </p>
+    <main className="flex flex-1 flex-col">
+      <PageHeader title={displayName ?? "Workout"} back={{ href: "/history", label: "History" }} />
+      <div className={PAGE_BODY}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-500">
+              <RoutineIconById routineId={session.routineId} className="h-4 w-4" />
+              <span>
+                {/* "Mon, Sep 28 · 5:30 PM" rather than toLocaleString's seconds (issue #333). */}
+                {session.startedAt.toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}{" "}
+                ·{" "}
+                {session.startedAt.toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+            </p>
+          </div>
+          {session.endedAt && shareText && (
+            <ShareWorkoutButton
+              title={displayName ?? "Workout"}
+              text={shareText}
+              className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+            />
+          )}
         </div>
-        {session.endedAt && shareText && (
-          <ShareWorkoutButton
-            title={displayName ?? "Workout"}
-            text={shareText}
-            className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-          />
+
+        {summary && (
+          <dl className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <dt className="text-xs text-zinc-500 dark:text-zinc-500">Duration</dt>
+              <dd className="text-lg font-semibold">
+                {Math.round(summary.durationSeconds / 60)} min
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-zinc-500 dark:text-zinc-500">Volume</dt>
+              <dd className="text-lg font-semibold">
+                {Math.round(summary.totalVolume).toLocaleString()} {settings.units}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-zinc-500 dark:text-zinc-500">Sets</dt>
+              <dd className="text-lg font-semibold">{summary.setCount}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-zinc-500 dark:text-zinc-500">PRs</dt>
+              <dd className="text-lg font-semibold">{summary.prCount}</dd>
+            </div>
+          </dl>
         )}
-      </div>
 
-      {summary && (
-        <dl className="grid grid-cols-4 gap-2 text-center">
-          <div>
-            <dt className="text-xs text-zinc-500 dark:text-zinc-500">Duration</dt>
-            <dd className="text-lg font-semibold">
-              {Math.round(summary.durationSeconds / 60)} min
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-500 dark:text-zinc-500">Volume</dt>
-            <dd className="text-lg font-semibold">
-              {Math.round(summary.totalVolume).toLocaleString()} {settings.units}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-500 dark:text-zinc-500">Sets</dt>
-            <dd className="text-lg font-semibold">{summary.setCount}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-zinc-500 dark:text-zinc-500">PRs</dt>
-            <dd className="text-lg font-semibold">{summary.prCount}</dd>
-          </div>
-        </dl>
-      )}
+        <RestStatsLine sets={groups.flatMap((group) => group.sets)} />
 
-      <RestStatsLine sets={groups.flatMap((group) => group.sets)} />
+        {session.notes && (
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">{session.notes}</p>
+        )}
 
-      {session.notes && <p className="text-sm text-zinc-700 dark:text-zinc-300">{session.notes}</p>}
-
-      <div className="flex flex-col gap-5">
-        {groups
-          .map((entry) => ({
-            ...entry,
-            setLabels: setNumberLabels(entry.sets.map((set) => set.kind)),
-          }))
-          .map((group) => (
-            <section key={group.sessionExerciseId} className="flex flex-col gap-1">
-              <Link
-                href={exerciseCardHref(group.exerciseId, `/history/${id}`)}
-                className="text-base font-semibold underline-offset-4 hover:underline"
-              >
-                {group.exerciseName}
-              </Link>
-              {group.notes && (
-                <p className="text-xs text-zinc-500 dark:text-zinc-500">{group.notes}</p>
-              )}
-              <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                {group.sets.map((set, i) => (
-                  <li
-                    key={set.id}
-                    className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2"
-                  >
-                    <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      {set.kind === "warmup" ? (
-                        <span
-                          aria-label="Warm-up set"
-                          className="font-bold text-amber-500 dark:text-amber-400"
-                        >
-                          W
-                        </span>
-                      ) : (
-                        <span className="text-zinc-500 dark:text-zinc-500">
-                          #{group.setLabels[i]}
-                        </span>
-                      )}
-                      <span>
-                        {set.weight != null && set.reps != null
-                          ? `${set.weight} × ${set.reps}`
-                          : set.reps != null
-                            ? `${set.reps} reps`
-                            : (formatTimedSet(set, distanceUnitFor(settings.units)) ?? "—")}
-                      </span>
-                      {set.kind !== "working" && set.kind !== "warmup" && (
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                          {setKindLabel(set.kind)}
-                        </span>
-                      )}
-                      <SetRestTag set={set} />
-                    </span>
-                    {set.prKinds.length > 0 && (
-                      <span className="flex flex-wrap gap-1">
-                        {set.prKinds.map((kind) => (
+        <div className="flex flex-col gap-5">
+          {groups
+            .map((entry) => ({
+              ...entry,
+              setLabels: setNumberLabels(entry.sets.map((set) => set.kind)),
+            }))
+            .map((group) => (
+              <section key={group.sessionExerciseId} className="flex flex-col gap-1">
+                <Link
+                  href={exerciseCardHref(group.exerciseId, `/history/${id}`)}
+                  className="text-base font-semibold underline-offset-4 hover:underline"
+                >
+                  {group.exerciseName}
+                </Link>
+                {group.notes && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">{group.notes}</p>
+                )}
+                <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                  {group.sets.map((set, i) => (
+                    <li
+                      key={set.id}
+                      className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2"
+                    >
+                      <span className="flex min-w-0 flex-wrap items-center gap-2">
+                        {set.kind === "warmup" ? (
                           <span
-                            key={kind}
-                            className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
+                            aria-label="Warm-up set"
+                            className="font-bold text-amber-500 dark:text-amber-400"
                           >
-                            PR · {PR_KIND_LABELS[kind] ?? kind}
+                            W
                           </span>
-                        ))}
+                        ) : (
+                          <span className="text-zinc-500 dark:text-zinc-500">
+                            #{group.setLabels[i]}
+                          </span>
+                        )}
+                        <span>
+                          {set.weight != null && set.reps != null
+                            ? `${set.weight} × ${set.reps}`
+                            : set.reps != null
+                              ? `${set.reps} reps`
+                              : (formatTimedSet(set, distanceUnitFor(settings.units)) ?? "—")}
+                        </span>
+                        {set.kind !== "working" && set.kind !== "warmup" && (
+                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                            {setKindLabel(set.kind)}
+                          </span>
+                        )}
+                        <SetRestTag set={set} />
                       </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-      </div>
+                      {set.prKinds.length > 0 && (
+                        <span className="flex flex-wrap gap-1">
+                          {set.prKinds.map((kind) => (
+                            <span
+                              key={kind}
+                              className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
+                            >
+                              PR · {PR_KIND_LABELS[kind] ?? kind}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+        </div>
 
-      <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          className="min-h-11 w-full rounded-lg border border-red-300 px-4 py-3 text-base font-medium text-red-600 disabled:opacity-50 dark:border-red-900 dark:text-red-500"
-        >
-          {deleting ? "Deleting…" : "Delete workout"}
-        </button>
+        <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="min-h-11 w-full rounded-lg border border-red-300 px-4 py-3 text-base font-medium text-red-600 disabled:opacity-50 dark:border-red-900 dark:text-red-500"
+          >
+            {deleting ? "Deleting…" : "Delete workout"}
+          </button>
+        </div>
       </div>
     </main>
   );
