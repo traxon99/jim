@@ -21,52 +21,37 @@ interface Props {
   rpeNudge?: boolean;
   /** False in Simple mode without PRP (issue #464): the RPE column is left out. */
   showRpe?: boolean;
-  large?: boolean;
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
   onDelete: () => void;
 }
 
-function sizesFor(large: boolean) {
-  return {
-    // Matches the entry inputs in session-exercise-section.tsx (issue #186):
-    // centered, h-11 so the row keeps the height of its action buttons.
-    input: large
-      ? "w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 py-2 text-center text-3xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-      : "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
-    // pl-2 keeps the label off the tinted row's rounded edge (issue #391).
-    indexCell: large
-      ? "py-3 pl-2 pr-3 align-middle text-base font-medium text-zinc-500 dark:text-zinc-500"
-      : "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
-    // Logged values line up under the centered entry inputs at the same size.
-    cell: large
-      ? "py-3 pr-3 align-middle text-center text-3xl tabular-nums"
-      : "py-2 pr-2 align-middle text-center text-xl tabular-nums",
-    metaCell: large
-      ? "py-3 pr-3 align-middle text-center text-3xl tabular-nums text-zinc-500 dark:text-zinc-500"
-      : "py-2 pr-2 align-middle text-center text-xl tabular-nums text-zinc-500 dark:text-zinc-500",
-    // `relative` anchors the swipe-to-delete strip (issue #350).
-    actionCell: large
-      ? "relative py-3 pl-1 pr-1 align-middle text-right whitespace-nowrap"
-      : "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
-    // The buttons are block-level flex boxes, so without a row wrapper two of
-    // them stack and the row doubles in height the moment a set is logged
-    // (issue #157) — keep them side by side so logging happens in place.
-    actionGroup: "flex min-w-22 items-center justify-end",
-    // A logged value reads as plain text but is its own tap target (issue
-    // #234): tapping it swaps in an input for just that value.
-    valueButton: large
-      ? "min-h-12 w-full rounded-md tabular-nums"
-      : "min-h-11 w-full rounded-md tabular-nums",
-    // The Log ✓ stays put once the set is logged (issue #318), in a quieter
-    // "done" state and not a button: a second tap in the same spot does
-    // nothing, rather than landing on a delete button.
-    doneMark: large
-      ? "flex min-h-12 min-w-12 items-center justify-center rounded-md text-accent"
-      : "flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
-    icon: large ? "h-5 w-5" : "h-4 w-4",
-  };
-}
+const SIZES = {
+  // Matches the entry inputs in session-exercise-section.tsx (issue #186):
+  // centered, h-11 so the row keeps the height of its action buttons.
+  input:
+    "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+  // pl-2 keeps the label off the tinted row's rounded edge (issue #391).
+  indexCell: "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
+  // Logged values line up under the centered entry inputs at the same size.
+  cell: "py-2 pr-2 align-middle text-center text-xl tabular-nums",
+  metaCell:
+    "py-2 pr-2 align-middle text-center text-xl tabular-nums text-zinc-500 dark:text-zinc-500",
+  // `relative` anchors the swipe-to-delete strip (issue #350).
+  actionCell: "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
+  // The buttons are block-level flex boxes, so without a row wrapper two of
+  // them stack and the row doubles in height the moment a set is logged
+  // (issue #157) — keep them side by side so logging happens in place.
+  actionGroup: "flex min-w-22 items-center justify-end",
+  // A logged value reads as plain text but is its own tap target (issue
+  // #234): tapping it swaps in an input for just that value.
+  valueButton: "min-h-11 w-full rounded-md tabular-nums",
+  // The Log ✓ stays put once the set is logged (issue #318), in a quieter
+  // "done" state and not a button: a second tap in the same spot does
+  // nothing, rather than landing on a delete button.
+  doneMark: "flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
+  icon: "h-4 w-4",
+};
 
 interface EditableValueProps {
   field: SetField;
@@ -152,12 +137,11 @@ export function SetRow({
   isPr,
   rpeNudge = false,
   showRpe = true,
-  large = false,
   onEdit,
   onChangeKind,
   onDelete,
 }: Props) {
-  const sizes = sizesFor(large);
+  const sizes = SIZES;
   const [editingField, setEditingField] = useState<SetField | null>(null);
   const swipe = useSwipeToDelete(onDelete);
 
@@ -202,9 +186,7 @@ export function SetRow({
           pushed PR rows past the card's edge (issue #440). */}
       <td className={`relative ${sizes.cell}`}>
         <div className="font-medium">{editable("weight", "weight", set.weight)}</div>
-        {isPr && editingField !== "weight" && (
-          <PrBadge className={large ? "absolute top-1 right-1" : "absolute top-0.5 right-0.5"} />
-        )}
+        {isPr && editingField !== "weight" && <PrBadge className="absolute top-0.5 right-0.5" />}
       </td>
       <td className={sizes.cell}>{editable("reps", "reps", set.reps)}</td>
       {showRpe && (

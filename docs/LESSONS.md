@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #549 | A swiped-away set row could run its delete (and state updates) after the row had unmounted | The swipe hook's settle `setTimeout` was never cleared on unmount | Keep timers in a ref and clear them in an effect cleanup |
 | #540 | MCP rejected `-04:00` offsets on some date inputs, and scheduling "2026-10-20T00:00:00Z" showed as the previous evening for US users | Four tools used `datetime()` without `offset: true`, and `schedule_workout` stored an instant for what is a calendar day | One date-time schema across MCP tools (`{ offset: true }`); a calendar day is stored as noon UTC, not midnight |
 | #532 | Boot, visibility, `online`, the 60 s timer and finalize could each start a sync cycle while another ran, double-POSTing batches and saving the pull cursor out of order | `runSyncCycle` had no in-progress guard | Anything several triggers can start gets a single-flight guard: callers during a run share one follow-up run |
 | #529 | The History calendar showed trained and selected days by color only, so screen readers heard just a number | Day buttons had no `aria-label` or `aria-pressed`, and `title` isn't read on iOS | State shown by color or a ring also needs text: `aria-label` with the facts, and `aria-pressed` on toggles |

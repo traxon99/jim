@@ -2,7 +2,7 @@
 
 import { swipeDeletes, swipeIntent, swipeOffset } from "@/lib/workout/swipe-to-delete";
 import { Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** How long the row takes to slide away (or back) once the finger lifts. */
 const SETTLE_MS = 150;
@@ -32,6 +32,15 @@ export function useSwipeToDelete(onDelete: (() => void) | undefined) {
   // The click that ends a swipe shouldn't also tap whatever was under it.
   const swallowClick = useRef(false);
   const widthRef = useRef(0);
+  // The pending delete after the slide-away; cleared if the row unmounts first.
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    },
+    [],
+  );
 
   function end(commit: boolean) {
     drag.current = null;
@@ -41,7 +50,9 @@ export function useSwipeToDelete(onDelete: (() => void) | undefined) {
       return;
     }
     setOffset(-widthRef.current);
-    setTimeout(() => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      settleTimer.current = null;
       onDelete?.();
       // A row that stays mounted (it wasn't removed) slides back into place.
       setOffset(0);
