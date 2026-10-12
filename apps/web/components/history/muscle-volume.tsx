@@ -22,14 +22,14 @@ import { useEffect, useMemo, useState } from "react";
 
 const WEEKS_SHOWN = 6;
 
-type Metric = "sets" | "volume";
+export type Metric = "sets" | "volume";
 
-const METRICS: { value: Metric; label: string }[] = [
+export const METRICS: { value: Metric; label: string }[] = [
   { value: "sets", label: "Sets" },
   { value: "volume", label: "Volume" },
 ];
 
-const GOALS: { value: TrainingGoal; label: string }[] = [
+export const GOALS: { value: TrainingGoal; label: string }[] = [
   { value: "strength", label: "Strength" },
   { value: "hypertrophy", label: "Hypertrophy" },
 ];
@@ -37,7 +37,7 @@ const GOALS: { value: TrainingGoal; label: string }[] = [
 /** The goal is a per-device view preference, so it lives in localStorage. */
 const GOAL_STORAGE_KEY = "jim:volume-goal";
 
-function readStoredGoal(): TrainingGoal {
+export function readStoredGoal(): TrainingGoal {
   try {
     return window.localStorage.getItem(GOAL_STORAGE_KEY) === "strength"
       ? "strength"
@@ -47,7 +47,7 @@ function readStoredGoal(): TrainingGoal {
   }
 }
 
-function writeStoredGoal(goal: TrainingGoal): void {
+export function writeStoredGoal(goal: TrainingGoal): void {
   try {
     window.localStorage.setItem(GOAL_STORAGE_KEY, goal);
   } catch {
@@ -61,7 +61,7 @@ const STATUS_BAR: Record<WeeklySetStatus, string> = {
   over: "bg-sky-500 dark:bg-sky-400",
 };
 
-const STATUS_TEXT: Record<WeeklySetStatus, string> = {
+export const STATUS_TEXT: Record<WeeklySetStatus, string> = {
   under: "text-amber-600 dark:text-amber-400",
   within: "text-emerald-600 dark:text-emerald-400",
   over: "text-sky-600 dark:text-sky-400",
@@ -73,7 +73,7 @@ const STATUS_LABEL: Record<WeeklySetStatus, string> = {
   over: "above range",
 };
 
-function valuesFor(week: WeeklyMuscleVolume, metric: Metric) {
+export function valuesFor(week: WeeklyMuscleVolume, metric: Metric) {
   return metric === "sets" ? week.setsByMuscle : week.volumeByMuscle;
 }
 
@@ -82,7 +82,7 @@ function valuesFor(week: WeeklyMuscleVolume, metric: Metric) {
  * this one still gets a 0 row, so a muscle that's been skipped shows up as
  * under its target instead of silently disappearing (issue #395).
  */
-function rowsFor(
+export function rowsFor(
   week: WeeklyMuscleVolume,
   metric: Metric,
   trainedMuscles: readonly string[],
@@ -95,7 +95,7 @@ function rowsFor(
 }
 
 /** Half sets come from secondary muscles; show "4.5", not "4.50". */
-function formatValue(value: number, metric: Metric, units: string): string {
+export function formatValue(value: number, metric: Metric, units: string): string {
   if (metric === "sets") return String(Math.round(value * 2) / 2);
   return `${Math.round(value).toLocaleString()} ${units}`;
 }
@@ -105,7 +105,7 @@ function formatValue(value: number, metric: Metric, units: string): string {
  * shown (issue #332) — so a muscle's bar can be compared week to week
  * instead of each week's leader always filling the row.
  */
-function WeekVolumeBars({
+export function WeekVolumeBars({
   entries,
   metric,
   max,
@@ -167,7 +167,7 @@ function WeekVolumeBars({
 }
 
 /** "4 in range · 3 below · 1 above", counting only statuses that occur. */
-function StatusSummary({
+export function StatusSummary({
   entries,
   goal,
 }: {
@@ -196,7 +196,7 @@ function StatusSummary({
   );
 }
 
-function formatRange(range: WeeklySetRange): string {
+export function formatRange(range: WeeklySetRange): string {
   return `${range.min}–${range.max}`;
 }
 
