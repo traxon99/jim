@@ -1,0 +1,67 @@
+# Lint, typecheck and the full test suite, including the DB-backed tests that
+# skip without TEST_DATABASE_URL (issue #498). Runs on every PR and on main,
+# and deploy-mcp.yml calls it so a red main can't deploy.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      # Every DB suite drops and recreates the same schemas, so each package
+      # gets its own database and runs its files one at a time.
+      - name: Create test databases
+        run: |
+          for name in core db mcp web; do
+            psql -h localhost -U postgres -c "create database jim_test_$name"
+          done
+      - name: Test packages/core
+        working-directory: packages/core
+        run: npx vitest run --no-file-parallelism
+        env:
+          TEST_DATABASE_URL: postgres://postgres@localhost:5432/jim_test_core
+      - name: Test packages/db
+        working-directory: packages/db
+        run: npx vitest run --no-file-parallelism
+        env:
+          TEST_DATABASE_URL: postgres://postgres@localhost:5432/jim_test_db
+      - name: Test apps/mcp
+        working-directory: apps/mcp
+        run: npx vitest run --no-file-parallelism
+        env:
+          TEST_DATABASE_URL: postgres://postgres@localhost:5432/jim_test_mcp
+      - name: Test apps/web
+        working-directory: apps/web
+        run: npx vitest run --no-file-parallelism
+        env:
+          TEST_DATABASE_URL: postgres://postgres@localhost:5432/jim_test_web

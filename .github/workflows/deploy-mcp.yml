@@ -20,11 +20,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Lint, typecheck and tests must pass before anything reaches Fly (#498).
+  checks:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Pinned to the 1.6 release commit rather than a moving branch.
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # 1.6
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
