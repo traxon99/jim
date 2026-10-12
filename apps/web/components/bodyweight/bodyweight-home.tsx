@@ -229,7 +229,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
             Log a weigh-in
           </h2>
           <div className="flex gap-2">
-            <label className="flex flex-1 flex-col gap-1 text-xs font-medium">
+            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
               Weight ({units})
               <input
                 type="text"
@@ -242,7 +242,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 className={inputClass}
               />
             </label>
-            <label className="flex flex-1 flex-col gap-1 text-xs font-medium">
+            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
               Date
               <input
                 type="date"
