@@ -163,6 +163,11 @@ export async function loadStrengthData(): Promise<
   });
 }
 
+/** The Compare section: every working strength set, for overlaid e1RM charts (issue #470). */
+export async function loadCompareData(): Promise<PortalTrainingData> {
+  return withUserDb(async (tx, userId) => (await readTrainingData(tx, userId)).data);
+}
+
 /** The Workouts section's table: every finished workout (issue #470). */
 export async function loadWorkoutRows(): Promise<{
   units: "lb" | "kg";
