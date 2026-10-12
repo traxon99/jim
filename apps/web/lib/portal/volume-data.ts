@@ -13,6 +13,7 @@ export interface PortalVolumeSet {
   completedAt: string;
   weight: number | null;
   reps: number | null;
+  durationSeconds?: number | null;
   primaryMuscles: string[];
   secondaryMuscles: string[];
 }
@@ -29,6 +30,7 @@ export function serializeVolumeSets(sets: readonly MuscleVolumeSet[]): PortalVol
     completedAt: set.completedAt.toISOString(),
     weight: set.weight,
     reps: set.reps,
+    durationSeconds: set.durationSeconds,
     primaryMuscles: [...set.primaryMuscles],
     secondaryMuscles: [...set.secondaryMuscles],
   }));

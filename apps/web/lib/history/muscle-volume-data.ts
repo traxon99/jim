@@ -39,6 +39,7 @@ export function buildMuscleVolumeSets(
       completedAt: set.completedAt,
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
+      durationSeconds: set.durationSeconds,
       primaryMuscles: exercise.primaryMuscles,
       secondaryMuscles: exercise.secondaryMuscles,
     });

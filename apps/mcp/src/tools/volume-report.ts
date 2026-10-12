@@ -28,6 +28,7 @@ export interface ResolvedSet {
   completedAt: Date;
   weight: number | null;
   reps: number | null;
+  durationSeconds: number | null;
   exerciseId: string;
 }
 
@@ -61,6 +62,7 @@ export async function resolvedSetsInRange(
       completedAt: set.completedAt,
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
+      durationSeconds: set.durationSeconds,
       exerciseId: sessionExercise.exerciseId,
     });
   }
@@ -138,6 +140,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
           completedAt: set.completedAt,
           weight: set.weight,
           reps: set.reps,
+          durationSeconds: set.durationSeconds,
           primaryMuscles: exercise.primaryMuscles,
           secondaryMuscles: exercise.secondaryMuscles,
         };

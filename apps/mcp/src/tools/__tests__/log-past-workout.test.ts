@@ -6,7 +6,7 @@ import { createRoutine } from "../create-routine.js";
 import { getPrs } from "../get-prs.js";
 import { getWorkout } from "../get-workout.js";
 import { listWorkouts } from "../list-workouts.js";
-import { logPastWorkout, setCompletionTimes } from "../log-past-workout.js";
+import { logPastWorkout, setCompletionTimes, validateSetFields } from "../log-past-workout.js";
 import { upsertExercise } from "../upsert-exercise.js";
 
 describe("setCompletionTimes", () => {
@@ -18,6 +18,41 @@ describe("setCompletionTimes", () => {
       "2026-09-01T10:40:00.000Z",
       "2026-09-01T11:00:00.000Z",
     ]);
+  });
+});
+
+describe("validateSetFields (#513)", () => {
+  const plank = { name: "Plank", trackingType: "time" };
+
+  it("accepts the fields an exercise is tracked by", () => {
+    expect(() => validateSetFields(plank, [{ durationSeconds: 60 }])).not.toThrow();
+    expect(() =>
+      validateSetFields({ name: "Bench Press", trackingType: "weight_reps" }, [
+        { weight: 100, reps: 5, rpe: 8 },
+      ]),
+    ).not.toThrow();
+    expect(() =>
+      validateSetFields({ name: "Run", trackingType: "distance_time" }, [
+        { distance: 5, durationSeconds: 1500 },
+      ]),
+    ).not.toThrow();
+  });
+
+  it("rejects reps on a timed hold with a clear error", () => {
+    expect(() => validateSetFields(plank, [{ durationSeconds: 60 }, { reps: 60 }])).toThrow(
+      /Plank is tracked by time, so set 2 can't have reps/,
+    );
+  });
+
+  it("rejects seconds on a rep-tracked exercise and reps on cardio", () => {
+    expect(() =>
+      validateSetFields({ name: "Bench Press", trackingType: "weight_reps" }, [
+        { durationSeconds: 30 },
+      ]),
+    ).toThrow(/can't have durationSeconds/);
+    expect(() =>
+      validateSetFields({ name: "Run", trackingType: "distance_time" }, [{ reps: 5 }]),
+    ).toThrow(/can't have reps/);
   });
 });
 

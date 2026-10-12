@@ -46,6 +46,16 @@ describe("weeklyVolumeByMuscle", () => {
     expect(week?.volumeByMuscle).toEqual({});
   });
 
+  it("counts a timed hold as a set, with no volume (issue #513)", () => {
+    const [week] = weeklyVolumeByMuscle(
+      [set({ weight: null, reps: null, durationSeconds: 60 }), set({ weight: null, reps: 0 })],
+      0,
+    );
+    expect(week?.setsByMuscle.chest).toBe(1);
+    expect(week?.setsByMuscle.triceps).toBe(0.5);
+    expect(week?.volumeByMuscle).toEqual({});
+  });
+
   it("returns an empty array for no sets", () => {
     expect(weeklyVolumeByMuscle([], 0)).toEqual([]);
   });

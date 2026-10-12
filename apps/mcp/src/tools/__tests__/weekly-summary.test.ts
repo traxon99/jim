@@ -18,7 +18,14 @@ function set(
   weight: number | null,
   reps: number | null,
 ): ResolvedSet {
-  return { sessionId, exerciseId, completedAt: new Date(completedAt), weight, reps };
+  return {
+    sessionId,
+    exerciseId,
+    completedAt: new Date(completedAt),
+    weight,
+    reps,
+    durationSeconds: null,
+  };
 }
 
 describe("weekly_summary (#409)", () => {

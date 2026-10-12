@@ -56,6 +56,39 @@ export interface LogPastWorkoutInput {
 
 export const DEFAULT_DURATION_MINUTES = 60;
 
+/**
+ * The set fields each tracking type is logged with, the way the app's set
+ * entry shows them: holds are seconds, distance cardio is a distance (and a
+ * time for `distance_time`), everything else is reps (issue #513).
+ */
+const FIELDS_BY_TRACKING_TYPE: Record<string, readonly (keyof LogPastWorkoutSetInput)[]> = {
+  weight_reps: ["weight", "reps", "rpe", "rir"],
+  bodyweight: ["weight", "reps", "rpe", "rir"],
+  weighted_bodyweight: ["weight", "reps", "rpe", "rir"],
+  time: ["durationSeconds", "weight", "rpe", "rir"],
+  distance: ["distance"],
+  distance_time: ["distance", "durationSeconds"],
+};
+
+const SET_FIELDS = ["weight", "reps", "rpe", "rir", "durationSeconds", "distance"] as const;
+
+/** Rejects set fields the exercise's tracking type doesn't log, e.g. reps on a plank. */
+export function validateSetFields(
+  exercise: { name: string; trackingType: string },
+  sets: readonly LogPastWorkoutSetInput[],
+) {
+  const allowed = FIELDS_BY_TRACKING_TYPE[exercise.trackingType];
+  if (!allowed) return;
+  for (const [index, set] of sets.entries()) {
+    const wrong = SET_FIELDS.filter((field) => set[field] != null && !allowed.includes(field));
+    if (wrong.length > 0) {
+      throw new Error(
+        `${exercise.name} is tracked by ${exercise.trackingType}, so set ${index + 1} can't have ${wrong.join(", ")}. Use ${allowed.join(", ")} instead.`,
+      );
+    }
+  }
+}
+
 /** Room for clock skew between the agent's idea of "now" and ours. */
 const FUTURE_TOLERANCE_MS = 5 * 60_000;
 
@@ -167,6 +200,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
 
     for (const [position, item] of input.exercises.entries()) {
       const exercise = await resolveExercise(tx, context.userId, item.exercise);
+      validateSetFields(exercise, item.sets);
       const sessionExerciseId = uuidv7();
       await tx.insert(sessionExercises).values({
         id: sessionExerciseId,
