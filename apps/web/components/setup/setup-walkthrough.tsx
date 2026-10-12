@@ -7,11 +7,12 @@ import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { CardStyleSection } from "@/components/profile/card-style-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
-import { db } from "@/lib/db/schema";
+import { type GymRow, db } from "@/lib/db/schema";
 import { addExploreProgram, startExploreProgramDpr } from "@/lib/explore/add-template";
-import { GYM_NAME_MAX, addGym, cleanGymInput, setDefaultGym, sortGyms } from "@/lib/gyms";
+import { GYM_NAME_MAX, cleanGymInput, setDefaultGym, sortGyms } from "@/lib/gyms";
 import { setActiveProgram } from "@/lib/programs/set-active";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
+import { saveSetupGym } from "@/lib/setup/save-gym";
 import { SETUP_STEPS, type SetupStep, setupExitHref } from "@/lib/setup/steps";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type ExploreProgramTemplate, PROGRAM_TEMPLATES } from "@jim/core";
@@ -79,6 +80,8 @@ export function SetupWalkthrough({ userId, from }: { userId: string; from: strin
   const [step, setStep] = useState<SetupStep>("welcome");
   const [busy, setBusy] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  // The gym once saved, so "Try again" doesn't add it a second time.
+  const createdGym = useRef<GymRow | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
@@ -149,9 +152,7 @@ export function SetupWalkthrough({ userId, from }: { userId: string; from: strin
       return;
     }
     await run(async () => {
-      const gym = await addGym({ userId, ...input });
-      // A gym added here is the one they named as home.
-      if (!gym.isDefault) await setDefaultGym(gym.id);
+      await saveSetupGym({ userId, ...input }, createdGym);
       setGymName("");
       setGymAddress(EMPTY_ADDRESS);
       void runSyncCycle();

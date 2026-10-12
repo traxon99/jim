@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #530 | Setup "Try again" after a failed save added the same gym twice | `addGym` succeeded but `setDefaultGym` threw, and the retry ran `addGym` again | A retry must resume after the step that already committed: remember the created row and repeat only the failed step |
 | #522 | The filter-count badge on Exercises was clipped | The badge was a child of the filter `<button>`, and the global ripple rule gives every button `overflow: hidden` | Never hang a badge off a button that sticks out of it; put it on a `relative` wrapper beside the button |
 | #526 | Bodyweight log form could run past the right edge at 393 px | The Weight/Date label columns lacked the `min-w-0` that #458 added elsewhere, so the date input kept its intrinsic width | Flex children holding an `<input>` need `min-w-0`; sweep sibling forms when fixing one |
 | #550 | A double tap on Add in the exercise picker added the exercises twice | `onPick` ran once per tap, and the add/superset code was copied into the workout and the routine editor, so a guard would have had to land twice | The picker accepts one pick per opening; the workout and routine editor share `lib/supersets/item-mutations.ts` |
