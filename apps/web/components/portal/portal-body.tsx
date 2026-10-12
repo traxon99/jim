@@ -10,6 +10,7 @@ import {
 import { analysisRangeStart } from "@jim/core";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";
+import { PortalMeasurements } from "./portal-measurements";
 import { PortalTrendChart } from "./trend-chart";
 import { useIsClient } from "./use-is-client";
 
@@ -37,8 +38,9 @@ function StatTile({ label, value }: { label: string; value: string }) {
 
 /**
  * The Analysis Body section (issue #470): the bodyweight trend for the
- * chosen range with its 7-day average, the change over that range, and
- * every weigh-in. Read-only: weigh-ins are logged on the phone.
+ * chosen range with its 7-day average, the change over that range, body
+ * measurements, and every weigh-in. Read-only: entries are logged on the
+ * phone.
  */
 export function PortalBody({ data }: { data: PortalBodyData }) {
   const [range, setRange] = useAnalysisRange();
@@ -105,6 +107,8 @@ export function PortalBody({ data }: { data: PortalBodyData }) {
           </>
         )}
       </section>
+
+      <PortalMeasurements data={data} />
 
       {table.length > 0 && (
         <section className="flex flex-col gap-2">

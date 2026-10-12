@@ -3,6 +3,7 @@
 import { TrendChart } from "@/components/bodyweight/bodyweight-chart";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { deleteMeasurement, logMeasurement, measurementSeries } from "@/lib/bodyweight";
+import { TRACKED_MEASUREMENT_KINDS, type TrackedMeasurementKind } from "@/lib/bodyweight/series";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
@@ -18,19 +19,9 @@ import { Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-/** Bodyweight has its own page; these are the rest of issue #249's list. */
-const KINDS = [
-  "waist",
-  "chest",
-  "arms",
-  "body_fat",
-  "neck",
-  "hips",
-  "thighs",
-  "calves",
-] as const satisfies readonly MeasurementKind[];
+const KINDS = TRACKED_MEASUREMENT_KINDS;
 
-type Kind = (typeof KINDS)[number];
+type Kind = TrackedMeasurementKind;
 
 const RANGES = [
   { key: "3m", label: "3M", days: 91 },

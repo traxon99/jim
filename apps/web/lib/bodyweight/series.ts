@@ -8,6 +8,23 @@ import {
 
 export const BODYWEIGHT_KIND = "bodyweight";
 
+/**
+ * Profile → Measurements' kinds (issue #249), in its order. Bodyweight has
+ * its own page, so it isn't one of them.
+ */
+export const TRACKED_MEASUREMENT_KINDS = [
+  "waist",
+  "chest",
+  "arms",
+  "body_fat",
+  "neck",
+  "hips",
+  "thighs",
+  "calves",
+] as const satisfies readonly MeasurementKind[];
+
+export type TrackedMeasurementKind = (typeof TRACKED_MEASUREMENT_KINDS)[number];
+
 export interface BodyweightPoint {
   id: string;
   measuredAt: Date;

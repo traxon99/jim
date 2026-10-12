@@ -1,6 +1,11 @@
-import { bodyweightSeries } from "@/lib/bodyweight/series";
+import {
+  TRACKED_MEASUREMENT_KINDS,
+  type TrackedMeasurementKind,
+  bodyweightSeries,
+  measurementSeries,
+} from "@/lib/bodyweight/series";
 import type { BodyMeasurementRow } from "@/lib/db/schema";
-import type { WeightUnit } from "@jim/core";
+import { type WeightUnit, displayUnitFor } from "@jim/core";
 
 /** One entry on a body trend, serializable across the server/client boundary. */
 export interface PortalBodyPoint {
@@ -14,21 +19,33 @@ export interface PortalBodyPoint {
 export interface PortalBodyData {
   units: WeightUnit;
   bodyweight: PortalBodyPoint[];
+  /** Each measurement's entries in its display unit (`displayUnitFor`), oldest first. */
+  measurements: Record<TrackedMeasurementKind, PortalBodyPoint[]>;
 }
 
-/** Live weigh-ins in the user's units, oldest first, the same series the phone draws. */
+function serialize(points: readonly { id: string; measuredAt: Date; value: number }[]) {
+  return points.map((point) => ({
+    id: point.id,
+    measuredAt: point.measuredAt.toISOString(),
+    value: point.value,
+  }));
+}
+
+/**
+ * Live weigh-ins and measurements in the user's units, oldest first: the
+ * same series the phone's Bodyweight and Measurements pages draw.
+ */
 export function buildPortalBodyData(
   rows: readonly BodyMeasurementRow[],
   units: WeightUnit,
 ): PortalBodyData {
-  return {
-    units,
-    bodyweight: bodyweightSeries(rows, units).map((point) => ({
-      id: point.id,
-      measuredAt: point.measuredAt.toISOString(),
-      value: point.value,
-    })),
-  };
+  const measurements = Object.fromEntries(
+    TRACKED_MEASUREMENT_KINDS.map((kind) => [
+      kind,
+      serialize(measurementSeries(rows, kind, displayUnitFor(kind, units))),
+    ]),
+  ) as Record<TrackedMeasurementKind, PortalBodyPoint[]>;
+  return { units, bodyweight: serialize(bodyweightSeries(rows, units)), measurements };
 }
 
 export interface TrendPoint {
@@ -73,4 +90,24 @@ export function summarizeTrend(points: readonly TrendPoint[]): TrendSummary | nu
     highest: Math.max(...values),
     count: points.length,
   };
+}
+
+/** The phone Measurements page's ranges (issue #249), counted back from the latest entry. */
+export const MEASUREMENT_RANGES = [
+  { key: "3m", label: "3M", days: 91 },
+  { key: "1y", label: "1Y", days: 365 },
+  { key: "all", label: "All", days: null },
+] as const;
+
+export type MeasurementRangeKey = (typeof MEASUREMENT_RANGES)[number]["key"];
+
+/** Entries within a measurement range of the latest one, as the phone shows them. */
+export function measurementPointsInRange(
+  points: readonly TrendPoint[],
+  range: MeasurementRangeKey,
+): TrendPoint[] {
+  const days = MEASUREMENT_RANGES.find((option) => option.key === range)?.days ?? null;
+  const latest = points[points.length - 1];
+  if (days == null || !latest) return [...points];
+  return trendPointsSince(points, new Date(latest.measuredAt.getTime() - days * 86_400_000));
 }
