@@ -10,6 +10,7 @@ import type {
 } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
+import { useLogGuard } from "@/lib/workout/log-guard";
 import {
   type CardioRecordKind,
   computeCardioBests,
@@ -162,7 +163,13 @@ export function CardioExerciseSection({
   const nextDuration = typedAnything ? typedDuration || null : previousDuration;
   const canLog = nextDistance != null || nextDuration != null;
 
-  async function log() {
+  const logGuard = useLogGuard(sets);
+
+  function log() {
+    return logGuard.run(save);
+  }
+
+  async function save() {
     if (!canLog) return;
     await completeSet({
       userId,

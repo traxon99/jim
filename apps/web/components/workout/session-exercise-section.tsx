@@ -43,6 +43,7 @@ import { showsRpe } from "@/lib/settings/features";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
+import { useLogGuard } from "@/lib/workout/log-guard";
 import {
   type PrCandidate,
   type PreviousSet,
@@ -467,7 +468,13 @@ export function SessionExerciseSection({
   const hasHistory =
     previousSets.working.length > 0 || previousSets.warmups.length > 0 || sets.length > 0;
 
-  async function logRow(index: number) {
+  const logGuard = useLogGuard(sets);
+
+  function logRow(index: number) {
+    return logGuard.run(() => saveRow(index));
+  }
+
+  async function saveRow(index: number) {
     const draft = draftFor(index);
     const weight = toNumberOrNull(draft.weight) ?? toNumberOrNull(suggestedWeightFor(index));
     const reps = toNumberOrNull(draft.reps) ?? toNumberOrNull(suggestedRepsFor(index));
@@ -493,7 +500,11 @@ export function SessionExerciseSection({
     onSetLogged(restSeconds, remainingAfterLogging(index));
   }
 
-  async function repeatLast() {
+  function repeatLast() {
+    return logGuard.run(saveRepeat);
+  }
+
+  async function saveRepeat() {
     if (!lastSet) return;
     const { set, prs } = await completeSet({
       userId,
