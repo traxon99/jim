@@ -83,6 +83,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #493 | Tapping outside the Sticky note or Rest timer dialog did nothing | Its backdrop `<button>` used plain `absolute` (the #356 bug again), and the dialog rendered in place inside the exercise section | Backdrop buttons use `absolute!`; overlays opened from a list row portal to `<body>` |
 | #492 | One tap on Remove Exercise mid-workout deleted every set logged for it, with no confirm or undo | The ⋯ menu action tombstoned the session exercise directly | Anything that deletes logged sets asks first or offers Undo |
 | #491 | A fast double tap on ✓ saved the same set twice, and both counted toward volume and PRs | The Log buttons had no in-flight guard, and the set index only moves once the live query re-emits, after `completeSet` resolves | Guard every log with `useLogGuard`: one log in flight per section until the new set has rendered |
 | #487 | After the session expired, sync stopped sending sets but still showed "Pending" with no way to sign in | The proxy redirected `/api/*` to `/login`; `fetch` followed it and the engine's `response.json()` threw on the HTML, so no status was ever set | API routes answer 401 JSON, never a redirect; sync treats 401 as `signed-out` and never assumes a body is JSON |

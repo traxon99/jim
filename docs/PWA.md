@@ -162,6 +162,7 @@ The current scale:
 |---|---|
 | `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `RpeInfoMenu`, `ExerciseActionsMenu` |
 | `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together), `FloatingCard` (portaled to `<body>`) |
+| `z-30` | `ExerciseDialog` (sticky note, rest timer; portaled to `<body>`), which can open over Focus view |
 | `z-50` | Boot `LoadingScreen` (above everything) |
 
 **A z-index only competes inside its stacking context, and `fixed` doesn't escape it.** The DPR
