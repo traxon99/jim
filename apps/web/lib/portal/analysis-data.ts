@@ -1,5 +1,7 @@
+import type { StatSession } from "@/lib/home/stats";
 import {
   type ExerciseCategory,
+  type SessionListEntry,
   deriveUntitledSessionName,
   exerciseDisplayName,
   gymCoordinates,
@@ -97,6 +99,35 @@ export interface PortalTrainingData {
 export interface PortalOverviewData extends PortalTrainingData {
   gyms: PortalGym[];
   gymVisits: PortalGymVisit[];
+  /** Every finished workout, as the phone's Home stat cards count them. */
+  periodSessions: PortalPeriodSession[];
+}
+
+/** A finished workout for the 7/30/90-day comparison, dates as ISO strings. */
+export interface PortalPeriodSession {
+  startedAt: string;
+  endedAt: string | null;
+  totalVolume: number;
+  prCount: number;
+}
+
+export function serializePeriodSessions(
+  entries: readonly Pick<SessionListEntry, "startedAt" | "endedAt" | "totalVolume" | "prCount">[],
+): PortalPeriodSession[] {
+  return entries.map((entry) => ({
+    startedAt: entry.startedAt.toISOString(),
+    endedAt: entry.endedAt?.toISOString() ?? null,
+    totalVolume: entry.totalVolume,
+    prCount: entry.prCount,
+  }));
+}
+
+export function revivePeriodSessions(sessions: readonly PortalPeriodSession[]): StatSession[] {
+  return sessions.map((session) => ({
+    ...session,
+    startedAt: new Date(session.startedAt),
+    endedAt: session.endedAt ? new Date(session.endedAt) : null,
+  }));
 }
 
 interface PortalGymRow {

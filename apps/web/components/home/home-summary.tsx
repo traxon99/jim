@@ -4,11 +4,11 @@ import { db } from "@/lib/db/schema";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import {
-  type PeriodTotals,
   STAT_RANGES,
   type StatRange,
   formatCompact,
   formatMinutes,
+  periodDelta,
   periodStats,
   weekActivity,
 } from "@/lib/home/stats";
@@ -160,28 +160,28 @@ export function HomeSummary({ username }: { username: string | null }) {
         <StatCard
           label="Active days"
           value={String(stats.current.activeDays)}
-          delta={delta(stats, "activeDays", String)}
+          delta={periodDelta(stats, "activeDays", String)}
         />
         <StatCard
           label="Workouts"
           value={String(stats.current.workouts)}
-          delta={delta(stats, "workouts", String)}
+          delta={periodDelta(stats, "workouts", String)}
         />
         <StatCard
           label="Time"
           value={formatMinutes(stats.current.minutes)}
-          delta={delta(stats, "minutes", formatMinutes)}
+          delta={periodDelta(stats, "minutes", formatMinutes)}
         />
         <StatCard
           label="Volume"
           value={formatCompact(stats.current.volume)}
           unit={settings.units}
-          delta={delta(stats, "volume", formatCompact)}
+          delta={periodDelta(stats, "volume", formatCompact)}
         />
         <StatCard
           label="PRs"
           value={String(stats.current.prs)}
-          delta={delta(stats, "prs", String)}
+          delta={periodDelta(stats, "prs", String)}
         />
       </div>
     </section>
@@ -208,16 +208,6 @@ export function HomeShortcuts() {
       ))}
     </nav>
   );
-}
-
-function delta(
-  stats: { current: PeriodTotals; previous: PeriodTotals },
-  key: keyof PeriodTotals,
-  format: (value: number) => string,
-): { direction: "up" | "down"; text: string } | null {
-  const change = stats.current[key] - stats.previous[key];
-  if (Math.round(change) === 0) return null;
-  return { direction: change > 0 ? "up" : "down", text: format(Math.abs(change)) };
 }
 
 function StatCard({

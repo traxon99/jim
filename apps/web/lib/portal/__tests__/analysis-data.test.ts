@@ -5,6 +5,8 @@ import {
   buildPortalSets,
   buildPortalWorkouts,
   countGymVisits,
+  revivePeriodSessions,
+  serializePeriodSessions,
 } from "../analysis-data";
 
 const COMPLETED_AT = new Date("2026-03-02T18:00:00.000Z");
@@ -237,5 +239,19 @@ describe("buildPortalWorkouts (#468)", () => {
       [],
     );
     expect(workouts).toEqual([]);
+  });
+});
+
+describe("serializePeriodSessions", () => {
+  it("round-trips finished workouts for the period comparison", () => {
+    const entries = [
+      {
+        startedAt: new Date("2026-10-01T10:00:00Z"),
+        endedAt: new Date("2026-10-01T11:00:00Z"),
+        totalVolume: 5000,
+        prCount: 1,
+      },
+    ];
+    expect(revivePeriodSessions(serializePeriodSessions(entries))).toEqual(entries);
   });
 });
