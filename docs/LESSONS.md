@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #505 | The production seed pulled `main` of a third-party dataset and cast its mechanic/force/level straight into db enums | A new upstream commit or odd value could change the catalog or fail the insert mid-deploy | Pin third-party data to a commit SHA and validate enum values before inserting (null if unknown) |
 | #535 | Another site could make a signed-in user's browser POST to our cookie-auth API routes | Nothing checked the `Origin` header on mutating `/api/*` requests | The proxy rejects a mutating `/api/*` request whose `Origin` isn't our own; server-to-server routes are exempted explicitly |
 | #545 | A screen reader said "Log set 3" for the row shown as 1 (after two warm-ups); the Exercises muscle and equipment selects had no label | Button labels used the raw row index, and the selects had no `aria-label` or `min-w-0` | Label a row's controls with the number the row shows; every `<select>` gets an `aria-label` and `min-w-0` in a flex row |
 | #546 | Link-buttons on History, Profile and Settings gave no tap feedback, and a long press opened iOS's "Open in New Tab" menu | The `<Link>`s styled as buttons lacked `data-ripple` | An `<a>`/`<Link>` used as a button carries `data-ripple` (`docs/PWA.md` §7) |
