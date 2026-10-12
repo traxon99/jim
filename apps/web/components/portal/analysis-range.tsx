@@ -29,9 +29,12 @@ export function useAnalysisRange(): [AnalysisRange, (range: AnalysisRange) => vo
 export function AnalysisRangePicker({
   range,
   onChange,
+  custom = false,
 }: {
   range: AnalysisRange;
   onChange: (range: AnalysisRange) => void;
+  /** Custom dates are in use, so no preset shows as picked. */
+  custom?: boolean;
 }) {
   return (
     <fieldset className="flex flex-wrap gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-800">
@@ -40,10 +43,10 @@ export function AnalysisRangePicker({
         <button
           key={option.id}
           type="button"
-          aria-pressed={range === option.id}
+          aria-pressed={!custom && range === option.id}
           onClick={() => onChange(option.id)}
           className={`min-h-9 rounded-md px-3 text-sm font-medium ${
-            range === option.id
+            !custom && range === option.id
               ? "bg-accent text-accent-foreground"
               : "text-zinc-600 dark:text-zinc-400"
           }`}
@@ -60,15 +63,19 @@ export function PortalSectionHeader({
   title,
   range,
   onRangeChange,
+  customRange = false,
 }: {
   title: string;
   range?: AnalysisRange;
   onRangeChange?: (range: AnalysisRange) => void;
+  customRange?: boolean;
 }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-3">
       <h1 className="text-2xl font-semibold">{title}</h1>
-      {range && onRangeChange && <AnalysisRangePicker range={range} onChange={onRangeChange} />}
+      {range && onRangeChange && (
+        <AnalysisRangePicker range={range} onChange={onRangeChange} custom={customRange} />
+      )}
     </header>
   );
 }

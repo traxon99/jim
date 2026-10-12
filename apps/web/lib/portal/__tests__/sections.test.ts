@@ -12,6 +12,7 @@ describe("activePortalSection", () => {
     expect(activePortalSection("/portal/exercises/some-id")).toBe("exercises");
     expect(activePortalSection("/portal/workouts/some-id")).toBe("workouts");
     expect(activePortalSection("/portal/calendar")).toBe("calendar");
+    expect(activePortalSection("/portal/compare")).toBe("compare");
     expect(activePortalSection("/portal/volume")).toBe("volume");
     expect(activePortalSection("/portal/cardio")).toBe("cardio");
     expect(activePortalSection("/portal/body")).toBe("body");

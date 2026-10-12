@@ -6,6 +6,7 @@ export type PortalSectionId =
   | "workouts"
   | "calendar"
   | "exercises"
+  | "compare"
   | "volume"
   | "cardio"
   | "body"
@@ -24,6 +25,7 @@ export const PORTAL_SECTIONS: readonly { id: PortalSectionId; label: string; hre
   { id: "workouts", label: "Workouts", href: `${PORTAL_PATH}/workouts` },
   { id: "calendar", label: "Calendar", href: `${PORTAL_PATH}/calendar` },
   { id: "exercises", label: "Exercises", href: `${PORTAL_PATH}/exercises` },
+  { id: "compare", label: "Compare", href: `${PORTAL_PATH}/compare` },
   { id: "volume", label: "Volume", href: `${PORTAL_PATH}/volume` },
   { id: "cardio", label: "Cardio", href: `${PORTAL_PATH}/cardio` },
   { id: "body", label: "Body", href: `${PORTAL_PATH}/body` },

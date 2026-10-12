@@ -9,6 +9,7 @@ import {
 } from "@/lib/portal/sections";
 import {
   CalendarDays,
+  ChartLine,
   ChevronLeft,
   ClipboardList,
   Download,
@@ -30,6 +31,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   workouts: History,
   calendar: CalendarDays,
   exercises: Dumbbell,
+  compare: ChartLine,
   volume: Flame,
   cardio: Footprints,
   body: Scale,
