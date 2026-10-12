@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   type LucideIcon,
   Scale,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -23,6 +24,7 @@ const ICONS: Record<PortalSectionId, LucideIcon> = {
   workouts: History,
   exercises: Dumbbell,
   body: Scale,
+  records: Trophy,
 };
 
 /**

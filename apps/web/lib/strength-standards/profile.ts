@@ -8,7 +8,7 @@ import { type StrengthProfile, ageFromBirthdate } from "@jim/core";
  * birthdate is optional and just skips age adjustment when absent).
  */
 export function strengthProfileFromSettings(
-  settings: SettingsRow,
+  settings: Pick<SettingsRow, "sex" | "bodyweight" | "birthdate">,
   now: Date = new Date(),
 ): StrengthProfile | null {
   if (!settings.sex || !settings.bodyweight) return null;
