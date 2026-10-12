@@ -5,6 +5,7 @@ import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
+import { useLogGuard } from "@/lib/workout/log-guard";
 import { exerciseDisplayName, resolveCurrentRows } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, X } from "lucide-react";
@@ -65,7 +66,13 @@ export function WarmupExerciseSection({
   const done = targetSets != null && sets.length >= targetSets;
   const instructions = exercise?.instructions ?? [];
 
-  async function log() {
+  const logGuard = useLogGuard(sets);
+
+  function log() {
+    return logGuard.run(save);
+  }
+
+  async function save() {
     const amount = toPositiveIntOrNull(value) ?? targetValue ?? null;
     if (amount == null) return;
     await completeSet({

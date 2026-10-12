@@ -43,6 +43,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       rounded corners. Use gradients inside the shape instead (#374, #376).
 
 **Taps and destructive actions**
+- [ ] Can a fast double tap run a save twice? Guard it until the result has rendered, not just until
+      the promise resolves (`useLogGuard`, #491).
 - [ ] Can a second tap land on something destructive? Never swap a delete/cancel control into the
       spot the user just tapped to confirm. A double tap on ✓ deleted the set it had just logged
       (#318).
@@ -81,6 +83,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #491 | A fast double tap on ✓ saved the same set twice, and both counted toward volume and PRs | The Log buttons had no in-flight guard, and the set index only moves once the live query re-emits, after `completeSet` resolves | Guard every log with `useLogGuard`: one log in flight per section until the new set has rendered |
 | #487 | After the session expired, sync stopped sending sets but still showed "Pending" with no way to sign in | The proxy redirected `/api/*` to `/login`; `fetch` followed it and the engine's `response.json()` threw on the HTML, so no status was ever set | API routes answer 401 JSON, never a redirect; sync treats 401 as `signed-out` and never assumes a body is JSON |
 | #486 | A `/login?next=https://…` link could send a signed-in user to another site | Login, signup and the email-confirm route passed `next` to a redirect without the `safeNextPath` check the reset pages used | Every `?next=` that feeds a redirect goes through `safeNextPath` |
 | #466 | Settings showed two Progression buttons | Settings home had its own Progression link and `DprSettings` (inside Workout) added another | One entry point per destination on a screen; grep the page's child components for the same `href` before adding a link |
