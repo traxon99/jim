@@ -45,6 +45,7 @@ import {
 import { type PortalPlansData, buildPortalPlansData } from "./plans-data";
 import type { PortalProgressionData } from "./progression-data";
 import { type PortalRecordsData, serializeRecordEntries } from "./records-data";
+import type { PortalStandardsData } from "./standards-data";
 import { type PortalVolumeData, serializeVolumeSets } from "./volume-data";
 import {
   type PortalWorkoutDetail,
@@ -269,57 +270,78 @@ export async function loadBodyData(): Promise<PortalBodyData> {
 
 /** The Records section: every live PR and what it needs to badge them (issue #470). */
 export async function loadRecordsData(): Promise<PortalRecordsData> {
+  return withUserDb(readRecordsData);
+}
+
+/**
+ * The Standards section (issue #470): the Records data, plus the bar and
+ * plates so a next-tier working set is one the user can load.
+ */
+export async function loadStandardsData(): Promise<PortalStandardsData> {
   return withUserDb(async (tx, userId) => {
-    const [settings] = await tx
-      .select({
-        units: users.units,
-        sex: users.sex,
-        birthdate: users.birthdate,
-        bodyweight: users.bodyweight,
-      })
+    const records = await readRecordsData(tx, userId);
+    const [gear] = await tx
+      .select({ barWeight: users.defaultBarWeight, plates: users.availablePlates })
       .from(users)
       .where(eq(users.id, userId));
-    const units = settings?.units ?? "lb";
-    const prRows = await tx.select().from(personalRecords);
-    const sessionRows = await tx.select().from(sessions);
-    const sessionExerciseRows = await tx.select().from(sessionExercises);
-    const setRows = await tx.select().from(sets);
-    const measurementRows = await tx.select().from(bodyMeasurements);
-    const exerciseIds = [...new Set(prRows.map((row) => row.exerciseId))];
-    const exerciseRows =
-      exerciseIds.length === 0
-        ? []
-        : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
-
-    const entries = buildPersonalRecordEntries(
-      prRows,
-      sessionRows,
-      sessionExerciseRows,
-      setRows,
-      exerciseRows,
-    );
     return {
-      units,
-      entries: serializeRecordEntries(entries),
-      exercises: exerciseRows.map((exercise) => ({
-        id: exercise.id,
-        slug: exercise.slug,
-        name: exercise.name,
-        aliases: exercise.aliases,
-        ownerId: exercise.ownerId,
-        isArchived: exercise.isArchived,
-        primaryMuscles: exercise.primaryMuscles,
-        secondaryMuscles: exercise.secondaryMuscles,
-        equipment: exercise.equipment,
-        category: exercise.category,
-        trackingType: exercise.trackingType,
-        machineBrand: exercise.machineBrand ?? null,
-        machineModel: exercise.machineModel ?? null,
-      })),
-      strengthProfile: settings ? strengthProfileFromSettings(settings) : null,
-      bodyweight: buildPortalBodyData(measurementRows, units).bodyweight,
+      ...records,
+      barWeight: Number(gear?.barWeight ?? 0) || 0,
+      plates: (gear?.plates ?? []).map(Number).filter((plate) => plate > 0),
     };
   });
+}
+
+async function readRecordsData(tx: DbOrTx, userId: string): Promise<PortalRecordsData> {
+  const [settings] = await tx
+    .select({
+      units: users.units,
+      sex: users.sex,
+      birthdate: users.birthdate,
+      bodyweight: users.bodyweight,
+    })
+    .from(users)
+    .where(eq(users.id, userId));
+  const units = settings?.units ?? "lb";
+  const prRows = await tx.select().from(personalRecords);
+  const sessionRows = await tx.select().from(sessions);
+  const sessionExerciseRows = await tx.select().from(sessionExercises);
+  const setRows = await tx.select().from(sets);
+  const measurementRows = await tx.select().from(bodyMeasurements);
+  const exerciseIds = [...new Set(prRows.map((row) => row.exerciseId))];
+  const exerciseRows =
+    exerciseIds.length === 0
+      ? []
+      : await tx.select().from(exercises).where(inArray(exercises.id, exerciseIds));
+
+  const entries = buildPersonalRecordEntries(
+    prRows,
+    sessionRows,
+    sessionExerciseRows,
+    setRows,
+    exerciseRows,
+  );
+  return {
+    units,
+    entries: serializeRecordEntries(entries),
+    exercises: exerciseRows.map((exercise) => ({
+      id: exercise.id,
+      slug: exercise.slug,
+      name: exercise.name,
+      aliases: exercise.aliases,
+      ownerId: exercise.ownerId,
+      isArchived: exercise.isArchived,
+      primaryMuscles: exercise.primaryMuscles,
+      secondaryMuscles: exercise.secondaryMuscles,
+      equipment: exercise.equipment,
+      category: exercise.category,
+      trackingType: exercise.trackingType,
+      machineBrand: exercise.machineBrand ?? null,
+      machineModel: exercise.machineModel ?? null,
+    })),
+    strengthProfile: settings ? strengthProfileFromSettings(settings) : null,
+    bodyweight: buildPortalBodyData(measurementRows, units).bodyweight,
+  };
 }
 
 /** One exercise's desktop page (issue #470), or null when it isn't the user's to see. */

@@ -11,6 +11,7 @@ export type PortalSectionId =
   | "cardio"
   | "body"
   | "records"
+  | "standards"
   | "progression"
   | "routines"
   | "export";
@@ -30,6 +31,7 @@ export const PORTAL_SECTIONS: readonly { id: PortalSectionId; label: string; hre
   { id: "cardio", label: "Cardio", href: `${PORTAL_PATH}/cardio` },
   { id: "body", label: "Body", href: `${PORTAL_PATH}/body` },
   { id: "records", label: "Records", href: `${PORTAL_PATH}/records` },
+  { id: "standards", label: "Standards", href: `${PORTAL_PATH}/standards` },
   { id: "progression", label: "PRP", href: `${PORTAL_PATH}/progression` },
   { id: "routines", label: "Routines", href: `${PORTAL_PATH}/routines` },
   { id: "export", label: "Export", href: `${PORTAL_PATH}/export` },

@@ -17,6 +17,7 @@ describe("activePortalSection", () => {
     expect(activePortalSection("/portal/cardio")).toBe("cardio");
     expect(activePortalSection("/portal/body")).toBe("body");
     expect(activePortalSection("/portal/records")).toBe("records");
+    expect(activePortalSection("/portal/standards")).toBe("standards");
     expect(activePortalSection("/portal/progression")).toBe("progression");
     expect(activePortalSection("/portal/routines")).toBe("routines");
     expect(activePortalSection("/portal/export")).toBe("export");
