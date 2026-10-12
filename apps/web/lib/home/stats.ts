@@ -46,6 +46,17 @@ function totals(sessions: readonly StatSession[], from: Date, to: Date): PeriodT
   return result;
 }
 
+/** Which way a stat moved against the period before, or null when it held. */
+export function periodDelta(
+  stats: { current: PeriodTotals; previous: PeriodTotals },
+  key: keyof PeriodTotals,
+  format: (value: number) => string,
+): { direction: "up" | "down"; text: string } | null {
+  const change = stats.current[key] - stats.previous[key];
+  if (Math.round(change) === 0) return null;
+  return { direction: change > 0 ? "up" : "down", text: format(Math.abs(change)) };
+}
+
 /**
  * Totals for the last `range` calendar days (today included) alongside the
  * `range` days before that, so each stat card can show which way it moved.

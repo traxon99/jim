@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCompact, formatMinutes, periodStats, weekActivity } from "../stats";
+import { formatCompact, formatMinutes, periodDelta, periodStats, weekActivity } from "../stats";
 
 function session(start: string, minutes: number, totalVolume = 1000, prCount = 0) {
   const startedAt = new Date(start);
@@ -59,5 +59,18 @@ describe("formatting", () => {
     expect(formatCompact(9450)).toBe("9,450");
     expect(formatCompact(12_340)).toBe("12.3k");
     expect(formatCompact(2_000_000)).toBe("2M");
+  });
+});
+
+describe("periodDelta", () => {
+  const zero = { activeDays: 0, workouts: 0, minutes: 0, volume: 0, prs: 0 };
+  it("says which way a stat moved, and by how much", () => {
+    const stats = {
+      current: { ...zero, workouts: 3, minutes: 90 },
+      previous: { ...zero, workouts: 5, minutes: 30 },
+    };
+    expect(periodDelta(stats, "workouts", String)).toEqual({ direction: "down", text: "2" });
+    expect(periodDelta(stats, "minutes", formatMinutes)).toEqual({ direction: "up", text: "1h" });
+    expect(periodDelta(stats, "prs", String)).toBeNull();
   });
 });

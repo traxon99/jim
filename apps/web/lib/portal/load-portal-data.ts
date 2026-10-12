@@ -2,6 +2,7 @@ import { withUserDb } from "@/lib/db/user-scoped";
 import { buildAchievementData } from "@/lib/history/achievement-data";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildPersonalRecordEntries } from "@/lib/history/pr-groups";
+import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
   type DbOrTx,
@@ -23,6 +24,7 @@ import {
   buildPortalGyms,
   buildPortalSets,
   buildPortalWorkouts,
+  serializePeriodSessions,
 } from "./analysis-data";
 import { type PortalBodyData, buildPortalBodyData } from "./body-data";
 import { type PortalCalendarData, serializeAchievements } from "./calendar-data";
@@ -53,36 +55,11 @@ async function readTrainingData(tx: DbOrTx, userId: string) {
     .select({ units: users.units, weekStart: users.weekStart })
     .from(users)
     .where(eq(users.id, userId));
-  const sessionRows = await tx
-    .select({
-      id: sessions.id,
-      name: sessions.name,
-      gymId: sessions.gymId,
-      startedAt: sessions.startedAt,
-      endedAt: sessions.endedAt,
-      deletedAt: sessions.deletedAt,
-    })
-    .from(sessions);
-  const sessionExerciseRows = await tx
-    .select({
-      id: sessionExercises.id,
-      sessionId: sessionExercises.sessionId,
-      exerciseId: sessionExercises.exerciseId,
-      deletedAt: sessionExercises.deletedAt,
-    })
-    .from(sessionExercises);
-  const setRows = await tx
-    .select({
-      id: sets.id,
-      sessionExerciseId: sets.sessionExerciseId,
-      kind: sets.kind,
-      weight: sets.weight,
-      reps: sets.reps,
-      completedAt: sets.completedAt,
-      supersedesId: sets.supersedesId,
-      deletedAt: sets.deletedAt,
-    })
-    .from(sets);
+  // Whole rows: the Overview also runs the phone's `buildSessionListEntries`
+  // on them for its period comparison.
+  const sessionRows = await tx.select().from(sessions);
+  const sessionExerciseRows = await tx.select().from(sessionExercises);
+  const setRows = await tx.select().from(sets);
 
   const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
   const exerciseRows =
@@ -121,7 +98,9 @@ async function readTrainingData(tx: DbOrTx, userId: string) {
  */
 export async function loadOverviewData(): Promise<PortalOverviewData> {
   return withUserDb(async (tx, userId) => {
-    const { data, sessionRows } = await readTrainingData(tx, userId);
+    const { data, sessionRows, sessionExerciseRows, setRows, exerciseRows } =
+      await readTrainingData(tx, userId);
+    const prRows = await tx.select().from(personalRecords);
     const gymRows = await tx
       .select({
         id: gyms.id,
@@ -133,7 +112,13 @@ export async function loadOverviewData(): Promise<PortalOverviewData> {
         deletedAt: gyms.deletedAt,
       })
       .from(gyms);
-    return { ...data, ...buildPortalGyms(gymRows, sessionRows) };
+    return {
+      ...data,
+      ...buildPortalGyms(gymRows, sessionRows),
+      periodSessions: serializePeriodSessions(
+        buildSessionListEntries(sessionRows, sessionExerciseRows, exerciseRows, setRows, prRows),
+      ),
+    };
   });
 }
 
