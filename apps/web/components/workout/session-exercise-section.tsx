@@ -696,12 +696,16 @@ export function SessionExerciseSection({
       />
     );
   }
-  function logButtonFor(index: number) {
+  // Announce the number the row shows ("W" for a warm-up), not its raw index.
+  function setDescription(label: string) {
+    return label === "W" ? "warm-up set" : `set ${label}`;
+  }
+  function logButtonFor(index: number, label: string) {
     return (
       <button
         type="button"
         onClick={() => void logRow(index)}
-        aria-label={`Log set ${index + 1}`}
+        aria-label={`Log ${setDescription(label)}`}
         className={index === nextIndex ? sizes.logButton : sizes.laterLogButton}
       >
         <Check className={sizes.rowIcon} strokeWidth={2.25} aria-hidden="true" />
@@ -797,7 +801,7 @@ export function SessionExerciseSection({
                 <button
                   type="button"
                   onClick={() => fillFromPrevious(index)}
-                  aria-label={`Use last time's set ${index + 1}`}
+                  aria-label={`Use last time's ${setDescription(label)}`}
                   className="min-h-11 w-full"
                 >
                   {previousValues(index)}
@@ -812,7 +816,7 @@ export function SessionExerciseSection({
             <td className={sizes.actionCell}>
               <div className="flex min-w-22 items-center justify-end">
                 {index === nextIndex && repeatButton}
-                {logButtonFor(index)}
+                {logButtonFor(index, label)}
               </div>
               {reveal}
             </td>

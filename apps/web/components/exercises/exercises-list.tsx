@@ -220,9 +220,10 @@ export function ExercisesList({ userId }: { userId: string }) {
 
             <div className="flex gap-2">
               <select
+                aria-label="Muscle"
                 value={muscle}
                 onChange={(event) => setMuscle(event.target.value)}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               >
                 <option value="">All muscles</option>
                 {muscleOptions.map((m) => (
@@ -232,9 +233,10 @@ export function ExercisesList({ userId }: { userId: string }) {
                 ))}
               </select>
               <select
+                aria-label="Equipment"
                 value={equipment}
                 onChange={(event) => setEquipment(event.target.value)}
-                className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               >
                 <option value="">All equipment</option>
                 {equipmentOptions.map((eq) => (
