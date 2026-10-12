@@ -26,12 +26,15 @@ export function PortalTrendChart({
   unit,
   trendDays = null,
   emptyText,
+  format = formatValue,
 }: {
   points: readonly TrendPoint[];
   label: string;
   unit: string;
   trendDays?: number | null;
   emptyText: string;
+  /** How a value reads, e.g. "25:07" for a time; numbers by default. */
+  format?: (value: number) => string;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -76,9 +79,9 @@ export function PortalTrendChart({
     const point = points[index];
     if (!point) return "";
     const average = trendDays
-      ? `, ${trendDays}-day average ${formatValue(trend[index] ?? point.value)}`
+      ? `, ${trendDays}-day average ${format(trend[index] ?? point.value)}`
       : "";
-    return `${formatTooltipDate(point.measuredAt)}: ${formatValue(point.value)} ${unit}${average}`;
+    return `${formatTooltipDate(point.measuredAt)}: ${format(point.value)} ${unit}${average}`;
   }
 
   const path = points
@@ -96,7 +99,7 @@ export function PortalTrendChart({
         className="relative touch-pan-y"
         role="slider"
         tabIndex={0}
-        aria-label={`${label} over time, ranging from ${formatValue(minValue)} to ${formatValue(maxValue)} ${unit}`}
+        aria-label={`${label} over time, ranging from ${format(minValue)} to ${format(maxValue)} ${unit}`}
         aria-valuemin={0}
         aria-valuemax={last}
         aria-valuenow={activeIndex ?? last}
@@ -126,7 +129,7 @@ export function PortalTrendChart({
                   fill="currentColor"
                   opacity={0.55}
                 >
-                  {formatValue(value)}
+                  {format(value)}
                 </text>
               </g>
             ),
@@ -176,11 +179,11 @@ export function PortalTrendChart({
           <ChartTooltip xFraction={x(active) / WIDTH} yFraction={y(active.value) / HEIGHT}>
             <span className="font-semibold">{formatTooltipDate(active.measuredAt)}</span>
             <span className="tabular-nums">
-              {formatValue(active.value)} {unit}
+              {format(active.value)} {unit}
             </span>
             {trendDays && (
               <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
-                {trendDays}-day avg {formatValue(trend[activeIndex] ?? active.value)}
+                {trendDays}-day avg {format(trend[activeIndex] ?? active.value)}
               </span>
             )}
           </ChartTooltip>

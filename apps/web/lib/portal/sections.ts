@@ -7,6 +7,7 @@ export type PortalSectionId =
   | "calendar"
   | "exercises"
   | "volume"
+  | "cardio"
   | "body"
   | "records";
 
@@ -21,6 +22,7 @@ export const PORTAL_SECTIONS: readonly { id: PortalSectionId; label: string; hre
   { id: "calendar", label: "Calendar", href: `${PORTAL_PATH}/calendar` },
   { id: "exercises", label: "Exercises", href: `${PORTAL_PATH}/exercises` },
   { id: "volume", label: "Volume", href: `${PORTAL_PATH}/volume` },
+  { id: "cardio", label: "Cardio", href: `${PORTAL_PATH}/cardio` },
   { id: "body", label: "Body", href: `${PORTAL_PATH}/body` },
   { id: "records", label: "Records", href: `${PORTAL_PATH}/records` },
 ];
