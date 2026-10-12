@@ -1,5 +1,5 @@
-import { parseCsv } from "./csv";
-import { type WeightUnit, WorkoutCsvError, convertWeight } from "./workout-csv";
+import { parseCsv, toCsv } from "./csv";
+import { type WeightUnit, WorkoutCsvError, convertWeight, formatStrongDate } from "./workout-csv";
 
 /**
  * Bodyweight history in from a CSV (issue #377). Strong exports
@@ -364,4 +364,22 @@ export function weightEntryKey(measuredAt: Date, value: number, unit: WeightUnit
   const minute = Math.floor(measuredAt.getTime() / 60_000);
   const kg = Math.round(convertWeight(value, unit, "kg") * 10) / 10;
   return `${minute}:${kg.toFixed(1)}`;
+}
+
+/**
+ * Weigh-ins out (issue #470), in Strong's measurements layout with local
+ * times, so `parseWeightCsv` (and Strong-style importers) read them back.
+ */
+export function toWeightCsv(
+  entries: readonly { measuredAt: Date; value: number; unit: WeightUnit }[],
+): string {
+  return toCsv([
+    ["Date", "Measurement Type", "Value", "Unit"],
+    ...entries.map((entry) => [
+      formatStrongDate(entry.measuredAt),
+      "Weight",
+      Number(entry.value.toFixed(2)),
+      entry.unit,
+    ]),
+  ]);
 }

@@ -18,6 +18,7 @@ describe("activePortalSection", () => {
     expect(activePortalSection("/portal/records")).toBe("records");
     expect(activePortalSection("/portal/progression")).toBe("progression");
     expect(activePortalSection("/portal/routines")).toBe("routines");
+    expect(activePortalSection("/portal/export")).toBe("export");
   });
 
   it("doesn't match a section by prefix alone", () => {
