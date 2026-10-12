@@ -1,7 +1,7 @@
 import type { JimDatabase, SettingsRow } from "@/lib/db/schema";
 import { type DprSnapshot, type RepRange, buildDprSnapshot } from "@jim/core";
 
-export { buildDprSnapshot, e1rmSeries, toDprSet } from "@jim/core";
+export { buildDprSnapshot, e1rmSeries } from "@jim/core";
 export type { DprSnapshot, DprSourceRows } from "@jim/core";
 
 export function defaultRepRange(

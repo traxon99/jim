@@ -3,7 +3,7 @@ import {
   bodyweightLookup,
   bodyweightSeries,
   commitWeightImport,
-  deleteBodyweight,
+  deleteMeasurement,
   logBodyweight,
   logMeasurement,
   measurementSeries,
@@ -69,7 +69,7 @@ describe("logBodyweight", () => {
       { userId: USER_ID, value: 180, unit: "lb", measuredAt: new Date(2024, 0, 15) },
       testDb,
     );
-    await deleteBodyweight(removed, testDb);
+    await deleteMeasurement(removed, testDb);
     const series = bodyweightSeries(await testDb.bodyMeasurements.toArray(), "lb");
     expect(series).toEqual([{ id: kept.id, measuredAt: kept.measuredAt, value: 220.46 }]);
     expect(await testDb.outbox.count()).toBe(3);

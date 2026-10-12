@@ -11,7 +11,7 @@ import { execFileSync } from "node:child_process";
 export type VersionBase = { major: number; minor: number };
 
 /** Path of version.json from the repo root — what the GitHub API filters commits by. */
-export const VERSION_FILE_REPO_PATH = "apps/web/version.json";
+const VERSION_FILE_REPO_PATH = "apps/web/version.json";
 
 /**
  * `major.minor.patch` once the commit count is known. When it isn't, the

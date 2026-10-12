@@ -16,7 +16,7 @@ const MIGRATIONS_FOLDER = new URL("../../../../packages/db/drizzle", import.meta
 export const USER_A = "11111111-1111-1111-1111-111111111111";
 export const USER_B = "22222222-2222-2222-2222-222222222222";
 
-export function requireTestDatabaseUrl(): string {
+function requireTestDatabaseUrl(): string {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) {
     throw new Error("TEST_DATABASE_URL is required for db integration tests");

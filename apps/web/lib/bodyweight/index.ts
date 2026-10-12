@@ -105,8 +105,6 @@ export async function deleteMeasurement(
   );
 }
 
-export const deleteBodyweight = deleteMeasurement;
-
 /**
  * Keeps Settings' single "current bodyweight" (what strength standards
  * read) in step with the latest weigh-in. Best-effort: offline, the history

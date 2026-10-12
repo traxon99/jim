@@ -7,7 +7,7 @@ import {
 import { type DbOrTx, dprBlockLifts, dprBlocks, users } from "@jim/db";
 import { eq } from "drizzle-orm";
 
-export class ProgressionRuleError extends Error {}
+class ProgressionRuleError extends Error {}
 
 /**
  * Validates the custom progression rules (issue #255) a routine write sets,

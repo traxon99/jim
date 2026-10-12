@@ -22,7 +22,7 @@ export interface PortalStandardsData extends PortalRecordsData {
 }
 
 /** The lifts standards are published for, in the order the page lists them. */
-export const STANDARD_LIFTS: readonly StandardLift[] = [
+const STANDARD_LIFTS: readonly StandardLift[] = [
   "squat",
   "benchPress",
   "deadlift",

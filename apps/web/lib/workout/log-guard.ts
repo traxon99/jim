@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
  * guard lets another log through anyway, so a query that never re-emits
  * can't lock the Log button for good.
  */
-export const LOG_GUARD_BACKSTOP_MS = 2000;
+const LOG_GUARD_BACKSTOP_MS = 2000;
 
 export interface LogGuard {
   /** Runs `log` unless one is already in flight; resolves false when skipped. */
