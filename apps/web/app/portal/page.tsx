@@ -1,26 +1,13 @@
-import { PortalDashboard } from "@/components/portal/portal-dashboard";
+import { PortalOverview } from "@/components/portal/portal-overview";
 import { UnauthenticatedError } from "@/lib/db/user-scoped";
-import { loadPortalData } from "@/lib/portal/load-portal-data";
-import type { Metadata } from "next";
-// The Analysis gym map's (issue #462) Leaflet styles; the library itself
-// loads on demand inside components/portal/gym-map.tsx.
-import "leaflet/dist/leaflet.css";
+import { loadOverviewData } from "@/lib/portal/load-portal-data";
 import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Training analysis · Jim",
-};
-
-/**
- * The web portal (issue #38). Outside the (shell) group on purpose: no tab
- * bar, no sync engine, no IndexedDB — it reads straight from Postgres, so
- * it works in a desktop browser the install gate would otherwise block
- * (see components/install-gate.tsx and ADR-015).
- */
-export default async function PortalPage() {
+/** The Analysis Overview (issues #38, #470). The layout carries the nav. */
+export default async function PortalOverviewPage() {
   try {
-    const data = await loadPortalData();
-    return <PortalDashboard data={data} />;
+    const data = await loadOverviewData();
+    return <PortalOverview data={data} />;
   } catch (error) {
     if (error instanceof UnauthenticatedError) redirect("/login?next=/portal");
     throw error;
