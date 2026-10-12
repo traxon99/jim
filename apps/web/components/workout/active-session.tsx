@@ -423,6 +423,15 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   async function handleRemoveExercise(itemId: string) {
     const item = rawSessionExercises?.find((se) => se.id === itemId);
     if (!item) return;
+    // Removing takes every logged set with it (issue #492), so ask first
+    // once anything is logged; an untouched exercise goes in one tap.
+    const loggedCount = setCompletedAtBySessionExerciseId.get(itemId)?.length ?? 0;
+    if (loggedCount > 0) {
+      const exercise = exerciseById.get(item.exerciseId);
+      const name = exercise ? exerciseDisplayName(exercise) : "this exercise";
+      const sets = loggedCount === 1 ? "its logged set" : `its ${loggedCount} logged sets`;
+      if (!confirm(`Remove ${name}? This deletes ${sets} from the workout.`)) return;
+    }
     const deviceId = await getDeviceId();
     await mutate("sessionExercises", {
       ...item,
