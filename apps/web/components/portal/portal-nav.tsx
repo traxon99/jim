@@ -7,12 +7,13 @@ import {
   parseAnalysisRange,
   portalHref,
 } from "@/lib/portal/sections";
-import { ChevronLeft, Dumbbell, LayoutDashboard, type LucideIcon } from "lucide-react";
+import { ChevronLeft, Dumbbell, History, LayoutDashboard, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const ICONS: Record<PortalSectionId, LucideIcon> = {
   overview: LayoutDashboard,
+  workouts: History,
   exercises: Dumbbell,
 };
 

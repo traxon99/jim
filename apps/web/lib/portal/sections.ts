@@ -1,7 +1,7 @@
 import { ANALYSIS_RANGES, type AnalysisRange, DEFAULT_ANALYSIS_RANGE } from "@jim/core";
 import { PORTAL_PATH } from "../pwa/install-gate-exempt";
 
-export type PortalSectionId = "overview" | "exercises";
+export type PortalSectionId = "overview" | "workouts" | "exercises";
 
 /**
  * The desktop Analysis sections (issue #470), in nav order. Each is its own
@@ -10,6 +10,7 @@ export type PortalSectionId = "overview" | "exercises";
  */
 export const PORTAL_SECTIONS: readonly { id: PortalSectionId; label: string; href: string }[] = [
   { id: "overview", label: "Overview", href: PORTAL_PATH },
+  { id: "workouts", label: "Workouts", href: `${PORTAL_PATH}/workouts` },
   { id: "exercises", label: "Exercises", href: `${PORTAL_PATH}/exercises` },
 ];
 

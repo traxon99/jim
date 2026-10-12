@@ -49,7 +49,8 @@ function workoutDate(
  * portal's own read-only data so it works in a desktop browser, where the
  * install gate keeps History's workout screen out of reach. Shows working
  * sets only, the same sets the charts count (LESSONS: count working sets).
- * In the installed app it also links to the full workout in History.
+ * It links to the full workout page in Analysis (issue #470) and, in the
+ * installed app, to the same workout in History.
  */
 export function PortalWorkoutCard({
   sessionIds,
@@ -186,6 +187,12 @@ export function PortalWorkoutCard({
                 Working sets only
                 {highlight ? ". The highlighted set is the one on the chart." : "."}
               </p>
+              <Link
+                href={`/portal/workouts/${selectedId}`}
+                className="flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 text-sm font-medium dark:border-zinc-800"
+              >
+                Open full workout
+              </Link>
               {standalone && (
                 <Link
                   href={`/history/${selectedId}`}
