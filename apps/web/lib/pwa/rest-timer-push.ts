@@ -20,6 +20,16 @@ export interface RestTimerStartPayload {
 }
 
 /** What the delayed QStash message carries back to the fire route. */
+/**
+ * The destination URL QStash is given at publish time, and the one it signs
+ * into the `upstash-signature` JWT. Both the start route (publishing) and the
+ * fire route (verifying) build it here from their own request URL, path only,
+ * so the two sides can't drift apart and a query string never changes it.
+ */
+export function restTimerFireUrl(requestUrl: string): string {
+  return new URL("/api/push/rest-timer/fire", requestUrl).href;
+}
+
 export interface RestTimerFirePayload {
   userId: string;
   endsAt: string;

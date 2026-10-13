@@ -16,6 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 const published: { url: string; body: unknown; notBefore: number }[] = [];
 let signatureValid = true;
+const verified: { url?: string }[] = [];
 vi.mock("@upstash/qstash", () => ({
   Client: class {
     async publishJSON(request: { url: string; body: unknown; notBefore: number }) {
@@ -24,7 +25,8 @@ vi.mock("@upstash/qstash", () => ({
     }
   },
   Receiver: class {
-    async verify() {
+    async verify(request: { url?: string }) {
+      verified.push(request);
       if (!signatureValid) throw new Error("bad signature");
       return true;
     }
@@ -101,6 +103,13 @@ describe("POST /api/push/rest-timer/fire authentication", () => {
     signatureValid = false;
     expect((await fire({ userId: USER_A, endsAt: inSeconds(0) })).status).toBe(401);
     signatureValid = true;
+  });
+
+  it("binds the signature to the URL the message was published to", async () => {
+    verified.length = 0;
+    // An invalid payload stops after verification, so no database is needed.
+    expect((await fire({})).status).toBe(400);
+    expect(verified[0]?.url).toBe("https://jim.example/api/push/rest-timer/fire");
   });
 });
 

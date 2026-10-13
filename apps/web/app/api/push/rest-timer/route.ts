@@ -1,5 +1,9 @@
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
-import { type RestTimerFirePayload, parseRestTimerStart } from "@/lib/pwa/rest-timer-push";
+import {
+  type RestTimerFirePayload,
+  parseRestTimerStart,
+  restTimerFireUrl,
+} from "@/lib/pwa/rest-timer-push";
 import { configureWebPush } from "@/lib/pwa/web-push-server";
 import { pushSubscriptions, restTimerPushes } from "@jim/db";
 import { Client } from "@upstash/qstash";
@@ -67,7 +71,7 @@ export async function POST(request: Request) {
       // rolls back too and the client falls back to its local notification.
       const body: RestTimerFirePayload = { userId, endsAt: start.endsAt.toISOString() };
       await new Client().publishJSON({
-        url: new URL("/api/push/rest-timer/fire", request.url).href,
+        url: restTimerFireUrl(request.url),
         body,
         notBefore: Math.ceil(start.endsAt.getTime() / 1000),
         // QStash's retry backoff is measured in minutes; one retry is the
