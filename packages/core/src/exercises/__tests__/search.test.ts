@@ -188,6 +188,17 @@ describe("searchExercises", () => {
       expect(searchExercises(catalog, "chest dumbbell").map((e) => e.name)).toEqual(["Fly"]);
     });
 
+    it("skips the equipment and muscle fallback with namesOnly (#515)", () => {
+      const catalog = [
+        exercise({ name: "Fly", equipment: "dumbbell", primaryMuscles: ["chest"] }),
+        exercise({ name: "Squat", equipment: "barbell", primaryMuscles: ["quadriceps"] }),
+      ];
+      expect(searchExercises(catalog, "chest dumbbell", { namesOnly: true })).toEqual([]);
+      expect(searchExercises(catalog, "fly", { namesOnly: true }).map((e) => e.name)).toEqual([
+        "Fly",
+      ]);
+    });
+
     it("always ranks a whole-phrase match above a fuzzy one", () => {
       const catalog = [
         exercise({ name: "Squat Jump" }),

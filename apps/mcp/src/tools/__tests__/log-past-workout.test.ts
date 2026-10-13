@@ -156,6 +156,19 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("log_past_workout (#244)", () =>
     ).rejects.toThrow(/already over/);
   });
 
+  it("refuses an exercise that only matches by muscle, naming the near misses (#515)", async () => {
+    // No exercise is named "lats pull"; Pull-Up only matches it through its
+    // muscle, which used to be enough to log to it.
+    await expect(
+      logPastWorkout(context, {
+        startedAt: "2026-09-26T08:00:00Z",
+        exercises: [{ exercise: "lats pull", sets: [{ weight: 50, reps: 12 }] }],
+      }),
+    ).rejects.toThrow(
+      /No exercise matches "lats pull"\. Closest by equipment or muscle: Pull-Up\./,
+    );
+  });
+
   it("writes nothing on a dry run", async () => {
     const before =
       await admin`SELECT (SELECT count(*) FROM sessions) s, (SELECT count(*) FROM sets) t, (SELECT count(*) FROM personal_records) p`;
