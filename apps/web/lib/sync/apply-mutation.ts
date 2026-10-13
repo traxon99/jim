@@ -1,4 +1,4 @@
-import { type Mutation, SYNC_DATE_FIELDS, normalizeDates } from "@jim/core";
+import { type Mutation, SYNC_DATE_FIELDS, type SyncTable, normalizeDates } from "@jim/core";
 import {
   type DbOrTx,
   bodyMeasurements,
@@ -26,6 +26,14 @@ import { excluded } from "./excluded";
  * winning row back (issue #490).
  */
 export type ApplyResult = "applied" | "duplicate" | "stale" | "error";
+
+interface LwwTable {
+  table: PgTable;
+  /** Columns an edit may change, by Drizzle property name. */
+  updatable: readonly string[];
+  /** The column forced to the pushing user; `userId` unless set. */
+  owner?: string;
+}
 
 /** (updatedAt, deviceId) tie-break per ADR-003 — the SQL mirror of @jim/core's isNewerWrite. */
 function lwwGuard(updatedAt: PgColumn, deviceId: PgColumn): SQL {
@@ -84,402 +92,172 @@ async function settle(
   return "stale";
 }
 
+/**
+ * Every last-write-wins table push accepts (issue #554), with the columns an
+ * edit may change. Keyed by `SyncTable`, so a table added to SYNC_TABLES
+ * without an entry here fails typecheck instead of being silently refused.
+ * `updatedAt`, `deviceId`, `deletedAt` and a fresh `serverSeq` are always
+ * in the update set. Columns left out are insert-only: `createdAt` (and a
+ * session's `startedAt`) keep the time the row was really created offline,
+ * not when it reached the server.
+ */
+export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
+  routines: {
+    table: routines,
+    updatable: [
+      "name",
+      "notes",
+      "position",
+      "folder",
+      "kind",
+      "warmupRoutineId",
+      "warmupMinutes",
+      "iconShape",
+      "iconColor",
+    ],
+  },
+  routineExercises: {
+    table: routineExercises,
+    updatable: [
+      "routineId",
+      "exerciseId",
+      "position",
+      "supersetGroup",
+      "targetSets",
+      "targetRepsLow",
+      "targetRepsHigh",
+      "targetRestSeconds",
+      "targetDurationSeconds",
+      "targetWeight",
+      "progressionRule",
+      "notes",
+    ],
+  },
+  sessions: {
+    table: sessions,
+    updatable: ["routineId", "name", "endedAt", "notes", "bodyweight", "intensity", "gymId"],
+  },
+  sessionExercises: {
+    table: sessionExercises,
+    updatable: [
+      "sessionId",
+      "exerciseId",
+      "position",
+      "supersetGroup",
+      "notes",
+      "stickyNote",
+      "restSeconds",
+      "warmupSets",
+    ],
+  },
+  personalRecords: {
+    table: personalRecords,
+    updatable: ["exerciseId", "kind", "value", "setId", "achievedAt"],
+  },
+  bodyMeasurements: {
+    table: bodyMeasurements,
+    updatable: ["kind", "value", "unit", "measuredAt"],
+  },
+  // ownerId is forced to the verified user regardless of what the payload
+  // carries. RLS's owner_id = auth.uid() check would reject a write to
+  // anyone else's row (or a global one) anyway, but this keeps a mismatched
+  // payload from reaching that check as a no-op-looking failure.
+  exercises: {
+    table: exercises,
+    owner: "ownerId",
+    updatable: [
+      "slug",
+      "name",
+      "aliases",
+      "primaryMuscles",
+      "secondaryMuscles",
+      "equipment",
+      "mechanic",
+      "force",
+      "level",
+      "trackingType",
+      "category",
+      "instructions",
+      "imageUrls",
+      "videoUrl",
+      "machineBrand",
+      "machineModel",
+      "pulleyType",
+      "gymId",
+      "isArchived",
+    ],
+  },
+  programs: {
+    table: programs,
+    updatable: ["name", "mode", "isActive", "notes", "position", "durationWeeks", "activatedAt"],
+  },
+  programRoutines: {
+    table: programRoutines,
+    updatable: ["programId", "routineId", "position", "weekday"],
+  },
+  dprBlocks: {
+    table: dprBlocks,
+    updatable: [
+      "startedAt",
+      "weeks",
+      "endsAt",
+      "status",
+      "aggressiveness",
+      "experience",
+      "volumeMode",
+      "programId",
+    ],
+  },
+  dprBlockLifts: {
+    table: dprBlockLifts,
+    updatable: ["blockId", "exerciseId", "position", "baselineE1rm", "goalE1rm"],
+  },
+  gyms: {
+    table: gyms,
+    updatable: ["name", "address", "latitude", "longitude", "notes", "isDefault", "position"],
+  },
+};
+
+/** The update set for an LWW upsert: the table's editable columns plus the sync bookkeeping. */
+function lwwUpdateSet(table: PgTable, updatable: readonly string[]): Record<string, SQL> {
+  const columns = table as unknown as Record<string, PgColumn | undefined>;
+  const set: Record<string, SQL> = {};
+  for (const key of [...updatable, "updatedAt", "deviceId", "deletedAt"]) {
+    const column = columns[key];
+    if (column) set[key] = excluded(column);
+  }
+  set.serverSeq = sql`nextval('sync_seq')`;
+  return set;
+}
+
 async function applyEntity(
   tx: DbOrTx,
   userId: string,
   mutation: Mutation,
 ): Promise<"applied" | "stale"> {
-  const entity = mutation.entity;
-  const id = (entity as { id?: unknown }).id;
+  const dated = normalizeDates(
+    mutation.entity as Record<string, unknown>,
+    SYNC_DATE_FIELDS[mutation.table],
+  );
+  const { serverSeq: _serverSeq, ...row } = dated;
 
-  switch (mutation.table) {
-    case "sets": {
-      // Append-only (ADR-003): no conflict handling, no update path at all.
-      const dated = normalizeDates(entity as typeof sets.$inferInsert, SYNC_DATE_FIELDS.sets);
-      const { serverSeq: _serverSeq, ...row } = dated;
-      await tx.insert(sets).values({ ...row, userId });
-      return "applied";
-    }
-
-    case "routines": {
-      // createdAt is kept (not stripped): a routine created offline should
-      // keep the time it was actually created, not when it happened to
-      // reach the server. It's simply never in the onConflictDoUpdate set
-      // below, so an edit can't move it either.
-      const dated = normalizeDates(
-        entity as typeof routines.$inferInsert,
-        SYNC_DATE_FIELDS.routines,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(routines)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: routines.id,
-          set: {
-            name: excluded(routines.name),
-            notes: excluded(routines.notes),
-            position: excluded(routines.position),
-            folder: excluded(routines.folder),
-            kind: excluded(routines.kind),
-            warmupRoutineId: excluded(routines.warmupRoutineId),
-            warmupMinutes: excluded(routines.warmupMinutes),
-            iconShape: excluded(routines.iconShape),
-            iconColor: excluded(routines.iconColor),
-            updatedAt: excluded(routines.updatedAt),
-            deviceId: excluded(routines.deviceId),
-            deletedAt: excluded(routines.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(routines.updatedAt, routines.deviceId),
-        })
-        .returning({ id: routines.id });
-      return settle(tx, routines, id, written);
-    }
-
-    case "routineExercises": {
-      const dated = normalizeDates(
-        entity as typeof routineExercises.$inferInsert,
-        SYNC_DATE_FIELDS.routineExercises,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(routineExercises)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: routineExercises.id,
-          set: {
-            routineId: excluded(routineExercises.routineId),
-            exerciseId: excluded(routineExercises.exerciseId),
-            position: excluded(routineExercises.position),
-            supersetGroup: excluded(routineExercises.supersetGroup),
-            targetSets: excluded(routineExercises.targetSets),
-            targetRepsLow: excluded(routineExercises.targetRepsLow),
-            targetRepsHigh: excluded(routineExercises.targetRepsHigh),
-            targetRestSeconds: excluded(routineExercises.targetRestSeconds),
-            targetDurationSeconds: excluded(routineExercises.targetDurationSeconds),
-            targetWeight: excluded(routineExercises.targetWeight),
-            progressionRule: excluded(routineExercises.progressionRule),
-            notes: excluded(routineExercises.notes),
-            updatedAt: excluded(routineExercises.updatedAt),
-            deviceId: excluded(routineExercises.deviceId),
-            deletedAt: excluded(routineExercises.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(routineExercises.updatedAt, routineExercises.deviceId),
-        })
-        .returning({ id: routineExercises.id });
-      return settle(tx, routineExercises, id, written);
-    }
-
-    case "sessions": {
-      const dated = normalizeDates(
-        entity as typeof sessions.$inferInsert,
-        SYNC_DATE_FIELDS.sessions,
-      );
-      // startedAt, like routines.createdAt, is kept for the insert path and
-      // simply absent from the update set below.
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(sessions)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: sessions.id,
-          set: {
-            routineId: excluded(sessions.routineId),
-            name: excluded(sessions.name),
-            endedAt: excluded(sessions.endedAt),
-            notes: excluded(sessions.notes),
-            bodyweight: excluded(sessions.bodyweight),
-            intensity: excluded(sessions.intensity),
-            gymId: excluded(sessions.gymId),
-            updatedAt: excluded(sessions.updatedAt),
-            deviceId: excluded(sessions.deviceId),
-            deletedAt: excluded(sessions.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(sessions.updatedAt, sessions.deviceId),
-        })
-        .returning({ id: sessions.id });
-      return settle(tx, sessions, id, written);
-    }
-
-    case "sessionExercises": {
-      const dated = normalizeDates(
-        entity as typeof sessionExercises.$inferInsert,
-        SYNC_DATE_FIELDS.sessionExercises,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(sessionExercises)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: sessionExercises.id,
-          set: {
-            sessionId: excluded(sessionExercises.sessionId),
-            exerciseId: excluded(sessionExercises.exerciseId),
-            position: excluded(sessionExercises.position),
-            supersetGroup: excluded(sessionExercises.supersetGroup),
-            notes: excluded(sessionExercises.notes),
-            stickyNote: excluded(sessionExercises.stickyNote),
-            restSeconds: excluded(sessionExercises.restSeconds),
-            warmupSets: excluded(sessionExercises.warmupSets),
-            updatedAt: excluded(sessionExercises.updatedAt),
-            deviceId: excluded(sessionExercises.deviceId),
-            deletedAt: excluded(sessionExercises.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(sessionExercises.updatedAt, sessionExercises.deviceId),
-        })
-        .returning({ id: sessionExercises.id });
-      return settle(tx, sessionExercises, id, written);
-    }
-
-    case "personalRecords": {
-      const dated = normalizeDates(
-        entity as typeof personalRecords.$inferInsert,
-        SYNC_DATE_FIELDS.personalRecords,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(personalRecords)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: personalRecords.id,
-          set: {
-            exerciseId: excluded(personalRecords.exerciseId),
-            kind: excluded(personalRecords.kind),
-            value: excluded(personalRecords.value),
-            setId: excluded(personalRecords.setId),
-            achievedAt: excluded(personalRecords.achievedAt),
-            updatedAt: excluded(personalRecords.updatedAt),
-            deviceId: excluded(personalRecords.deviceId),
-            deletedAt: excluded(personalRecords.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(personalRecords.updatedAt, personalRecords.deviceId),
-        })
-        .returning({ id: personalRecords.id });
-      return settle(tx, personalRecords, id, written);
-    }
-
-    case "bodyMeasurements": {
-      const dated = normalizeDates(
-        entity as typeof bodyMeasurements.$inferInsert,
-        SYNC_DATE_FIELDS.bodyMeasurements,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(bodyMeasurements)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: bodyMeasurements.id,
-          set: {
-            kind: excluded(bodyMeasurements.kind),
-            value: excluded(bodyMeasurements.value),
-            unit: excluded(bodyMeasurements.unit),
-            measuredAt: excluded(bodyMeasurements.measuredAt),
-            updatedAt: excluded(bodyMeasurements.updatedAt),
-            deviceId: excluded(bodyMeasurements.deviceId),
-            deletedAt: excluded(bodyMeasurements.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(bodyMeasurements.updatedAt, bodyMeasurements.deviceId),
-        })
-        .returning({ id: bodyMeasurements.id });
-      return settle(tx, bodyMeasurements, id, written);
-    }
-
-    case "exercises": {
-      // ownerId is forced to the verified user below regardless of what the
-      // payload carries — RLS's owner_id = auth.uid() check would reject an
-      // insert/update against anyone else's row (or a global one) anyway,
-      // but this keeps a mismatched payload from ever reaching that check
-      // as a no-op-looking failure instead of applying as the right owner.
-      const dated = normalizeDates(
-        entity as typeof exercises.$inferInsert,
-        SYNC_DATE_FIELDS.exercises,
-      );
-      const { serverSeq: _serverSeq, ownerId: _ownerId, ...row } = dated;
-      const written = await tx
-        .insert(exercises)
-        .values({ ...row, ownerId: userId })
-        .onConflictDoUpdate({
-          target: exercises.id,
-          set: {
-            slug: excluded(exercises.slug),
-            name: excluded(exercises.name),
-            aliases: excluded(exercises.aliases),
-            primaryMuscles: excluded(exercises.primaryMuscles),
-            secondaryMuscles: excluded(exercises.secondaryMuscles),
-            equipment: excluded(exercises.equipment),
-            mechanic: excluded(exercises.mechanic),
-            force: excluded(exercises.force),
-            level: excluded(exercises.level),
-            trackingType: excluded(exercises.trackingType),
-            category: excluded(exercises.category),
-            instructions: excluded(exercises.instructions),
-            imageUrls: excluded(exercises.imageUrls),
-            videoUrl: excluded(exercises.videoUrl),
-            machineBrand: excluded(exercises.machineBrand),
-            machineModel: excluded(exercises.machineModel),
-            pulleyType: excluded(exercises.pulleyType),
-            gymId: excluded(exercises.gymId),
-            isArchived: excluded(exercises.isArchived),
-            updatedAt: excluded(exercises.updatedAt),
-            deviceId: excluded(exercises.deviceId),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(exercises.updatedAt, exercises.deviceId),
-        })
-        .returning({ id: exercises.id });
-      return settle(tx, exercises, id, written);
-    }
-
-    case "programs": {
-      // createdAt kept on insert, absent from the update set (as routines).
-      const dated = normalizeDates(
-        entity as typeof programs.$inferInsert,
-        SYNC_DATE_FIELDS.programs,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(programs)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: programs.id,
-          set: {
-            name: excluded(programs.name),
-            mode: excluded(programs.mode),
-            isActive: excluded(programs.isActive),
-            notes: excluded(programs.notes),
-            position: excluded(programs.position),
-            durationWeeks: excluded(programs.durationWeeks),
-            activatedAt: excluded(programs.activatedAt),
-            updatedAt: excluded(programs.updatedAt),
-            deviceId: excluded(programs.deviceId),
-            deletedAt: excluded(programs.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(programs.updatedAt, programs.deviceId),
-        })
-        .returning({ id: programs.id });
-      return settle(tx, programs, id, written);
-    }
-
-    case "programRoutines": {
-      const dated = normalizeDates(
-        entity as typeof programRoutines.$inferInsert,
-        SYNC_DATE_FIELDS.programRoutines,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(programRoutines)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: programRoutines.id,
-          set: {
-            programId: excluded(programRoutines.programId),
-            routineId: excluded(programRoutines.routineId),
-            position: excluded(programRoutines.position),
-            weekday: excluded(programRoutines.weekday),
-            updatedAt: excluded(programRoutines.updatedAt),
-            deviceId: excluded(programRoutines.deviceId),
-            deletedAt: excluded(programRoutines.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(programRoutines.updatedAt, programRoutines.deviceId),
-        })
-        .returning({ id: programRoutines.id });
-      return settle(tx, programRoutines, id, written);
-    }
-
-    case "dprBlocks": {
-      // createdAt kept on insert, absent from the update set (as programs).
-      const dated = normalizeDates(
-        entity as typeof dprBlocks.$inferInsert,
-        SYNC_DATE_FIELDS.dprBlocks,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(dprBlocks)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: dprBlocks.id,
-          set: {
-            startedAt: excluded(dprBlocks.startedAt),
-            weeks: excluded(dprBlocks.weeks),
-            endsAt: excluded(dprBlocks.endsAt),
-            status: excluded(dprBlocks.status),
-            aggressiveness: excluded(dprBlocks.aggressiveness),
-            experience: excluded(dprBlocks.experience),
-            volumeMode: excluded(dprBlocks.volumeMode),
-            programId: excluded(dprBlocks.programId),
-            updatedAt: excluded(dprBlocks.updatedAt),
-            deviceId: excluded(dprBlocks.deviceId),
-            deletedAt: excluded(dprBlocks.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(dprBlocks.updatedAt, dprBlocks.deviceId),
-        })
-        .returning({ id: dprBlocks.id });
-      return settle(tx, dprBlocks, id, written);
-    }
-
-    case "dprBlockLifts": {
-      const dated = normalizeDates(
-        entity as typeof dprBlockLifts.$inferInsert,
-        SYNC_DATE_FIELDS.dprBlockLifts,
-      );
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(dprBlockLifts)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: dprBlockLifts.id,
-          set: {
-            blockId: excluded(dprBlockLifts.blockId),
-            exerciseId: excluded(dprBlockLifts.exerciseId),
-            position: excluded(dprBlockLifts.position),
-            baselineE1rm: excluded(dprBlockLifts.baselineE1rm),
-            goalE1rm: excluded(dprBlockLifts.goalE1rm),
-            updatedAt: excluded(dprBlockLifts.updatedAt),
-            deviceId: excluded(dprBlockLifts.deviceId),
-            deletedAt: excluded(dprBlockLifts.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(dprBlockLifts.updatedAt, dprBlockLifts.deviceId),
-        })
-        .returning({ id: dprBlockLifts.id });
-      return settle(tx, dprBlockLifts, id, written);
-    }
-
-    case "gyms": {
-      // createdAt kept on insert, absent from the update set (as programs).
-      const dated = normalizeDates(entity as typeof gyms.$inferInsert, SYNC_DATE_FIELDS.gyms);
-      const { serverSeq: _serverSeq, ...row } = dated;
-      const written = await tx
-        .insert(gyms)
-        .values({ ...row, userId })
-        .onConflictDoUpdate({
-          target: gyms.id,
-          set: {
-            name: excluded(gyms.name),
-            address: excluded(gyms.address),
-            latitude: excluded(gyms.latitude),
-            longitude: excluded(gyms.longitude),
-            notes: excluded(gyms.notes),
-            isDefault: excluded(gyms.isDefault),
-            position: excluded(gyms.position),
-            updatedAt: excluded(gyms.updatedAt),
-            deviceId: excluded(gyms.deviceId),
-            deletedAt: excluded(gyms.deletedAt),
-            serverSeq: sql`nextval('sync_seq')`,
-          },
-          setWhere: lwwGuard(gyms.updatedAt, gyms.deviceId),
-        })
-        .returning({ id: gyms.id });
-      return settle(tx, gyms, id, written);
-    }
+  if (mutation.table === "sets") {
+    // Append-only (ADR-003): no conflict handling, no update path at all.
+    await tx.insert(sets).values({ ...(row as typeof sets.$inferInsert), userId });
+    return "applied";
   }
+
+  const { table, updatable, owner = "userId" } = LWW_TABLES[mutation.table];
+  const columns = table as unknown as Record<string, PgColumn>;
+  const { [owner]: _owner, ...fields } = row;
+  const written = await tx
+    .insert(table)
+    .values({ ...fields, [owner]: userId })
+    .onConflictDoUpdate({
+      target: columns.id as PgColumn,
+      set: lwwUpdateSet(table, updatable),
+      setWhere: lwwGuard(columns.updatedAt as PgColumn, columns.deviceId as PgColumn),
+    })
+    .returning({ id: columns.id as PgColumn });
+  return settle(tx, table, row.id, written);
 }

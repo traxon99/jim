@@ -18,8 +18,8 @@ interface LwwLike {
 /**
  * Applies one table's worth of pulled rows to Dexie. `tableName` comes from
  * the pull response's JSON keys, which are trusted to match a Dexie table
- * name (the server only ever emits the fixed set from `@jim/core`'s
- * SYNC_TABLES plus "exercises") — an unrecognised name is ignored rather
+ * name (the server emits the pull route's PULL_TABLES) — a name with no
+ * date fields or no Dexie table (e.g. "scheduledWorkouts") is ignored rather
  * than thrown on, since a stale client tolerating a server-added table is
  * safer than crashing the sync loop over it.
  */
