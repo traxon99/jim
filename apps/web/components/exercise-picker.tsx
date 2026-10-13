@@ -2,12 +2,11 @@
 
 import { ExerciseForm } from "@/components/exercises/exercise-form";
 import { db } from "@/lib/db/schema";
+import { EXERCISE_CATEGORY_TABS, exerciseMetaLine, useGymNames } from "@/lib/exercises/display";
 import {
   type ExerciseCategory,
   exerciseDisplayName,
   filterExercises,
-  isCardioExercise,
-  isWarmupExercise,
   preferOwnedExercises,
   searchExercises,
 } from "@jim/core";
@@ -42,13 +41,6 @@ interface Props {
 const SECTION_LABEL =
   "pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
 
-const CATEGORY_TABS = [
-  { value: "all", label: "All" },
-  { value: "strength", label: "Strength" },
-  { value: "warmup", label: "Warm-ups" },
-  { value: "cardio", label: "Cardio" },
-] as const;
-
 export function ExercisePicker({
   userId,
   excludeExerciseIds,
@@ -60,6 +52,7 @@ export function ExercisePicker({
 }: Props) {
   const replacing = mode === "replace";
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
+  const gymNames = useGymNames();
 
   // Full-screen overlay rules (docs/PWA.md §2, #521): lock the page behind
   // so a drag on the header can't scroll the workout underneath.
@@ -134,14 +127,7 @@ export function ExercisePicker({
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="text-base font-medium">{exerciseDisplayName(exercise)}</span>
             <span className="text-xs text-zinc-500 dark:text-zinc-500">
-              {[
-                isWarmupExercise(exercise) ? "warm-up" : null,
-                isCardioExercise(exercise) ? "cardio" : null,
-                exercise.equipment,
-                ...exercise.primaryMuscles,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+              {exerciseMetaLine(exercise, gymNames)}
             </span>
           </span>
           {!replacing && (
@@ -218,7 +204,7 @@ export function ExercisePicker({
 
       <div className="flex touch-none flex-col gap-2 px-4 py-3">
         <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
-          {CATEGORY_TABS.map((tab) => {
+          {EXERCISE_CATEGORY_TABS.map((tab) => {
             const selected = category === tab.value;
             return (
               <button

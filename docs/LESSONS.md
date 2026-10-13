@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #548 | Two identical machines at different gyms looked the same in the exercise picker, and some screens dropped the machine name | The picker copied the Exercises list's row line without the gym, and a few screens used `exercise.name` | Show an exercise with `exerciseDisplayName` and its list line with `exerciseMetaLine`; don't re-implement either |
 | #538 | 20 kg × 50 reps showed as a 53 kg estimated 1RM and a 1RM PR over a real 50 kg single | Epley keeps climbing with reps, and nothing capped the reps fed to it (the unused Brzycki option went to Infinity at 37 reps) | e1RM counts at most `MAX_ESTIMATE_REPS` (15) reps; only PRP, which compares a lift with itself, opts out |
 | #593 | CI caught a set reaching the server before its session, which Postgres rejected | `uuidv7()` ordered ids in the same millisecond by random bits, and the outbox drains in id order | Ids that set an order (outbox, supersede chains) must sort in creation order; `uuidv7()` keeps a per-millisecond counter |
 | #531 | A set edited on two devices showed up twice | Both edits superseded the same row, and `resolveCurrentRows` kept every row nothing pointed at | A supersede chain can fork; resolving it keeps one tip per chain, the newest UUIDv7 id |

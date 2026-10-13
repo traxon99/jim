@@ -11,6 +11,7 @@ import {
   dprGoalLine,
   dprWhyLine,
 } from "@/lib/dpr/calls";
+import { exerciseDisplayName } from "@jim/core";
 import { useId, useState } from "react";
 
 function formatWeight(n: number): string {
@@ -71,7 +72,8 @@ export function DprWorkoutBadge({
 
               <ul className="allow-pwa-select mt-2 flex min-h-0 flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto overscroll-contain px-4 dark:divide-zinc-800">
                 {calls.map((info) => {
-                  const name = context.exercises.get(info.exerciseId)?.name ?? "Lift";
+                  const exercise = context.exercises.get(info.exerciseId);
+                  const name = exercise ? exerciseDisplayName(exercise) : "Lift";
                   const badge = dprBadge(info.decision.call);
                   const { weight } = info.decision;
                   const goal = dprGoalLine(context, info.exerciseId);

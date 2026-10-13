@@ -486,10 +486,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
                     preferencesAction(item.exerciseId, router.push),
                     removeExerciseAction(() => void handleRemoveItem(item)),
                   ]}
-                  exerciseName={(() => {
-                    const exercise = exercisesById.get(item.exerciseId);
-                    return exercise ? exerciseDisplayName(exercise) : "Unknown exercise";
-                  })()}
+                  exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
                   warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                   cardio={exercisesById.get(item.exerciseId)?.cardio ?? false}
                   units={settings.units}
@@ -566,10 +563,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
             <SupersetPickerCard
               exercises={items.map((item) => ({
                 id: item.id,
-                name: (() => {
-                  const exercise = exercisesById.get(item.exerciseId);
-                  return exercise ? exerciseDisplayName(exercise) : "Unknown exercise";
-                })(),
+                name: exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise",
               }))}
               initialSelectedIds={memberIds}
               editing={editing}
