@@ -173,24 +173,26 @@ export function ExercisesList({ userId }: { userId: string }) {
             onChange={(event) => setQuery(event.target.value)}
             className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           />
-          <button
-            type="button"
-            onClick={() => setFiltersOpen((open) => !open)}
-            aria-expanded={filtersOpen}
-            aria-label={activeFilters > 0 ? `Filters, ${activeFilters} on` : "Filters"}
-            className={`relative flex min-h-11 min-w-12 shrink-0 items-center justify-center rounded-lg border ${
-              filtersOpen || activeFilters > 0
-                ? "border-accent text-zinc-950 dark:text-zinc-50"
-                : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
-            }`}
-          >
-            <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((open) => !open)}
+              aria-expanded={filtersOpen}
+              aria-label={activeFilters > 0 ? `Filters, ${activeFilters} on` : "Filters"}
+              className={`flex min-h-11 min-w-12 shrink-0 items-center justify-center rounded-lg border ${
+                filtersOpen || activeFilters > 0
+                  ? "border-accent text-zinc-950 dark:text-zinc-50"
+                  : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400"
+              }`}
+            >
+              <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
             {activeFilters > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-semibold text-accent-foreground">
+              <span className="pointer-events-none absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-xs font-semibold text-accent-foreground">
                 {activeFilters}
               </span>
             )}
-          </button>
+          </div>
         </div>
 
         {filtersOpen && (

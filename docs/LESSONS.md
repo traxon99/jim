@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #522 | The filter-count badge on Exercises was clipped | The badge was a child of the filter `<button>`, and the global ripple rule gives every button `overflow: hidden` | Never hang a badge off a button that sticks out of it; put it on a `relative` wrapper beside the button |
 | #526 | Bodyweight log form could run past the right edge at 393 px | The Weight/Date label columns lacked the `min-w-0` that #458 added elsewhere, so the date input kept its intrinsic width | Flex children holding an `<input>` need `min-w-0`; sweep sibling forms when fixing one |
 | #550 | A double tap on Add in the exercise picker added the exercises twice | `onPick` ran once per tap, and the add/superset code was copied into the workout and the routine editor, so a guard would have had to land twice | The picker accepts one pick per opening; the workout and routine editor share `lib/supersets/item-mutations.ts` |
 | #537 | After Claude logged an older, heavier workout, a later lighter set kept its PR | `log_past_workout` compared new sets only with earlier history and never re-checked PR rows after them | Writing history into the past re-checks the PR rows after it and retires the ones that no longer hold |
