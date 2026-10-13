@@ -50,7 +50,7 @@ export function FriendsScreen() {
               @{load.username}
             </span>
             .{" "}
-            <Link href="/profile" data-ripple className="underline underline-offset-2">
+            <Link href="/profile/settings" data-ripple className="underline underline-offset-2">
               Change
             </Link>
           </p>

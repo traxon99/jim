@@ -17,18 +17,27 @@ export function UsernameSection() {
   const [value, setValue] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
+  // `attempt` re-runs the fetch from Try again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt is the retry trigger
   useEffect(() => {
     let cancelled = false;
     void fetchFriends().then((result) => {
-      if (cancelled || !result.ok) return;
+      if (cancelled) return;
+      if (!result.ok) {
+        setLoadError(result.error);
+        return;
+      }
+      setLoadError(null);
       setSaved(result.value.username);
       setValue(result.value.username ?? "");
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   const normalized = normalizeUsername(value);
   const unchanged = normalized === (saved ?? "");
@@ -96,6 +105,18 @@ export function UsernameSection() {
       <p className="text-xs text-zinc-600 dark:text-zinc-400">
         Friends add you by this exact name from Home.
       </p>
+      {saved === null && loadError && (
+        <>
+          <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+            className="min-h-11 self-start rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+          >
+            Try again
+          </button>
+        </>
+      )}
       {status === "error" && error && (
         <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>
       )}
