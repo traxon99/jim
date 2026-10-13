@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #531 | A set edited on two devices showed up twice | Both edits superseded the same row, and `resolveCurrentRows` kept every row nothing pointed at | A supersede chain can fork; resolving it keeps one tip per chain, the newest UUIDv7 id |
 | #513 | Timed holds (plank) added zero weekly sets to a muscle, and the MCP let a plank be logged as reps | Muscle volume skipped any set without reps, and `log_past_workout` never checked the exercise's `trackingType` | A set counts when it has reps or seconds; MCP writes validate set fields against `trackingType` |
 | #516 | MCP `volume_report` by week/exercise counted warm-up and cardio exercises, so it disagreed with `weekly_summary` | Only the by-muscle grouping applied `isStrengthExercise` | Filter non-strength exercises where sets are loaded (`resolvedSetsInRange`), not per grouping |
 | #524 | After accepting a friend request, Home still showed the request badge and "Add a friend" | Home and Friends each held their own `useFriends()` state, and Home stays mounted under TabbedShell | Server data shown on more than one tab lives in one shared store, so an action on one tab updates the others |
