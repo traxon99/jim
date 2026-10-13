@@ -21,6 +21,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RoutineIcon } from "./routine-icon";
+import { WarmupOptions } from "./warmup-options";
 
 const SHAPE_LABELS: Record<RoutineIconShape, string> = {
   square: "Square",
@@ -337,23 +338,7 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
               onChange={(event) => setWarmupChoice(event.target.value)}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-3 text-base font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             >
-              <option value="">None</option>
-              {warmupRoutines.length > 0 && (
-                <optgroup label="My warm-ups">
-                  {warmupRoutines.map((r) => (
-                    <option key={r.id} value={`routine:${r.id}`}>
-                      {r.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <optgroup label="Templates">
-                {WARMUP_TEMPLATES.map((t) => (
-                  <option key={t.key} value={`template:${t.key}`}>
-                    {t.name}
-                  </option>
-                ))}
-              </optgroup>
+              <WarmupOptions warmupRoutines={warmupRoutines} />
             </select>
           </label>
         )}
