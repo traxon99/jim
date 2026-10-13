@@ -837,7 +837,11 @@ export const syncMutations = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ownRowPolicies("sync_mutations", table.userId),
+  (table) => [
+    // POST /api/sync/push prunes each user's old rows by this (issue #536).
+    index("sync_mutations_user_applied").on(table.userId, table.appliedAt),
+    ...ownRowPolicies("sync_mutations", table.userId),
+  ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------

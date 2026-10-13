@@ -1,0 +1,1 @@
+CREATE INDEX "sync_mutations_user_applied" ON "sync_mutations" USING btree ("user_id","applied_at");
