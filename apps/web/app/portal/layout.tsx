@@ -30,7 +30,11 @@ export default async function PortalLayout({ children }: LayoutProps<"/portal">)
         <PortalNav email={email} />
       </Suspense>
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-8">
+        <div
+          className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pt-6 md:px-8"
+          // The installed app's home indicator sits over the last row (#527).
+          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+        >
           {children}
         </div>
       </main>
