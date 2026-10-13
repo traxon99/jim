@@ -1,0 +1,22 @@
+CREATE INDEX "body_measurements_user_seq" ON "body_measurements" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "dpr_block_lifts_user_seq" ON "dpr_block_lifts" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "dpr_block_lifts_block" ON "dpr_block_lifts" USING btree ("block_id");--> statement-breakpoint
+CREATE INDEX "dpr_blocks_user_seq" ON "dpr_blocks" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "exercises_owner_seq" ON "exercises" USING btree ("owner_id","server_seq");--> statement-breakpoint
+CREATE INDEX "gyms_user_seq" ON "gyms" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "personal_records_user_seq" ON "personal_records" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "personal_records_set" ON "personal_records" USING btree ("set_id");--> statement-breakpoint
+CREATE INDEX "program_routines_user_seq" ON "program_routines" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "program_routines_program" ON "program_routines" USING btree ("program_id");--> statement-breakpoint
+CREATE INDEX "programs_user_seq" ON "programs" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "routine_exercises_user_seq" ON "routine_exercises" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "routine_exercises_routine" ON "routine_exercises" USING btree ("routine_id");--> statement-breakpoint
+CREATE INDEX "routines_user_seq" ON "routines" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "scheduled_workouts_user_seq" ON "scheduled_workouts" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "session_exercises_user_seq" ON "session_exercises" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "session_exercises_session" ON "session_exercises" USING btree ("session_id");--> statement-breakpoint
+CREATE INDEX "sessions_user_seq" ON "sessions" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "sessions_user_started" ON "sessions" USING btree ("user_id","started_at");--> statement-breakpoint
+CREATE INDEX "sets_user_seq" ON "sets" USING btree ("user_id","server_seq");--> statement-breakpoint
+CREATE INDEX "sets_session_exercise" ON "sets" USING btree ("session_exercise_id");--> statement-breakpoint
+CREATE INDEX "sets_supersedes" ON "sets" USING btree ("supersedes_id");

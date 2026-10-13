@@ -312,6 +312,7 @@ export const exercises = pgTable(
       .on(table.slug)
       .where(sql`${table.ownerId} IS NULL`),
     index("exercises_server_seq").on(table.serverSeq),
+    index("exercises_owner_seq").on(table.ownerId, table.serverSeq),
     pgPolicy("exercises_select_own_or_global", {
       for: "select",
       to: authenticatedRole,
@@ -378,6 +379,7 @@ export const routines = pgTable(
   (table) => [
     ...ownRowPolicies("routines", table.userId),
     index("routines_server_seq").on(table.serverSeq),
+    index("routines_user_seq").on(table.userId, table.serverSeq),
   ],
 ).enableRLS();
 
@@ -419,6 +421,8 @@ export const routineExercises = pgTable(
   (table) => [
     ...ownRowPolicies("routine_exercises", table.userId),
     index("routine_exercises_server_seq").on(table.serverSeq),
+    index("routine_exercises_user_seq").on(table.userId, table.serverSeq),
+    index("routine_exercises_routine").on(table.routineId),
   ],
 ).enableRLS();
 
@@ -455,6 +459,7 @@ export const programs = pgTable(
   (table) => [
     ...ownRowPolicies("programs", table.userId),
     index("programs_server_seq").on(table.serverSeq),
+    index("programs_user_seq").on(table.userId, table.serverSeq),
   ],
 ).enableRLS();
 
@@ -482,6 +487,8 @@ export const programRoutines = pgTable(
   (table) => [
     ...ownRowPolicies("program_routines", table.userId),
     index("program_routines_server_seq").on(table.serverSeq),
+    index("program_routines_user_seq").on(table.userId, table.serverSeq),
+    index("program_routines_program").on(table.programId),
   ],
 ).enableRLS();
 
@@ -521,6 +528,7 @@ export const dprBlocks = pgTable(
   (table) => [
     ...ownRowPolicies("dpr_blocks", table.userId),
     index("dpr_blocks_server_seq").on(table.serverSeq),
+    index("dpr_blocks_user_seq").on(table.userId, table.serverSeq),
   ],
 ).enableRLS();
 
@@ -548,6 +556,8 @@ export const dprBlockLifts = pgTable(
   (table) => [
     ...ownRowPolicies("dpr_block_lifts", table.userId),
     index("dpr_block_lifts_server_seq").on(table.serverSeq),
+    index("dpr_block_lifts_user_seq").on(table.userId, table.serverSeq),
+    index("dpr_block_lifts_block").on(table.blockId),
   ],
 ).enableRLS();
 
@@ -583,6 +593,8 @@ export const sessions = pgTable(
   (table) => [
     ...ownRowPolicies("sessions", table.userId),
     index("sessions_server_seq").on(table.serverSeq),
+    index("sessions_user_seq").on(table.userId, table.serverSeq),
+    index("sessions_user_started").on(table.userId, table.startedAt),
   ],
 ).enableRLS();
 
@@ -619,6 +631,8 @@ export const sessionExercises = pgTable(
   (table) => [
     ...ownRowPolicies("session_exercises", table.userId),
     index("session_exercises_server_seq").on(table.serverSeq),
+    index("session_exercises_user_seq").on(table.userId, table.serverSeq),
+    index("session_exercises_session").on(table.sessionId),
   ],
 ).enableRLS();
 
@@ -662,6 +676,9 @@ export const sets = pgTable(
       name: "sets_supersedes_id_fkey",
     }),
     index("sets_server_seq").on(table.serverSeq),
+    index("sets_user_seq").on(table.userId, table.serverSeq),
+    index("sets_session_exercise").on(table.sessionExerciseId),
+    index("sets_supersedes").on(table.supersedesId),
     pgPolicy("sets_select_own", {
       for: "select",
       to: authenticatedRole,
@@ -704,6 +721,8 @@ export const personalRecords = pgTable(
   (table) => [
     ...ownRowPolicies("personal_records", table.userId),
     index("personal_records_server_seq").on(table.serverSeq),
+    index("personal_records_user_seq").on(table.userId, table.serverSeq),
+    index("personal_records_set").on(table.setId),
   ],
 ).enableRLS();
 
@@ -732,6 +751,7 @@ export const bodyMeasurements = pgTable(
   (table) => [
     ...ownRowPolicies("body_measurements", table.userId),
     index("body_measurements_server_seq").on(table.serverSeq),
+    index("body_measurements_user_seq").on(table.userId, table.serverSeq),
   ],
 ).enableRLS();
 
@@ -767,6 +787,7 @@ export const gyms = pgTable(
   (table) => [
     ...ownRowPolicies("gyms", table.userId),
     index("gyms_server_seq").on(table.serverSeq),
+    index("gyms_user_seq").on(table.userId, table.serverSeq),
   ],
 ).enableRLS();
 
@@ -799,6 +820,7 @@ export const scheduledWorkouts = pgTable(
   (table) => [
     ...ownRowPolicies("scheduled_workouts", table.userId),
     index("scheduled_workouts_server_seq").on(table.serverSeq),
+    index("scheduled_workouts_user_seq").on(table.userId, table.serverSeq),
   ],
 ).enableRLS();
 
