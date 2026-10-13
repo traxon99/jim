@@ -24,6 +24,13 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export function loginRoutes(): Router {
   const router = express.Router();
   router.use(express.urlencoded({ extended: false }));
+  // The sign-in page grants access, so no other site may frame it and
+  // trick a click through (#509).
+  router.use((_req, res, next) => {
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+    res.setHeader("X-Frame-Options", "DENY");
+    next();
+  });
 
   router.get("/login", (req, res) => {
     const loginId = typeof req.query.login === "string" ? req.query.login : undefined;
@@ -32,7 +39,13 @@ export function loginRoutes(): Router {
       res.status(400).send(errorPage(EXPIRED_MESSAGE));
       return;
     }
-    res.send(loginFormPage(loginId as string, pending.client.client_name));
+    res.send(
+      loginFormPage({
+        loginId: loginId as string,
+        clientName: pending.client.client_name,
+        redirectUri: pending.params.redirectUri,
+      }),
+    );
   });
 
   const loginLimiter = rateLimit({
@@ -57,13 +70,16 @@ export function loginRoutes(): Router {
       res.status(400).send(errorPage(EXPIRED_MESSAGE));
       return;
     }
-    const clientName = pending.client.client_name;
+    const form = (error: string) =>
+      loginFormPage({
+        loginId: loginId as string,
+        clientName: pending.client.client_name,
+        redirectUri: pending.params.redirectUri,
+        error,
+        email,
+      });
     if (!email || !password) {
-      res
-        .status(400)
-        .send(
-          loginFormPage(loginId as string, clientName, "Enter your email and password.", email),
-        );
+      res.status(400).send(form("Enter your email and password."));
       return;
     }
 
@@ -72,9 +88,7 @@ export function loginRoutes(): Router {
       password,
     });
     if (error || !data.session) {
-      res
-        .status(401)
-        .send(loginFormPage(loginId as string, clientName, "Incorrect email or password.", email));
+      res.status(401).send(form("Incorrect email or password."));
       return;
     }
 
