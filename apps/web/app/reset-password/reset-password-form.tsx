@@ -1,6 +1,8 @@
 "use client";
 
+import { PASSWORD_HINT, authErrorMessage, isExpiredSessionError } from "@/lib/auth/error-message";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -12,6 +14,7 @@ export function ResetPasswordForm({ next }: { next: string }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [linkExpired, setLinkExpired] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,7 +32,8 @@ export function ResetPasswordForm({ next }: { next: string }) {
 
     if (error) {
       setStatus("error");
-      setErrorMessage(error.message);
+      setErrorMessage(authErrorMessage(error));
+      setLinkExpired(isExpiredSessionError(error));
       return;
     }
 
@@ -69,6 +73,7 @@ export function ResetPasswordForm({ next }: { next: string }) {
         onChange={(event) => setConfirmPassword(event.target.value)}
         className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
       />
+      <p className="text-xs text-zinc-500 dark:text-zinc-500">{PASSWORD_HINT}</p>
       <button
         type="submit"
         disabled={status === "submitting"}
@@ -80,6 +85,16 @@ export function ResetPasswordForm({ next }: { next: string }) {
         <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-400">
           {errorMessage}
         </p>
+      )}
+      {status === "error" && linkExpired && (
+        <Link
+          href={
+            next === "/" ? "/forgot-password" : `/forgot-password?next=${encodeURIComponent(next)}`
+          }
+          className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+        >
+          Request a new link
+        </Link>
       )}
     </form>
   );

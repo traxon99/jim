@@ -1,5 +1,6 @@
 "use client";
 
+import { authErrorMessage } from "@/lib/auth/error-message";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,7 +24,7 @@ export function LoginForm({ next }: { next: string }) {
 
     if (error) {
       setStatus("error");
-      setErrorMessage(error.message);
+      setErrorMessage(authErrorMessage(error));
       return;
     }
 
