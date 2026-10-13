@@ -8,6 +8,7 @@ import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
+import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setKindLabel, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -207,7 +208,7 @@ export function SessionDetail({ id }: { id: string }) {
           .map((group) => (
             <section key={group.sessionExerciseId} className="flex flex-col gap-1">
               <Link
-                href={`/exercises/${group.exerciseId}`}
+                href={exerciseCardHref(group.exerciseId, `/history/${id}`)}
                 className="text-base font-semibold underline-offset-4 hover:underline"
               >
                 {group.exerciseName}
