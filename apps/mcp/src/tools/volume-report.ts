@@ -1,7 +1,6 @@
 import {
   type TrainingGoal,
   WEEKLY_SET_TARGETS,
-  deletedSessionExerciseIds,
   groupByWeek,
   isStrengthExercise,
   resolveCurrentRows,
@@ -9,7 +8,7 @@ import {
   weeklyVolumeByMuscle,
 } from "@jim/core";
 import { type DbOrTx, exercises, sessionExercises, sessions, sets, users } from "@jim/db";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 
@@ -37,33 +36,45 @@ export async function resolvedSetsInRange(
   from: Date,
   to: Date,
 ): Promise<ResolvedSet[]> {
-  const exerciseRows = await tx.select().from(sessionExercises);
-  // Sets from a deleted workout don't count as volume (issue #200).
-  const deleted = deletedSessionExerciseIds(
-    await tx.select({ id: sessions.id, deletedAt: sessions.deletedAt }).from(sessions),
-    exerciseRows,
-  );
-  const sessionExerciseById = new Map(
-    exerciseRows.filter((row) => !deleted.has(row.id)).map((row) => [row.id, row]),
-  );
+  // Only this range, and only live workouts (issue #200), filtered in SQL
+  // rather than loading the whole history (issue #503). Every version of a
+  // set carries the original's completedAt and session exercise, so a range
+  // filter keeps whole supersede chains for resolveCurrentRows.
+  const rows = await tx
+    .select({
+      set: sets,
+      sessionId: sessionExercises.sessionId,
+      exerciseId: sessionExercises.exerciseId,
+    })
+    .from(sets)
+    .innerJoin(sessionExercises, eq(sets.sessionExerciseId, sessionExercises.id))
+    .innerJoin(sessions, eq(sessionExercises.sessionId, sessions.id))
+    .where(
+      and(
+        isNull(sessionExercises.deletedAt),
+        isNull(sessions.deletedAt),
+        gte(sets.completedAt, from),
+        lte(sets.completedAt, to),
+      ),
+    );
+  const placeBySet = new Map(rows.map((row) => [row.set.id, row]));
 
   // Only working sets are volume: warm-up sets are left out (issue #395).
-  const setRows = resolveCurrentRows(await tx.select().from(sets)).filter(
+  const setRows = resolveCurrentRows(rows.map((row) => row.set)).filter(
     (set) => !set.deletedAt && set.kind !== "warmup",
   );
 
   const result: ResolvedSet[] = [];
   for (const set of setRows) {
-    if (set.completedAt < from || set.completedAt > to) continue;
-    const sessionExercise = sessionExerciseById.get(set.sessionExerciseId);
-    if (!sessionExercise) continue;
+    const place = placeBySet.get(set.id);
+    if (!place) continue;
     result.push({
-      sessionId: sessionExercise.sessionId,
+      sessionId: place.sessionId,
       completedAt: set.completedAt,
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
       durationSeconds: set.durationSeconds,
-      exerciseId: sessionExercise.exerciseId,
+      exerciseId: place.exerciseId,
     });
   }
 
