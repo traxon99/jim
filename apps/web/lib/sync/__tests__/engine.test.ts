@@ -180,6 +180,32 @@ describe("pullChanges", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7");
   });
+
+  it("keeps pulling pages while the server says there are more (#489)", async () => {
+    const page = (id: string, cursor: number, hasMore: boolean) => {
+      const row = routine({ id, name: id });
+      return jsonResponse({
+        cursor,
+        hasMore,
+        changes: { routines: [{ ...row, updatedAt: row.updatedAt.toISOString() }] },
+      });
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(page("r1", 10, true))
+      .mockResolvedValueOnce(page("r2", 20, true))
+      .mockResolvedValueOnce(page("r3", 30, false));
+
+    await pullChanges(testDb, fetchMock);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/sync/pull?since=0",
+      "/api/sync/pull?since=10",
+      "/api/sync/pull?since=20",
+    ]);
+    expect(await testDb.routines.count()).toBe(3);
+    expect((await testDb.syncMeta.get("meta"))?.cursor).toBe(30);
+  });
 });
 
 describe("an expired session (#487)", () => {
