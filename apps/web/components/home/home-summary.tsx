@@ -15,15 +15,7 @@ import {
 import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
-import {
-  BarChart3,
-  Check,
-  ClipboardList,
-  Dumbbell,
-  type LucideIcon,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
+import { BarChart3, Check, type LucideIcon, Ruler, Scale, TrendingUp, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -31,11 +23,11 @@ const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
 const WEEKDAY_LONG = new Intl.DateTimeFormat(undefined, { weekday: "long" });
 
 const SHORTCUTS: readonly { href: string; label: string; Icon: LucideIcon }[] = [
-  { href: "/workout", label: "Train", Icon: Dumbbell },
-  { href: "/routines", label: "Routines", Icon: ClipboardList },
   { href: "/history/prs", label: "PRs", Icon: Trophy },
   { href: "/history/volume", label: "Volume", Icon: BarChart3 },
   { href: "/progression", label: "Progress", Icon: TrendingUp },
+  { href: "/profile/weight", label: "Weight", Icon: Scale },
+  { href: "/profile/measurements", label: "Body", Icon: Ruler },
 ];
 
 /**
@@ -84,14 +76,13 @@ export function HomeSummary({ username }: { username: string | null }) {
   return (
     <section className="flex w-full flex-col text-left">
       <div className="flex items-center gap-4 px-4 pt-2">
-        <Link
-          href="/profile"
-          aria-label="Profile"
-          data-ripple
+        {/* Not a link: the header's Profile button is the one way there (#528). */}
+        <span
+          aria-hidden="true"
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-bold uppercase text-accent-foreground"
         >
           {username ? username.charAt(0) : ""}
-        </Link>
+        </span>
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="allow-pwa-select truncate text-sm text-zinc-500 dark:text-zinc-500">
             Welcome back{username ? `, @${username}` : ""}
@@ -194,6 +185,7 @@ export function HomeSummary({ username }: { username: string | null }) {
 /**
  * Shortcuts into the rest of the app: five icon-over-label cards that all fit
  * at 393px (issue #327), rather than a sideways row that clipped the last.
+ * Only places the tab bar doesn't already reach (issue #528).
  */
 export function HomeShortcuts() {
   return (
