@@ -61,8 +61,9 @@ interface Props {
 
 export function RoutineForm({ userId, mode, routineId, initialKind = "strength" }: Props) {
   const router = useRouter();
+  // undefined while loading, null when there's no such routine (#518).
   const existing = useLiveQuery(
-    () => (routineId ? db.routines.get(routineId) : undefined),
+    async () => (routineId ? ((await db.routines.get(routineId)) ?? null) : null),
     [routineId],
   );
 
@@ -80,6 +81,7 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const iconInitialized = useRef(false);
+  const seededFrom = useRef<string | null>(null);
 
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const warmupRoutines = useMemo(
@@ -97,9 +99,12 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
     : undefined;
   const defaultWarmupMinutes = linkedWarmup?.warmupMinutes ?? linkedTemplate?.minutes ?? null;
 
-  // Populate the form once the existing row loads (edit mode).
+  // Populate the form once, when the existing row first loads (edit mode).
+  // Not on every change: a sync pull mid-edit would replace what's being
+  // typed (#518). Saving spreads the latest row, so synced fields survive.
   useEffect(() => {
-    if (!existing) return;
+    if (!existing || seededFrom.current === existing.id) return;
+    seededFrom.current = existing.id;
     setName(existing.name);
     setFolder(existing.folder ?? "");
     setNotes(existing.notes ?? "");
@@ -135,7 +140,7 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
   // "Saving…" (issue #517); on success the page navigates away.
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || (mode === "edit" && !existing)) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -205,6 +210,15 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
     return (
       <main className="flex flex-1 items-center justify-center">
         <LoadingText />
+      </main>
+    );
+  }
+
+  if (mode === "edit" && (existing === null || existing?.deletedAt)) {
+    return (
+      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+        <h1 className="text-xl font-semibold">Routine not found</h1>
+        <BackLink href="/routines" label="Routines" />
       </main>
     );
   }

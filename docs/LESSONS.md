@@ -48,6 +48,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] Can a second tap land on something destructive? Never swap a delete/cancel control into the
       spot the user just tapped to confirm. A double tap on ✓ deleted the set it had just logged
       (#318).
+- [ ] Does an edit form copy a `useLiveQuery` row into state? Seed it once, so a sync landing
+      mid-edit can't replace what's being typed (#518).
 - [ ] Does a disabled or "busy" state reset on every exit path, including cancel and switching
       tabs? Hidden tabs stay mounted and their effects keep running (#110, `docs/PWA.md` §8).
 
@@ -86,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #518 | Editing a routine or program, a sync landing mid-edit replaced the name and notes being typed | The form copied the live `useLiveQuery` row into state on every change, not once | An edit form seeds its state from the stored row once (ref guard), and shows "not found" for a missing row instead of saving a new one |
 | #517 | A failed Start, Save or Sign out left its button stuck on "Starting…"/"Saving…" with no message | The busy flag was set before an await and only cleared on success | Every busy flag is cleared in `catch`/`finally`, and the failure is shown next to the button |
 | #515 | An MCP write naming an exercise that didn't exist logged to some other exercise with the same equipment or muscle | `resolveExercise` took the top `searchExercises` hit, and search falls back to equipment and muscles | Resolving one exercise from a name matches names and aliases only (`namesOnly`); a miss fails with suggestions |
 | #510 | The MCP reported a PR count for workouts the phone showed 0 PRs for | `list_workouts` and `log_past_workout` counted PR rows of every kind, while the app counts only visible kinds (1RM) | Count PRs through `countVisiblePrs` in `@jim/core`, never with a local filter |

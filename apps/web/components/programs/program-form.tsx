@@ -10,7 +10,7 @@ import { PROGRAM_DURATION_OPTIONS, type ProgramMode, uuidv7 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   userId: string;
@@ -33,8 +33,9 @@ const MODES: { value: ProgramMode; label: string; description: string }[] = [
 
 export function ProgramForm({ userId, mode, programId }: Props) {
   const router = useRouter();
+  // undefined while loading, null when there's no such program (#518).
   const existing = useLiveQuery(
-    () => (programId ? db.programs.get(programId) : undefined),
+    async () => (programId ? ((await db.programs.get(programId)) ?? null) : null),
     [programId],
   );
 
@@ -45,9 +46,13 @@ export function ProgramForm({ userId, mode, programId }: Props) {
   const [durationWeeks, setDurationWeeks] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const seededFrom = useRef<string | null>(null);
 
+  // Seed the form once, not on every change: a sync pull mid-edit would
+  // replace what's being typed (#518).
   useEffect(() => {
-    if (!existing) return;
+    if (!existing || seededFrom.current === existing.id) return;
+    seededFrom.current = existing.id;
     setName(existing.name);
     setProgramMode(existing.mode);
     setActive(existing.isActive);
@@ -59,7 +64,7 @@ export function ProgramForm({ userId, mode, programId }: Props) {
   // "Saving…" (issue #517); on success the page navigates away.
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || (mode === "edit" && !existing)) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -119,6 +124,15 @@ export function ProgramForm({ userId, mode, programId }: Props) {
     return (
       <main className="flex flex-1 items-center justify-center">
         <LoadingText />
+      </main>
+    );
+  }
+
+  if (mode === "edit" && (existing === null || existing?.deletedAt)) {
+    return (
+      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+        <h1 className="text-xl font-semibold">Program not found</h1>
+        <BackLink href="/routines" label="Routines" />
       </main>
     );
   }
