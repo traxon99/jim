@@ -4,6 +4,7 @@ import {
   computePriorBests,
   deletedSessionExerciseIds,
   detectPersonalRecords,
+  isVisiblePrKind,
   isWarmupExercise,
   resolveCurrentRows,
   summarizeSession,
@@ -251,7 +252,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       allSets,
       startedAt,
       endedAt,
-      allSets.filter((set) => set.prs.length > 0).length,
+      allSets.reduce((n, set) => n + set.prs.filter((kind) => isVisiblePrKind(kind)).length, 0),
     );
 
     return {

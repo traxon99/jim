@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_PRIOR_BESTS,
   computePriorBests,
+  countVisiblePrs,
   detectPersonalRecords,
   isVisiblePrKind,
   tracksRepsAtWeight,
@@ -128,5 +129,21 @@ describe("isVisiblePrKind", () => {
     expect(isVisiblePrKind("weight")).toBe(false);
     expect(isVisiblePrKind("volume")).toBe(false);
     expect(isVisiblePrKind("reps_at_weight")).toBe(false);
+  });
+});
+
+describe("countVisiblePrs", () => {
+  it("counts only live 1RM rows on the given sets (issue #510)", () => {
+    const rows = [
+      { setId: "a", kind: "1rm" as const },
+      { setId: "a", kind: "volume" as const },
+      { setId: "b", kind: "weight" as const },
+      { setId: "c", kind: "1rm" as const },
+      { setId: "a", kind: "1rm" as const, deletedAt: new Date() },
+      { setId: null, kind: "1rm" as const },
+    ];
+    expect(countVisiblePrs(rows, new Set(["a", "b"]))).toBe(1);
+    expect(countVisiblePrs(rows, new Set(["a", "c"]))).toBe(2);
+    expect(countVisiblePrs([{ setId: "b", kind: "volume" }], new Set(["b"]))).toBe(0);
   });
 });
