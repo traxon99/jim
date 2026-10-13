@@ -41,9 +41,19 @@ async function readJson<T>(response: Response): Promise<T | null> {
   }
 }
 
+/** Server rejections after which a queued mutation reads as a sync error, not pending (#500). */
+export const MAX_PUSH_FAILURES = 3;
+
 async function refreshStatusFromOutbox(database: JimDatabase): Promise<void> {
   const remaining = await database.outbox.count();
-  setSyncStatus(remaining > 0 ? { kind: "pending", count: remaining } : { kind: "synced" });
+  if (remaining === 0) {
+    setSyncStatus({ kind: "synced" });
+    return;
+  }
+  const stuck = await database.outbox
+    .filter((entry) => (entry.failures ?? 0) >= MAX_PUSH_FAILURES)
+    .count();
+  setSyncStatus({ kind: stuck > 0 ? "error" : "pending", count: remaining });
 }
 
 /**
@@ -102,6 +112,15 @@ export async function drainOutbox(
       .filter((result) => ["applied", "duplicate", "stale"].includes(result.status))
       .map((result) => result.id);
     await database.outbox.bulkDelete(settled);
+
+    const rejected = new Set(
+      body.results.filter((result) => result.status === "error").map((result) => result.id),
+    );
+    await database.outbox.bulkPut(
+      batch
+        .filter((entry) => rejected.has(entry.id))
+        .map((entry) => ({ ...entry, failures: (entry.failures ?? 0) + 1 })),
+    );
   }
 
   await refreshStatusFromOutbox(database);

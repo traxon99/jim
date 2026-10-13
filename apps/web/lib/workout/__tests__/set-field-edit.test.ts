@@ -34,4 +34,9 @@ describe("setFieldEditPatch", () => {
     expect(setFieldEditPatch(logged, "weight", "135")).toBeNull();
     expect(setFieldEditPatch(logged, "rpe", "8")).toBeNull();
   });
+
+  it("saves nothing for a value the server can't store (#500)", () => {
+    expect(setFieldEditPatch(logged, "weight", "100000")).toBeNull();
+    expect(setFieldEditPatch(logged, "reps", "12000")).toBeNull();
+  });
 });

@@ -71,7 +71,12 @@ export interface SyncTableRowMap {
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
-export type OutboxEntry = Mutation;
+/**
+ * `failures` counts pushes the server answered with "error" for this
+ * mutation (issue #500), so one that keeps failing shows as a sync error
+ * rather than sitting "pending" forever. It's never sent to the server.
+ */
+export type OutboxEntry = Mutation & { failures?: number };
 
 /** Singleton row: sync cursor + this install's stable device id. */
 export interface SyncMetaRow {

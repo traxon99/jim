@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type PrCandidate,
+  type SetValuesToCheck,
   computePriorBests,
   deletedSessionExerciseIds,
   detectPersonalRecords,
@@ -11,6 +12,7 @@ import {
   isWarmupExercise,
   resolveCurrentRows,
   restTakenSeconds,
+  setValuesProblem,
   tracksRepsAtWeight,
   uuidv7,
 } from "@jim/core";
@@ -147,6 +149,24 @@ async function restBeforeNewSet(
   return { restSeconds: restTakenSeconds(completedAt, now), restTargetSeconds };
 }
 
+/**
+ * A set value the server can't store (issue #500), e.g. a fat-fingered
+ * 100000 lb. Thrown before anything is queued, so it can never sit in the
+ * outbox failing every push; the message is written for the user.
+ */
+export class SetValueError extends Error {}
+
+function assertSetValuesFit(values: SetValuesToCheck): void {
+  const problem = setValuesProblem(values);
+  if (problem) throw new SetValueError(problem);
+}
+
+/** Shows a `SetValueError` to the user; anything else is a real bug and keeps propagating. */
+export function alertSetValueError(error: unknown): void {
+  if (!(error instanceof SetValueError)) throw error;
+  window.alert(error.message);
+}
+
 export interface CompleteSetInput {
   userId: string;
   sessionExerciseId: string;
@@ -177,6 +197,7 @@ export async function completeSet(
   input: CompleteSetInput,
   database: JimDatabase = db,
 ): Promise<CompleteSetResult> {
+  assertSetValuesFit(input);
   const deviceId = await getDeviceId(database);
   const now = new Date();
   const exercise = await database.exercises.get(input.exerciseId);
@@ -231,6 +252,7 @@ export interface EditSetInput {
 
 /** ADR-003: sets are append-only — an edit inserts a new row carrying `supersedesId` rather than UPDATEing. */
 export async function editSet(input: EditSetInput, database: JimDatabase = db): Promise<SetRow> {
+  assertSetValuesFit(input);
   const updated: SetRow = {
     ...input.original,
     id: uuidv7(),

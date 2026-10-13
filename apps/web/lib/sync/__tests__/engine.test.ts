@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type JimDatabase, type RoutineRow, createTestDb } from "../../db/schema";
-import { PUSH_BATCH_SIZE, drainOutbox, pullChanges, runSyncCycle } from "../engine";
+import {
+  MAX_PUSH_FAILURES,
+  PUSH_BATCH_SIZE,
+  drainOutbox,
+  pullChanges,
+  runSyncCycle,
+} from "../engine";
 import { getSyncStatus } from "../status";
 
 let testDb: JimDatabase;
@@ -68,6 +74,24 @@ describe("drainOutbox", () => {
     const remaining = await testDb.outbox.toArray();
     expect(remaining.map((entry) => entry.id)).toEqual(["m3"]);
     expect(getSyncStatus()).toEqual({ kind: "pending", count: 1 });
+  });
+
+  it("shows a mutation the server keeps rejecting as a sync error (#500)", async () => {
+    await testDb.outbox.put({ id: "m1", table: "routines", entity: routine({ id: "r1" }) });
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(async () => jsonResponse({ results: [{ id: "m1", status: "error" }] }));
+
+    for (let attempt = 1; attempt < MAX_PUSH_FAILURES; attempt++) {
+      await drainOutbox(testDb, fetchMock);
+      expect(getSyncStatus()).toEqual({ kind: "pending", count: 1 });
+    }
+    await drainOutbox(testDb, fetchMock);
+
+    expect(getSyncStatus()).toEqual({ kind: "error", count: 1 });
+    expect((await testDb.outbox.get("m1"))?.failures).toBe(MAX_PUSH_FAILURES);
+    const sent = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string);
+    expect(sent.mutations[0]).not.toHaveProperty("failures");
   });
 
   it("reports synced immediately when the outbox is already empty", async () => {
