@@ -1,36 +1,35 @@
 /**
- * Estimated one-rep-max formulas shared across the PWA, the sync API, and the
+ * Estimated one-rep-max formula shared across the PWA, the sync API, and the
  * MCP server, so a number shown on the phone and a number reported by Claude
  * cannot drift (see docs/ARCHITECTURE.md §4, "Shared computation").
  */
 
-export type OneRepMaxFormula = "epley" | "brzycki";
-
 /**
- * Epley formula: 1RM = weight * (1 + reps / 30)
- * The default — simple, and reasonably accurate up to ~10 reps.
+ * Reps past this count no further toward an estimate (issue #538). Epley is
+ * reasonable up to ~10–15 reps; beyond that it keeps climbing, so 20 kg × 50
+ * read as a 53 kg "1RM" and beat a real 50 kg single as a PR.
  */
+export const MAX_ESTIMATE_REPS = 15;
+
+/** Epley formula: 1RM = weight * (1 + reps / 30). */
 function epley(weight: number, reps: number): number {
   return weight * (1 + reps / 30);
 }
 
-/**
- * Brzycki formula: 1RM = weight * 36 / (37 - reps)
- * Diverges from Epley at higher rep counts; undefined at reps >= 37.
- */
-function brzycki(weight: number, reps: number): number {
-  return weight * (36 / (37 - reps));
-}
-
 export interface EstimateOneRepMaxOptions {
-  formula?: OneRepMaxFormula;
+  /**
+   * Overrides `MAX_ESTIMATE_REPS`. PRP passes Infinity: it compares a lift's
+   * estimates with each other, where a capped value would hide progress on
+   * high-rep work.
+   */
+  maxReps?: number;
 }
 
 /**
  * Estimates a one-rep max from a single set's weight and reps.
  *
- * Returns the raw weight unchanged for a 1-rep set (both formulas agree
- * trivially at reps = 1), and 0 for a non-positive weight or rep count.
+ * Returns the raw weight unchanged for a 1-rep set, and 0 for a
+ * non-positive weight or rep count.
  */
 export function estimateOneRepMax(
   weight: number,
@@ -40,7 +39,6 @@ export function estimateOneRepMax(
   if (weight <= 0 || reps <= 0) return 0;
   if (reps === 1) return weight;
 
-  const formula = options.formula ?? "epley";
-  const raw = formula === "brzycki" ? brzycki(weight, reps) : epley(weight, reps);
+  const raw = epley(weight, Math.min(reps, options.maxReps ?? MAX_ESTIMATE_REPS));
   return Math.round(raw * 100) / 100;
 }
