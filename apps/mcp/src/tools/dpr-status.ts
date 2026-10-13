@@ -39,6 +39,8 @@ export interface DprStatusInput {
     dprEquipmentIncrements: Record<string, Record<string, number>>;
     dprDefaultRepLow: number;
     dprDefaultRepHigh: number;
+    /** Plate sizes, so barbell steps stay loadable (issue #496). */
+    availablePlates?: readonly (number | string)[];
   };
   blocks: readonly (DprBlockInfo & {
     id: string;
@@ -77,6 +79,7 @@ export function dprStatusFromRows(input: DprStatusInput) {
     aggressiveness: user.dprAggressiveness,
     increments: user.dprEquipmentIncrements as IncrementOverrides,
     defaultRange,
+    plates: user.availablePlates,
   };
   const snapshot = buildDprSnapshot(input.rows, defaultRange);
   const block = currentBlockOf(input.blocks);

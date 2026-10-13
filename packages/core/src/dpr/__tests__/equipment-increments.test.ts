@@ -92,4 +92,15 @@ describe("jumpFor", () => {
     expect(jumpFor(100, DPR_PRESETS.moderate, 1.25)).toBe(2.5);
     expect(jumpFor(20, DPR_PRESETS.moderate, 1.25)).toBe(1.25);
   });
+
+  it("never steps a bar by less than a pair of the smallest plate (#496)", () => {
+    expect(resolveIncrement("barbell", "lb", null, ["45", "35", "25", "10", "5", "2.5"])).toBe(5);
+    expect(resolveIncrement("ez-bar", "kg", null, [20, 10, 5, 2.5, 1.25])).toBe(2.5);
+    // Fractional plates: the default step already loads.
+    expect(resolveIncrement("barbell", "lb", null, [45, 1.25])).toBe(2.5);
+    // A step the user picked wins, and non-bar equipment ignores plates.
+    expect(resolveIncrement("barbell", "lb", { barbell: { lb: 2.5 } }, [45, 2.5])).toBe(2.5);
+    expect(resolveIncrement("dumbbell", "lb", null, [45, 2.5])).toBe(5);
+    expect(resolveIncrement("barbell", "lb", null, [])).toBe(2.5);
+  });
 });

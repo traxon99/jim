@@ -113,6 +113,7 @@ export function dprUserSettings(settings: SettingsRow): DprUserSettings {
     aggressiveness: settings.dprAggressiveness,
     increments: settings.dprEquipmentIncrements as IncrementOverrides,
     defaultRange: defaultRepRange(settings),
+    plates: settings.availablePlates,
   };
 }
 

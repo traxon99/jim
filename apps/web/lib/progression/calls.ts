@@ -35,7 +35,7 @@ export function ruleCallFor(input: {
   exerciseId: string;
   target: RuleTarget | null | undefined;
   exercise: Pick<ExerciseRow, "equipment"> | undefined;
-  settings: Pick<SettingsRow, "units" | "dprEquipmentIncrements">;
+  settings: Pick<SettingsRow, "units" | "dprEquipmentIncrements" | "availablePlates">;
 }): RuleCallInfo | null {
   const rule = ruleOf(input.target);
   if (!rule || !input.target) return null;
@@ -50,6 +50,7 @@ export function ruleCallFor(input: {
       input.exercise?.equipment,
       input.settings.units,
       input.settings.dprEquipmentIncrements as IncrementOverrides,
+      input.settings.availablePlates,
     ),
   });
 }
