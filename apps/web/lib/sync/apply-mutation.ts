@@ -17,10 +17,15 @@ import {
   syncMutations,
 } from "@jim/db";
 import { type SQL, sql } from "drizzle-orm";
-import type { PgColumn } from "drizzle-orm/pg-core";
+import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { excluded } from "./excluded";
 
-export type ApplyResult = "applied" | "duplicate" | "error";
+/**
+ * "stale": the mutation lost last-write-wins to a newer server row, so
+ * nothing was written; the client drops it, and the next pull brings the
+ * winning row back (issue #490).
+ */
+export type ApplyResult = "applied" | "duplicate" | "stale" | "error";
 
 /** (updatedAt, deviceId) tie-break per ADR-003 — the SQL mirror of @jim/core's isNewerWrite. */
 function lwwGuard(updatedAt: PgColumn, deviceId: PgColumn): SQL {
@@ -54,8 +59,7 @@ export async function applyMutation(
         return "duplicate"; // a previous push already applied this mutation_id
       }
 
-      await applyEntity(savepoint, userId, mutation);
-      return "applied";
+      return await applyEntity(savepoint, userId, mutation);
     });
   } catch (error) {
     console.error(`[sync/push] mutation ${mutation.id} (${mutation.table}) failed:`, error);
@@ -63,8 +67,30 @@ export async function applyMutation(
   }
 }
 
-async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Promise<void> {
+/**
+ * An upsert whose LWW guard rejected it returns no row. The server's copy
+ * won, but its server_seq is older than the device's cursor, so a pull
+ * would never send it back: give it a fresh seq so the losing device
+ * receives the winning row and converges.
+ */
+async function settle(
+  tx: DbOrTx,
+  table: PgTable,
+  id: unknown,
+  written: readonly unknown[],
+): Promise<"applied" | "stale"> {
+  if (written.length > 0) return "applied";
+  await tx.execute(sql`UPDATE ${table} SET server_seq = nextval('sync_seq') WHERE id = ${id}`);
+  return "stale";
+}
+
+async function applyEntity(
+  tx: DbOrTx,
+  userId: string,
+  mutation: Mutation,
+): Promise<"applied" | "stale"> {
   const entity = mutation.entity;
+  const id = (entity as { id?: unknown }).id;
 
   switch (mutation.table) {
     case "sets": {
@@ -72,7 +98,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
       const dated = normalizeDates(entity as typeof sets.$inferInsert, SYNC_DATE_FIELDS.sets);
       const { serverSeq: _serverSeq, ...row } = dated;
       await tx.insert(sets).values({ ...row, userId });
-      return;
+      return "applied";
     }
 
     case "routines": {
@@ -85,7 +111,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.routines,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(routines)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -106,8 +132,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(routines.updatedAt, routines.deviceId),
-        });
-      return;
+        })
+        .returning({ id: routines.id });
+      return settle(tx, routines, id, written);
     }
 
     case "routineExercises": {
@@ -116,7 +143,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.routineExercises,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(routineExercises)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -140,8 +167,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(routineExercises.updatedAt, routineExercises.deviceId),
-        });
-      return;
+        })
+        .returning({ id: routineExercises.id });
+      return settle(tx, routineExercises, id, written);
     }
 
     case "sessions": {
@@ -152,7 +180,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
       // startedAt, like routines.createdAt, is kept for the insert path and
       // simply absent from the update set below.
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(sessions)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -171,8 +199,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(sessions.updatedAt, sessions.deviceId),
-        });
-      return;
+        })
+        .returning({ id: sessions.id });
+      return settle(tx, sessions, id, written);
     }
 
     case "sessionExercises": {
@@ -181,7 +210,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.sessionExercises,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(sessionExercises)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -201,8 +230,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(sessionExercises.updatedAt, sessionExercises.deviceId),
-        });
-      return;
+        })
+        .returning({ id: sessionExercises.id });
+      return settle(tx, sessionExercises, id, written);
     }
 
     case "personalRecords": {
@@ -211,7 +241,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.personalRecords,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(personalRecords)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -228,8 +258,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(personalRecords.updatedAt, personalRecords.deviceId),
-        });
-      return;
+        })
+        .returning({ id: personalRecords.id });
+      return settle(tx, personalRecords, id, written);
     }
 
     case "bodyMeasurements": {
@@ -238,7 +269,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.bodyMeasurements,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(bodyMeasurements)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -254,8 +285,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(bodyMeasurements.updatedAt, bodyMeasurements.deviceId),
-        });
-      return;
+        })
+        .returning({ id: bodyMeasurements.id });
+      return settle(tx, bodyMeasurements, id, written);
     }
 
     case "exercises": {
@@ -269,7 +301,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.exercises,
       );
       const { serverSeq: _serverSeq, ownerId: _ownerId, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(exercises)
         .values({ ...row, ownerId: userId })
         .onConflictDoUpdate({
@@ -299,8 +331,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(exercises.updatedAt, exercises.deviceId),
-        });
-      return;
+        })
+        .returning({ id: exercises.id });
+      return settle(tx, exercises, id, written);
     }
 
     case "programs": {
@@ -310,7 +343,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.programs,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(programs)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -329,8 +362,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(programs.updatedAt, programs.deviceId),
-        });
-      return;
+        })
+        .returning({ id: programs.id });
+      return settle(tx, programs, id, written);
     }
 
     case "programRoutines": {
@@ -339,7 +373,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.programRoutines,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(programRoutines)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -355,8 +389,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(programRoutines.updatedAt, programRoutines.deviceId),
-        });
-      return;
+        })
+        .returning({ id: programRoutines.id });
+      return settle(tx, programRoutines, id, written);
     }
 
     case "dprBlocks": {
@@ -366,7 +401,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.dprBlocks,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(dprBlocks)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -386,8 +421,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(dprBlocks.updatedAt, dprBlocks.deviceId),
-        });
-      return;
+        })
+        .returning({ id: dprBlocks.id });
+      return settle(tx, dprBlocks, id, written);
     }
 
     case "dprBlockLifts": {
@@ -396,7 +432,7 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
         SYNC_DATE_FIELDS.dprBlockLifts,
       );
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(dprBlockLifts)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -413,15 +449,16 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(dprBlockLifts.updatedAt, dprBlockLifts.deviceId),
-        });
-      return;
+        })
+        .returning({ id: dprBlockLifts.id });
+      return settle(tx, dprBlockLifts, id, written);
     }
 
     case "gyms": {
       // createdAt kept on insert, absent from the update set (as programs).
       const dated = normalizeDates(entity as typeof gyms.$inferInsert, SYNC_DATE_FIELDS.gyms);
       const { serverSeq: _serverSeq, ...row } = dated;
-      await tx
+      const written = await tx
         .insert(gyms)
         .values({ ...row, userId })
         .onConflictDoUpdate({
@@ -440,8 +477,9 @@ async function applyEntity(tx: DbOrTx, userId: string, mutation: Mutation): Prom
             serverSeq: sql`nextval('sync_seq')`,
           },
           setWhere: lwwGuard(gyms.updatedAt, gyms.deviceId),
-        });
-      return;
+        })
+        .returning({ id: gyms.id });
+      return settle(tx, gyms, id, written);
     }
   }
 }

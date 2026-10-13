@@ -44,11 +44,12 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 }
 
 describe("drainOutbox", () => {
-  it("removes applied and duplicate mutations, leaving errored ones queued", async () => {
+  it("removes applied, duplicate and stale mutations, leaving errored ones queued", async () => {
     await testDb.outbox.bulkPut([
       { id: "m1", table: "routines", entity: routine({ id: "r1" }) },
       { id: "m2", table: "routines", entity: routine({ id: "r2" }) },
       { id: "m3", table: "routines", entity: routine({ id: "r3" }) },
+      { id: "m4", table: "routines", entity: routine({ id: "r4" }) },
     ]);
 
     const fetchMock = vi.fn().mockResolvedValue(
@@ -57,6 +58,7 @@ describe("drainOutbox", () => {
           { id: "m1", status: "applied" },
           { id: "m2", status: "duplicate" },
           { id: "m3", status: "error" },
+          { id: "m4", status: "stale" },
         ],
       }),
     );

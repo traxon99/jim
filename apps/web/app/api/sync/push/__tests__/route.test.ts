@@ -294,6 +294,42 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.name).toBe("From device B (newer)");
   });
 
+  it("reports a losing LWW edit as stale and re-sends the winner on the next pull (#490)", async () => {
+    const routineId = uuidv7();
+    const edit = (name: string, updatedAt: string, deviceId: string) => ({
+      id: uuidv7(),
+      table: "routines",
+      entity: {
+        id: routineId,
+        name,
+        notes: null,
+        position: 0,
+        folder: null,
+        updatedAt,
+        deviceId,
+        deletedAt: null,
+      },
+    });
+
+    const first = await (await push([edit("From MCP", "2026-02-02T00:00:00Z", "mcp")])).json();
+    expect(first.results[0].status).toBe("applied");
+    const [before] = await admin<{ server_seq: string }[]>`
+      SELECT server_seq FROM routines WHERE id = ${routineId}
+    `;
+
+    const losing = await (
+      await push([edit("From a slow phone clock", "2026-02-01T23:59:30Z", "device-a")])
+    ).json();
+    expect(losing.results[0].status).toBe("stale");
+
+    const [after] = await admin<{ name: string; server_seq: string }[]>`
+      SELECT name, server_seq FROM routines WHERE id = ${routineId}
+    `;
+    expect(after?.name).toBe("From MCP");
+    // A fresh seq puts the winning row past the phone's cursor, so its next pull repairs it.
+    expect(Number(after?.server_seq)).toBeGreaterThan(Number(before?.server_seq));
+  });
+
   it("stores and updates a routine exercise's custom progression rule (issue #255)", async () => {
     const routineId = uuidv7();
     const itemId = uuidv7();

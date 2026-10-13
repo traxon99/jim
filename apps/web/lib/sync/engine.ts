@@ -97,7 +97,9 @@ export async function drainOutbox(
       return;
     }
     const settled = body.results
-      .filter((result) => result.status === "applied" || result.status === "duplicate")
+      // "stale" lost last-write-wins (#490): nothing to retry, and the pull
+      // brings back the row that won.
+      .filter((result) => ["applied", "duplicate", "stale"].includes(result.status))
       .map((result) => result.id);
     await database.outbox.bulkDelete(settled);
   }
