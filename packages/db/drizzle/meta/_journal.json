@@ -323,6 +323,20 @@
       "when": 1791843799374,
       "tag": "0045_friend_workouts_working_sets",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1791914389959,
+      "tag": "0046_add_mcp_oauth_clients",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791914391192,
+      "tag": "0047_mcp_oauth_clients_functions",
+      "breakpoints": true
     }
   ]
 }

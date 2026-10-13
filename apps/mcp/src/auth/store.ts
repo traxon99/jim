@@ -57,8 +57,5 @@ export class ExpiringStore<V extends { createdAt: number }> {
   }
 }
 
-/** Dynamically registered OAuth clients (RFC 7591) — never expire; there's no client-secret rotation story here. */
-export const clients = new Map<string, OAuthClientInformationFull>();
-
 export const pendingAuthorizations = new ExpiringStore<PendingAuthorization>(PENDING_TTL_MS);
 export const issuedAuthorizationCodes = new ExpiringStore<IssuedAuthorizationCode>(CODE_TTL_MS);

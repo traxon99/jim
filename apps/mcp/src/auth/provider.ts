@@ -17,7 +17,8 @@ import type {
 import type { Response } from "express";
 import { getDb } from "../db.js";
 import { resolveAccessToken } from "./access-token.js";
-import { clients, issuedAuthorizationCodes, pendingAuthorizations } from "./store.js";
+import { createClientsStore } from "./clients-store.js";
+import { issuedAuthorizationCodes, pendingAuthorizations } from "./store.js";
 import { getSupabase } from "./supabase.js";
 
 /**
@@ -32,15 +33,7 @@ import { getSupabase } from "./supabase.js";
  * no hosted authorize page of its own to redirect to.
  */
 export class SupabaseOAuthProvider implements OAuthServerProvider {
-  readonly clientsStore = {
-    getClient(clientId: string): OAuthClientInformationFull | undefined {
-      return clients.get(clientId);
-    },
-    registerClient(client: OAuthClientInformationFull): OAuthClientInformationFull {
-      clients.set(client.client_id, client);
-      return client;
-    },
-  };
+  readonly clientsStore = createClientsStore(getDb);
 
   async authorize(
     client: OAuthClientInformationFull,

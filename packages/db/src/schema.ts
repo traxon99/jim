@@ -1081,3 +1081,16 @@ export const personalAccessTokens = pgTable(
     ...ownRowPolicies("personal_access_tokens", table.userId),
   ],
 ).enableRLS();
+
+/**
+ * OAuth clients the MCP server registered through dynamic client
+ * registration (issue #499). Kept here rather than in the server's memory so
+ * a deploy doesn't forget them and break every connector's token refresh.
+ * RLS is on with no policies: the only way in is migration 0047's SECURITY
+ * DEFINER functions, since a client registers before anyone has signed in.
+ */
+export const mcpOauthClients = pgTable("mcp_oauth_clients", {
+  clientId: text("client_id").primaryKey(),
+  registration: jsonb("registration").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();

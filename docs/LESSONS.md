@@ -83,6 +83,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #499 | Every MCP deploy signed every connector out at its next token refresh | Dynamically registered OAuth clients lived in a process-memory Map, so after a restart /token rejected the client_id as invalid_client | Anything a client must still find after a deploy is stored in Postgres, never in process memory |
 | #490 | A phone edit that lost last-write-wins was reported as applied, so the phone kept its copy and never matched the server | A rejected LWW upsert is a silent no-op, and the winning row's server_seq didn't move, so no pull resent it | A push that loses LWW returns `stale` and bumps the winner's server_seq so the next pull repairs the device |
 | #489 | A long history couldn't sync after signing in on a new phone or after sign-out | The pull returned every row since the cursor in one response, past Vercel's response size limit | Every list endpoint a client pages through has a limit and a has-more flag; the client loops |
 | #488 | A sync pull could skip rows forever when an MCP write or another device committed during or just after it | server_seq is drawn at nextval but visible only at commit, and the pull advanced its cursor to the highest seq it saw | Writes for a user hold that user's advisory lock shared and the pull holds it exclusively, so the cursor never jumps an uncommitted seq |

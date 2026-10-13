@@ -41,8 +41,9 @@ recreate its schemas, the same as `@jim/db`'s suites.
 
 ## Deploying
 
-This process holds OAuth/session state in memory (registered clients, pending
-logins, issued auth codes) and calls `app.listen()`, so it needs a platform
+This process holds short-lived OAuth/session state in memory (pending logins,
+issued auth codes, MCP sessions; registered OAuth clients live in Postgres,
+issue #499, so a deploy doesn't sign connectors out) and calls `app.listen()`, so it needs a platform
 that runs a persistent Node process — Fly.io, Render, Railway, a small VM —
 rather than a serverless function platform. Run a single instance: that
 in-memory state isn't shared between replicas.
