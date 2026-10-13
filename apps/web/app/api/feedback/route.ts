@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { claimFeedbackSlot } from "@/lib/feedback/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { APP_VERSION } from "@/lib/version";
 import { NextResponse } from "next/server";
@@ -18,19 +20,12 @@ function isFeedbackType(value: unknown): value is FeedbackType {
 }
 
 /**
- * "owner/repo" for the GitHub issue tracker feedback gets filed against
- * (see .env.example) — not necessarily this app's own repo.
+ * A short, stable tag for the submitter (issue #504). The issue tracker may
+ * be public, so it carries this instead of the user's email; the maintainer
+ * can match it to an account by hashing the user id the same way.
  */
-function feedbackRepo(): string {
-  const repo = process.env.GITHUB_FEEDBACK_REPO;
-  if (!repo) throw new Error("GITHUB_FEEDBACK_REPO is required (see .env.example)");
-  return repo;
-}
-
-function feedbackToken(): string {
-  const token = process.env.GITHUB_FEEDBACK_TOKEN;
-  if (!token) throw new Error("GITHUB_FEEDBACK_TOKEN is required (see .env.example)");
-  return token;
+function submitterTag(userId: string): string {
+  return createHash("sha256").update(userId).digest("hex").slice(0, 12);
 }
 
 export async function POST(request: Request) {
@@ -39,7 +34,7 @@ export async function POST(request: Request) {
   if (!data?.claims.sub) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
-  const email = data.claims.email ?? "unknown";
+  const userId = data.claims.sub;
 
   let body: unknown;
   try {
@@ -59,15 +54,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "type is required" }, { status: 400 });
   }
 
-  let repo: string;
-  let token: string;
-  try {
-    repo = feedbackRepo();
-    token = feedbackToken();
-  } catch (error) {
+  // "owner/repo" of the tracker feedback is filed against (see .env.example),
+  // not necessarily this app's own repo. Which variable is missing goes to
+  // the server log, not to the client (issue #504).
+  const repo = process.env.GITHUB_FEEDBACK_REPO;
+  const token = process.env.GITHUB_FEEDBACK_TOKEN;
+  if (!repo || !token) {
+    console.error("[feedback] GITHUB_FEEDBACK_REPO and GITHUB_FEEDBACK_TOKEN are required");
+    return NextResponse.json({ error: "Feedback is not configured" }, { status: 500 });
+  }
+
+  if (!(await claimFeedbackSlot())) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Feedback is not configured" },
-      { status: 500 },
+      { error: "You've sent a lot of feedback this hour. Try again later." },
+      { status: 429 },
     );
   }
 
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       title,
-      body: `${message.trim()}\n\n---\nSubmitted from Jim v${APP_VERSION} by ${email}.`,
+      body: `${message.trim()}\n\n---\nSubmitted from Jim v${APP_VERSION} by user ${submitterTag(userId)}.`,
       labels: ["feedback", FEEDBACK_TYPE_LABELS[type]],
     }),
   });

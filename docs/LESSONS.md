@@ -68,6 +68,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       which still holds the previous page during a client-side navigation (#444).
 - [ ] Adding a page a desktop browser must reach (portal, auth)? Check it against
       `isInstallGateExempt` in a non-installed desktop browser (#444).
+- [ ] Does a route call an outside service (GitHub, push, email)? Give it a per-user limit kept in
+      Postgres, send no email or other personal data, and keep env var names out of error responses
+      (#504).
 
 **Release**
 - [ ] `LATEST_RELEASE_NOTE` in `apps/web/lib/pwa/notifications.ts` describes *this* change. Every
@@ -83,6 +86,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #504 | Feedback could be spammed into GitHub issues, each carrying the sender's email, and a misconfigured server told the client which env vars it lacked | The route had no per-user cap, wrote `by ${email}` into a possibly public tracker, and returned the thrown config error's message | An endpoint that writes to an outside service has a per-user limit stored in Postgres; nothing personal leaves for a third party; config errors go to the server log and the client gets a generic message |
 | #501 | Rows of a table the phone didn't store yet were skipped for good once it started storing it | The pull ignored unknown tables but still saved the cursor past their rows | The sync cursor records the Dexie schema version it was earned under; a newer schema pulls from the start once |
 | #500 | A set with a fat-fingered weight never synced, and the badge said "pending" forever | The client accepted values past the server columns' range, and a mutation the server rejected was retried every cycle with no limit or error state | Validate set values against `SET_LIMITS` before queueing; a mutation rejected `MAX_PUSH_FAILURES` times shows as a sync error |
 | #495 | Workout detail set rows ran past the screen edge at 393 px | The history set row had no `min-w-0` or wrap, so long labels (rest tags, PR chips) widened it | Rows that can grow get `min-w-0` and `flex-wrap`, like the portal row |

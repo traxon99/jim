@@ -1116,3 +1116,32 @@ export const mcpOauthClients = pgTable("mcp_oauth_clients", {
   registration: jsonb("registration").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }).enableRLS();
+
+/**
+ * One row per feedback submission (issue #504), so POST /api/feedback can
+ * cap how many GitHub issues one account files an hour. Users can read and
+ * add their own rows but not update or delete them, which would reset the cap.
+ */
+export const feedbackSubmissions = pgTable(
+  "feedback_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("feedback_submissions_user_created").on(table.userId, table.createdAt),
+    pgPolicy("feedback_submissions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+    pgPolicy("feedback_submissions_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
