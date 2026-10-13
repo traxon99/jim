@@ -7,7 +7,12 @@ const META_ID = "meta" as const;
 async function getMeta(database: JimDatabase): Promise<SyncMetaRow> {
   const existing = await database.syncMeta.get(META_ID);
   if (existing) return existing;
-  const created: SyncMetaRow = { id: META_ID, cursor: 0, deviceId: crypto.randomUUID() };
+  const created: SyncMetaRow = {
+    id: META_ID,
+    cursor: 0,
+    deviceId: crypto.randomUUID(),
+    schemaVersion: database.verno,
+  };
   await database.syncMeta.put(created);
   return created;
 }
@@ -133,11 +138,30 @@ export async function drainOutbox(
  */
 const MAX_PULL_PAGES = 50;
 
+/**
+ * Rows of a table this device didn't store yet were skipped by earlier pulls
+ * while the cursor moved past them (issue #501). When the local schema is
+ * newer than the one the cursor was earned under, pull from the start once;
+ * applying rows is idempotent, so re-pulling what's already here is safe. A
+ * cursor from before this field existed is adopted as-is.
+ */
+async function restartCursorAfterSchemaUpgrade(database: JimDatabase): Promise<void> {
+  const meta = await getMeta(database);
+  if (meta.schemaVersion === database.verno) return;
+  const upgraded = meta.schemaVersion !== undefined && meta.schemaVersion < database.verno;
+  await database.syncMeta.put({
+    ...meta,
+    cursor: upgraded ? 0 : meta.cursor,
+    schemaVersion: database.verno,
+  });
+}
+
 /** Pulls everything changed since the local cursor, page by page (#489), and applies it to Dexie. */
 export async function pullChanges(
   database: JimDatabase = db,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
+  await restartCursorAfterSchemaUpgrade(database);
   for (let page = 0; page < MAX_PULL_PAGES; page++) {
     const meta = await getMeta(database);
 

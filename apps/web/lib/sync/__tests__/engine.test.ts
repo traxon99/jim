@@ -207,6 +207,34 @@ describe("pullChanges", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7");
   });
 
+  it("pulls from the start once after a schema upgrade adds tables (#501)", async () => {
+    await testDb.syncMeta.put({
+      id: "meta",
+      cursor: 7,
+      deviceId: "device-a",
+      schemaVersion: testDb.verno - 1,
+    });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ cursor: 9, changes: {} }));
+
+    await pullChanges(testDb, fetchMock);
+    await pullChanges(testDb, fetchMock);
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/sync/pull?since=0",
+      "/api/sync/pull?since=9",
+    ]);
+    expect((await testDb.syncMeta.get("meta"))?.schemaVersion).toBe(testDb.verno);
+  });
+
+  it("keeps a cursor saved before schema versions were recorded (#501)", async () => {
+    await testDb.syncMeta.put({ id: "meta", cursor: 7, deviceId: "device-a" });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ cursor: 7, changes: {} }));
+
+    await pullChanges(testDb, fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7");
+  });
+
   it("keeps pulling pages while the server says there are more (#489)", async () => {
     const page = (id: string, cursor: number, hasMore: boolean) => {
       const row = routine({ id, name: id });
