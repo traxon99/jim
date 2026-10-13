@@ -22,6 +22,11 @@ import { routineItemSummary } from "@/lib/routines/summary";
 import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildRoutineSnapshot } from "@/lib/sharing/local";
+import {
+  addExerciseItems,
+  applySupersetChanges as applyItemSupersetChanges,
+  formSupersetIn,
+} from "@/lib/supersets/item-mutations";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -156,55 +161,26 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
     }
   }
 
-  async function applySupersetChanges(changes: readonly SupersetChange[]) {
-    if (changes.length === 0) return;
-    const deviceId = await getDeviceId();
-    const now = new Date();
-    for (const change of changes) {
-      const original = items.find((item) => item.id === change.id);
-      if (!original) continue;
-      await mutate("routineExercises", {
-        ...original,
-        supersetGroup: change.supersetGroup,
-        updatedAt: now,
-        deviceId,
-      });
-    }
+  function applySupersetChanges(changes: readonly SupersetChange[]) {
+    return applyItemSupersetChanges("routineExercises", items, changes);
   }
 
-  // The card's picks become one superset, moved together (issue #360).
-  async function handleFormSuperset(selectedIds: readonly string[], editingIds: readonly string[]) {
-    const positions = items.map((item) => item.position);
-    const formed = formSuperset(items, selectedIds, editingIds);
-    const deviceId = await getDeviceId();
-    const now = new Date();
-    for (const [index, item] of formed.entries()) {
-      const original = items.find((other) => other.id === item.id);
-      const position = positions[index] ?? item.position;
-      if (!original) continue;
-      if (original.position === position && original.supersetGroup === item.supersetGroup) continue;
-      await mutate("routineExercises", {
-        ...original,
-        position,
-        supersetGroup: item.supersetGroup,
-        updatedAt: now,
-        deviceId,
-      });
-    }
+  function handleFormSuperset(selectedIds: readonly string[], editingIds: readonly string[]) {
+    return formSupersetIn("routineExercises", items, selectedIds, editingIds);
   }
 
-  // Picking several exercises at once adds them as one superset (issue #269).
   async function handleAddExercises(exerciseIds: readonly string[]) {
-    const deviceId = await getDeviceId();
-    const now = new Date();
-    const supersetGroup = exerciseIds.length > 1 ? nextSupersetGroup(items) : null;
-    for (const [offset, exerciseId] of exerciseIds.entries()) {
-      const entity: RoutineExerciseRow = {
+    await addExerciseItems(
+      "routineExercises",
+      items,
+      items.length,
+      exerciseIds,
+      ({ exerciseId, position, supersetGroup, now, deviceId }) => ({
         id: uuidv7(),
         userId,
         routineId: id,
         exerciseId,
-        position: items.length + offset,
+        position,
         supersetGroup,
         targetSets: null,
         targetRepsLow: null,
@@ -218,9 +194,8 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         deviceId,
         deletedAt: null,
         serverSeq: 0,
-      };
-      await mutate("routineExercises", entity);
-    }
+      }),
+    );
     setPickerOpen(false);
   }
 
@@ -550,7 +525,7 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
           initialCategory={isWarmupKind ? "warmup" : "all"}
-          onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
+          onPick={handleAddExercises}
           onClose={() => setPickerOpen(false)}
         />
       )}

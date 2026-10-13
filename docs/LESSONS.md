@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #550 | A double tap on Add in the exercise picker added the exercises twice | `onPick` ran once per tap, and the add/superset code was copied into the workout and the routine editor, so a guard would have had to land twice | The picker accepts one pick per opening; the workout and routine editor share `lib/supersets/item-mutations.ts` |
 | #537 | After Claude logged an older, heavier workout, a later lighter set kept its PR | `log_past_workout` compared new sets only with earlier history and never re-checked PR rows after them | Writing history into the past re-checks the PR rows after it and retires the ones that no longer hold |
 | #548 | Two identical machines at different gyms looked the same in the exercise picker, and some screens dropped the machine name | The picker copied the Exercises list's row line without the gym, and a few screens used `exercise.name` | Show an exercise with `exerciseDisplayName` and its list line with `exerciseMetaLine`; don't re-implement either |
 | #538 | 20 kg × 50 reps showed as a 53 kg estimated 1RM and a 1RM PR over a real 50 kg single | Epley keeps climbing with reps, and nothing capped the reps fed to it (the unused Brzycki option went to Infinity at 37 reps) | e1RM counts at most `MAX_ESTIMATE_REPS` (15) reps; only PRP, which compares a lift with itself, opts out |
