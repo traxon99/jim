@@ -6,8 +6,16 @@ import {
   dprAggressivenessEnum,
   dprExperienceEnum,
   fontFamilyEnum,
+  forceEnum,
+  levelEnum,
+  mechanicEnum,
   muscleEnum,
+  prKindEnum,
+  programModeEnum,
+  setKindEnum,
   sexEnum,
+  trackingTypeEnum,
+  unitsEnum,
 } from "@jim/db";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -196,7 +204,7 @@ export function createMcpServer(context: UserContext): McpServer {
       description: "Current personal records, optionally filtered by exercise and/or kind.",
       inputSchema: {
         exercise: z.string().optional().describe("Exercise name or id"),
-        kind: z.enum(["1rm", "volume", "weight", "reps_at_weight"]).optional(),
+        kind: z.enum(prKindEnum.enumValues).optional(),
       },
     },
     async (input) => {
@@ -493,7 +501,7 @@ export function createMcpServer(context: UserContext): McpServer {
                     rir: z.number().int().nonnegative().optional(),
                     durationSeconds: z.number().int().positive().optional(),
                     distance: z.number().nonnegative().optional(),
-                    kind: z.enum(["warmup", "working", "drop", "failure"]).optional(),
+                    kind: z.enum(setKindEnum.enumValues).optional(),
                   }),
                 )
                 .min(1),
@@ -524,19 +532,10 @@ export function createMcpServer(context: UserContext): McpServer {
         primaryMuscles: z.array(z.enum(muscleEnum.enumValues)).optional(),
         secondaryMuscles: z.array(z.enum(muscleEnum.enumValues)).optional(),
         equipment: z.string().optional(),
-        mechanic: z.enum(["compound", "isolation"]).optional(),
-        force: z.enum(["push", "pull", "static"]).optional(),
-        level: z.enum(["beginner", "intermediate", "expert"]).optional(),
-        trackingType: z
-          .enum([
-            "weight_reps",
-            "time",
-            "distance",
-            "bodyweight",
-            "weighted_bodyweight",
-            "distance_time",
-          ])
-          .optional(),
+        mechanic: z.enum(mechanicEnum.enumValues).optional(),
+        force: z.enum(forceEnum.enumValues).optional(),
+        level: z.enum(levelEnum.enumValues).optional(),
+        trackingType: z.enum(trackingTypeEnum.enumValues).optional(),
         instructions: z.array(z.string()).optional(),
         isArchived: z.boolean().optional(),
         machineBrand: z
@@ -699,7 +698,7 @@ export function createMcpServer(context: UserContext): McpServer {
       description: `Create a program from existing routines, as a rotating sequence or a weekly schedule. activate: true makes it the one active program, which the phone's Workout tab suggests from.${PREVIEW_HINT}`,
       inputSchema: {
         name: z.string(),
-        mode: z.enum(["sequence", "weekly"]).optional().describe("Default sequence"),
+        mode: z.enum(programModeEnum.enumValues).optional().describe("Default sequence"),
         notes: z.string().optional(),
         durationWeeks: z.number().int().positive().optional().describe("Planned length"),
         entries: z.array(programEntrySchema),
@@ -724,7 +723,7 @@ export function createMcpServer(context: UserContext): McpServer {
       inputSchema: {
         program: z.string().describe("Program id, or its exact name"),
         name: z.string().optional(),
-        mode: z.enum(["sequence", "weekly"]).optional(),
+        mode: z.enum(programModeEnum.enumValues).optional(),
         notes: z.string().nullable().optional(),
         durationWeeks: z.number().int().positive().nullable().optional(),
         entries: z.array(programEntrySchema).optional().describe("Replaces every entry"),
@@ -1004,7 +1003,7 @@ export function createMcpServer(context: UserContext): McpServer {
       title: "Update settings",
       description: `Change any of the settings get_settings returns; only the fields given change. Changing units only changes how weights are shown and entered. The phone picks changes up the next time the app is opened fresh.${PREVIEW_HINT}`,
       inputSchema: {
-        units: z.enum(["lb", "kg"]).optional(),
+        units: z.enum(unitsEnum.enumValues).optional(),
         defaultBarWeight: z.number().positive().optional(),
         availablePlates: z.array(z.number().positive()).min(1).optional(),
         defaultRestSeconds: z.number().int().nonnegative().optional(),

@@ -1,4 +1,5 @@
 import { normalize } from "../fuzzy-text";
+import { LB_PER_KG } from "../units";
 import { parseCsv, toCsv } from "./csv";
 
 /**
@@ -299,8 +300,6 @@ export function parseWorkoutCsv(text: string): ParsedWorkoutCsv {
   }
   throw new WorkoutCsvError("This doesn't look like a Strong or Hevy CSV export.");
 }
-
-const LB_PER_KG = 2.20462262;
 
 /** Rounded to 2 decimals, the precision `sets.weight` stores. */
 export function convertWeight(weight: number, from: WeightUnit, to: WeightUnit): number {

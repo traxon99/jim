@@ -1,3 +1,4 @@
+import { epleyWeightForReps } from "../epley";
 import { liftStandardThresholds } from "./lookup";
 import {
   STRENGTH_STANDARD_TIERS,
@@ -16,7 +17,7 @@ export function weightForTargetReps(oneRepMax: number, reps: number): number {
   if (oneRepMax <= 0 || reps <= 0) return 0;
   if (reps === 1) return Math.round(oneRepMax * 100) / 100;
 
-  const raw = oneRepMax / (1 + reps / 30);
+  const raw = epleyWeightForReps(oneRepMax, reps);
   return Math.round(raw * 100) / 100;
 }
 
