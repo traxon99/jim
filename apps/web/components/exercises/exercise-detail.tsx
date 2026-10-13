@@ -13,6 +13,7 @@ import {
   distanceUnitFor,
   estimatedOneRepMaxSeries,
   exerciseDemo,
+  exerciseDisplayName,
   exerciseMuscleShading,
   formatDistance,
   formatDuration,
@@ -180,7 +181,7 @@ export function ExerciseDetail({
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h1 id={titleId} className="text-xl font-semibold">
-                  {exercise.name}
+                  {exerciseDisplayName(exercise)}
                 </h1>
                 {exercise.isArchived && (
                   <p className="text-xs text-amber-600 dark:text-amber-500">Archived</p>

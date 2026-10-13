@@ -3,6 +3,7 @@
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
+import { EXERCISE_CATEGORY_TABS, exerciseMetaLine, useGymNames } from "@/lib/exercises/display";
 import { formatLastDone } from "@/lib/routines/last-done";
 import {
   type ExerciseCategory,
@@ -11,8 +12,6 @@ import {
   dedupeCatalogNames,
   exerciseDisplayName,
   filterExercises,
-  isCardioExercise,
-  isWarmupExercise,
   preferOwnedExercises,
   searchExercises,
   sortExercisesByUsage,
@@ -34,11 +33,7 @@ export function ExercisesList({ userId }: { userId: string }) {
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
   // Gym names for machine rows (issue #450), so two "Lat Pulldown"s at
   // different gyms can be told apart. Deleted gyms are left out.
-  const gymNames = useLiveQuery(
-    async () =>
-      new Map((await db.gyms.toArray()).filter((g) => !g.deletedAt).map((g) => [g.id, g.name])),
-    [],
-  );
+  const gymNames = useGymNames();
 
   // Every (non-deleted) sessionExercise joined with its (non-deleted)
   // session's startedAt — the same shape previous-set-lookup.ts builds —
@@ -61,13 +56,14 @@ export function ExercisesList({ userId }: { userId: string }) {
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState("");
-  const [category, setCategory] = useState<ExerciseCategory | "">("");
+  const [category, setCategory] = useState<ExerciseCategory | "all">("all");
   const [sortKey, setSortKey] = useState<ExerciseSortKey>("name");
   // Issue #330: category, muscle, equipment and sort live behind one Filters
   // button so the list starts right under the search box.
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilters =
-    [muscle, equipment, category].filter(Boolean).length + (sortKey === "name" ? 0 : 1);
+    [muscle, equipment, category === "all" ? "" : category].filter(Boolean).length +
+    (sortKey === "name" ? 0 : 1);
 
   const { results, muscleOptions, equipmentOptions, usage } = useMemo(() => {
     const rows = allExercises ?? [];
@@ -79,7 +75,7 @@ export function ExercisesList({ userId }: { userId: string }) {
     const filtered = filterExercises(owned, {
       muscle: muscle || undefined,
       equipment: equipment || undefined,
-      category: category || undefined,
+      category: category === "all" ? undefined : category,
     });
     const sorted = sortExercisesByUsage(filtered, usageByExerciseId, sortKey);
     const ranked = searchExercises(sorted, query);
@@ -126,15 +122,7 @@ export function ExercisesList({ userId }: { userId: string }) {
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="text-base font-medium">{exerciseDisplayName(exercise)}</span>
             <span className="text-xs text-zinc-500 dark:text-zinc-500">
-              {[
-                isWarmupExercise(exercise) ? "warm-up" : null,
-                isCardioExercise(exercise) ? "cardio" : null,
-                exercise.equipment,
-                exercise.gymId ? gymNames?.get(exercise.gymId) : null,
-                ...exercise.primaryMuscles,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+              {exerciseMetaLine(exercise, gymNames)}
             </span>
           </span>
           {/* When you last did it and how often, in place of the old bare
@@ -208,14 +196,7 @@ export function ExercisesList({ userId }: { userId: string }) {
         {filtersOpen && (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
-              {(
-                [
-                  { value: "", label: "All" },
-                  { value: "strength", label: "Strength" },
-                  { value: "warmup", label: "Warm-ups" },
-                  { value: "cardio", label: "Cardio" },
-                ] as const
-              ).map((tab) => {
+              {EXERCISE_CATEGORY_TABS.map((tab) => {
                 const selected = category === tab.value;
                 return (
                   <button
