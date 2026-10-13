@@ -105,34 +105,48 @@ export async function drainOutbox(
   await refreshStatusFromOutbox(database);
 }
 
-/** Pulls everything changed since the local cursor and applies it to Dexie. */
+/**
+ * Most pages one pull will fetch before yielding to the next sync cycle, so
+ * a huge first sync can't hold the foreground forever; the cursor saved after
+ * each page means the next cycle resumes where this one stopped.
+ */
+const MAX_PULL_PAGES = 50;
+
+/** Pulls everything changed since the local cursor, page by page (#489), and applies it to Dexie. */
 export async function pullChanges(
   database: JimDatabase = db,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
-  const meta = await getMeta(database);
+  for (let page = 0; page < MAX_PULL_PAGES; page++) {
+    const meta = await getMeta(database);
 
-  let response: Response;
-  try {
-    response = await fetchImpl(`/api/sync/pull?since=${meta.cursor}`);
-  } catch {
-    await reportFailure(database);
-    return;
-  }
-  if (!response.ok) {
-    await reportFailure(database, response);
-    return;
-  }
+    let response: Response;
+    try {
+      response = await fetchImpl(`/api/sync/pull?since=${meta.cursor}`);
+    } catch {
+      await reportFailure(database);
+      return;
+    }
+    if (!response.ok) {
+      await reportFailure(database, response);
+      return;
+    }
 
-  const body = await readJson<{ cursor: number; changes: Record<string, unknown[]> }>(response);
-  if (!body) {
-    await reportFailure(database);
-    return;
+    const body = await readJson<{
+      cursor: number;
+      hasMore?: boolean;
+      changes: Record<string, unknown[]>;
+    }>(response);
+    if (!body) {
+      await reportFailure(database);
+      return;
+    }
+    for (const [tableName, rows] of Object.entries(body.changes)) {
+      await applyPulledRows(database, tableName, rows);
+    }
+    await database.syncMeta.put({ ...meta, cursor: body.cursor });
+    if (!body.hasMore || body.cursor <= meta.cursor) break;
   }
-  for (const [tableName, rows] of Object.entries(body.changes)) {
-    await applyPulledRows(database, tableName, rows);
-  }
-  await database.syncMeta.put({ ...meta, cursor: body.cursor });
 
   await refreshStatusFromOutbox(database);
 }

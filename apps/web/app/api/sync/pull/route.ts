@@ -40,9 +40,24 @@ const PULL_TABLES = [
   ["scheduledWorkouts", scheduledWorkouts, scheduledWorkouts.serverSeq],
 ] as const;
 
-async function pullTable(tx: DbOrTx, table: PgTable, serverSeq: PgColumn, since: number) {
-  return tx.select().from(table).where(gt(serverSeq, since)).orderBy(serverSeq);
+/**
+ * Rows per table per pull (issue #489). A first pull after sign-in starts at
+ * 0 and would otherwise return the whole history at once, past Vercel's
+ * response size limit; the client keeps pulling while `hasMore` is set.
+ */
+const PULL_PAGE_SIZE = 500;
+
+async function pullTable(
+  tx: DbOrTx,
+  table: PgTable,
+  serverSeq: PgColumn,
+  since: number,
+  limit: number,
+) {
+  return tx.select().from(table).where(gt(serverSeq, since)).orderBy(serverSeq).limit(limit);
 }
+
+const seqOf = (row: unknown) => (row as { serverSeq: number }).serverSeq;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -51,6 +66,11 @@ export async function GET(request: Request) {
   if (!Number.isInteger(since) || since < 0) {
     return NextResponse.json({ error: "since must be a non-negative integer" }, { status: 400 });
   }
+  const limitParam = Number(url.searchParams.get("limit") ?? PULL_PAGE_SIZE);
+  const limit =
+    Number.isInteger(limitParam) && limitParam > 0
+      ? Math.min(limitParam, PULL_PAGE_SIZE)
+      : PULL_PAGE_SIZE;
 
   try {
     const result = await withUserDb(
@@ -63,17 +83,29 @@ export async function GET(request: Request) {
         // writes is still in flight, so no lower seq can commit after this
         // pull and be skipped, and every table is read from the same state.
         let cursor = since;
+        // A table that filled its page may have more rows past its last
+        // seq, so this page stops at the lowest such seq across tables:
+        // everything at or below it has been read from every table, and
+        // nothing above it is returned yet, so the cursor never skips a row.
+        let cutoff = Number.POSITIVE_INFINITY;
 
         for (const [name, table, serverSeq] of PULL_TABLES) {
-          const rows = await pullTable(tx, table, serverSeq, since);
+          const rows = await pullTable(tx, table, serverSeq, since, limit);
           changes[name] = rows;
-          for (const row of rows) {
-            const seq = (row as { serverSeq: number }).serverSeq;
-            if (seq > cursor) cursor = seq;
-          }
+          const last = rows.at(-1);
+          if (rows.length === limit && last) cutoff = Math.min(cutoff, seqOf(last));
         }
 
-        return { cursor, changes };
+        const hasMore = cutoff !== Number.POSITIVE_INFINITY;
+        for (const name of Object.keys(changes)) {
+          const rows = hasMore
+            ? (changes[name] ?? []).filter((row) => seqOf(row) <= cutoff)
+            : (changes[name] ?? []);
+          changes[name] = rows;
+          for (const row of rows) cursor = Math.max(cursor, seqOf(row));
+        }
+
+        return { cursor, hasMore, changes };
       },
       { exclusive: true },
     );

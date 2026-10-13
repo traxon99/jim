@@ -28,8 +28,9 @@ function push(mutations: unknown[]) {
   );
 }
 
-function pull(since = 0) {
-  return GET(new Request(`http://localhost/api/sync/pull?since=${since}`));
+function pull(since = 0, limit?: number) {
+  const page = limit ? `&limit=${limit}` : "";
+  return GET(new Request(`http://localhost/api/sync/pull?since=${since}${page}`));
 }
 
 describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
@@ -363,5 +364,44 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
     const ids = body.changes.routines.map((r: { id: string }) => r.id);
     expect(ids).toEqual(expect.arrayContaining([slowId, fastId]));
     await db.$client.end();
+  });
+
+  it("pages a large pull without skipping rows across tables (#489)", async () => {
+    const start = (await (await pull(0)).json()).cursor as number;
+    const routineIds: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const id = uuidv7();
+      routineIds.push(id);
+      await push([
+        {
+          id: uuidv7(),
+          table: "routines",
+          entity: {
+            id,
+            name: `Paged ${i}`,
+            notes: null,
+            position: i,
+            folder: null,
+            updatedAt: new Date().toISOString(),
+            deviceId: "device-a",
+            deletedAt: null,
+          },
+        },
+      ]);
+    }
+
+    const seen: string[] = [];
+    let cursor = start;
+    let pages = 0;
+    for (;;) {
+      const body = await (await pull(cursor, 2)).json();
+      pages += 1;
+      for (const row of body.changes.routines) seen.push(row.id);
+      expect(body.cursor).toBeGreaterThanOrEqual(cursor);
+      cursor = body.cursor;
+      if (!body.hasMore) break;
+    }
+    expect(pages).toBe(3);
+    expect(seen).toEqual(routineIds);
   });
 });
