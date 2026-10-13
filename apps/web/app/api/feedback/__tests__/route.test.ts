@@ -11,6 +11,11 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
+let slotAvailable = true;
+vi.mock("@/lib/feedback/rate-limit", () => ({
+  claimFeedbackSlot: async () => slotAvailable,
+}));
+
 const { POST } = await import("../route");
 
 function post(body: unknown) {
@@ -28,6 +33,7 @@ describe("POST /api/feedback", () => {
 
   beforeEach(() => {
     claims.sub = "11111111-1111-1111-1111-111111111111";
+    slotAvailable = true;
     process.env.GITHUB_FEEDBACK_REPO = "acme/jim";
     process.env.GITHUB_FEEDBACK_TOKEN = "test-token";
   });
@@ -36,6 +42,7 @@ describe("POST /api/feedback", () => {
     process.env.GITHUB_FEEDBACK_REPO = originalRepo;
     process.env.GITHUB_FEEDBACK_TOKEN = originalToken;
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("rejects an unauthenticated request", async () => {
@@ -73,7 +80,10 @@ describe("POST /api/feedback", () => {
     expect(init?.headers).toMatchObject({ authorization: "Bearer test-token" });
     const sentBody = JSON.parse(init?.body as string);
     expect(sentBody.title).toBe("Add dark mode toggle");
-    expect(sentBody.body).toContain("a@example.com");
+    // The tracker may be public, so the issue names a hash, not the email (#504).
+    expect(sentBody.body).not.toContain("a@example.com");
+    expect(sentBody.body).not.toContain(claims.sub);
+    expect(sentBody.body).toMatch(/by user [0-9a-f]{12}\./);
     expect(sentBody.labels).toEqual(["feedback", "enhancement"]);
   });
 
@@ -105,7 +115,19 @@ describe("POST /api/feedback", () => {
 
   it("returns 500 when feedback isn't configured", async () => {
     process.env.GITHUB_FEEDBACK_REPO = "";
+    vi.spyOn(console, "error").mockImplementation(() => {});
     const response = await post({ message: "hello", type: "bug" });
     expect(response.status).toBe(500);
+    // Which env var is missing stays in the server log (#504).
+    expect(await response.json()).toEqual({ error: "Feedback is not configured" });
+  });
+
+  it("returns 429 without filing once the hourly limit is used up", async () => {
+    slotAvailable = false;
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await post({ message: "hello", type: "bug" });
+    expect(response.status).toBe(429);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
