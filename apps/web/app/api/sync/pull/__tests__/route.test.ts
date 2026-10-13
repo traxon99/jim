@@ -1,5 +1,7 @@
 import { resetTestDb } from "@/lib/test/test-db";
 import { uuidv7 } from "@jim/core";
+import { createDb, runAsUser } from "@jim/db";
+import { sql } from "drizzle-orm";
 import type postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -303,5 +305,63 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
     const otherUsersView = await (await pull(cursorBefore)).json();
     expect(otherUsersView.changes.dprBlocks).toEqual([]);
     expect(otherUsersView.changes.dprBlockLifts).toEqual([]);
+  });
+
+  it("waits for this user's in-flight write instead of skipping its lower seq (#488)", async () => {
+    const before = (await (await pull(0)).json()).cursor as number;
+    const db = createDb(process.env.TEST_DATABASE_URL ?? "");
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let inserted = () => {};
+    const insertedYet = new Promise<void>((resolve) => {
+      inserted = resolve;
+    });
+    const slowId = uuidv7();
+    // A long write (an MCP log_past_workout, say) draws its seq first...
+    const slowWrite = runAsUser(db, USER_A, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO routines (id, user_id, name, position, updated_at, device_id)
+        VALUES (${slowId}, ${USER_A}, 'Slow', 0, now(), 'mcp')
+      `);
+      inserted();
+      await gate;
+    });
+    await insertedYet;
+
+    // ...then a quick push commits a higher seq while the slow one is open.
+    const fastId = uuidv7();
+    await push([
+      {
+        id: uuidv7(),
+        table: "routines",
+        entity: {
+          id: fastId,
+          name: "Fast",
+          notes: null,
+          position: 1,
+          folder: null,
+          updatedAt: new Date().toISOString(),
+          deviceId: "device-a",
+          deletedAt: null,
+        },
+      },
+    ]);
+
+    let settled = false;
+    const pending = pull(before).then((response) => {
+      settled = true;
+      return response.json();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(settled).toBe(false);
+
+    release();
+    await slowWrite;
+    const body = await pending;
+    const ids = body.changes.routines.map((r: { id: string }) => r.id);
+    expect(ids).toEqual(expect.arrayContaining([slowId, fastId]));
+    await db.$client.end();
   });
 });

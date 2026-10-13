@@ -40,6 +40,7 @@ function getDb(): Db {
  */
 export async function withUserDb<T>(
   fn: (tx: DbOrTx, userId: string, email: string) => Promise<T>,
+  options: { exclusive?: boolean } = {},
 ): Promise<T> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.auth.getClaims();
@@ -51,7 +52,7 @@ export async function withUserDb<T>(
   // never touch it, so its absence (as in their test mocks) can't regress them.
   const email = data?.claims.email ?? "";
 
-  return runAsUser(getDb(), userId, (tx) => fn(tx, userId, email));
+  return runAsUser(getDb(), userId, (tx) => fn(tx, userId, email), options);
 }
 
 /**
