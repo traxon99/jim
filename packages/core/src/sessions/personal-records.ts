@@ -13,6 +13,24 @@ export function isVisiblePrKind(kind: PrKind): boolean {
   return kind === "1rm";
 }
 
+/**
+ * How many visible PR rows (`isVisiblePrKind`) belong to the given sets. Counts
+ * rows, not distinct sets: one set can beat several kinds at once. Deleted
+ * rows and rows without a set don't count. Shared by the app and the MCP
+ * server so their PR counts can't drift (issue #510).
+ */
+export function countVisiblePrs(
+  prRows: ReadonlyArray<{ setId: string | null; kind: PrKind; deletedAt?: Date | null }>,
+  setIds: ReadonlySet<string>,
+): number {
+  let count = 0;
+  for (const pr of prRows) {
+    if (pr.deletedAt || !pr.setId || !isVisiblePrKind(pr.kind)) continue;
+    if (setIds.has(pr.setId)) count++;
+  }
+  return count;
+}
+
 export interface PrCandidate {
   kind: PrKind;
   value: number;

@@ -109,6 +109,18 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("log_past_workout (#244)", () =>
     expect(prs).toEqual([expect.objectContaining({ value: 185 })]);
   });
 
+  it("does not count PR kinds the app hides in prCount (issue #510)", async () => {
+    // 100x10 is 1000 volume against 185x5 = 925, but a lower e1RM and weight.
+    const logged = await logPastWorkout(context, {
+      startedAt: "2026-09-25T17:00:00Z",
+      exercises: [{ exercise: "bench press", sets: [{ weight: 100, reps: 10 }] }],
+    });
+    expect(logged.exercises[0]?.sets[0]?.prs).toEqual(["volume"]);
+    expect(logged.prCount).toBe(0);
+    const workouts = await listWorkouts(context, {});
+    expect(workouts.find((w) => w.id === logged.id)?.prCount).toBe(0);
+  });
+
   it("never touches the session in progress on the phone", async () => {
     const [active] = await admin<{ id: string; updated_at: Date; server_seq: string }[]>`
       INSERT INTO sessions (user_id, device_id, started_at)
