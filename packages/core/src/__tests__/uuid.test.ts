@@ -19,4 +19,13 @@ describe("uuidv7", () => {
     const second = uuidv7();
     expect(first < second).toBe(true);
   });
+
+  it("sorts ids made in the same millisecond in creation order (#593)", () => {
+    const ids = Array.from({ length: 5000 }, () => uuidv7());
+    expect([...ids].sort()).toEqual(ids);
+  });
+
+  it("still stamps an explicit timestamp", () => {
+    expect(uuidv7(0).startsWith("00000000-0000-7")).toBe(true);
+  });
 });
