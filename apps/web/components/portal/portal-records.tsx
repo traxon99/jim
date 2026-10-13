@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  NewBadge,
+  PR_KIND_LABELS,
+  PR_SORT_OPTIONS,
+  PlateMedal,
+  formatPrValue,
+  nextTierHint,
+  tierBadgeLabel,
+} from "@/components/history/pr-badges";
 import { PrSparkline } from "@/components/history/pr-sparkline";
 import { bodyweightOnDate } from "@/lib/bodyweight/series";
 import { buildPrGroups, filterPrGroups, prFilterOptions } from "@/lib/history/pr-groups";
@@ -22,13 +31,6 @@ import { useMemo, useState } from "react";
 import { PortalSectionHeader } from "./analysis-range";
 import { useIsClient } from "./use-is-client";
 
-const PR_KIND_LABELS: Record<PrKind, string> = {
-  "1rm": "Estimated 1RM",
-  weight: "Heaviest weight",
-  volume: "Best single-set volume",
-  reps_at_weight: "Most reps at a weight",
-};
-
 /** The table's columns, one per PR kind. */
 const KIND_COLUMNS: { kind: PrKind; label: string }[] = [
   { kind: "1rm", label: "e1RM" },
@@ -37,62 +39,13 @@ const KIND_COLUMNS: { kind: PrKind; label: string }[] = [
   { kind: "reps_at_weight", label: "Most reps" },
 ];
 
-const SORT_OPTIONS: { value: PersonalRecordSortKey; label: string }[] = [
-  { value: "recent", label: "Most recent" },
-  { value: "heaviest", label: "Heaviest" },
-  { value: "name", label: "Alphabetical" },
-];
-
 const RECENT_LIMIT = 8;
 
 const SELECT_CLASS =
   "min-h-11 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-950 md:text-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50";
 
-/** Bronze → silver → gold → platinum for 1–4+ plates a side (issue #237). */
-const PLATE_MEDAL_CLASSES = [
-  "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
-  "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
-  "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
-] as const;
-
-function formatValue(value: number): string {
-  return (Math.round(value * 100) / 100).toLocaleString();
-}
-
 function shortDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-function NewBadge() {
-  return (
-    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-      <Sparkles className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
-      New
-    </span>
-  );
-}
-
-function PlateMedal({ plates }: { plates: number }) {
-  const tone = PLATE_MEDAL_CLASSES[Math.min(plates, PLATE_MEDAL_CLASSES.length) - 1];
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}
-    >
-      <Medal className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
-      {plates} {plates === 1 ? "plate" : "plates"}
-    </span>
-  );
-}
-
-function tierHint(standard: {
-  tier: StrengthStandardTier | null;
-  thresholds: Record<StrengthStandardTier, number>;
-}): string {
-  if (!standard.tier) return `Beginner standard: ${standard.thresholds.beginner}`;
-  const upcoming = nextTier(standard.tier);
-  if (!upcoming) return "Elite, the top published standard";
-  return `${STRENGTH_TIER_LABELS[upcoming]} standard: ${standard.thresholds[upcoming]}`;
 }
 
 function StatTile({ label, value }: { label: string; value: number }) {
@@ -116,7 +69,7 @@ function RecordCell({ record, now }: { record: PersonalRecordEntry | undefined; 
             aria-label="New"
           />
         )}
-        {formatValue(record.value)}
+        {formatPrValue(record.value)}
       </span>
       <span className="text-xs text-zinc-500 dark:text-zinc-500">
         {shortDate(record.achievedAt)}
@@ -216,7 +169,9 @@ export function PortalRecords({ data }: { data: PortalRecordsData }) {
                       </span>
                     </span>
                     <span className="flex shrink-0 flex-col items-end">
-                      <span className="font-medium tabular-nums">{formatValue(record.value)}</span>
+                      <span className="font-medium tabular-nums">
+                        {formatPrValue(record.value)}
+                      </span>
                       <span className="text-xs text-zinc-500 dark:text-zinc-500">
                         {shortDate(record.achievedAt)}
                       </span>
@@ -276,7 +231,7 @@ export function PortalRecords({ data }: { data: PortalRecordsData }) {
                 aria-label="Sort by"
                 className={`${SELECT_CLASS} flex-1 md:flex-none`}
               >
-                {SORT_OPTIONS.map((option) => (
+                {PR_SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -330,21 +285,19 @@ export function PortalRecords({ data }: { data: PortalRecordsData }) {
                               {group.plates > 0 && <PlateMedal plates={group.plates} />}
                               {group.standard && (
                                 <span
-                                  title={tierHint(group.standard)}
+                                  title={nextTierHint(group.standard)}
                                   className={
                                     group.standard.tier
                                       ? "rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
                                       : "rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
                                   }
                                 >
-                                  {group.standard.tier
-                                    ? STRENGTH_TIER_LABELS[group.standard.tier]
-                                    : "Below Beginner"}
+                                  {tierBadgeLabel(group.standard.tier)}
                                 </span>
                               )}
                               {group.standard && (
                                 <span className="hidden text-xs text-zinc-500 md:inline dark:text-zinc-500">
-                                  {tierHint(group.standard)}
+                                  {nextTierHint(group.standard)}
                                 </span>
                               )}
                             </span>

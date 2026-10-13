@@ -1,5 +1,6 @@
 "use client";
 
+import { TrendChart } from "@/components/charts/trend-chart";
 import { toTrendPoints } from "@/lib/portal/body-data";
 import {
   type CardioWorkoutPoint,
@@ -12,7 +13,6 @@ import { analysisRangeStart, distanceUnitFor, formatDistance, formatDuration } f
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";
-import { PortalTrendChart } from "./trend-chart";
 import { useIsClient } from "./use-is-client";
 
 const HEADING = "text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
@@ -133,7 +133,7 @@ export function PortalCardio({ data }: { data: PortalCardioData }) {
             <div className="grid gap-6 lg:grid-cols-2">
               <section className="flex min-w-0 flex-col gap-2">
                 <h2 className={HEADING}>Distance per workout ({unit})</h2>
-                <PortalTrendChart
+                <TrendChart
                   points={chartPoints(points, (point) => point.distance)}
                   label="Distance"
                   unit={unit}
@@ -142,7 +142,7 @@ export function PortalCardio({ data }: { data: PortalCardioData }) {
               </section>
               <section className="flex min-w-0 flex-col gap-2">
                 <h2 className={HEADING}>Time per workout</h2>
-                <PortalTrendChart
+                <TrendChart
                   points={chartPoints(points, (point) => point.durationSeconds)}
                   label="Time"
                   unit=""
@@ -153,7 +153,7 @@ export function PortalCardio({ data }: { data: PortalCardioData }) {
               <section className="flex min-w-0 flex-col gap-2">
                 <h2 className={HEADING}>Pace per workout (lower is faster)</h2>
                 {showPace ? (
-                  <PortalTrendChart
+                  <TrendChart
                     points={chartPoints(points, (point) => point.paceSeconds)}
                     label="Pace"
                     unit={`/${unit}`}

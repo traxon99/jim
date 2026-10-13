@@ -16,6 +16,7 @@ function set(
     reps,
     durationSeconds: null,
     distance: null,
+    rpe: null,
     restSeconds: null,
     restTargetSeconds: null,
     prKinds: [],
