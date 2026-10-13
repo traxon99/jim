@@ -1,4 +1,4 @@
-import { MEASUREMENT_KINDS, PROGRESSION_TYPES } from "@jim/core";
+import { MEASUREMENT_KINDS, PROGRESSION_TYPES, RPE_MAX, RPE_MIN } from "@jim/core";
 import {
   accentColorEnum,
   cardStyleEnum,
@@ -481,7 +481,7 @@ export function createMcpServer(context: UserContext): McpServer {
                   z.object({
                     weight: z.number().nonnegative().optional().describe("In the user's units"),
                     reps: z.number().int().nonnegative().optional(),
-                    rpe: z.number().min(1).max(10).optional(),
+                    rpe: z.number().min(RPE_MIN).max(RPE_MAX).optional(),
                     rir: z.number().int().nonnegative().optional(),
                     durationSeconds: z.number().int().positive().optional(),
                     distance: z.number().nonnegative().optional(),
