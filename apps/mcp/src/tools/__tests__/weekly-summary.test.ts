@@ -30,7 +30,7 @@ function set(
 
 describe("weekly_summary (#409)", () => {
   // Monday-start weeks. 2026-10-05 is a Monday.
-  const weekStarts = weekStartsEndingAt(new Date(2026, 9, 7, 12), 2, 1);
+  const weekStarts = weekStartsEndingAt(new Date(2026, 9, 7, 12), 2, { weekStart: 1 });
 
   it("lists the requested weeks newest first, starting on the user's week-start day", () => {
     expect(weekStarts).toEqual([new Date(2026, 9, 5), new Date(2026, 8, 28)]);
@@ -46,7 +46,13 @@ describe("weekly_summary (#409)", () => {
       set("c", "bench", new Date(2026, 9, 1, 18).toISOString(), 90, 5),
     ];
 
-    const [thisWeek, lastWeek] = summarizeWeeks(sets, exercises, weekStarts, 1, "strength");
+    const [thisWeek, lastWeek] = summarizeWeeks(
+      sets,
+      exercises,
+      weekStarts,
+      { weekStart: 1 },
+      "strength",
+    );
 
     expect(thisWeek).toMatchObject({
       weekStart: new Date(2026, 9, 5).toISOString(),
@@ -71,7 +77,13 @@ describe("weekly_summary (#409)", () => {
   });
 
   it("returns an empty week rather than nothing on a rest week", () => {
-    const [week] = summarizeWeeks([], exercises, weekStarts.slice(0, 1), 1, "hypertrophy");
+    const [week] = summarizeWeeks(
+      [],
+      exercises,
+      weekStarts.slice(0, 1),
+      { weekStart: 1 },
+      "hypertrophy",
+    );
     expect(week).toMatchObject({
       workouts: 0,
       workingSets: 0,
@@ -79,5 +91,15 @@ describe("weekly_summary (#409)", () => {
       setsByMuscle: {},
       exercises: [],
     });
+  });
+
+  it("splits weeks at the user's midnight, not the server's (#511)", () => {
+    const week = { weekStart: 1, timeZone: "America/Los_Angeles" };
+    // Sun 2026-10-11 18:00 in Los Angeles is Mon 01:00 UTC.
+    const sundayEvening = set("a", "bench", "2026-10-12T01:00:00Z", 100, 5);
+    const starts = weekStartsEndingAt(new Date("2026-10-12T01:00:00Z"), 1, week);
+    expect(starts.map((start) => start.toISOString())).toEqual(["2026-10-05T07:00:00.000Z"]);
+    const [summary] = summarizeWeeks([sundayEvening], exercises, starts, week, "strength");
+    expect(summary).toMatchObject({ workingSets: 1, weekEnd: "2026-10-12T07:00:00.000Z" });
   });
 });

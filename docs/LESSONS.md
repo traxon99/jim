@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #511 | Claude's weekly summary put a Sunday-evening workout in Los Angeles into the next week | Week grouping used the runtime's local date, and the MCP server runs in UTC | Server-side calendar math takes the user's stored IANA time zone (`users.time_zone`, reported by the phone); never the server's |
 | #528 | Home had two Profile links and shortcuts to Train and Routines that the tab bar already shows | Entry points were added on Home without checking what the header and tab bar already reach | Before adding a link, check the header and tab bar; a shortcut goes only where they don't |
 | #552 | A routine with a long note made a tall row in its folder, while search showed the same routine differently | The routine row was written three times and the folder copy lost its truncation | One shared row component per list item; secondary text is `line-clamp`ed |
 | #514 | MCP errors returned raw SQL and params, and `schedule_workout`/`log_past_workout` rejected routine names | `server.ts` echoed `error.message` for database errors, and two tools looked routines up by id instead of `findRoutine` | Database errors reach the caller as a generic message (original logged); resolve routines with `findRoutine` so a name works anywhere an id does |

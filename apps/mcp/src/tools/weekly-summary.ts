@@ -2,6 +2,7 @@ import {
   type ExerciseCategory,
   type TrainingGoal,
   WEEKLY_SET_TARGETS,
+  addWeeks,
   isStrengthExercise,
   startOfWeek,
   weeklySetStatusByMuscle,
@@ -11,9 +12,10 @@ import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 import {
   type ResolvedSet,
+  type WeekSettings,
   exercisesById,
   resolvedSetsInRange,
-  weekStartFor,
+  weekSettingsFor,
 } from "./volume-report.js";
 
 export const MAX_SUMMARY_WEEKS = 12;
@@ -33,16 +35,12 @@ export interface SummaryExercise {
   secondaryMuscles: readonly string[];
 }
 
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
 /** The `weeks` week starts ending with `date`'s week, newest first. */
-export function weekStartsEndingAt(date: Date, weeks: number, weekStart: number): Date[] {
-  const latest = startOfWeek(date, weekStart);
-  return Array.from({ length: weeks }, (_, i) => addDays(latest, -7 * i));
+export function weekStartsEndingAt(date: Date, weeks: number, week: WeekSettings): Date[] {
+  const latest = startOfWeek(date, week.weekStart, week.timeZone);
+  return Array.from({ length: weeks }, (_, i) =>
+    addWeeks(latest, -i, week.weekStart, week.timeZone),
+  );
 }
 
 /**
@@ -55,11 +53,11 @@ export function summarizeWeeks(
   sets: readonly ResolvedSet[],
   exercises: ReadonlyMap<string, SummaryExercise>,
   weekStarts: readonly Date[],
-  weekStart: number,
+  week: WeekSettings,
   goal: TrainingGoal,
 ) {
   return weekStarts.map((start) => {
-    const end = addDays(start, 7);
+    const end = addWeeks(start, 1, week.weekStart, week.timeZone);
     const weekSets = sets.filter((set) => {
       const exercise = exercises.get(set.exerciseId);
       return (
@@ -93,7 +91,8 @@ export function summarizeWeeks(
           secondaryMuscles: exercise.secondaryMuscles,
         };
       }),
-      weekStart,
+      week.weekStart,
+      week.timeZone,
     );
     const setsByMuscle = muscles?.setsByMuscle ?? {};
 
@@ -125,13 +124,13 @@ export async function weeklySummary(context: UserContext, input: WeeklySummaryIn
   const goal = input.goal ?? "hypertrophy";
 
   return withUser(context, async (tx) => {
-    const weekStart = await weekStartFor(tx, context.userId);
-    const weekStarts = weekStartsEndingAt(date, weeks, weekStart);
+    const week = await weekSettingsFor(tx, context.userId);
+    const weekStarts = weekStartsEndingAt(date, weeks, week);
     const from = weekStarts[weekStarts.length - 1] as Date;
-    const to = addDays(weekStarts[0] as Date, 7);
+    const to = addWeeks(weekStarts[0] as Date, 1, week.weekStart, week.timeZone);
 
     const sets = await resolvedSetsInRange(tx, from, to);
     const exercises = await exercisesById(tx, [...new Set(sets.map((set) => set.exerciseId))]);
-    return summarizeWeeks(sets, exercises, weekStarts, weekStart, goal);
+    return summarizeWeeks(sets, exercises, weekStarts, week, goal);
   });
 }
