@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import { normalizeUsername, usernameError } from "@jim/core";
@@ -36,7 +37,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ username: saved });
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return unauthenticated();
     }
     if (isUniqueViolation(error)) {
       return NextResponse.json({ error: "That username is taken" }, { status: 409 });

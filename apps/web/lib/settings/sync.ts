@@ -1,3 +1,4 @@
+import { OFFLINE_MESSAGE } from "@/lib/api/client";
 import { type JimDatabase, type SettingsRow, db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "./defaults";
 
@@ -60,7 +61,7 @@ export async function patchSettings(
     await database.settings.put(toCachedRow(payload));
     return { ok: true };
   } catch {
-    return { ok: false, error: "No connection — try again once you're back online" };
+    return { ok: false, error: OFFLINE_MESSAGE };
   }
 }
 

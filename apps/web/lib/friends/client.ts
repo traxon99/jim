@@ -1,3 +1,4 @@
+import { type Result, apiRequest } from "@/lib/api/client";
 import type { PostDraft, ReactionKind } from "@jim/core";
 import type {
   FriendPost,
@@ -12,39 +13,14 @@ import type {
 // Friends are server data (issue #35): unlike training, nothing here is
 // written to IndexedDB first, so each call can fail offline and says so.
 
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
-
-const OFFLINE = "No connection — try again once you're back online";
-
-async function request<T>(
-  path: string,
-  init: RequestInit | undefined,
-  fallbackError: string,
-  fetchImpl: typeof fetch,
-): Promise<Result<T>> {
-  try {
-    const response = await fetchImpl(path, {
-      ...init,
-      headers: init?.body ? { "content-type": "application/json" } : undefined,
-    });
-    const body = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
-    if (!response.ok || body === null) {
-      return { ok: false, error: body?.error ?? fallbackError };
-    }
-    return { ok: true, value: body };
-  } catch {
-    return { ok: false, error: OFFLINE };
-  }
-}
-
 export function fetchFriends(fetchImpl: typeof fetch = fetch) {
-  return request<FriendsPayload>("/api/friends", undefined, "Couldn't load friends", fetchImpl);
+  return apiRequest<FriendsPayload>("/api/friends", undefined, "Couldn't load friends", fetchImpl);
 }
 
 export async function fetchFriendWorkouts(
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<FriendWorkout[]>> {
-  const result = await request<{ workouts: FriendWorkout[] }>(
+  const result = await apiRequest<{ workouts: FriendWorkout[] }>(
     "/api/friends/workouts",
     undefined,
     "Couldn't load your friends' workouts",
@@ -56,7 +32,7 @@ export async function fetchFriendWorkouts(
 export async function fetchFriendPosts(
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<FriendPost[]>> {
-  const result = await request<{ posts: FriendPost[] }>(
+  const result = await apiRequest<{ posts: FriendPost[] }>(
     "/api/friends/posts",
     undefined,
     "Couldn't load your friends' posts",
@@ -66,7 +42,7 @@ export async function fetchFriendPosts(
 }
 
 export function fetchProfile(fetchImpl: typeof fetch = fetch) {
-  return request<ProfilePayload>(
+  return apiRequest<ProfilePayload>(
     "/api/profile",
     undefined,
     "Couldn't load your profile",
@@ -79,7 +55,7 @@ export function updateProfile(
   patch: Partial<Pick<ProfilePayload, "avatar" | "shareWorkouts" | "shareWorkoutDetails">>,
   fetchImpl: typeof fetch = fetch,
 ) {
-  return request<ProfilePayload>(
+  return apiRequest<ProfilePayload>(
     "/api/profile",
     { method: "PATCH", body: JSON.stringify(patch) },
     "Couldn't save your profile",
@@ -88,7 +64,7 @@ export function updateProfile(
 }
 
 export async function fetchOwnPosts(fetchImpl: typeof fetch = fetch): Promise<Result<OwnPost[]>> {
-  const result = await request<{ posts: OwnPost[] }>(
+  const result = await apiRequest<{ posts: OwnPost[] }>(
     "/api/posts",
     undefined,
     "Couldn't load your posts",
@@ -102,7 +78,7 @@ export async function createPost(
   draft: PostDraft,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<string>> {
-  const result = await request<{ postId: string }>(
+  const result = await apiRequest<{ postId: string }>(
     "/api/posts",
     { method: "POST", body: JSON.stringify(draft) },
     "Couldn't share your post",
@@ -112,7 +88,7 @@ export async function createPost(
 }
 
 export function deletePost(postId: string, fetchImpl: typeof fetch = fetch) {
-  return request<{ ok: boolean }>(
+  return apiRequest<{ ok: boolean }>(
     "/api/posts",
     { method: "DELETE", body: JSON.stringify({ postId }) },
     "Couldn't delete the post",
@@ -123,7 +99,7 @@ export function deletePost(postId: string, fetchImpl: typeof fetch = fetch) {
 export async function fetchReceivedReactions(
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<ReceivedReaction[]>> {
-  const result = await request<{ reactions: ReceivedReaction[] }>(
+  const result = await apiRequest<{ reactions: ReceivedReaction[] }>(
     "/api/friends/reactions",
     undefined,
     "Couldn't load reactions",
@@ -138,7 +114,7 @@ export async function toggleReaction(
   kind: ReactionKind,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<boolean>> {
-  const result = await request<{ reacted: boolean }>(
+  const result = await apiRequest<{ reacted: boolean }>(
     "/api/friends/reactions",
     { method: "POST", body: JSON.stringify({ sessionId, kind }) },
     "Couldn't save your reaction",
@@ -151,7 +127,7 @@ export async function sendFriendRequest(
   username: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<FriendRequestResult>> {
-  const result = await request<{ result: FriendRequestResult }>(
+  const result = await apiRequest<{ result: FriendRequestResult }>(
     "/api/friends",
     { method: "POST", body: JSON.stringify({ username }) },
     "Couldn't send the request",
@@ -165,7 +141,7 @@ export function respondToFriendRequest(
   accept: boolean,
   fetchImpl: typeof fetch = fetch,
 ) {
-  return request<{ ok: boolean }>(
+  return apiRequest<{ ok: boolean }>(
     "/api/friends",
     { method: "PATCH", body: JSON.stringify({ userId, accept }) },
     "Couldn't answer the request",
@@ -174,7 +150,7 @@ export function respondToFriendRequest(
 }
 
 export function removeFriend(userId: string, fetchImpl: typeof fetch = fetch) {
-  return request<{ ok: boolean }>(
+  return apiRequest<{ ok: boolean }>(
     "/api/friends",
     { method: "DELETE", body: JSON.stringify({ userId }) },
     "Couldn't remove them",
@@ -186,7 +162,7 @@ export async function updateUsername(
   username: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<string>> {
-  const result = await request<{ username: string }>(
+  const result = await apiRequest<{ username: string }>(
     "/api/username",
     { method: "PUT", body: JSON.stringify({ username }) },
     "Couldn't save your username",

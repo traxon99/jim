@@ -1,4 +1,5 @@
 import type { AccessTokenEntry, CreatedAccessToken } from "@/lib/access-tokens/types";
+import { isUuid, readJsonObject, unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import {
@@ -17,21 +18,6 @@ import { NextResponse } from "next/server";
 // Personal access tokens for MCP clients without OAuth (issue #246). Every
 // query runs under RLS as the signed-in user; only a hash of each token is
 // stored, and the plaintext leaves this server once, in the POST response.
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function unauthenticated() {
-  return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-}
-
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
-  try {
-    const body: unknown = await request.json();
-    return typeof body === "object" && body !== null ? (body as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-}
 
 function toEntry(row: typeof personalAccessTokens.$inferSelect): AccessTokenEntry {
   return {
@@ -65,7 +51,7 @@ export async function GET() {
 
 /** Creates a token: `{ name, expiresInDays }` (30, 90, 365 or null for never). */
 export async function POST(request: Request) {
-  const body = await readJson(request);
+  const body = await readJsonObject(request);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const nameError = accessTokenNameError(name);
   if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
@@ -103,8 +89,8 @@ export async function POST(request: Request) {
 
 /** Revokes a token: `{ id }`. Takes effect on the MCP server's next request. */
 export async function DELETE(request: Request) {
-  const body = await readJson(request);
-  const id = typeof body?.id === "string" && UUID_PATTERN.test(body.id) ? body.id : null;
+  const body = await readJsonObject(request);
+  const id = typeof body?.id === "string" && isUuid(body.id) ? body.id : null;
   if (!id) return NextResponse.json({ error: "Invalid token id" }, { status: 400 });
 
   try {

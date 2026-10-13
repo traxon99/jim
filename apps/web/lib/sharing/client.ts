@@ -1,39 +1,17 @@
+import { type Result, apiRequest } from "@/lib/api/client";
 import type { ShareSnapshot } from "@jim/core";
 import type { OpenedShareLink, OwnShareLink } from "./types";
 
+export type { Result } from "@/lib/api/client";
+
 // Share links live on the server (issue #254): creating, opening and revoking
 // one each need a connection, and each call says so when there isn't one.
-
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
-
-const OFFLINE = "No connection. Try again once you're back online.";
-
-async function request<T>(
-  path: string,
-  init: RequestInit | undefined,
-  fallbackError: string,
-  fetchImpl: typeof fetch,
-): Promise<Result<T>> {
-  try {
-    const response = await fetchImpl(path, {
-      ...init,
-      headers: init?.body ? { "content-type": "application/json" } : undefined,
-    });
-    const body = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
-    if (!response.ok || body === null) {
-      return { ok: false, error: body?.error ?? fallbackError };
-    }
-    return { ok: true, value: body };
-  } catch {
-    return { ok: false, error: OFFLINE };
-  }
-}
 
 export async function createShareLink(
   snapshot: ShareSnapshot,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<string>> {
-  const result = await request<{ id: string }>(
+  const result = await apiRequest<{ id: string }>(
     "/api/shares",
     { method: "POST", body: JSON.stringify({ snapshot }) },
     "Couldn't create the link",
@@ -43,7 +21,7 @@ export async function createShareLink(
 }
 
 export function openShareLink(id: string, fetchImpl: typeof fetch = fetch) {
-  return request<OpenedShareLink>(
+  return apiRequest<OpenedShareLink>(
     `/api/shares/${encodeURIComponent(id)}`,
     undefined,
     "Couldn't open this link",
@@ -54,7 +32,7 @@ export function openShareLink(id: string, fetchImpl: typeof fetch = fetch) {
 export async function fetchOwnShareLinks(
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<OwnShareLink[]>> {
-  const result = await request<{ links: OwnShareLink[] }>(
+  const result = await apiRequest<{ links: OwnShareLink[] }>(
     "/api/shares",
     undefined,
     "Couldn't load your shared links",
@@ -64,7 +42,7 @@ export async function fetchOwnShareLinks(
 }
 
 export function revokeShareLink(id: string, fetchImpl: typeof fetch = fetch) {
-  return request<{ ok: true }>(
+  return apiRequest<{ ok: true }>(
     `/api/shares/${encodeURIComponent(id)}`,
     { method: "DELETE" },
     "Couldn't revoke the link",

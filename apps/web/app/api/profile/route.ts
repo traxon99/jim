@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { ProfilePayload } from "@/lib/friends/types";
@@ -18,10 +19,6 @@ function toPayload(row: typeof users.$inferSelect): ProfilePayload {
     shareWorkouts: row.shareWorkouts,
     shareWorkoutDetails: row.shareWorkoutDetails,
   };
-}
-
-function unauthenticated() {
-  return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 }
 
 export async function GET() {

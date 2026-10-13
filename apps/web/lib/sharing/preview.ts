@@ -1,3 +1,4 @@
+import { isUuid } from "@/lib/api/route-helpers";
 import { serviceDb } from "@/lib/db/user-scoped";
 import {
   type ShareSummary,
@@ -15,8 +16,6 @@ import { cache } from "react";
 // it still takes signing in: app/api/shares/[id]/route.ts) and hands back
 // only the summary a preview shows: the name, rough size and who shared it.
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export interface SharePreview {
   summary: ShareSummary;
   username: string | null;
@@ -24,7 +23,7 @@ export interface SharePreview {
 
 /** A live link's preview, or null when it's malformed, revoked or unreadable. */
 export const loadSharePreview = cache(async (id: string): Promise<SharePreview | null> => {
-  if (!UUID_PATTERN.test(id)) return null;
+  if (!isUuid(id)) return null;
   try {
     const [row] = await serviceDb()
       .select({ snapshot: shareLinks.snapshot, username: users.username })

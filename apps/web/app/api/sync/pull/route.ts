@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { SyncTable } from "@jim/core";
 import {
@@ -115,7 +116,7 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return unauthenticated();
     }
     throw error;
   }

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { claimFeedbackSlot } from "@/lib/feedback/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { APP_VERSION } from "@/lib/version";
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims.sub) {
-    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    return unauthenticated();
   }
   const userId = data.claims.sub;
 
