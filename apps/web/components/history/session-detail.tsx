@@ -217,8 +217,11 @@ export function SessionDetail({ id }: { id: string }) {
               )}
               <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                 {group.sets.map((set, i) => (
-                  <li key={set.id} className="flex items-center justify-between gap-2 py-2">
-                    <span className="flex items-center gap-2">
+                  <li
+                    key={set.id}
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2"
+                  >
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
                       {set.kind === "warmup" ? (
                         <span
                           aria-label="Warm-up set"
@@ -246,7 +249,7 @@ export function SessionDetail({ id }: { id: string }) {
                       <SetRestTag set={set} />
                     </span>
                     {set.prKinds.length > 0 && (
-                      <span className="flex gap-1">
+                      <span className="flex flex-wrap gap-1">
                         {set.prKinds.map((kind) => (
                           <span
                             key={kind}
