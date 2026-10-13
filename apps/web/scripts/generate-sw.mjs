@@ -27,7 +27,8 @@ const staticUrls = walk(staticDir).map(
 );
 
 // "/" and "/login" so the shell loads offline whether or not the user is
-// currently signed in (proxy.ts redirects "/" to "/login" when signed out).
+// currently signed in (proxy.ts redirects "/" to "/login" when signed out;
+// the worker skips a redirected response rather than store it, #506).
 const precacheUrls = ["/", "/login", "/manifest.webmanifest", ...staticUrls];
 
 const template = readFileSync(join(root, "public", "sw.template.js"), "utf8");

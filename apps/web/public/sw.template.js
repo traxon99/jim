@@ -5,11 +5,27 @@
 const CACHE_NAME = "jim-shell-__BUILD_ID__";
 const PRECACHE_URLS = __PRECACHE_URLS__;
 
+// Safari refuses a redirected response for a navigation (#506), and "/"
+// redirects to /login while signed out, which is when this worker often
+// installs. So a redirected page isn't stored: /login is the offline shell
+// until the first signed-in visit to "/" caches the real one (fetch handler).
+function precache(cache) {
+  return Promise.all(
+    PRECACHE_URLS.map((url) =>
+      fetch(url).then((response) => {
+        if (!response.ok) throw new Error(`Precache of ${url} failed (${response.status})`);
+        if (response.redirected) return undefined;
+        return cache.put(url, response);
+      }),
+    ),
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(precache)
       .then(() => self.skipWaiting()),
   );
 });
@@ -124,9 +140,20 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     // Fresh HTML while online; the precached shell while offline.
     event.respondWith(
-      fetch(request).catch(() =>
-        caches.match(request).then((cached) => cached || caches.match("/")),
-      ),
+      fetch(request)
+        .then((response) => {
+          if (url.pathname === "/" && response.ok && !response.redirected) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches
+            .match(request)
+            .then((cached) => cached || caches.match("/"))
+            .then((cached) => cached || caches.match("/login")),
+        ),
     );
     return;
   }
