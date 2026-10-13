@@ -1,5 +1,6 @@
 "use client";
 
+import { authErrorMessage } from "@/lib/auth/error-message";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useState } from "react";
@@ -28,7 +29,7 @@ export function ForgotPasswordForm({ next }: { next: string }) {
 
     if (error) {
       setStatus("error");
-      setErrorMessage(error.message);
+      setErrorMessage(authErrorMessage(error));
       return;
     }
 
