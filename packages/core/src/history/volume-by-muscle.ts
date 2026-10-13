@@ -14,6 +14,8 @@ export interface MuscleVolumeSet {
   completedAt: Date;
   weight: number | null;
   reps: number | null;
+  /** Seconds held, for timed exercises like a plank (issue #513). */
+  durationSeconds?: number | null;
   primaryMuscles: readonly string[];
   secondaryMuscles: readonly string[];
 }
@@ -24,7 +26,8 @@ export interface WeeklyMuscleVolume {
   /**
    * Hard sets per muscle (issue #332), the measure lifters and RP-style
    * apps track, weighted like volume: a secondary muscle counts half a set.
-   * Unlike volume, a set counts with reps but no weight (bodyweight work).
+   * Unlike volume, a set counts with reps but no weight (bodyweight work), and
+   * a timed hold counts with seconds but no reps (issue #513).
    */
   setsByMuscle: Readonly<Record<string, number>>;
 }
@@ -49,7 +52,9 @@ export function weeklyVolumeByMuscle(
     const setsByMuscle: Record<string, number> = {};
 
     for (const set of group.items) {
-      if (set.reps == null || set.reps <= 0) continue;
+      const hasReps = set.reps != null && set.reps > 0;
+      const hasDuration = set.durationSeconds != null && set.durationSeconds > 0;
+      if (!hasReps && !hasDuration) continue;
       for (const muscle of set.primaryMuscles) {
         setsByMuscle[muscle] = (setsByMuscle[muscle] ?? 0) + PRIMARY_MUSCLE_VOLUME_WEIGHT;
       }
@@ -57,7 +62,7 @@ export function weeklyVolumeByMuscle(
         setsByMuscle[muscle] = (setsByMuscle[muscle] ?? 0) + SECONDARY_MUSCLE_VOLUME_WEIGHT;
       }
 
-      if (set.weight == null || set.weight <= 0) continue;
+      if (!hasReps || set.reps == null || set.weight == null || set.weight <= 0) continue;
       const volume = set.weight * set.reps;
 
       for (const muscle of set.primaryMuscles) {

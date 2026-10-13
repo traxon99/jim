@@ -88,6 +88,7 @@ export function summarizeWeeks(
           completedAt: set.completedAt,
           weight: set.weight,
           reps: set.reps,
+          durationSeconds: set.durationSeconds,
           primaryMuscles: exercise.primaryMuscles,
           secondaryMuscles: exercise.secondaryMuscles,
         };
