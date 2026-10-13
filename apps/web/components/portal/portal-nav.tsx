@@ -60,12 +60,14 @@ export function PortalNav({ email }: { email: string }) {
       className="flex shrink-0 flex-col gap-3 border-b border-zinc-200 px-4 pt-4 md:w-56 md:gap-6 md:border-r md:border-b-0 md:py-6 dark:border-zinc-800"
     >
       <div className="flex min-w-0 flex-col gap-1">
+        {/* The installed app has no browser back button, and History is where
+            "Analysis" is opened from (#527). 44 px tall for the thumb. */}
         <Link
-          href="/"
-          className="flex items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-500"
+          href="/history"
+          className="-ml-1 flex min-h-11 items-center gap-1 self-start pr-3 text-base font-medium text-zinc-500 dark:text-zinc-500"
         >
-          <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          Jim
+          <ChevronLeft className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+          Back to Jim
         </Link>
         <span className="text-lg font-semibold">Training analysis</span>
         {email && (
@@ -81,7 +83,7 @@ export function PortalNav({ email }: { email: string }) {
               <Link
                 href={portalHref(section.href, range)}
                 aria-current={current ? "page" : undefined}
-                className={`flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium ${
+                className={`flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium ${
                   current
                     ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
                     : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
