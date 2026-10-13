@@ -161,7 +161,7 @@ The current scale:
 | z | What |
 |---|---|
 | `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `RpeInfoMenu`, `ExerciseActionsMenu` |
-| `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together), `FloatingCard` (portaled to `<body>`) |
+| `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together; the picker is portaled to `<body>`), `FloatingCard` (portaled to `<body>`) |
 | `z-30` | `ExerciseDialog` (sticky note, rest timer; portaled to `<body>`), which can open over Focus view |
 | `z-50` | Boot `LoadingScreen` (above everything) |
 
