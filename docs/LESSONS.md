@@ -86,6 +86,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #515 | An MCP write naming an exercise that didn't exist logged to some other exercise with the same equipment or muscle | `resolveExercise` took the top `searchExercises` hit, and search falls back to equipment and muscles | Resolving one exercise from a name matches names and aliases only (`namesOnly`); a miss fails with suggestions |
 | #510 | The MCP reported a PR count for workouts the phone showed 0 PRs for | `list_workouts` and `log_past_workout` counted PR rows of every kind, while the app counts only visible kinds (1RM) | Count PRs through `countVisiblePrs` in `@jim/core`, never with a local filter |
 | #509 | A client registered as "Claude" with an attacker's redirect URI could phish a jim session through the MCP sign-in page | The page showed only the self-chosen client name, never the redirect host, and could be framed | A page that grants access names the host receiving it, says that it grants access, and sends `frame-ancestors 'none'` |
 | #507 | An app update reloaded the page mid-workout and wiped a weight or note being typed | The `controllerchange` listener called `location.reload()` the moment the new service worker took over | An update reload waits until the user has left the app (`visibilitychange`), never while they are looking at it |

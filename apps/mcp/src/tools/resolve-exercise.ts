@@ -5,8 +5,12 @@ import { eq } from "drizzle-orm";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class ExerciseNotFoundError extends Error {
-  constructor(query: string) {
-    super(`No exercise matches "${query}". Try search_exercises to see what's in the catalog.`);
+  constructor(query: string, nearest: readonly string[] = []) {
+    const suggestions =
+      nearest.length > 0 ? ` Closest by equipment or muscle: ${nearest.join(", ")}.` : "";
+    super(
+      `No exercise matches "${query}".${suggestions} Try search_exercises to see what's in the catalog, or upsert_exercise to add it.`,
+    );
   }
 }
 
@@ -26,7 +30,9 @@ export async function visibleExercises(tx: DbOrTx): Promise<ExerciseRow[]> {
  * — "bench press", not a UUID — so every tool that takes an `exercise`
  * parameter resolves it the same way: an exact id if one was given, else
  * the top `searchExercises` match among what this user can see, preferring
- * their own clone over the global row it was cloned from (ADR-008).
+ * their own clone over the global row it was cloned from (ADR-008). Only a
+ * name or alias match counts (issue #515): an equipment or muscle match
+ * would quietly log to a different exercise, so it fails with suggestions.
  */
 export async function resolveExercise(
   tx: DbOrTx,
@@ -46,8 +52,13 @@ export async function resolveExercise(
 
   const rows = await visibleExercises(tx);
   const candidates = preferOwnedExercises(rows, userId);
-  const [best] = searchExercises(candidates, query);
-  if (!best) throw new ExerciseNotFoundError(query);
+  const [best] = searchExercises(candidates, query, { namesOnly: true });
+  if (!best) {
+    const nearest = searchExercises(candidates, query)
+      .slice(0, 3)
+      .map((row) => row.name);
+    throw new ExerciseNotFoundError(query, nearest);
+  }
 
   return best;
 }

@@ -42,7 +42,12 @@ interface Normalized {
   metadataWords: string[];
 }
 
-function scoreExercise(exercise: Normalized, query: string, queryWords: readonly string[]): number {
+function scoreExercise(
+  exercise: Normalized,
+  query: string,
+  queryWords: readonly string[],
+  namesOnly: boolean,
+): number {
   const nameScore = scoreField(exercise.name, query, {
     exact: WEIGHTS.exactName,
     startsWith: WEIGHTS.nameStartsWith,
@@ -79,7 +84,7 @@ function scoreExercise(exercise: Normalized, query: string, queryWords: readonly
       }),
     );
   }
-  if (tokenScore > 0) return tokenScore;
+  if (tokenScore > 0 || namesOnly) return tokenScore;
 
   const allWords = [...words(exercise.name), ...exercise.metadataWords];
   return TOKEN_WEIGHTS.metadataTokens * tokenQuality(queryWords, allWords);
@@ -103,6 +108,15 @@ function normalizeExercise(exercise: CatalogExercise): Normalized {
   };
 }
 
+export interface SearchExercisesOptions {
+  /**
+   * Match on name and aliases only, never equipment or muscles. For picking
+   * the one exercise a name means (issue #515): "Cable Crossover" with no
+   * such exercise must not resolve to whatever cable exercise sorts first.
+   */
+  namesOnly?: boolean;
+}
+
 /**
  * Ranked fuzzy search over name + aliases (and, as a last resort, equipment
  * and muscles). Whole-phrase matches always outrank word-by-word, spacing-
@@ -113,6 +127,7 @@ function normalizeExercise(exercise: CatalogExercise): Normalized {
 export function searchExercises<T extends CatalogExercise>(
   exercises: readonly T[],
   query: string,
+  { namesOnly = false }: SearchExercisesOptions = {},
 ): T[] {
   const normalized = normalize(query);
   if (!normalized) return [...exercises];
@@ -121,7 +136,7 @@ export function searchExercises<T extends CatalogExercise>(
   return exercises
     .map((exercise) => ({
       exercise,
-      score: scoreExercise(normalizeExercise(exercise), normalized, queryWords),
+      score: scoreExercise(normalizeExercise(exercise), normalized, queryWords, namesOnly),
     }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score || a.exercise.name.localeCompare(b.exercise.name))
