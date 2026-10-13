@@ -351,6 +351,13 @@
       "when": 1791915672934,
       "tag": "0049_add_feedback_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791918217239,
+      "tag": "0050_sync_mutations_user_applied",
+      "breakpoints": true
     }
   ]
 }

@@ -47,4 +47,23 @@ describe("ExpiringStore", () => {
     expect(store.peek("missing")).toBeUndefined();
     expect(store.take("missing")).toBeUndefined();
   });
+
+  it("sweeps expired entries that were never read back, on the next set (#536)", () => {
+    const store = new ExpiringStore<{ createdAt: number }>(1000);
+    store.set("abandoned-1", { createdAt: Date.now() });
+    store.set("abandoned-2", { createdAt: Date.now() });
+    vi.advanceTimersByTime(1001);
+    store.set("fresh", { createdAt: Date.now() });
+    expect(store.size).toBe(1);
+  });
+
+  it("drops the oldest entries past its size cap", () => {
+    const store = new ExpiringStore<{ createdAt: number }>(60_000, 2);
+    store.set("a", { createdAt: Date.now() });
+    store.set("b", { createdAt: Date.now() });
+    store.set("c", { createdAt: Date.now() });
+    expect(store.size).toBe(2);
+    expect(store.peek("a")).toBeUndefined();
+    expect(store.peek("c")).toBeDefined();
+  });
 });

@@ -32,10 +32,33 @@ export interface IssuedAuthorizationCode {
 export class ExpiringStore<V extends { createdAt: number }> {
   private readonly entries = new Map<string, V>();
 
-  constructor(private readonly ttlMs: number) {}
+  /**
+   * `/authorize` is unauthenticated, so entries that are never read back
+   * would otherwise pile up (issue #536): each `set` sweeps expired ones,
+   * and past `maxEntries` the oldest go first.
+   */
+  constructor(
+    private readonly ttlMs: number,
+    private readonly maxEntries = 10_000,
+  ) {}
 
   set(key: string, value: V): void {
+    const now = Date.now();
+    for (const [existingKey, existing] of this.entries) {
+      // Insertion order is creation order, so the first live entry ends the sweep.
+      if (now - existing.createdAt <= this.ttlMs) break;
+      this.entries.delete(existingKey);
+    }
     this.entries.set(key, value);
+    while (this.entries.size > this.maxEntries) {
+      const oldest = this.entries.keys().next().value;
+      if (oldest === undefined) break;
+      this.entries.delete(oldest);
+    }
+  }
+
+  get size(): number {
+    return this.entries.size;
   }
 
   /** Non-destructive read — used where the same key is read more than once during a flow. */

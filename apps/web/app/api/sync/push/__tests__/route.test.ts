@@ -14,7 +14,7 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
-const { POST } = await import("../route");
+const { MAX_ENTITY_BYTES, MAX_PUSH_MUTATIONS, POST } = await import("../route");
 
 function push(mutations: unknown[]) {
   return POST(
@@ -634,5 +634,52 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
       SELECT user_id FROM routines WHERE id = ${routineId}
     `;
     expect(row?.user_id).toBe(USER_A);
+  });
+
+  it("refuses an oversized push without applying any of it (#536)", async () => {
+    const tooMany = Array.from({ length: MAX_PUSH_MUTATIONS + 1 }, () => ({
+      id: uuidv7(),
+      table: "routines",
+      entity: { id: uuidv7() },
+    }));
+    expect((await push(tooMany)).status).toBe(413);
+
+    const huge = {
+      id: uuidv7(),
+      table: "routines",
+      entity: { id: uuidv7(), notes: "x".repeat(MAX_ENTITY_BYTES) },
+    };
+    expect((await push([huge])).status).toBe(413);
+  });
+
+  it("prunes this user's idempotency ledger rows older than the retention (#536)", async () => {
+    const oldId = uuidv7();
+    const otherUsersOldId = uuidv7();
+    await admin`
+      INSERT INTO sync_mutations (id, user_id, applied_at) VALUES
+        (${oldId}, ${USER_A}, now() - interval '400 days'),
+        (${otherUsersOldId}, ${USER_B}, now() - interval '400 days')
+    `;
+    const routineId = uuidv7();
+    await push([
+      {
+        id: uuidv7(),
+        table: "routines",
+        entity: {
+          id: routineId,
+          name: "Ledger",
+          notes: null,
+          position: 0,
+          folder: null,
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+          deviceId: "test",
+          deletedAt: null,
+        },
+      },
+    ]);
+    const left =
+      await admin`SELECT id FROM sync_mutations WHERE id IN (${oldId}, ${otherUsersOldId})`;
+    expect(left.map((row) => row.id)).toEqual([otherUsersOldId]);
   });
 });
