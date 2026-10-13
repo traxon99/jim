@@ -97,6 +97,8 @@ export function ProgressionHome({ userId }: { userId: string }) {
     setError(null);
     try {
       await action();
+    } catch {
+      setError("Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }

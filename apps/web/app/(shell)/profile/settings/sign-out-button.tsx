@@ -7,10 +7,21 @@ import { useState } from "react";
 
 export function SignOutButton() {
   const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   async function handleSignOut() {
     setPending(true);
+    setFailed(false);
+    try {
+      await signOut();
+    } catch {
+      // Nothing is cleared until the end, so the user is still signed in.
+      setPending(false);
+      setFailed(true);
+    }
+  }
 
+  async function signOut() {
     const unsynced = await flushOutboxBeforeSignOut();
     if (
       unsynced > 0 &&
@@ -37,14 +48,21 @@ export function SignOutButton() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleSignOut}
-      disabled={pending}
-      className="flex min-h-11 items-center gap-2 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
-    >
-      <LogOut className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-      {pending ? "Signing out…" : "Sign out"}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handleSignOut}
+        disabled={pending}
+        className="flex min-h-11 items-center gap-2 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
+      >
+        <LogOut className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+        {pending ? "Signing out…" : "Sign out"}
+      </button>
+      {failed && (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-500">
+          Couldn't sign out. Check your connection and try again.
+        </p>
+      )}
+    </>
   );
 }

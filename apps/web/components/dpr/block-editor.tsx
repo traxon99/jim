@@ -59,8 +59,14 @@ export function BlockEditor({
 
   async function saveFocus() {
     setSaving(true);
-    await updateBlockFocus(block, lifts, focus, snapshot);
-    setSaving(false);
+    setError(null);
+    try {
+      await updateBlockFocus(block, lifts, focus, snapshot);
+    } catch {
+      setError("Couldn't save. Try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function toggle(id: string) {

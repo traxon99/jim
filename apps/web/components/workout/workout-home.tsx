@@ -25,6 +25,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   // The routine waiting on the pre-workout sheet (issue #235); opened by the
   // Start button for DPR users and by tapping a routine for everyone (#282).
   const [preview, setPreview] = useState<{ id: string; name: string } | null>(null);
@@ -81,17 +82,26 @@ export function WorkoutHome({ userId }: { userId: string }) {
     [rawRoutines],
   );
 
-  async function handleStartEmpty() {
+  // Nothing was started if this throws, so free the buttons and say so
+  // (issue #517); on success `starting` stays set until we leave /workout.
+  async function start(begin: () => Promise<string>) {
     setStarting(true);
-    const sessionId = await startEmptySession(userId);
-    router.push(`/workout/${sessionId}`);
+    setStartError(null);
+    try {
+      router.push(`/workout/${await begin()}`);
+    } catch {
+      setStarting(false);
+      setStartError("Couldn't start the workout. Try again.");
+    }
+  }
+
+  function handleStartEmpty() {
+    return start(() => startEmptySession(userId));
   }
 
   // Issue #280: an ad hoc workout aimed at the muscles trained least lately.
-  async function handleStartSmart() {
-    setStarting(true);
-    const sessionId = await startSmartSession(userId);
-    router.push(`/workout/${sessionId}`);
+  function handleStartSmart() {
+    return start(() => startSmartSession(userId));
   }
 
   const closePreview = useCallback(() => setPreview(null), []);
@@ -109,14 +119,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
     if (!starting) setPreview({ id: routineId, name: routineName });
   }
 
-  async function handleStartFromRoutine(
+  function handleStartFromRoutine(
     routineId: string,
     intensity: SessionIntensity | null,
     gymId: string | null,
   ) {
-    setStarting(true);
-    const sessionId = await startSessionFromRoutineId(userId, routineId, intensity, db, gymId);
-    router.push(`/workout/${sessionId}`);
+    return start(() => startSessionFromRoutineId(userId, routineId, intensity, db, gymId));
   }
 
   if (rawSessions === undefined || activeSession) {
@@ -132,6 +140,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
       <PageHeader title="Workout" />
       <div className={PAGE_BODY}>
         <BlockEndCard context={dprContext} />
+
+        {startError && (
+          <p role="alert" className="text-sm text-red-600 dark:text-red-500">
+            {startError}
+          </p>
+        )}
 
         <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 

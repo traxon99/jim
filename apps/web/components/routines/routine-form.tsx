@@ -78,6 +78,7 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
   const [iconShape, setIconShape] = useState<RoutineIconShape>("square");
   const [iconColor, setIconColor] = useState<RoutineIconColor>("red");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const iconInitialized = useRef(false);
 
   const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
@@ -130,11 +131,22 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
     iconInitialized.current = true;
   }, [mode, allRoutines]);
 
+  // A failed save frees the button and says so instead of sticking on
+  // "Saving…" (issue #517); on success the page navigates away.
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
+    setSaveError(null);
+    try {
+      await save();
+    } catch {
+      setSaving(false);
+      setSaveError("Couldn't save. Try again.");
+    }
+  }
 
+  async function save() {
     let warmupRoutineId: string | null = null;
     if (kind === "strength") {
       if (linkedWarmup) warmupRoutineId = linkedWarmup.id;
@@ -376,6 +388,12 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
         >
           {saving ? "Saving…" : "Save"}
         </button>
+
+        {saveError && (
+          <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-500">
+            {saveError}
+          </p>
+        )}
       </form>
     </main>
   );
