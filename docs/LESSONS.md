@@ -83,6 +83,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #494 | Workout volume and set counts on History, Home, the portal, the MCP and the friends feed included warm-up sets | `summarizeSession` summed every set it was given, and `friend_workouts` counted `*` | Count working sets only: summaries take each set's `kind` and skip warm-ups |
 | #493 | Tapping outside the Sticky note or Rest timer dialog did nothing | Its backdrop `<button>` used plain `absolute` (the #356 bug again), and the dialog rendered in place inside the exercise section | Backdrop buttons use `absolute!`; overlays opened from a list row portal to `<body>` |
 | #492 | One tap on Remove Exercise mid-workout deleted every set logged for it, with no confirm or undo | The ⋯ menu action tombstoned the session exercise directly | Anything that deletes logged sets asks first or offers Undo |
 | #491 | A fast double tap on ✓ saved the same set twice, and both counted toward volume and PRs | The Log buttons had no in-flight guard, and the set index only moves once the live query re-emits, after `completeSet` resolves | Guard every log with `useLogGuard`: one log in flight per section until the new set has rendered |

@@ -34,4 +34,18 @@ describe("summarizeSession", () => {
       prCount: 0,
     });
   });
+
+  it("counts working sets only, leaving warm-ups out of volume and sets (#494)", () => {
+    const startedAt = new Date("2026-01-01T00:00:00.000Z");
+    const endedAt = new Date("2026-01-01T01:00:00.000Z");
+    const warmup = { weight: 45, reps: 10, kind: "warmup" };
+    const working = { weight: 225, reps: 5, kind: "working" };
+    const summary = summarizeSession(
+      [warmup, warmup, warmup, working, working, working],
+      startedAt,
+      endedAt,
+    );
+    expect(summary.totalVolume).toBe(3375);
+    expect(summary.setCount).toBe(3);
+  });
 });
