@@ -9,7 +9,8 @@ import type { DprSet } from "./decide";
 export function rpeAdjustedE1rm(weight: number, reps: number, rpe: number | null): number {
   if (weight <= 0 || reps <= 0) return 0;
   const reserve = rpe === null ? 0 : Math.max(0, 10 - rpe);
-  return estimateOneRepMax(weight, reps + reserve);
+  // Uncapped: PRP compares a lift's estimates with each other (issue #538).
+  return estimateOneRepMax(weight, reps + reserve, { maxReps: Number.POSITIVE_INFINITY });
 }
 
 /** The best RPE-adjusted e1RM among a session's working sets, or 0. */
