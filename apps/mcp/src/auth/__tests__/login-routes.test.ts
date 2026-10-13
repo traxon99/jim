@@ -109,3 +109,14 @@ describe("POST /login", () => {
     expect(signInWithPassword).not.toHaveBeenCalled();
   });
 });
+
+describe("GET /login", () => {
+  it("can't be framed by another site and names the redirect host (#509)", async () => {
+    startLogin("frame-login");
+    const res = await fetch(`${baseUrl}/login?login=frame-login`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-security-policy")).toBe("frame-ancestors 'none'");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(await res.text()).toContain("<strong>client.example</strong>");
+  });
+});

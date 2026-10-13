@@ -39,23 +39,49 @@ ${body}
 </html>`;
 }
 
-export function loginFormPage(
-  loginId: string,
-  clientName: string | undefined,
-  error?: string,
+export interface LoginFormOptions {
+  loginId: string;
+  /** Chosen by the client at registration, so anyone can call theirs "Claude". */
+  clientName: string | undefined;
+  /** Where the authorization code goes; its host is what actually identifies the client (#509). */
+  redirectUri: string;
+  error?: string;
+  email?: string;
+}
+
+function redirectHost(redirectUri: string): string {
+  try {
+    return new URL(redirectUri).host || redirectUri;
+  } catch {
+    return redirectUri;
+  }
+}
+
+/**
+ * Sign-in doubles as the consent step (#509): the page names the host the
+ * code will be sent to, since the client name is self-chosen, and the
+ * button says it grants access.
+ */
+export function loginFormPage({
+  loginId,
+  clientName,
+  redirectUri,
+  error,
   email = "",
-): string {
+}: LoginFormOptions): string {
   return page(
     "Sign in",
     `
 <h1>Sign in to jim</h1>
-<p class="muted">${escapeHtml(clientName ?? "An application")} wants to read and manage your training data.</p>
+<p>${escapeHtml(clientName ?? "An application")} wants to read and manage your training data.</p>
+<p>Signing in sends access to <strong>${escapeHtml(redirectHost(redirectUri))}</strong>.</p>
+<p class="muted">Only continue if you started connecting jim from that app just now. If you didn't, close this page.</p>
 ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
 <form method="POST" action="/login">
   <input type="hidden" name="login" value="${escapeHtml(loginId)}">
   <input type="email" name="email" value="${escapeHtml(email)}" placeholder="you@example.com" required ${email ? "" : "autofocus "}autocomplete="username">
   <input type="password" name="password" placeholder="Password" required ${email ? "autofocus " : ""}autocomplete="current-password">
-  <button type="submit">Sign in</button>
+  <button type="submit">Sign in and allow access</button>
 </form>
 <p class="muted">Use the same email and password as the jim app.</p>
 `,
