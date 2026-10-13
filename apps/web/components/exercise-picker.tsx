@@ -12,7 +12,7 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Plus } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface Props {
@@ -22,7 +22,7 @@ interface Props {
    * The picked exercises, in the order they were tapped. Two or more are
    * added together as a superset (issue #269).
    */
-  onPick: (exerciseIds: string[]) => void;
+  onPick: (exerciseIds: string[]) => void | Promise<void>;
   onClose: () => void;
   /** Which tab the picker opens on — e.g. "warmup" inside a warm-up routine. */
   initialCategory?: ExerciseCategory | "all";
@@ -77,9 +77,23 @@ export function ExercisePicker({
   const [creating, setCreating] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
+  // One pick per opening (issue #550): a double tap on Add inserted the
+  // exercises twice. Cleared if the pick fails, so the user can retry.
+  const picking = useRef(false);
+  function pick(exerciseIds: string[]) {
+    if (picking.current) return;
+    picking.current = true;
+    Promise.resolve()
+      .then(() => onPick(exerciseIds))
+      .catch((error: unknown) => {
+        picking.current = false;
+        console.error("[exercise-picker] adding failed:", error);
+      });
+  }
+
   function toggleSelected(exerciseId: string) {
     if (replacing) {
-      onPick([exerciseId]);
+      pick([exerciseId]);
       return;
     }
     setSelectedIds((current) =>
@@ -172,7 +186,7 @@ export function ExercisePicker({
             // On its own it's added straight away, as before; alongside
             // others it joins the selection.
             if (selectedIds.length === 0) {
-              onPick([exercise.id]);
+              pick([exercise.id]);
               return;
             }
             setSelectedIds((current) => [...current, exercise.id]);
@@ -275,7 +289,7 @@ export function ExercisePicker({
         >
           <button
             type="button"
-            onClick={() => onPick(selectedIds)}
+            onClick={() => pick(selectedIds)}
             disabled={selectedIds.length === 0}
             className="min-h-11 w-full rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-40"
           >

@@ -29,6 +29,11 @@ import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session"
 import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { DEFAULT_SETTINGS, showsPaceTracker } from "@/lib/settings";
+import {
+  addExerciseItems,
+  applySupersetChanges as applyItemSupersetChanges,
+  formSupersetIn,
+} from "@/lib/supersets/item-mutations";
 import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
 import {
@@ -339,16 +344,17 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   // Picking several exercises at once adds them as one superset (issue #269).
   async function handleAddExercises(exerciseIds: readonly string[]) {
-    const deviceId = await getDeviceId();
-    const now = new Date();
-    const supersetGroup = exerciseIds.length > 1 ? nextSupersetGroup(mainItems) : null;
-    for (const [offset, exerciseId] of exerciseIds.entries()) {
-      await mutate("sessionExercises", {
+    await addExerciseItems(
+      "sessionExercises",
+      mainItems,
+      sessionExercises.length,
+      exerciseIds,
+      ({ exerciseId, position, supersetGroup, now, deviceId }) => ({
         id: uuidv7(),
         userId,
         sessionId: id,
         exerciseId,
-        position: sessionExercises.length + offset,
+        position,
         supersetGroup,
         notes: null,
         stickyNote: null,
@@ -358,47 +364,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         deviceId,
         deletedAt: null,
         serverSeq: 0,
-      });
-    }
+      }),
+    );
     setPickerOpen(false);
   }
 
-  async function applySupersetChanges(changes: readonly SupersetChange[]) {
-    if (changes.length === 0) return;
-    const deviceId = await getDeviceId();
-    const now = new Date();
-    for (const change of changes) {
-      const item = mainItems.find((se) => se.id === change.id);
-      if (!item) continue;
-      await mutate("sessionExercises", {
-        ...item,
-        supersetGroup: change.supersetGroup,
-        updatedAt: now,
-        deviceId,
-      });
-    }
+  function applySupersetChanges(changes: readonly SupersetChange[]) {
+    return applyItemSupersetChanges("sessionExercises", mainItems, changes);
   }
 
-  // The card's picks become one superset, moved together (issue #360). The
-  // main exercises reuse their own positions, so warm-ups stay put.
-  async function handleFormSuperset(selectedIds: readonly string[], editingIds: readonly string[]) {
-    const positions = mainItems.map((se) => se.position);
-    const formed = formSuperset(mainItems, selectedIds, editingIds);
-    const deviceId = await getDeviceId();
-    const now = new Date();
-    for (const [index, item] of formed.entries()) {
-      const original = mainItems.find((se) => se.id === item.id);
-      const position = positions[index] ?? item.position;
-      if (!original) continue;
-      if (original.position === position && original.supersetGroup === item.supersetGroup) continue;
-      await mutate("sessionExercises", {
-        ...original,
-        position,
-        supersetGroup: item.supersetGroup,
-        updatedAt: now,
-        deviceId,
-      });
-    }
+  // The main exercises reuse their own positions, so warm-ups stay put.
+  function handleFormSuperset(selectedIds: readonly string[], editingIds: readonly string[]) {
+    return formSupersetIn("sessionExercises", mainItems, selectedIds, editingIds);
   }
 
   // Only offered before a set is logged: logged sets belong to the exercise
@@ -793,7 +770,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           userId={userId}
           excludeExerciseIds={excludeExerciseIds}
           suggestedExerciseIds={suggestedExerciseIds}
-          onPick={(exerciseIds) => void handleAddExercises(exerciseIds)}
+          onPick={handleAddExercises}
           onClose={() => setPickerOpen(false)}
         />
       )}
