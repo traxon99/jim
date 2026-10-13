@@ -39,6 +39,32 @@ describe("resolveCurrentRows", () => {
     expect(resolveCurrentRows([v2, v1])).toEqual([v2]);
   });
 
+  it("keeps only the newest tip when two devices edited the same set (#531)", () => {
+    const original: Row = { id: "a", supersedesId: null, weight: 100 };
+    const phone: Row = { id: "b", supersedesId: "a", weight: 105 };
+    const laptop: Row = { id: "c", supersedesId: "a", weight: 110 };
+    expect(resolveCurrentRows([original, phone, laptop])).toEqual([laptop]);
+    expect(resolveCurrentRows([laptop, phone, original])).toEqual([laptop]);
+  });
+
+  it("follows each fork to its tip before choosing the newest", () => {
+    const original: Row = { id: "a", supersedesId: null, weight: 100 };
+    const phone: Row = { id: "b", supersedesId: "a", weight: 105 };
+    const laptop: Row = { id: "c", supersedesId: "a", weight: 110 };
+    const phoneAgain: Row = { id: "d", supersedesId: "b", weight: 107 };
+    const otherSet: Row = { id: "e", supersedesId: null, weight: 50 };
+    expect(resolveCurrentRows([original, phone, laptop, phoneAgain, otherSet])).toEqual([
+      phoneAgain,
+      otherSet,
+    ]);
+  });
+
+  it("groups forked tips even when the original row isn't loaded", () => {
+    const phone: Row = { id: "b", supersedesId: "a", weight: 105 };
+    const laptop: Row = { id: "c", supersedesId: "a", weight: 110 };
+    expect(resolveCurrentRows([phone, laptop])).toEqual([laptop]);
+  });
+
   it("returns an empty array for no rows", () => {
     expect(resolveCurrentRows([])).toEqual([]);
   });
