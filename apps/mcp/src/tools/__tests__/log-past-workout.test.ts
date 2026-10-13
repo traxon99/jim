@@ -204,6 +204,46 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("log_past_workout (#244)", () =>
     );
   });
 
+  it("retires later PRs that a backdated workout outdid (#537)", async () => {
+    await admin`
+      INSERT INTO exercises (slug, name, tracking_type, primary_muscles)
+      VALUES ('deadlift-537', 'Deadlift 537', 'weight_reps', '{hamstrings}')
+    `;
+    const later = await logPastWorkout(context, {
+      startedAt: "2026-01-10T08:00:00Z",
+      exercises: [{ exercise: "deadlift 537", sets: [{ weight: 100, reps: 5 }] }],
+    });
+    const laterSetId = later.exercises[0]?.sets[0]?.id;
+    expect(later.exercises[0]?.sets[0]?.prs).toContain("1rm");
+
+    const earlier = await logPastWorkout(context, {
+      startedAt: "2026-01-01T08:00:00Z",
+      exercises: [{ exercise: "deadlift 537", sets: [{ weight: 120, reps: 5 }] }],
+    });
+    expect(earlier.laterPrsRetired).toBe(3);
+
+    const live = await admin`
+      SELECT kind FROM personal_records WHERE set_id = ${laterSetId as string} AND deleted_at IS NULL
+    `;
+    expect(live).toHaveLength(0);
+  });
+
+  it("keeps later PRs the backdated workout didn't beat", async () => {
+    await admin`
+      INSERT INTO exercises (slug, name, tracking_type, primary_muscles)
+      VALUES ('squat-537', 'Squat 537', 'weight_reps', '{quadriceps}')
+    `;
+    await logPastWorkout(context, {
+      startedAt: "2026-02-10T08:00:00Z",
+      exercises: [{ exercise: "squat 537", sets: [{ weight: 140, reps: 5 }] }],
+    });
+    const earlier = await logPastWorkout(context, {
+      startedAt: "2026-02-01T08:00:00Z",
+      exercises: [{ exercise: "squat 537", sets: [{ weight: 100, reps: 5 }] }],
+    });
+    expect(earlier.laterPrsRetired).toBe(0);
+  });
+
   it("writes nothing on a dry run", async () => {
     const before =
       await admin`SELECT (SELECT count(*) FROM sessions) s, (SELECT count(*) FROM sets) t, (SELECT count(*) FROM personal_records) p`;
