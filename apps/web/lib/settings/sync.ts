@@ -13,15 +13,17 @@ import { DEFAULT_SETTINGS } from "./defaults";
 type SettingsPayload = Omit<SettingsRow, "id" | "dprPromptDismissedAt" | "onboardedAt"> & {
   dprPromptDismissedAt?: string | null;
   onboardedAt?: string | null;
+  timeZone?: string | null;
 };
 
 /** The API sends timestamps as ISO strings; the cached row keeps Dates. */
 function toCachedRow(payload: SettingsPayload): SettingsRow {
+  const { timeZone: _timeZone, ...fields } = payload;
   const dismissed = payload.dprPromptDismissedAt;
   const onboarded = payload.onboardedAt;
   return {
     ...DEFAULT_SETTINGS,
-    ...payload,
+    ...fields,
     id: "me",
     dprPromptDismissedAt: dismissed ? new Date(dismissed) : null,
     onboardedAt: onboarded ? new Date(onboarded) : null,
@@ -37,9 +39,34 @@ export async function refreshSettings(
     if (!response.ok) return;
     const payload = (await response.json()) as SettingsPayload;
     await database.settings.put(toCachedRow(payload));
+    await reportTimeZone(payload.timeZone ?? null, fetchImpl);
   } catch {
     // Offline or logged out — the cached/default row stands.
   }
+}
+
+/** The zone this device is in, e.g. "America/Los_Angeles", or null if unknown. */
+export function deviceTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Tells the server which time zone the phone is in when it changed (issue
+ * #511), so the MCP server's weekly summaries split weeks where the app
+ * does. Best effort: a failure just tries again on the next refresh.
+ */
+async function reportTimeZone(stored: string | null, fetchImpl: typeof fetch): Promise<void> {
+  const timeZone = deviceTimeZone();
+  if (!timeZone || timeZone === stored) return;
+  await fetchImpl("/api/settings", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ timeZone }),
+  });
 }
 
 export async function patchSettings(

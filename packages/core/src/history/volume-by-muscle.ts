@@ -40,11 +40,13 @@ export interface WeeklyMuscleVolume {
 export function weeklyVolumeByMuscle(
   sets: readonly MuscleVolumeSet[],
   weekStart: number,
+  timeZone?: string,
 ): WeeklyMuscleVolume[] {
   const groups: WeekGroup<MuscleVolumeSet>[] = groupByWeek(
     sets,
     weekStart,
     (set) => set.completedAt,
+    timeZone,
   );
 
   return groups.map((group) => {

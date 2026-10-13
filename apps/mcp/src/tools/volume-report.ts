@@ -96,9 +96,18 @@ export async function exercisesById(
   return new Map(rows.map((row) => [row.id, row]));
 }
 
-export async function weekStartFor(tx: DbOrTx, userId: string): Promise<number> {
-  const [user] = await tx.select().from(users).where(eq(users.id, userId));
-  return user?.weekStart ?? 0;
+export interface WeekSettings {
+  weekStart: number;
+  /** The phone's zone; weeks split at its midnight, not the server's (issue #511). */
+  timeZone?: string;
+}
+
+export async function weekSettingsFor(tx: DbOrTx, userId: string): Promise<WeekSettings> {
+  const [user] = await tx
+    .select({ weekStart: users.weekStart, timeZone: users.timeZone })
+    .from(users)
+    .where(eq(users.id, userId));
+  return { weekStart: user?.weekStart ?? 0, timeZone: user?.timeZone ?? undefined };
 }
 
 export async function volumeReport(context: UserContext, input: VolumeReportInput) {
@@ -109,8 +118,8 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
     const resolved = await resolvedSetsInRange(tx, from, to);
 
     if (input.groupBy === "week") {
-      const weekStart = await weekStartFor(tx, context.userId);
-      const groups = groupByWeek(resolved, weekStart, (set) => set.completedAt);
+      const { weekStart, timeZone } = await weekSettingsFor(tx, context.userId);
+      const groups = groupByWeek(resolved, weekStart, (set) => set.completedAt, timeZone);
       return groups.map((group) => ({
         weekStart: group.weekStart.toISOString(),
         totalVolume: group.items.reduce(
@@ -138,7 +147,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
     }
 
     // groupBy === "muscle"
-    const weekStart = await weekStartFor(tx, context.userId);
+    const { weekStart, timeZone } = await weekSettingsFor(tx, context.userId);
     const exerciseRows = await exercisesById(tx, [
       ...new Set(resolved.map((set) => set.exerciseId)),
     ]);
@@ -159,7 +168,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
       .filter((set): set is NonNullable<typeof set> => set !== null);
 
     const goal = input.goal ?? "hypertrophy";
-    const groups = weeklyVolumeByMuscle(muscleSets, weekStart);
+    const groups = weeklyVolumeByMuscle(muscleSets, weekStart, timeZone);
     return groups.map((group) => ({
       weekStart: group.weekStart.toISOString(),
       volumeByMuscle: group.volumeByMuscle,
