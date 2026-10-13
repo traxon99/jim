@@ -31,6 +31,7 @@ import {
 } from "@/lib/progression/calls";
 import { NO_PREVIOUS_SETS, loadPreviousSets } from "@/lib/sessions/previous-set-lookup";
 import {
+  alertSetValueError,
   completeSet,
   deleteSet,
   editSet,
@@ -471,7 +472,7 @@ export function SessionExerciseSection({
   const logGuard = useLogGuard(sets);
 
   function logRow(index: number) {
-    return logGuard.run(() => saveRow(index));
+    return logGuard.run(() => saveRow(index)).catch(alertSetValueError);
   }
 
   async function saveRow(index: number) {
@@ -501,7 +502,7 @@ export function SessionExerciseSection({
   }
 
   function repeatLast() {
-    return logGuard.run(saveRepeat);
+    return logGuard.run(saveRepeat).catch(alertSetValueError);
   }
 
   async function saveRepeat() {

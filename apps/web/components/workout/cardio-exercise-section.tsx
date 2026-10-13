@@ -9,7 +9,7 @@ import type {
   SettingsRow,
 } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
-import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
+import { alertSetValueError, completeSet, deleteSet } from "@/lib/sessions/set-actions";
 import { useLogGuard } from "@/lib/workout/log-guard";
 import {
   type CardioRecordKind,
@@ -166,7 +166,7 @@ export function CardioExerciseSection({
   const logGuard = useLogGuard(sets);
 
   function log() {
-    return logGuard.run(save);
+    return logGuard.run(save).catch(alertSetValueError);
   }
 
   async function save() {

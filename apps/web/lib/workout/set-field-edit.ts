@@ -1,4 +1,4 @@
-import { clampRpe } from "@jim/core";
+import { clampRpe, setValuesProblem } from "@jim/core";
 
 export type SetField = "weight" | "reps" | "rpe";
 
@@ -39,5 +39,7 @@ export function setFieldEditPatch(set: SetValues, field: SetField, raw: string):
     rpe: toNumberOrNull(set.rpe),
   };
   if (current[field] === value) return null;
+  // A value the server can't store would never sync (issue #500).
+  if (field !== "rpe" && setValuesProblem({ [field]: value })) return null;
   return { ...current, [field]: value };
 }

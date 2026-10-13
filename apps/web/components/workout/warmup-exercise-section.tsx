@@ -4,7 +4,7 @@ import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
-import { completeSet, deleteSet } from "@/lib/sessions/set-actions";
+import { alertSetValueError, completeSet, deleteSet } from "@/lib/sessions/set-actions";
 import { useLogGuard } from "@/lib/workout/log-guard";
 import { exerciseDisplayName, resolveCurrentRows } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -69,7 +69,7 @@ export function WarmupExerciseSection({
   const logGuard = useLogGuard(sets);
 
   function log() {
-    return logGuard.run(save);
+    return logGuard.run(save).catch(alertSetValueError);
   }
 
   async function save() {
