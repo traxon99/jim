@@ -337,6 +337,13 @@
       "when": 1791914391192,
       "tag": "0047_mcp_oauth_clients_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791915450204,
+      "tag": "0048_add_user_and_fk_indexes",
+      "breakpoints": true
     }
   ]
 }
