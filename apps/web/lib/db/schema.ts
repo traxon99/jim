@@ -83,6 +83,12 @@ export interface SyncMetaRow {
   id: "meta";
   cursor: number;
   deviceId: string;
+  /**
+   * The Dexie schema version the cursor was earned under (issue #501). A
+   * pull skips tables this version doesn't store yet, so after an upgrade
+   * adds one the cursor starts over to fetch that table's existing rows.
+   */
+  schemaVersion?: number;
 }
 
 /**

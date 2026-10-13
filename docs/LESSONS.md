@@ -83,6 +83,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #501 | Rows of a table the phone didn't store yet were skipped for good once it started storing it | The pull ignored unknown tables but still saved the cursor past their rows | The sync cursor records the Dexie schema version it was earned under; a newer schema pulls from the start once |
 | #500 | A set with a fat-fingered weight never synced, and the badge said "pending" forever | The client accepted values past the server columns' range, and a mutation the server rejected was retried every cycle with no limit or error state | Validate set values against `SET_LIMITS` before queueing; a mutation rejected `MAX_PUSH_FAILURES` times shows as a sync error |
 | #495 | Workout detail set rows ran past the screen edge at 393 px | The history set row had no `min-w-0` or wrap, so long labels (rest tags, PR chips) widened it | Rows that can grow get `min-w-0` and `flex-wrap`, like the portal row |
 | #499 | Every MCP deploy signed every connector out at its next token refresh | Dynamically registered OAuth clients lived in a process-memory Map, so after a restart /token rejected the client_id as invalid_client | Anything a client must still find after a deploy is stored in Postgres, never in process memory |
