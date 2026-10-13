@@ -12,7 +12,7 @@ import {
   uuidv7,
 } from "@jim/core";
 import { type DbOrTx, personalRecords, routines, sessionExercises, sessions, sets } from "@jim/db";
-import { and, eq, inArray, lt } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
@@ -114,7 +114,7 @@ async function historyBefore(
   tx: DbOrTx,
   exerciseId: string,
   before: Date,
-): Promise<Array<WeightRepsSet & { completedAt: Date }>> {
+): Promise<Array<WeightRepsSet & { id: string; completedAt: Date }>> {
   const sessionExerciseRows = await tx
     .select({
       id: sessionExercises.id,
@@ -140,10 +140,63 @@ async function historyBefore(
   return resolveCurrentRows(rawSets)
     .filter((set) => !set.deletedAt && set.kind !== "warmup")
     .map((set) => ({
+      id: set.id,
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
       completedAt: set.completedAt,
     }));
+}
+
+const END_OF_TIME = new Date("9999-12-31T00:00:00Z");
+
+/**
+ * A backdated workout can outdo PRs logged after it (issue #537): with a
+ * 120×5 on Jan 1, Jan 10's 100×5 was never a PR. Re-checks each later PR
+ * row for the exercise the way it was first detected, against every set
+ * before it (the new ones included), and retires the ones that no longer
+ * hold. Returns how many it retired.
+ */
+async function retireOutdoneLaterPrs(
+  tx: DbOrTx,
+  exerciseId: string,
+  repsAtWeight: boolean,
+  after: Date,
+  now: Date,
+): Promise<number> {
+  const laterPrs = await tx
+    .select()
+    .from(personalRecords)
+    .where(
+      and(
+        eq(personalRecords.exerciseId, exerciseId),
+        isNull(personalRecords.deletedAt),
+        gt(personalRecords.achievedAt, after),
+      ),
+    );
+  if (laterPrs.length === 0) return 0;
+
+  const history = await historyBefore(tx, exerciseId, END_OF_TIME);
+  let retired = 0;
+  for (const pr of laterPrs) {
+    const set = history.find((row) => row.id === pr.setId);
+    if (!set) continue;
+    const prior = computePriorBests(history.filter((row) => row.completedAt < set.completedAt));
+    const stillHolds = detectPersonalRecords(set, prior, { repsAtWeight }).some(
+      (candidate) => candidate.kind === pr.kind,
+    );
+    if (stillHolds) continue;
+    await tx
+      .update(personalRecords)
+      .set({
+        deletedAt: now,
+        updatedAt: now,
+        deviceId: MCP_DEVICE_ID,
+        serverSeq: sql`nextval('sync_seq')`,
+      })
+      .where(eq(personalRecords.id, pr.id));
+    retired++;
+  }
+  return retired;
 }
 
 /**
@@ -197,6 +250,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
     const completionTimes = setCompletionTimes(startedAt, endedAt, totalSets);
     let setCursor = 0;
     const loggedExercises = [];
+    const prChecks = new Map<string, boolean>();
 
     for (const [position, item] of input.exercises.entries()) {
       const exercise = await resolveExercise(tx, context.userId, item.exercise);
@@ -220,6 +274,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
         ? []
         : await historyBefore(tx, exercise.id, firstCompletedAt);
       const repsAtWeight = tracksRepsAtWeight(exercise.trackingType);
+      if (!exerciseIsWarmup) prChecks.set(exercise.id, repsAtWeight);
 
       const loggedSets = [];
       for (const [setIndex, set] of item.sets.entries()) {
@@ -280,6 +335,11 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       });
     }
 
+    let laterPrsRetired = 0;
+    for (const [exerciseId, repsAtWeight] of prChecks) {
+      laterPrsRetired += await retireOutdoneLaterPrs(tx, exerciseId, repsAtWeight, endedAt, now);
+    }
+
     // Same summary list_workouts reports, so the two can't disagree.
     const allSets = loggedExercises.flatMap((item) => item.sets);
     const summary = summarizeSession(
@@ -299,6 +359,8 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       totalVolume: summary.totalVolume,
       setCount: summary.setCount,
       prCount: summary.prCount,
+      /** PRs logged after this workout that it outdid, now no longer PRs (#537). */
+      laterPrsRetired,
       exercises: loggedExercises,
     };
   });
