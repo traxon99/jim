@@ -2,9 +2,10 @@
 
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
+import { UndoBar, useUndoable } from "@/components/undo-bar";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
-import { db } from "@/lib/db/schema";
-import { alertSetValueError, completeSet, deleteSet } from "@/lib/sessions/set-actions";
+import { type SetRow, db } from "@/lib/db/schema";
+import { alertSetValueError, completeSet, deleteSet, restoreSet } from "@/lib/sessions/set-actions";
 import { useLogGuard } from "@/lib/workout/log-guard";
 import { exerciseDisplayName, resolveCurrentRows } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -46,6 +47,17 @@ export function WarmupExerciseSection({
   const [value, setValue] = useState("");
   const [showHowTo, setShowHowTo] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  // A deleted set can come back (#520), like a strength set (issue #318).
+  const undoableDelete = useUndoable<SetRow>();
+
+  async function handleDelete(set: SetRow) {
+    undoableDelete.offer("Set deleted", await deleteSet(set));
+  }
+
+  async function handleUndoDelete() {
+    const tombstone = undoableDelete.take();
+    if (tombstone) await restoreSet(tombstone);
+  }
 
   const rawSets = useLiveQuery(
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
@@ -148,15 +160,19 @@ export function WarmupExerciseSection({
               {i + 1}: {timed ? `${set.durationSeconds ?? "—"}s` : `${set.reps ?? "—"} reps`}
               <button
                 type="button"
-                onClick={() => void deleteSet(set)}
+                onClick={() => void handleDelete(set)}
                 aria-label={`Delete set ${i + 1}`}
-                className="flex h-7 w-7 items-center justify-center rounded-full"
+                className="-my-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
               >
                 <X className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
               </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {undoableDelete.label && (
+        <UndoBar label={undoableDelete.label} onUndo={() => void handleUndoDelete()} />
       )}
 
       <div className="flex items-end gap-2">

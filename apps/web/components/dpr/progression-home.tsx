@@ -183,7 +183,10 @@ export function ProgressionHome({ userId }: { userId: string }) {
             disabled={busy}
             onClick={() => {
               if (block.status === "deload") {
-                void run(() => completeBlock(block));
+                // As "End block early" asks first, so does this (#520).
+                if (confirm("Skip the rest of the deload and start the next block?")) {
+                  void run(() => completeBlock(block));
+                }
               } else if (confirm("End this block now and see the recap?")) {
                 void run(() => endBlockNow(block));
               }

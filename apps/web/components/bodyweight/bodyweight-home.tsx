@@ -1,5 +1,8 @@
 "use client";
 
+import { UndoBar, useUndoable } from "@/components/undo-bar";
+import type { BodyMeasurementRow } from "@/lib/db/schema";
+
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
@@ -10,6 +13,7 @@ import {
   logBodyweight,
   previewAppleHealthImport,
   previewWeightImport,
+  restoreMeasurement,
   syncCurrentBodyweight,
 } from "@/lib/bodyweight";
 import { db } from "@/lib/db/schema";
@@ -96,6 +100,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
   const first = visible[0];
   const history = useMemo(() => [...series].reverse(), [series]);
   const rowById = useMemo(() => new Map((rows ?? []).map((row) => [row.id, row])), [rows]);
+  const undoableDelete = useUndoable<BodyMeasurementRow>();
 
   async function handleLog() {
     const weight = Number(value.replace(",", "."));
@@ -129,7 +134,15 @@ export function BodyweightHome({ userId }: { userId: string }) {
   async function handleDelete(id: string) {
     const row = rowById.get(id);
     if (!row) return;
-    await deleteMeasurement(row);
+    undoableDelete.offer("Weigh-in deleted", await deleteMeasurement(row));
+    void runSyncCycle();
+    void syncCurrentBodyweight();
+  }
+
+  async function handleUndoDelete() {
+    const deleted = undoableDelete.take();
+    if (!deleted) return;
+    await restoreMeasurement(deleted);
     void runSyncCycle();
     void syncCurrentBodyweight();
   }
@@ -480,11 +493,15 @@ export function BodyweightHome({ userId }: { userId: string }) {
           )}
         </section>
 
-        {history.length > 0 && (
+        {/* Kept up while an Undo is offered, so deleting the last entry can be undone. */}
+        {(history.length > 0 || undoableDelete.label) && (
           <section className="flex flex-col gap-1">
             <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
               History
             </h2>
+            {undoableDelete.label && (
+              <UndoBar label={undoableDelete.label} onUndo={() => void handleUndoDelete()} />
+            )}
             <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {(showAll ? history : history.slice(0, HISTORY_PREVIEW)).map((point) => (
                 <li key={point.id} className="flex items-center gap-2 py-1">

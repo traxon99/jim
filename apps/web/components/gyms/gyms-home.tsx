@@ -132,6 +132,8 @@ export function GymsHome({ userId }: { userId: string }) {
   }
 
   async function handleDelete(gym: GymRow) {
+    // Asks first, like every other delete in the app (#520).
+    if (!confirm(`Delete ${gym.name}?`)) return;
     await deleteGym(gym);
     setEditingId(null);
     void runSyncCycle();

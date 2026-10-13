@@ -1,8 +1,16 @@
 "use client";
 
+import { UndoBar, useUndoable } from "@/components/undo-bar";
+import type { BodyMeasurementRow } from "@/lib/db/schema";
+
 import { TrendChart } from "@/components/bodyweight/bodyweight-chart";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
-import { deleteMeasurement, logMeasurement, measurementSeries } from "@/lib/bodyweight";
+import {
+  deleteMeasurement,
+  logMeasurement,
+  measurementSeries,
+  restoreMeasurement,
+} from "@/lib/bodyweight";
 import { TRACKED_MEASUREMENT_KINDS, type TrackedMeasurementKind } from "@/lib/bodyweight/series";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -99,6 +107,7 @@ export function MeasurementsHome({ userId }: { userId: string }) {
   const first = visible[0];
   const history = useMemo(() => [...series].reverse(), [series]);
   const rowById = useMemo(() => new Map((rows ?? []).map((row) => [row.id, row])), [rows]);
+  const undoableDelete = useUndoable<BodyMeasurementRow>();
 
   function pickKind(next: Kind) {
     setKind(next);
@@ -142,7 +151,14 @@ export function MeasurementsHome({ userId }: { userId: string }) {
   async function handleDelete(id: string) {
     const row = rowById.get(id);
     if (!row) return;
-    await deleteMeasurement(row);
+    undoableDelete.offer("Measurement deleted", await deleteMeasurement(row));
+    void runSyncCycle();
+  }
+
+  async function handleUndoDelete() {
+    const deleted = undoableDelete.take();
+    if (!deleted) return;
+    await restoreMeasurement(deleted);
     void runSyncCycle();
   }
 
@@ -280,11 +296,15 @@ export function MeasurementsHome({ userId }: { userId: string }) {
           </p>
         </section>
 
-        {history.length > 0 && (
+        {/* Kept up while an Undo is offered, so deleting the last entry can be undone. */}
+        {(history.length > 0 || undoableDelete.label) && (
           <section className="flex flex-col gap-1">
             <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
               History
             </h2>
+            {undoableDelete.label && (
+              <UndoBar label={undoableDelete.label} onUndo={() => void handleUndoDelete()} />
+            )}
             <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {(showAll ? history : history.slice(0, HISTORY_PREVIEW)).map((point) => (
                 <li key={point.id} className="flex items-center gap-2 py-1">

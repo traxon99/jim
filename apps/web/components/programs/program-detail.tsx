@@ -120,7 +120,8 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
     await pairWarmup(userId, routine, choice);
   }
 
-  async function handleRemoveItem(item: ProgramRoutineRow) {
+  async function handleRemoveItem(item: ProgramRoutineRow, routineName: string) {
+    if (!confirm(`Remove ${routineName} from the program?`)) return;
     const deviceId = await getDeviceId();
     const now = new Date();
     await mutate("programRoutines", { ...item, deletedAt: now, updatedAt: now, deviceId });
@@ -257,7 +258,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
                   onWarmupChange={(choice) => {
                     if (routine) void handleWarmupChange(routine, choice);
                   }}
-                  onRemove={() => handleRemoveItem(item)}
+                  onRemove={() => handleRemoveItem(item, routine?.name ?? "this rest day")}
                 />
               );
             })}

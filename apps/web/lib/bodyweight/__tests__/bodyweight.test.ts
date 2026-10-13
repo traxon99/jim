@@ -8,6 +8,7 @@ import {
   logMeasurement,
   measurementSeries,
   previewWeightImport,
+  restoreMeasurement,
 } from "..";
 import { type JimDatabase, createTestDb } from "../../db/schema";
 import { DEFAULT_SETTINGS } from "../../settings/defaults";
@@ -73,6 +74,20 @@ describe("logBodyweight", () => {
     const series = bodyweightSeries(await testDb.bodyMeasurements.toArray(), "lb");
     expect(series).toEqual([{ id: kept.id, measuredAt: kept.measuredAt, value: 220.46 }]);
     expect(await testDb.outbox.count()).toBe(3);
+  });
+
+  it("brings a deleted weigh-in back with Undo (#520)", async () => {
+    const row = await logBodyweight(
+      { userId: USER_ID, value: 180, unit: "lb", measuredAt: new Date(2024, 0, 15) },
+      testDb,
+    );
+    const deleted = await deleteMeasurement(row, testDb);
+    expect(deleted.deletedAt).toBeInstanceOf(Date);
+    await restoreMeasurement(deleted, testDb);
+    const series = bodyweightSeries(await testDb.bodyMeasurements.toArray(), "lb");
+    expect(series).toEqual([{ id: row.id, measuredAt: row.measuredAt, value: 180 }]);
+    const stored = await testDb.bodyMeasurements.get(row.id);
+    expect(stored?.updatedAt.getTime()).toBeGreaterThanOrEqual(deleted.updatedAt.getTime());
   });
 });
 
