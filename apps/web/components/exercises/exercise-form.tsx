@@ -98,6 +98,7 @@ export function ExerciseForm({
   const [pulleyType, setPulleyType] = useState<PulleyType | null>(null);
   const [gymId, setGymId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const gymRows = useLiveQuery(() => db.gyms.toArray(), []);
   const gyms = sortGyms(gymRows ?? []);
 
@@ -149,11 +150,22 @@ export function ExerciseForm({
     );
   }
 
+  // A failed save frees the button and says so instead of sticking on
+  // "Saving…" (issue #517); on success the page navigates away.
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
+    setSaveError(null);
+    try {
+      await save();
+    } catch {
+      setSaving(false);
+      setSaveError("Couldn't save. Try again.");
+    }
+  }
 
+  async function save() {
     const deviceId = await getDeviceId();
     const now = new Date();
     const instructions = instructionsText
@@ -226,16 +238,22 @@ export function ExerciseForm({
   async function handleToggleArchive() {
     if (!existing) return;
     setSaving(true);
-    const deviceId = await getDeviceId();
-    const { entity: applied } = applyExerciseEdit(
-      existing,
-      { isArchived: !existing.isArchived },
-      userId,
-      uuidv7,
-    );
-    const entity: ExerciseRow = { ...applied, updatedAt: new Date(), deviceId };
-    await mutate("exercises", entity);
-    router.push(`/exercises/${entity.id}`);
+    setSaveError(null);
+    try {
+      const deviceId = await getDeviceId();
+      const { entity: applied } = applyExerciseEdit(
+        existing,
+        { isArchived: !existing.isArchived },
+        userId,
+        uuidv7,
+      );
+      const entity: ExerciseRow = { ...applied, updatedAt: new Date(), deviceId };
+      await mutate("exercises", entity);
+      router.push(`/exercises/${entity.id}`);
+    } catch {
+      setSaving(false);
+      setSaveError("Couldn't save. Try again.");
+    }
   }
 
   if (mode === "edit" && existing === undefined) {
@@ -474,6 +492,12 @@ export function ExerciseForm({
         >
           {saving ? "Saving…" : "Save"}
         </button>
+
+        {saveError && (
+          <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-500">
+            {saveError}
+          </p>
+        )}
 
         {mode === "edit" && existing && (
           <button

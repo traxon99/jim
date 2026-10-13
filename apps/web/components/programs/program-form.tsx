@@ -44,6 +44,7 @@ export function ProgramForm({ userId, mode, programId }: Props) {
   const [notes, setNotes] = useState("");
   const [durationWeeks, setDurationWeeks] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!existing) return;
@@ -54,11 +55,22 @@ export function ProgramForm({ userId, mode, programId }: Props) {
     setDurationWeeks(existing.durationWeeks);
   }, [existing]);
 
+  // A failed save frees the button and says so instead of sticking on
+  // "Saving…" (issue #517); on success the page navigates away.
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
+    setSaveError(null);
+    try {
+      await save();
+    } catch {
+      setSaving(false);
+      setSaveError("Couldn't save. Try again.");
+    }
+  }
 
+  async function save() {
     const deviceId = await getDeviceId();
     const now = new Date();
 
@@ -221,6 +233,12 @@ export function ProgramForm({ userId, mode, programId }: Props) {
         >
           {saving ? "Saving…" : mode === "new" ? "Next: add routines" : "Save"}
         </button>
+
+        {saveError && (
+          <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-500">
+            {saveError}
+          </p>
+        )}
       </form>
     </main>
   );
