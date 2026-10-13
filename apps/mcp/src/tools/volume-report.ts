@@ -64,7 +64,14 @@ export async function resolvedSetsInRange(
       exerciseId: sessionExercise.exerciseId,
     });
   }
-  return result;
+
+  // Warm-up and cardio exercises aren't training volume either, in every
+  // grouping, matching weekly_summary (issue #516).
+  const known = await exercisesById(tx, [...new Set(result.map((set) => set.exerciseId))]);
+  return result.filter((set) => {
+    const exercise = known.get(set.exerciseId);
+    return exercise !== undefined && isStrengthExercise(exercise);
+  });
 }
 
 export async function exercisesById(
@@ -126,7 +133,7 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
     const muscleSets = resolved
       .map((set) => {
         const exercise = exerciseRows.get(set.exerciseId);
-        if (!exercise || !isStrengthExercise(exercise)) return null;
+        if (!exercise) return null;
         return {
           completedAt: set.completedAt,
           weight: set.weight,
