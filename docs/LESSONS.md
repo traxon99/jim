@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #519 | Tapping in and out of a routine target on the phone undid a change made on another device or by Claude | Target fields were seeded once and every blur wrote the local value, changed or not, which then won last-write-wins | A blur writes only fields that changed; inline fields resync from the stored row while the user isn't editing them |
 | #518 | Editing a routine or program, a sync landing mid-edit replaced the name and notes being typed | The form copied the live `useLiveQuery` row into state on every change, not once | An edit form seeds its state from the stored row once (ref guard), and shows "not found" for a missing row instead of saving a new one |
 | #517 | A failed Start, Save or Sign out left its button stuck on "Starting…"/"Saving…" with no message | The busy flag was set before an await and only cleared on success | Every busy flag is cleared in `catch`/`finally`, and the failure is shown next to the button |
 | #515 | An MCP write naming an exercise that didn't exist logged to some other exercise with the same equipment or muscle | `resolveExercise` took the top `searchExercises` hit, and search falls back to equipment and muscles | Resolving one exercise from a name matches names and aliases only (`namesOnly`); a miss fails with suggestions |
