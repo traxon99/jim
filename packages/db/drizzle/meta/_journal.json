@@ -358,6 +358,13 @@
       "when": 1791918217239,
       "tag": "0050_sync_mutations_user_applied",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791919769698,
+      "tag": "0051_user_time_zone",
+      "breakpoints": true
     }
   ]
 }

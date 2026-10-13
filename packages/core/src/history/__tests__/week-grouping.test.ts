@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupByWeek, startOfWeek } from "../week-grouping";
+import { addWeeks, groupByWeek, isValidTimeZone, startOfWeek } from "../week-grouping";
 
 describe("startOfWeek", () => {
   it("returns the same day when it is already the configured week start (Sunday = 0)", () => {
@@ -60,5 +60,49 @@ describe("groupByWeek", () => {
 
   it("returns an empty array for no items", () => {
     expect(groupByWeek<Item>([], 0, (item) => item.date)).toEqual([]);
+  });
+});
+
+describe("weeks in the user's time zone (issue #511)", () => {
+  const LA = "America/Los_Angeles";
+
+  it("puts a Sunday-evening set in Los Angeles in that Sunday's week, wherever it runs", () => {
+    // Sun 2026-10-11 18:00 PDT is Mon 01:00 UTC.
+    const set = new Date("2026-10-12T01:00:00Z");
+    // Monday week start: the week of Mon Oct 5, which began at 07:00 UTC.
+    expect(startOfWeek(set, 1, LA).toISOString()).toBe("2026-10-05T07:00:00.000Z");
+    expect(startOfWeek(set, 1, "UTC").toISOString()).toBe("2026-10-12T00:00:00.000Z");
+  });
+
+  it("starts a week at local midnight across a DST change", () => {
+    // DST ends Sun 2026-11-01 in LA; Sunday weeks before and after it.
+    expect(startOfWeek(new Date("2026-11-04T20:00:00Z"), 0, LA).toISOString()).toBe(
+      "2026-11-01T07:00:00.000Z",
+    );
+    expect(startOfWeek(new Date("2026-10-28T20:00:00Z"), 0, LA).toISOString()).toBe(
+      "2026-10-25T07:00:00.000Z",
+    );
+    expect(addWeeks(new Date("2026-10-25T07:00:00Z"), 1, 0, LA).toISOString()).toBe(
+      "2026-11-01T07:00:00.000Z",
+    );
+    expect(addWeeks(new Date("2026-11-01T07:00:00Z"), 1, 0, LA).toISOString()).toBe(
+      "2026-11-08T08:00:00.000Z",
+    );
+  });
+
+  it("groups by the zone's weeks", () => {
+    const groups = groupByWeek(
+      [new Date("2026-10-12T01:00:00Z"), new Date("2026-10-12T16:00:00Z")],
+      1,
+      (date) => date,
+      LA,
+    );
+    expect(groups.map((group) => group.items.length)).toEqual([1, 1]);
+  });
+
+  it("knows which zone names are real", () => {
+    expect(isValidTimeZone(LA)).toBe(true);
+    expect(isValidTimeZone("Mars/Olympus_Mons")).toBe(false);
+    expect(isValidTimeZone("")).toBe(false);
   });
 });
