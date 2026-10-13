@@ -71,7 +71,7 @@ export function SharedLinksSection() {
       <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
         {links.map((link) => (
           <li key={link.id} className="flex min-h-11 items-center justify-between gap-3">
-            <Link href={sharePath(link.id)} className="flex min-w-0 flex-col py-1">
+            <Link href={sharePath(link.id)} data-ripple className="flex min-w-0 flex-col py-1">
               <span className="truncate text-sm font-medium">{link.name}</span>
               <span className="text-xs text-zinc-500 dark:text-zinc-500">
                 {link.kind === "program" ? "Program" : "Routine"} ·{" "}

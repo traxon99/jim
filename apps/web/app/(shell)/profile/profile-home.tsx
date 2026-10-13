@@ -16,6 +16,7 @@ export function ProfileHome() {
         <ProfileHandle />
         <Link
           href="/profile/weight"
+          data-ripple
           className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
         >
           Bodyweight
@@ -23,6 +24,7 @@ export function ProfileHome() {
         </Link>
         <Link
           href="/profile/measurements"
+          data-ripple
           className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
         >
           Measurements

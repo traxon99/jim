@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #546 | Link-buttons on History, Profile and Settings gave no tap feedback, and a long press opened iOS's "Open in New Tab" menu | The `<Link>`s styled as buttons lacked `data-ripple` | An `<a>`/`<Link>` used as a button carries `data-ripple` (`docs/PWA.md` §7) |
 | #534 | A QStash-signed rest-timer message could be replayed against any other endpoint that shares the signing key | The fire route verified only the body, not the URL the signature was issued for | Verify third-party webhook signatures against the URL too (`url:`), built by the same helper that publishes it |
 | #512 | MCP `log_past_workout` accepted RPE 1–4, which the app can't show or edit | The tool's schema hard-coded 1–10 instead of the app's 5–10 scale | Bounds for a value the app already limits come from the shared constants (`RPE_MIN`/`RPE_MAX`), never literals |
 | #539 | `cancel_scheduled_workout` and `delete_body_measurement` deleted on the first MCP call with no preview | They kept the write-tool default `dry_run: false` while every other delete previews | Any MCP tool that deletes or cancels takes `dryRunParam(true)`; the dry-run defaults test lists them |

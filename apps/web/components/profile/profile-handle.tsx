@@ -53,6 +53,7 @@ export function ProfileHandle() {
       )}
       <Link
         href="/profile/settings"
+        data-ripple
         className="text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
       >
         Edit profile and sharing
