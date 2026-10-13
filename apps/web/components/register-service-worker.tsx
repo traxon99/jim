@@ -1,6 +1,7 @@
 "use client";
 
 import { syncPushSubscription } from "@/lib/pwa/push-client";
+import { reloadOnUpdateWhenAway } from "@/lib/pwa/update-reload";
 import { useEffect } from "react";
 
 /**
@@ -28,16 +29,12 @@ export function RegisterServiceWorker() {
     // reloads it. On an installed iOS PWA that gets suspended rather than fully
     // killed when backgrounded, "restarting" the app can resume that same
     // in-memory session indefinitely, so an update can otherwise never actually
-    // take effect for the user. Force the one reload a genuine update needs;
-    // gated on hadController so a brand-new install doesn't reload itself.
-    if (hadController) {
-      let reloaded = false;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (reloaded) return;
-        reloaded = true;
-        window.location.reload();
-      });
-    }
+    // take effect for the user. Force the one reload a genuine update needs,
+    // once the user isn't looking (#507); gated on hadController so a
+    // brand-new install doesn't reload itself.
+    const stopReloadOnUpdate = hadController
+      ? reloadOnUpdateWhenAway(navigator.serviceWorker, document, () => window.location.reload())
+      : undefined;
 
     navigator.serviceWorker
       .register("/sw.js")
@@ -45,6 +42,8 @@ export function RegisterServiceWorker() {
       .catch((error) => {
         console.error("Service worker registration or push sync failed:", error);
       });
+
+    return stopReloadOnUpdate;
   }, []);
 
   return null;
