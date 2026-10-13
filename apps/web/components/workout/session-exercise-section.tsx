@@ -71,7 +71,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ExerciseDialog } from "./exercise-dialog";
+import { RestDialog, StickyNoteDialog, formatRest } from "./exercise-settings-dialogs";
 import { RpeInfoMenu } from "./rpe-info-menu";
 import { SetKindMenu } from "./set-kind-menu";
 import { SetRow } from "./set-row";
@@ -122,15 +122,6 @@ function toRpeOrNull(value: string): number | null {
 }
 
 /** Rest choices in the ⋯ menu's Update Rest Timers; 0 turns it off. */
-const REST_PRESETS = [0, 30, 60, 90, 120, 180, 300] as const;
-
-function formatRest(seconds: number): string {
-  if (seconds <= 0) return "Off";
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return `${minutes}:${String(rest).padStart(2, "0")}`;
-}
 
 interface DraftValues {
   weight: string;
@@ -219,10 +210,8 @@ export function SessionExerciseSection({
   const [focusNotes, setFocusNotes] = useState(false);
   const [draftOverrides, setDraftOverrides] = useState<Map<number, DraftValues>>(new Map());
   const [stickyEditing, setStickyEditing] = useState(false);
-  const [stickyDraft, setStickyDraft] = useState("");
   const [restEditing, setRestEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [customRest, setCustomRest] = useState("");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // The tombstone of the set just deleted, while its Undo is offered (issue #318).
   const undoableDelete = useUndoable<SetRowEntity>();
@@ -616,7 +605,6 @@ export function SessionExerciseSection({
       label: stickyNote ? "Edit Sticky Note" : "Add Sticky Note",
       icon: Pin,
       onSelect: () => {
-        setStickyDraft(stickyNote ?? "");
         setStickyEditing(true);
       },
     },
@@ -633,7 +621,6 @@ export function SessionExerciseSection({
       label: "Update Rest Timers",
       icon: Timer,
       onSelect: () => {
-        setCustomRest("");
         setRestEditing(true);
       },
     },
@@ -861,7 +848,6 @@ export function SessionExerciseSection({
         <button
           type="button"
           onClick={() => {
-            setStickyDraft(stickyNote);
             setStickyEditing(true);
           }}
           className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-sm text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"
@@ -982,109 +968,26 @@ export function SessionExerciseSection({
       )}
 
       {stickyEditing && (
-        <ExerciseDialog title="Sticky note" onClose={closeSticky}>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Shows on {exercise ? exerciseDisplayName(exercise) : "this exercise"} in every workout
-            until you change it.
-          </p>
-          <textarea
-            value={stickyDraft}
-            onChange={(event) => setStickyDraft(event.target.value)}
-            rows={3}
-            // biome-ignore lint/a11y/noAutofocus: the dialog exists to type this note.
-            autoFocus
-            className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-          />
-          <div className="flex justify-end gap-2">
-            {stickyNote && (
-              <button
-                type="button"
-                onClick={() => void saveStickyNote("")}
-                className="mr-auto min-h-11 px-2 text-sm font-medium text-red-600 dark:text-red-500"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={closeSticky}
-              className="min-h-11 px-3 text-sm font-medium text-zinc-600 dark:text-zinc-400"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void saveStickyNote(stickyDraft)}
-              className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
-            >
-              Save
-            </button>
-          </div>
-        </ExerciseDialog>
+        <StickyNoteDialog
+          exerciseName={exercise ? exerciseDisplayName(exercise) : "this exercise"}
+          note={stickyNote}
+          onSave={(value) => void saveStickyNote(value)}
+          onClose={closeSticky}
+        />
       )}
 
       {restEditing && (
-        <ExerciseDialog title="Rest timer" onClose={closeRest}>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Rest after each set of {exercise ? exerciseDisplayName(exercise) : "this exercise"} in
-            this workout. Now {formatRest(restSeconds)}.
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {REST_PRESETS.map((seconds) => (
-              <button
-                key={seconds}
-                type="button"
-                aria-pressed={restSeconds === seconds}
-                onClick={() => void saveRest(seconds)}
-                className={`min-h-11 rounded-lg border text-sm font-medium tabular-nums ${
-                  restSeconds === seconds
-                    ? "border-accent bg-accent text-accent-foreground"
-                    : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
-                }`}
-              >
-                {formatRest(seconds)}
-              </button>
-            ))}
-          </div>
-          <form
-            className="flex items-end gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const seconds = toNumberOrNull(customRest);
-              if (seconds != null && seconds >= 0) void saveRest(seconds);
-            }}
-          >
-            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
-              Custom (seconds)
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={customRest}
-                onChange={(event) => setCustomRest(event.target.value)}
-                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </label>
-            <button
-              type="submit"
-              className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
-            >
-              Set
-            </button>
-          </form>
-          {item.restSeconds != null && (
-            <button
-              type="button"
-              onClick={() => {
-                void saveItem({ restSeconds: null });
-                setRestEditing(false);
-              }}
-              className="self-start text-sm font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
-            >
-              Use the routine's rest
-            </button>
-          )}
-        </ExerciseDialog>
+        <RestDialog
+          exerciseName={exercise ? exerciseDisplayName(exercise) : "this exercise"}
+          restSeconds={restSeconds}
+          overridden={item.restSeconds != null}
+          onSave={(seconds) => void saveRest(seconds)}
+          onUseRoutineRest={() => {
+            void saveItem({ restSeconds: null });
+            setRestEditing(false);
+          }}
+          onClose={closeRest}
+        />
       )}
       {detailOpen && (
         <ExerciseDetail id={item.exerciseId} userId={userId} onClose={() => setDetailOpen(false)} />
