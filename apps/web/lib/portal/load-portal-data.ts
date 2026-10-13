@@ -70,6 +70,20 @@ export async function readSettingsRow(tx: DbOrTx, userId: string): Promise<Setti
 }
 
 /**
+ * Every workout, exercise entry and set row the user has, tombstones and
+ * superseded versions included (issue #503): the portal shows all-time
+ * history, and the shared builders resolve supersede chains, drop deleted
+ * workouts and keep a deleted workout's PRs out, which needs those rows.
+ * One statement per table; RLS scopes each to the signed-in user.
+ */
+async function readHistoryRows(tx: DbOrTx) {
+  const sessionRows = await tx.select().from(sessions);
+  const sessionExerciseRows = await tx.select().from(sessionExercises);
+  const setRows = await tx.select().from(sets);
+  return { sessionRows, sessionExerciseRows, setRows };
+}
+
+/**
  * Every working set the user has logged, joined and resolved, plus the
  * workouts they belong to. Sequential rather than Promise.all: these share
  * one transaction's connection (runAsUser), which runs one statement at a
@@ -82,9 +96,7 @@ async function readTrainingData(tx: DbOrTx, userId: string) {
     .where(eq(users.id, userId));
   // Whole rows: the Overview also runs the phone's `buildSessionListEntries`
   // on them for its period comparison.
-  const sessionRows = await tx.select().from(sessions);
-  const sessionExerciseRows = await tx.select().from(sessionExercises);
-  const setRows = await tx.select().from(sets);
+  const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
 
   const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
   const exerciseRows =
@@ -179,9 +191,7 @@ export async function loadWorkoutRows(): Promise<{
       .select({ units: users.units })
       .from(users)
       .where(eq(users.id, userId));
-    const sessionRows = await tx.select().from(sessions);
-    const sessionExerciseRows = await tx.select().from(sessionExercises);
-    const setRows = await tx.select().from(sets);
+    const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
     const prRows = await tx.select().from(personalRecords);
     const gymRows = await tx
       .select({ id: gyms.id, name: gyms.name, deletedAt: gyms.deletedAt })
@@ -304,9 +314,7 @@ async function readRecordsData(tx: DbOrTx, userId: string): Promise<PortalRecord
     .where(eq(users.id, userId));
   const units = settings?.units ?? "lb";
   const prRows = await tx.select().from(personalRecords);
-  const sessionRows = await tx.select().from(sessions);
-  const sessionExerciseRows = await tx.select().from(sessionExercises);
-  const setRows = await tx.select().from(sets);
+  const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
   const measurementRows = await tx.select().from(bodyMeasurements);
   const exerciseIds = [...new Set(prRows.map((row) => row.exerciseId))];
   const exerciseRows =
@@ -406,9 +414,7 @@ export async function loadVolumeData(): Promise<PortalVolumeData> {
       .select({ units: users.units, weekStart: users.weekStart })
       .from(users)
       .where(eq(users.id, userId));
-    const sessionRows = await tx.select().from(sessions);
-    const sessionExerciseRows = await tx.select().from(sessionExercises);
-    const setRows = await tx.select().from(sets);
+    const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
     const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
     const exerciseRows =
       exerciseIds.length === 0
@@ -451,9 +457,7 @@ export async function loadCalendarData(): Promise<PortalCalendarData> {
       })
       .from(users)
       .where(eq(users.id, userId));
-    const sessionRows = await tx.select().from(sessions);
-    const sessionExerciseRows = await tx.select().from(sessionExercises);
-    const setRows = await tx.select().from(sets);
+    const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
     const prRows = await tx.select().from(personalRecords);
     const programRows = await tx.select().from(programs);
     const programRoutineRows = await tx.select().from(programRoutines);
@@ -572,9 +576,7 @@ export async function loadProgressionData(): Promise<PortalProgressionData> {
     const settings = await readSettingsRow(tx, userId);
     const blockRows = await tx.select().from(dprBlocks);
     const liftRows = await tx.select().from(dprBlockLifts);
-    const sessionRows = await tx.select().from(sessions);
-    const sessionExerciseRows = await tx.select().from(sessionExercises);
-    const setRows = await tx.select().from(sets);
+    const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
     const routineRows = await tx.select().from(routines);
     const routineExerciseRows = await tx.select().from(routineExercises);
     const exerciseIds = [
