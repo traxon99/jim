@@ -13,6 +13,7 @@ import {
   filterPrGroups,
   prFilterOptions,
 } from "@/lib/history/pr-groups";
+import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -29,6 +30,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronDown, Medal, SlidersHorizontal, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
 const PR_KIND_LABELS: Record<PrKind, string> = {
@@ -110,6 +112,7 @@ function StatTile({ label, value }: { label: string; value: number }) {
 }
 
 export function PrList() {
+  const pathname = usePathname();
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
   // Only needed to leave out PRs from deleted workouts (issue #200).
   const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
@@ -329,7 +332,7 @@ export function PrList() {
                 <li key={record.id} className="flex items-center justify-between gap-2 py-2">
                   <span className="flex min-w-0 flex-col">
                     <Link
-                      href={`/exercises/${record.exerciseId}`}
+                      href={exerciseCardHref(record.exerciseId, pathname)}
                       className="truncate font-medium underline-offset-4 hover:underline"
                     >
                       {exerciseById.get(record.exerciseId)?.name ?? "Unknown exercise"}
@@ -382,7 +385,7 @@ export function PrList() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       <Link
-                        href={`/exercises/${group.exerciseId}`}
+                        href={exerciseCardHref(group.exerciseId, pathname)}
                         className="text-base font-semibold underline-offset-4 hover:underline"
                       >
                         {group.name}
@@ -462,7 +465,7 @@ export function PrList() {
                       </ul>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Link
-                          href={`/exercises/${group.exerciseId}`}
+                          href={exerciseCardHref(group.exerciseId, pathname)}
                           className="py-1 text-sm font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
                         >
                           View 1RM chart and history

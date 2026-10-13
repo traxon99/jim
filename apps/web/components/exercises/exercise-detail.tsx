@@ -42,13 +42,16 @@ export function ExerciseDetail({
   id,
   userId,
   onClose,
+  returnTo,
 }: {
   id: string;
   userId: string;
   onClose?: () => void;
+  /** Where the card was opened from (`?from=`, #525); closing goes back there. */
+  returnTo?: string;
 }) {
   const router = useRouter();
-  const closeToList = onClose ?? (() => router.push("/exercises"));
+  const closeToList = onClose ?? (() => router.push(returnTo ?? "/exercises"));
   const titleId = useId();
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
