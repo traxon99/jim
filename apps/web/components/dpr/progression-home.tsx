@@ -14,6 +14,7 @@ import {
 } from "@/lib/dpr/block";
 import { buildDprContext, liftGoal } from "@/lib/dpr/calls";
 import { defaultRepRange, loadDprSnapshot } from "@/lib/dpr/data";
+import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import {
   blockEffectiveEnd,
@@ -51,7 +52,8 @@ export function ProgressionHome({ userId }: { userId: string }) {
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const now = useMemo(() => new Date(), []);
+  // Refreshed on a new day, so a block that ended overnight shows its recap (#523).
+  const now = useToday();
 
   const loading = !blocks || !lifts || !exercises || !programs || !snapshot;
   const block = blocks ? currentBlock(blocks) : null;

@@ -266,6 +266,9 @@ the exact same in-memory JS, React state included, indefinitely.
   but the running app keeps its old JS. `register-service-worker.tsx` reloads once on
   `controllerchange`, and only if there was a previous controller, so a first install doesn't
   reload itself (#117). Without this a deployed fix can look like it never shipped.
+- **"Today" goes stale too.** A `new Date()` memoized at mount is still yesterday when the app
+  resumes the next morning. Use `useToday()` (`lib/pwa/use-today.ts`) and put it in the memo's
+  deps (#523).
 - **Timers:** never count with `setInterval`. Store an absolute end time and recompute it on
   resume. Anything that must happen while backgrounded (the rest-timer alert) is a server-sent
   Web Push, because the page's JS isn't running then (ARCHITECTURE constraint 4, ADR-014).

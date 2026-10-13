@@ -12,6 +12,7 @@ import {
   periodStats,
   weekActivity,
 } from "@/lib/home/stats";
+import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -59,16 +60,18 @@ export function HomeSummary({ username }: { username: string | null }) {
     return buildSessionListEntries(sessions, sessionExercises, exercises, sets, personalRecords);
   }, []);
 
+  // Not a bare new Date(): the app can resume days later with this still mounted (#523).
+  const today = useToday();
   const days = useMemo(
     () =>
       weekActivity(
         (entries ?? []).map((entry) => entry.startedAt),
         settings.weekStart,
-        new Date(),
+        today,
       ),
-    [entries, settings.weekStart],
+    [entries, settings.weekStart, today],
   );
-  const stats = useMemo(() => periodStats(entries ?? [], range, new Date()), [entries, range]);
+  const stats = useMemo(() => periodStats(entries ?? [], range, today), [entries, range, today]);
 
   const streak = achievements?.streak;
   const headline = !streak
