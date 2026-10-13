@@ -13,7 +13,8 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   userId: string;
@@ -59,6 +60,23 @@ export function ExercisePicker({
 }: Props) {
   const replacing = mode === "replace";
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
+
+  // Full-screen overlay rules (docs/PWA.md §2, #521): lock the page behind
+  // so a drag on the header can't scroll the workout underneath.
+  useEffect(() => {
+    const html = document.documentElement;
+    const { body } = document;
+    const previous = { html: html.style.overflow, body: body.style.overflow };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = previous.html;
+      body.style.overflow = previous.body;
+    };
+  }, []);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const portal = (content: ReactNode) => (mounted ? createPortal(content, document.body) : null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ExerciseCategory | "all">(initialCategory);
   // Issue #169: create a missing exercise from here with the same form the
@@ -149,12 +167,15 @@ export function ExercisePicker({
   }
 
   if (creating) {
-    // z-20: above RestTimerBar's z-10 — both are siblings under active-session.tsx's
-    // <main>, so without this the timer bar paints over this full-screen view (#227).
-    return (
+    // z-20: above RestTimerBar's z-10 (#227); portaled, so no ancestor's
+    // stacking context can paint over it (#521).
+    return portal(
       <div
-        className="fixed inset-0 z-20 flex flex-col overflow-y-auto bg-white dark:bg-zinc-950"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
+        className="fixed inset-0 z-20 flex flex-col overflow-y-auto overscroll-contain bg-white dark:bg-zinc-950"
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+        }}
       >
         <ExerciseForm
           userId={userId}
@@ -173,29 +194,29 @@ export function ExercisePicker({
           }}
           onCancel={() => setCreating(false)}
         />
-      </div>
+      </div>,
     );
   }
 
-  // z-20: above RestTimerBar's z-10 — both are siblings under active-session.tsx's
-  // <main>, so without this the timer bar paints over this full-screen view (#227).
-  return (
+  // z-20: above RestTimerBar's z-10 (#227); portaled, so no ancestor's
+  // stacking context can paint over it (#521).
+  return portal(
     <div
-      className="fixed inset-0 z-20 flex flex-col bg-white dark:bg-zinc-950"
+      className="fixed inset-0 z-20 flex flex-col overscroll-none bg-white dark:bg-zinc-950"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-zinc-200 px-4 py-4 dark:border-zinc-800">
+      <div className="flex touch-none items-center justify-between gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
         <h2 className="text-lg font-semibold">{replacing ? "Replace exercise" : "Add exercise"}</h2>
         <button
           type="button"
           onClick={onClose}
-          className="px-2 py-2 text-sm font-medium underline underline-offset-4"
+          className="min-h-11 px-3 text-sm font-medium underline underline-offset-4"
         >
           Cancel
         </button>
       </div>
 
-      <div className="flex flex-col gap-2 px-4 py-3">
+      <div className="flex touch-none flex-col gap-2 px-4 py-3">
         <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
           {CATEGORY_TABS.map((tab) => {
             const selected = category === tab.value;
@@ -232,7 +253,7 @@ export function ExercisePicker({
       </div>
 
       <ul
-        className="flex flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto px-4 dark:divide-zinc-800"
+        className="flex min-h-0 flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto overscroll-contain px-4 dark:divide-zinc-800"
         // Without the footer, the list itself reaches the home indicator.
         style={replacing ? { paddingBottom: "max(12px, env(safe-area-inset-bottom))" } : undefined}
       >
@@ -263,7 +284,7 @@ export function ExercisePicker({
 
       {!replacing && (
         <div
-          className="shrink-0 border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
+          className="shrink-0 touch-none border-t border-zinc-200 px-4 pt-3 dark:border-zinc-800"
           style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
         >
           <button
@@ -280,6 +301,6 @@ export function ExercisePicker({
           </button>
         </div>
       )}
-    </div>
+    </div>,
   );
 }

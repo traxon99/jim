@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #521 | A drag on the "Add exercise" header scrolled the workout behind it, and the new-exercise form's Save could sit under the home indicator | The picker skipped the full-screen overlay rules: no scroll lock, no `touch-none` bars, no bottom safe area, not portaled | Every full-screen overlay follows docs/PWA.md §2 in full; check a new one against all five points |
 | #519 | Tapping in and out of a routine target on the phone undid a change made on another device or by Claude | Target fields were seeded once and every blur wrote the local value, changed or not, which then won last-write-wins | A blur writes only fields that changed; inline fields resync from the stored row while the user isn't editing them |
 | #518 | Editing a routine or program, a sync landing mid-edit replaced the name and notes being typed | The form copied the live `useLiveQuery` row into state on every change, not once | An edit form seeds its state from the stored row once (ref guard), and shows "not found" for a missing row instead of saving a new one |
 | #517 | A failed Start, Save or Sign out left its button stuck on "Starting…"/"Saving…" with no message | The busy flag was set before an await and only cleared on success | Every busy flag is cleared in `catch`/`finally`, and the failure is shown next to the button |
