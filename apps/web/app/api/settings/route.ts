@@ -1,6 +1,7 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { isValidTimeZone } from "@jim/core";
 import { users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -48,6 +49,8 @@ interface SettingsPayload {
   dprDefaultRepHigh: number;
   dprPromptDismissedAt: string | null;
   onboardedAt: string | null;
+  /** The phone's IANA zone (issue #511); the server's week math uses it. */
+  timeZone: string | null;
 }
 
 function toPayload(row: typeof users.$inferSelect): SettingsPayload {
@@ -75,6 +78,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     dprDefaultRepHigh: row.dprDefaultRepHigh,
     dprPromptDismissedAt: row.dprPromptDismissedAt?.toISOString() ?? null,
     onboardedAt: row.onboardedAt?.toISOString() ?? null,
+    timeZone: row.timeZone,
   };
 }
 
@@ -202,6 +206,12 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     const value = candidate.onboardedAt;
     if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return false;
   }
+  if (
+    "timeZone" in candidate &&
+    (typeof candidate.timeZone !== "string" || !isValidTimeZone(candidate.timeZone))
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -245,6 +255,7 @@ export async function PATCH(request: Request) {
       }
       if (body.defaultRestSeconds !== undefined) patch.defaultRestSeconds = body.defaultRestSeconds;
       if (body.weekStart !== undefined) patch.weekStart = body.weekStart;
+      if (body.timeZone !== undefined) patch.timeZone = body.timeZone;
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
       if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
       if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;

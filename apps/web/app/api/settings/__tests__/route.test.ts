@@ -68,6 +68,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       dprPromptDismissedAt: null,
       // A brand-new account hasn't been through the setup walkthrough (issue #464).
       onboardedAt: null,
+      // Until the phone reports its zone (issue #511).
+      timeZone: null,
     });
 
     const rows = await admin`SELECT id, email FROM public.users WHERE id = ${USER_A}`;
@@ -88,6 +90,14 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
   it("rejects an invalid accent color", async () => {
     const response = await patch({ accentColor: "chartreuse" });
     expect(response.status).toBe(400);
+  });
+
+  it("stores the phone's time zone and rejects a made-up one (#511)", async () => {
+    expect((await patch({ timeZone: "Mars/Olympus_Mons" })).status).toBe(400);
+    expect((await patch({ timeZone: 5 })).status).toBe(400);
+    const response = await patch({ timeZone: "America/Los_Angeles" });
+    expect(response.status).toBe(200);
+    expect((await response.json()).timeZone).toBe("America/Los_Angeles");
   });
 
   it("accepts the pastel pink accent color", async () => {

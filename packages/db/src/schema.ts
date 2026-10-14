@@ -190,6 +190,10 @@ export const users = pgTable(
     defaultRestSeconds: integer("default_rest_seconds").notNull().default(90),
     // 0 = Sunday .. 6 = Saturday
     weekStart: smallint("week_start").notNull().default(0),
+    // The phone's IANA time zone, e.g. "America/Los_Angeles", reported on
+    // each settings refresh so server-side week grouping (the MCP server
+    // runs in UTC) matches the app's (issue #511). Null until a phone reports.
+    timeZone: text("time_zone"),
     // "system" follows the OS/browser's prefers-color-scheme; "light"/"dark" override it.
     colorScheme: colorSchemeEnum("color_scheme").notNull().default("system"),
     // The app's primary/interactive accent color, independent of light/dark. "zinc" keeps
