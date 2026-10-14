@@ -38,6 +38,7 @@ export async function generateMetadata(props: PageProps<"/share/[id]">): Promise
 
 export default async function SharePage(props: PageProps<"/share/[id]">) {
   const { id } = await props.params;
+  const { from } = await props.searchParams;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims.sub;
@@ -46,5 +47,7 @@ export default async function SharePage(props: PageProps<"/share/[id]">) {
   // tags above are all it gets.
   if (!userId) return null;
 
-  return <SharedPreview id={id} userId={userId} />;
+  return (
+    <SharedPreview id={id} userId={userId} from={typeof from === "string" ? from : undefined} />
+  );
 }

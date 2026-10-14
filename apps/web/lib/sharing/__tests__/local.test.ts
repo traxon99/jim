@@ -8,7 +8,7 @@ import {
   type RoutineRow,
   createTestDb,
 } from "../../db/schema";
-import { shareIdFromText } from "../client";
+import { shareBackTarget, shareIdFromText, sharePath } from "../client";
 import { addSharedSnapshot, buildProgramSnapshot, buildRoutineSnapshot } from "../local";
 
 const SHARER = "11111111-1111-1111-1111-111111111111";
@@ -294,5 +294,22 @@ describe("shareIdFromText", () => {
     expect(shareIdFromText("https://jim.example/routines/abc")).toBeNull();
     expect(shareIdFromText(`https://jim.example/share/${id}extra`)).toBeNull();
     expect(shareIdFromText("")).toBeNull();
+  });
+});
+
+describe("shareBackTarget", () => {
+  it("returns to Settings when the link was opened from Shared links", () => {
+    const id = "0b9d1a2e-3c4d-4e5f-8a6b-7c8d9e0f1a2b";
+    expect(sharePath(id, "settings")).toBe(`/share/${id}?from=settings`);
+    expect(shareBackTarget("settings")).toEqual({ href: "/profile/settings", label: "Settings" });
+  });
+
+  it("falls back to Routines for no or an unknown origin", () => {
+    expect(sharePath("abc")).toBe("/share/abc");
+    expect(shareBackTarget(undefined)).toEqual({ href: "/routines", label: "Routines" });
+    expect(shareBackTarget("https://other.example")).toEqual({
+      href: "/routines",
+      label: "Routines",
+    });
   });
 });

@@ -72,9 +72,20 @@ export function revokeShareLink(id: string, fetchImpl: typeof fetch = fetch) {
   );
 }
 
-/** The path a share link opens in Jim. */
-export function sharePath(id: string): string {
-  return `/share/${id}`;
+/**
+ * The path a share link opens in Jim. `from` names the screen it was opened
+ * from so the preview's Back button returns there.
+ */
+export function sharePath(id: string, from?: ShareOrigin): string {
+  return from ? `/share/${id}?from=${from}` : `/share/${id}`;
+}
+
+export type ShareOrigin = "settings";
+
+/** Where the share preview's Back button goes: the screen named by `?from=`, else Routines. */
+export function shareBackTarget(from: string | undefined): { href: string; label: string } {
+  if (from === "settings") return { href: "/profile/settings", label: "Settings" };
+  return { href: "/routines", label: "Routines" };
 }
 
 const SHARE_ID_PATTERN =
