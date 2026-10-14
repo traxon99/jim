@@ -1,11 +1,11 @@
 "use client";
 
 import { RoutineIcon } from "@/components/routines/routine-icon";
+import { WarmupOptions } from "@/components/routines/warmup-options";
 import type { ProgramRoutineRow as ProgramRoutineEntity, RoutineRow } from "@/lib/db/schema";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { WARMUP_TEMPLATES } from "@jim/core";
 import { Moon, Trash2 } from "lucide-react";
 
 interface Props {
@@ -133,23 +133,7 @@ export function ProgramRoutineRow({
             onChange={(event) => onWarmupChange(event.target.value)}
             className="min-h-11 min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
           >
-            <option value="">None</option>
-            {warmupRoutines.length > 0 && (
-              <optgroup label="My warm-ups">
-                {warmupRoutines.map((warmup) => (
-                  <option key={warmup.id} value={`routine:${warmup.id}`}>
-                    {warmup.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            <optgroup label="Templates">
-              {WARMUP_TEMPLATES.map((template) => (
-                <option key={template.key} value={`template:${template.key}`}>
-                  {template.name}
-                </option>
-              ))}
-            </optgroup>
+            <WarmupOptions warmupRoutines={warmupRoutines} />
           </select>
         </label>
       )}

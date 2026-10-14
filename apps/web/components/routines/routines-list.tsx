@@ -3,7 +3,7 @@
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
-import { db } from "@/lib/db/schema";
+import { type RoutineRow, db } from "@/lib/db/schema";
 import {
   exerciseDisplayName,
   formatProgramWeek,
@@ -29,6 +29,56 @@ const VIEWS: { value: View; label: string }[] = [
   { value: "mine", label: "Your Routines" },
   { value: "explore", label: "Explore" },
 ];
+
+function exerciseCountLabel(count: number): string | null {
+  return count > 0 ? `${count} exercise${count === 1 ? "" : "s"}` : null;
+}
+
+/**
+ * One routine in the list, the same in search results, folders and
+ * warm-ups (issue #552). The subtitle (folder or notes) is clamped to two
+ * lines so a long note can't make a tall row.
+ */
+function RoutineListRow({
+  routine,
+  subtitle,
+  meta,
+}: {
+  routine: RoutineRow;
+  subtitle?: string | null;
+  meta?: string | null;
+}) {
+  return (
+    <li>
+      <Link
+        href={`/routines/${routine.id}`}
+        data-ripple
+        className="flex items-center justify-between gap-2 py-3"
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {isWarmupRoutine(routine) ? (
+            <Flame
+              className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          ) : (
+            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+          )}
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-base font-medium">{routine.name}</span>
+            {subtitle && (
+              <span className="line-clamp-2 break-words text-xs text-zinc-500 dark:text-zinc-500">
+                {subtitle}
+              </span>
+            )}
+          </span>
+        </span>
+        {meta && <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">{meta}</span>}
+      </Link>
+    </li>
+  );
+}
 
 export function RoutinesList({ userId }: { userId: string }) {
   // Your Routines / Explore (issue #141).
@@ -192,44 +242,14 @@ export function RoutinesList({ userId }: { userId: string }) {
             </p>
           ) : (
             <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-              {searchResults.map((routine) => {
-                const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
-                const warmup = isWarmupRoutine(routine);
-                return (
-                  <li key={routine.id}>
-                    <Link
-                      href={`/routines/${routine.id}`}
-                      data-ripple
-                      className="flex items-center justify-between gap-2 py-3"
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        {warmup ? (
-                          <Flame
-                            className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
-                            strokeWidth={1.75}
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
-                        )}
-                        <span className="flex min-w-0 flex-col gap-0.5">
-                          <span className="truncate text-base font-medium">{routine.name}</span>
-                          {(warmup || routine.folder) && (
-                            <span className="truncate text-xs text-zinc-500 dark:text-zinc-500">
-                              {warmup ? "Warm-up" : routine.folder}
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                      {exerciseCount > 0 && (
-                        <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-                          {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
+              {searchResults.map((routine) => (
+                <RoutineListRow
+                  key={routine.id}
+                  routine={routine}
+                  subtitle={isWarmupRoutine(routine) ? "Warm-up" : routine.folder}
+                  meta={exerciseCountLabel(exerciseCounts.get(routine.id) ?? 0)}
+                />
+              ))}
             </ul>
           )
         ) : (
@@ -249,40 +269,14 @@ export function RoutinesList({ userId }: { userId: string }) {
                         </h3>
                       )}
                       <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                        {group.routines.map((routine) => {
-                          const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
-                          return (
-                            <li key={routine.id}>
-                              <Link
-                                href={`/routines/${routine.id}`}
-                                data-ripple
-                                className="flex items-center justify-between gap-2 py-3"
-                              >
-                                <span className="flex min-w-0 items-center gap-2">
-                                  <RoutineIcon
-                                    shape={routine.iconShape}
-                                    color={routine.iconColor}
-                                  />
-                                  <span className="flex min-w-0 flex-col gap-0.5">
-                                    <span className="truncate text-base font-medium">
-                                      {routine.name}
-                                    </span>
-                                    {routine.notes && (
-                                      <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                                        {routine.notes}
-                                      </span>
-                                    )}
-                                  </span>
-                                </span>
-                                {exerciseCount > 0 && (
-                                  <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-                                    {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
-                                  </span>
-                                )}
-                              </Link>
-                            </li>
-                          );
-                        })}
+                        {group.routines.map((routine) => (
+                          <RoutineListRow
+                            key={routine.id}
+                            routine={routine}
+                            subtitle={routine.notes}
+                            meta={exerciseCountLabel(exerciseCounts.get(routine.id) ?? 0)}
+                          />
+                        ))}
                       </ul>
                     </section>
                   ))}
@@ -353,39 +347,18 @@ export function RoutinesList({ userId }: { userId: string }) {
               <CollapsibleSection title="Warm-ups">
                 {warmupRoutines.length > 0 && (
                   <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                    {warmupRoutines.map((routine) => {
-                      const exerciseCount = exerciseCounts.get(routine.id) ?? 0;
-                      return (
-                        <li key={routine.id}>
-                          <Link
-                            href={`/routines/${routine.id}`}
-                            data-ripple
-                            className="flex items-center justify-between gap-2 py-3"
-                          >
-                            <span className="flex min-w-0 items-center gap-2">
-                              <Flame
-                                className="h-4 w-4 shrink-0 text-orange-500 dark:text-orange-400"
-                                strokeWidth={1.75}
-                                aria-hidden="true"
-                              />
-                              <span className="truncate text-base font-medium">{routine.name}</span>
-                            </span>
-                            <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-                              {[
-                                routine.warmupMinutes != null
-                                  ? `${routine.warmupMinutes} min`
-                                  : null,
-                                exerciseCount > 0
-                                  ? `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`
-                                  : null,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </span>
-                          </Link>
-                        </li>
-                      );
-                    })}
+                    {warmupRoutines.map((routine) => (
+                      <RoutineListRow
+                        key={routine.id}
+                        routine={routine}
+                        meta={[
+                          routine.warmupMinutes != null ? `${routine.warmupMinutes} min` : null,
+                          exerciseCountLabel(exerciseCounts.get(routine.id) ?? 0),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      />
+                    ))}
                   </ul>
                 )}
               </CollapsibleSection>
