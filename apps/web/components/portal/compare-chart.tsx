@@ -17,7 +17,7 @@ const LEFT = 44;
  * zinc-950; the legend and tooltip repeat the lift's name, so the chart never
  * relies on color alone.
  */
-export const COMPARE_COLORS = [
+const COMPARE_COLORS = [
   "text-sky-600 dark:text-sky-400",
   "text-orange-600 dark:text-orange-400",
   "text-emerald-600 dark:text-emerald-400",

@@ -6,7 +6,7 @@ import {
   type WeightImportPreview,
   bodyweightSeries,
   commitWeightImport,
-  deleteBodyweight,
+  deleteMeasurement,
   logBodyweight,
   previewAppleHealthImport,
   previewWeightImport,
@@ -129,7 +129,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
   async function handleDelete(id: string) {
     const row = rowById.get(id);
     if (!row) return;
-    await deleteBodyweight(row);
+    await deleteMeasurement(row);
     void runSyncCycle();
     void syncCurrentBodyweight();
   }

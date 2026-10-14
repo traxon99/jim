@@ -11,7 +11,7 @@ import type { SplashDevice } from "./splash-devices";
  * it jump when the web page takes over, since the image can't use the same
  * system font.
  */
-export const SPLASH_BACKGROUND = { light: "#ffffff", dark: "#0a0a0a" } as const;
+const SPLASH_BACKGROUND = { light: "#ffffff", dark: "#0a0a0a" } as const;
 
 export type SplashScheme = keyof typeof SPLASH_BACKGROUND;
 

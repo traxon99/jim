@@ -44,7 +44,7 @@ export interface GateOptions {
   backstopMs: number;
 }
 
-export const GATE_DEFAULTS: GateOptions = {
+const GATE_DEFAULTS: GateOptions = {
   quietMs: 250,
   minVisibleMs: 0,
   backstopMs: 15_000,

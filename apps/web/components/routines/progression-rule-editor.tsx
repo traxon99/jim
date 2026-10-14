@@ -26,7 +26,7 @@ function numberText(value: number | null | undefined): string {
 }
 
 /** "5x3, 6x2, 10x1" ↔ stages; null when the text doesn't parse. */
-export function parseStages(text: string): RepScheme[] | null {
+function parseStages(text: string): RepScheme[] | null {
   const parts = text
     .split(/[,→>]+/)
     .map((part) => part.trim())

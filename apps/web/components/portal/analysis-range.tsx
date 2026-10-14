@@ -26,7 +26,7 @@ export function useAnalysisRange(): [AnalysisRange, (range: AnalysisRange) => vo
   return [range, setRange];
 }
 
-export function AnalysisRangePicker({
+function AnalysisRangePicker({
   range,
   onChange,
   custom = false,
