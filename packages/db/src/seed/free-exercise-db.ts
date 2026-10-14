@@ -2,13 +2,16 @@ import { slugify } from "@jim/core";
 import type { exercises } from "../schema";
 import { EXERCISE_ALIASES } from "./aliases";
 import { cardioSeedRows, curatedSeedRows } from "./curated";
+import { parseForce, parseLevel, parseMechanic } from "./enum-values";
 import { normalizeMuscles } from "./muscles";
 import { classifyTrackingType } from "./tracking-type";
 import { classifyCategory, warmupSeedRows } from "./warmups";
 
-const DATASET_URL =
-  "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
-const IMAGE_BASE_URL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
+// Pinned to a commit so a change upstream can't alter (or break) a production deploy. To update,
+// bump the SHA and review the dataset diff.
+const DATASET_COMMIT = "f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5";
+const DATASET_URL = `https://raw.githubusercontent.com/yuhonas/free-exercise-db/${DATASET_COMMIT}/dist/exercises.json`;
+const IMAGE_BASE_URL = `https://raw.githubusercontent.com/yuhonas/free-exercise-db/${DATASET_COMMIT}/exercises`;
 
 interface RawExercise {
   id: string;
@@ -36,9 +39,9 @@ function normalizeExercise(raw: RawExercise): SeedExercise {
     primaryMuscles: normalizeMuscles(raw.primaryMuscles),
     secondaryMuscles: normalizeMuscles(raw.secondaryMuscles),
     equipment: raw.equipment,
-    mechanic: raw.mechanic as SeedExercise["mechanic"],
-    force: raw.force as SeedExercise["force"],
-    level: raw.level as SeedExercise["level"],
+    mechanic: parseMechanic(raw.mechanic),
+    force: parseForce(raw.force),
+    level: parseLevel(raw.level),
     trackingType: classifyTrackingType(raw),
     category: classifyCategory(raw),
     instructions: raw.instructions,
