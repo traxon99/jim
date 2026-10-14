@@ -4,6 +4,7 @@ import { CallMark } from "@/components/dpr/call-mark";
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
+import { UndoBar, useUndoable } from "@/components/undo-bar";
 import { mutate } from "@/lib/db/mutate";
 import {
   type ExerciseRow,
@@ -68,7 +69,7 @@ import {
   warmupRamp,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, Diff, File, Pin, RotateCcw, Timer, Undo2 } from "lucide-react";
+import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ExerciseDialog } from "./exercise-dialog";
 import { RpeInfoMenu } from "./rpe-info-menu";
@@ -137,9 +138,6 @@ interface DraftValues {
   rpe: string;
   kind: SetKind;
 }
-
-/** How long the Undo for a deleted set stays up (issue #318). */
-const UNDO_DELETE_MS = 8000;
 
 function sizesFor(large: boolean) {
   return {
@@ -227,7 +225,7 @@ export function SessionExerciseSection({
   const [customRest, setCustomRest] = useState("");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // The tombstone of the set just deleted, while its Undo is offered (issue #318).
-  const [undoableDelete, setUndoableDelete] = useState<SetRowEntity | null>(null);
+  const undoableDelete = useUndoable<SetRowEntity>();
   // Planned rows swiped away (issue #350), by set index. They're only a
   // plan, so dropping one is kept to this screen rather than saved.
   const [skippedIndices, setSkippedIndices] = useState<ReadonlySet<number>>(new Set());
@@ -523,12 +521,6 @@ export function SessionExerciseSection({
     onSetLogged(restSeconds, remainingAfterLogging(nextIndex));
   }
 
-  useEffect(() => {
-    if (!undoableDelete) return;
-    const timer = setTimeout(() => setUndoableDelete(null), UNDO_DELETE_MS);
-    return () => clearTimeout(timer);
-  }, [undoableDelete]);
-
   async function handleEdit(
     original: SetRowEntity,
     patch: { weight: number | null; reps: number | null; rpe: number | null },
@@ -541,13 +533,12 @@ export function SessionExerciseSection({
   }
 
   async function handleDelete(original: SetRowEntity) {
-    setUndoableDelete(await deleteSet(original));
+    undoableDelete.offer("Set deleted", await deleteSet(original));
   }
 
   async function handleUndoDelete() {
-    if (!undoableDelete) return;
-    const tombstone = undoableDelete;
-    setUndoableDelete(null);
+    const tombstone = undoableDelete.take();
+    if (!tombstone) return;
     const restored = await restoreSet(tombstone);
     // The restored row has a new id; keep the PR badge of the set it brings back.
     const prs = tombstone.supersedesId ? prsBySetId.get(tombstone.supersedesId) : undefined;
@@ -961,18 +952,8 @@ export function SessionExerciseSection({
       )}
       {large && visiblePlannedIndices.length === 0 && addSetButton}
 
-      {undoableDelete && (
-        <output className="flex items-center justify-between gap-2 rounded-lg bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-          <span>Set deleted</span>
-          <button
-            type="button"
-            onClick={() => void handleUndoDelete()}
-            aria-label="Undo delete"
-            className="flex min-h-11 min-w-11 items-center justify-center text-accent"
-          >
-            <Undo2 className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-          </button>
-        </output>
+      {undoableDelete.label && (
+        <UndoBar label={undoableDelete.label} onUndo={() => void handleUndoDelete()} />
       )}
 
       {notesOpen ? (

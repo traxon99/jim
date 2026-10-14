@@ -48,6 +48,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] Can a second tap land on something destructive? Never swap a delete/cancel control into the
       spot the user just tapped to confirm. A double tap on ✓ deleted the set it had just logged
       (#318).
+- [ ] Does a new delete take effect in one tap? List rows get the shared `UndoBar` /
+      `useUndoable`; removals that lose configuration ask with `confirm()` first (#520).
 - [ ] Does an edit form copy a `useLiveQuery` row into state? Seed it once, so a sync landing
       mid-edit can't replace what's being typed (#518).
 - [ ] Does a disabled or "busy" state reset on every exit path, including cancel and switching
@@ -88,6 +90,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #520 | Cardio and warm-up sets, weigh-ins and measurements deleted in one tap with no Undo; removing a routine exercise, a program day or a gym, and skipping a PRP deload, didn't ask | Each screen chose its own delete behavior; the strength section's Undo (#318) was never shared | List rows delete with the shared `UndoBar`/`useUndoable` (components/undo-bar.tsx); removals that lose configuration ask with `confirm()` first |
 | #528 | Home had two Profile links and shortcuts to Train and Routines that the tab bar already shows | Entry points were added on Home without checking what the header and tab bar already reach | Before adding a link, check the header and tab bar; a shortcut goes only where they don't |
 | #552 | A routine with a long note made a tall row in its folder, while search showed the same routine differently | The routine row was written three times and the folder copy lost its truncation | One shared row component per list item; secondary text is `line-clamp`ed |
 | #514 | MCP errors returned raw SQL and params, and `schedule_workout`/`log_past_workout` rejected routine names | `server.ts` echoed `error.message` for database errors, and two tools looked routines up by id instead of `findRoutine` | Database errors reach the caller as a generic message (original logged); resolve routines with `findRoutine` so a name works anywhere an id does |

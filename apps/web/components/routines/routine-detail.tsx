@@ -205,6 +205,9 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   }
 
   async function handleRemoveItem(item: RoutineExerciseRow) {
+    // Its sets, reps and progression targets go with it (#520).
+    const name = exercisesById.get(item.exerciseId)?.name ?? "this exercise";
+    if (!confirm(`Remove ${name} from the routine? Its targets are removed too.`)) return;
     const deviceId = await getDeviceId();
     await mutate("routineExercises", {
       ...item,

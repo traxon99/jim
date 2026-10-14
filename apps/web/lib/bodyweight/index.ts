@@ -96,11 +96,26 @@ export function logBodyweight(
 export async function deleteMeasurement(
   row: BodyMeasurementRow,
   database: JimDatabase = db,
-): Promise<void> {
+): Promise<BodyMeasurementRow> {
   const now = new Date();
+  const deleted = { ...row, deletedAt: now, updatedAt: now, deviceId: await getDeviceId(database) };
+  await mutate("bodyMeasurements", deleted, database);
+  return deleted;
+}
+
+/** Undoes a `deleteMeasurement` (#520): the same row, live again, as a newer write. */
+export async function restoreMeasurement(
+  deleted: BodyMeasurementRow,
+  database: JimDatabase = db,
+): Promise<void> {
   await mutate(
     "bodyMeasurements",
-    { ...row, deletedAt: now, updatedAt: now, deviceId: await getDeviceId(database) },
+    {
+      ...deleted,
+      deletedAt: null,
+      updatedAt: new Date(),
+      deviceId: await getDeviceId(database),
+    },
     database,
   );
 }
