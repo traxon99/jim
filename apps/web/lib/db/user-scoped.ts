@@ -69,7 +69,8 @@ export function withVerifiedUserDb<T>(userId: string, fn: (tx: DbOrTx) => Promis
 /**
  * The server's own connection, outside any user's RLS: only for the few
  * reads a signed-out request may make, each narrowed to what it returns. The
- * one today is a share link's preview for chat apps (lib/sharing/preview.ts).
+ * one today is a share link by its id, for its preview and its read-only page
+ * (lib/sharing/preview.ts).
  */
 export function serviceDb(): Db {
   return getDb();

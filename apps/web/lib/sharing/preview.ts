@@ -1,6 +1,7 @@
 import { isUuid } from "@/lib/api/route-helpers";
 import { serviceDb } from "@/lib/db/user-scoped";
 import {
+  type ShareSnapshot,
   type ShareSummary,
   listNames,
   parseShareSnapshot,
@@ -11,12 +12,16 @@ import { shareLinks, users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
 
-// Link previews for share links (issue #431). Chat apps fetch a pasted link
-// signed out, so this reads the link on the server's own connection (opening
-// it still takes signing in: app/api/shares/[id]/route.ts) and hands back
-// only the summary a preview shows: the name, rough size and who shared it.
+// Share links read without signing in: the preview chat apps build when a
+// link is pasted (issue #431) and the read-only page anyone who opens the
+// link sees (issue #638). Both read the link on the server's own connection;
+// adding it to your own routines still takes the signed-in app.
+
+/** How many exercises (or a program's routines) a preview names before "+N more". */
+export const PREVIEW_NAMES = 6;
 
 export interface SharePreview {
+  snapshot: ShareSnapshot;
   summary: ShareSummary;
   username: string | null;
 }
@@ -33,7 +38,7 @@ export const loadSharePreview = cache(async (id: string): Promise<SharePreview |
       .limit(1);
     const snapshot = row ? parseShareSnapshot(row.snapshot) : null;
     if (!row || !snapshot) return null;
-    return { summary: shareSnapshotSummary(snapshot), username: row.username };
+    return { snapshot, summary: shareSnapshotSummary(snapshot), username: row.username };
   } catch (error) {
     // A preview is a nicety: never fail the page over it.
     console.error("[share preview] couldn't load link:", error);
@@ -42,11 +47,15 @@ export const loadSharePreview = cache(async (id: string): Promise<SharePreview |
 });
 
 /** The line under a preview's title, e.g. "~55 min · 6 exercises · 18 sets. Bench Press, …". */
-export function sharePreviewDescription({ summary, username }: SharePreview): string {
+export function sharePreviewDescription({
+  summary,
+  username,
+}: Pick<SharePreview, "summary" | "username">): string {
   const label = summary.kind === "program" ? "Program" : "Routine";
   const by = username ? ` shared by ${username}` : "";
   const names = listNames(
     summary.kind === "program" ? summary.routineNames : summary.exerciseNames,
+    PREVIEW_NAMES,
   );
   const stats = shareSummaryStats(summary).join(" · ");
   return `${label}${by}: ${stats}.${names ? ` ${names}.` : ""}`;

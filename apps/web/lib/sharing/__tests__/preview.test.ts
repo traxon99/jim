@@ -19,8 +19,25 @@ describe("sharePreviewDescription", () => {
         },
       }),
     ).toBe(
-      "Routine shared by jackson: ~55 min · 5 exercises · 15 sets. Bench Press, Incline Press, Dips +2 more.",
+      "Routine shared by jackson: ~55 min · 5 exercises · 15 sets. Bench Press, Incline Press, Dips, Flyes, Pushdown.",
     );
+  });
+
+  it("names the first six exercises of a long routine", () => {
+    const names = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    expect(
+      sharePreviewDescription({
+        username: null,
+        summary: {
+          kind: "routine",
+          name: "Full body",
+          exercises: 8,
+          sets: 0,
+          minutes: null,
+          exerciseNames: names,
+        },
+      }),
+    ).toBe("Routine: 8 exercises. A, B, C, D, E, F +2 more.");
   });
 
   it("describes a program by its weeks, days and sessions", () => {

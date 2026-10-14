@@ -1,5 +1,5 @@
 import { isCrossOriginMutation } from "@/lib/security/csrf";
-import { isSharePreviewRequest } from "@/lib/sharing/preview-request";
+import { isPublicSharePath } from "@/lib/sharing/public-share";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { supabaseEnv } from "./env";
@@ -62,7 +62,7 @@ export async function updateSession(request: NextRequest) {
   });
   const isPublicPath =
     PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path)) ||
-    isSharePreviewRequest(request.nextUrl.pathname, request.headers.get("user-agent"));
+    isPublicSharePath(request.nextUrl.pathname);
 
   if (!claims?.data?.claims && !isPublicPath) {
     // API callers (the sync engine, fetch clients) need a status they can

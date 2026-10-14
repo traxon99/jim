@@ -1,3 +1,4 @@
+import { PublicSharePage } from "@/components/sharing/public-share-page";
 import { SharedPreview } from "@/components/sharing/shared-preview";
 import { loadSharePreview, sharePreviewDescription } from "@/lib/sharing/preview";
 import { createClient } from "@/lib/supabase/server";
@@ -43,9 +44,9 @@ export default async function SharePage(props: PageProps<"/share/[id]">) {
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims.sub;
 
-  // Signed out, this is a chat app fetching the link preview (proxy.ts): the
-  // tags above are all it gets.
-  if (!userId) return null;
+  // Signed out, it's someone without Jim (or a chat app building a preview):
+  // they get the read-only page (issue #638), with nothing to add or revoke.
+  if (!userId) return <PublicSharePage preview={await loadSharePreview(id)} />;
 
   return (
     <SharedPreview id={id} userId={userId} from={typeof from === "string" ? from : undefined} />

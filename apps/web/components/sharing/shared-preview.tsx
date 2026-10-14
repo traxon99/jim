@@ -2,100 +2,15 @@
 
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
-import { RoutineIcon } from "@/components/routines/routine-icon";
-import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
-import { routineItemSummary } from "@/lib/routines/summary";
+import { SharedSnapshotView } from "@/components/sharing/shared-snapshot-view";
+import { isStandalone } from "@/lib/pwa/standalone";
 import { type Result, openShareLink, revokeShareLink, shareBackTarget } from "@/lib/sharing/client";
 import { addSharedSnapshot } from "@/lib/sharing/local";
 import type { OpenedShareLink } from "@/lib/sharing/types";
-import type { ShareSnapshot, SharedRoutine } from "@jim/core";
 import { Layers } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-function RoutinePreview({
-  routine,
-  snapshot,
-}: {
-  routine: SharedRoutine;
-  snapshot: ShareSnapshot;
-}) {
-  const warmup =
-    routine.warmupRoutine === null ? null : (snapshot.routines[routine.warmupRoutine] ?? null);
-  return (
-    <section className="flex flex-col gap-1">
-      <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold">
-        <RoutineIcon
-          shape={routine.iconShape}
-          color={routine.iconColor}
-          className="h-4 w-4 shrink-0"
-        />
-        <span className="min-w-0 truncate">{routine.name}</span>
-      </h2>
-      {(routine.kind === "warmup" || warmup) && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-500">
-          {routine.kind === "warmup" ? "Warm-up routine" : `Warm-up: ${warmup?.name}`}
-        </p>
-      )}
-      {routine.notes && <p className="text-sm text-zinc-700 dark:text-zinc-300">{routine.notes}</p>}
-      <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-        {routine.items.map((item, index) => {
-          const exercise = snapshot.exercises[item.exercise];
-          const summary = routineItemSummary(
-            {
-              ...item,
-              targetWeight: item.targetWeight === null ? null : String(item.targetWeight),
-            },
-            snapshot.units,
-            exercise?.trackingType === "time",
-          );
-          return (
-            // Items have no ids of their own; their order is fixed.
-            // biome-ignore lint/suspicious/noArrayIndexKey: a snapshot never reorders
-            <li key={index} className="flex min-w-0 flex-col gap-0.5 py-2">
-              <span className="text-sm font-medium">{exercise?.name ?? "Unknown exercise"}</span>
-              {summary && (
-                <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-500">
-                  {summary}
-                </span>
-              )}
-              {item.notes && (
-                <span className="text-sm text-zinc-700 dark:text-zinc-300">{item.notes}</span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {routine.items.length === 0 && (
-        <p className="text-sm text-zinc-500 dark:text-zinc-500">No exercises.</p>
-      )}
-    </section>
-  );
-}
-
-function ProgramSchedule({ snapshot }: { snapshot: ShareSnapshot }) {
-  const program = snapshot.program;
-  if (!program) return null;
-  return (
-    <ol className="flex flex-col gap-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800">
-      {program.entries.map((entry, index) => {
-        const routine = entry.routine === null ? null : snapshot.routines[entry.routine];
-        const when =
-          program.mode === "weekly" && entry.weekday !== null
-            ? WEEKDAY_NAMES[entry.weekday]
-            : `Day ${index + 1}`;
-        return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: a snapshot never reorders
-          <li key={index} className="flex min-w-0 justify-between gap-3">
-            <span className="shrink-0 text-zinc-500 dark:text-zinc-500">{when}</span>
-            <span className="min-w-0 truncate text-right">{routine?.name ?? "Rest day"}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
 
 /**
  * A shared routine or program, opened from its link (issue #254): a
@@ -118,6 +33,13 @@ export function SharedPreview({
   const [adding, setAdding] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Share pages skip the install gate so anyone can read them (issue #638),
+  // but adding writes to IndexedDB, which only the installed app keeps (ADR-010).
+  const [installed, setInstalled] = useState(true);
+
+  useEffect(() => {
+    setInstalled(isStandalone());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,7 +133,7 @@ export function SharedPreview({
           >
             Revoke link
           </button>
-        ) : (
+        ) : installed ? (
           <button
             type="button"
             onClick={() => void handleAdd()}
@@ -220,24 +142,25 @@ export function SharedPreview({
           >
             {isProgram ? "Add to my programs" : "Add to my routines"}
           </button>
+        ) : (
+          <p className="text-center text-sm text-zinc-600 dark:text-zinc-400">
+            To add it to your routines, open this link in Jim on your phone.
+          </p>
         )}
         {error && (
           <p role="alert" className="text-center text-sm text-red-600 dark:text-red-500">
             {error}
           </p>
         )}
-        <p className="text-center text-xs text-zinc-500 dark:text-zinc-500">
-          {link.isMine
-            ? "This is a copy from when you shared it. Your later edits don't change it."
-            : "Adding makes your own copy. Exercises you already have are reused."}
-        </p>
+        {(link.isMine || installed) && (
+          <p className="text-center text-xs text-zinc-500 dark:text-zinc-500">
+            {link.isMine
+              ? "This is a copy from when you shared it. Your later edits don't change it."
+              : "Adding makes your own copy. Exercises you already have are reused."}
+          </p>
+        )}
 
-        {isProgram && <ProgramSchedule snapshot={snapshot} />}
-
-        {snapshot.routines.map((routine, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: a snapshot never reorders
-          <RoutinePreview key={index} routine={routine} snapshot={snapshot} />
-        ))}
+        <SharedSnapshotView snapshot={snapshot} />
       </div>
     </main>
   );
