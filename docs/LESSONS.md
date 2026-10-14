@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #514 | MCP errors returned raw SQL and params, and `schedule_workout`/`log_past_workout` rejected routine names | `server.ts` echoed `error.message` for database errors, and two tools looked routines up by id instead of `findRoutine` | Database errors reach the caller as a generic message (original logged); resolve routines with `findRoutine` so a name works anywhere an id does |
 | #547 | Workout detail and shared-link preview had a bare back button instead of the sticky header, and the preview always went back to Routines even from Settings | Both screens built one-off headers, and the preview hard-coded `/routines` | Every pushed screen uses `PageHeader` + `PAGE_BODY`; pass the real return path (`?from=`) instead of hard-coding one |
 | #549 | A swiped-away set row could run its delete (and state updates) after the row had unmounted | The swipe hook's settle `setTimeout` was never cleared on unmount | Keep timers in a ref and clear them in an effect cleanup |
 | #540 | MCP rejected `-04:00` offsets on some date inputs, and scheduling "2026-10-20T00:00:00Z" showed as the previous evening for US users | Four tools used `datetime()` without `offset: true`, and `schedule_workout` stored an instant for what is a calendar day | One date-time schema across MCP tools (`{ offset: true }`); a calendar day is stored as noon UTC, not midnight |

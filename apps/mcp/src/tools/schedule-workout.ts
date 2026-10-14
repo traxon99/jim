@@ -1,11 +1,10 @@
 import { uuidv7 } from "@jim/core";
-import { routines, scheduledWorkouts } from "@jim/db";
-import { eq } from "drizzle-orm";
+import { scheduledWorkouts } from "@jim/db";
 import { z } from "zod";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
-import { RoutineNotFoundError } from "./update-routine.js";
+import { findRoutine } from "./find-routine.js";
 
 /**
  * A plain calendar day. The app shows a scheduled workout in the viewer's own
@@ -42,6 +41,7 @@ export function parseScheduleDate(value: string): Date {
 }
 
 export interface ScheduleWorkoutInput {
+  /** A routine id or its exact name (#514). */
   routineId: string;
   /** `YYYY-MM-DD` (that calendar day, stored as noon UTC) or an ISO date-time with offset. */
   date: string;
@@ -52,8 +52,7 @@ export interface ScheduleWorkoutInput {
 
 export async function scheduleWorkout(context: UserContext, input: ScheduleWorkoutInput) {
   return withUserWrite(context, input.dryRun ?? false, async (tx) => {
-    const [routine] = await tx.select().from(routines).where(eq(routines.id, input.routineId));
-    if (!routine || routine.deletedAt) throw new RoutineNotFoundError(input.routineId);
+    const routine = await findRoutine(tx, input.routineId);
 
     const scheduledFor = parseScheduleDate(input.date);
     const now = new Date();
@@ -61,7 +60,7 @@ export async function scheduleWorkout(context: UserContext, input: ScheduleWorko
     await tx.insert(scheduledWorkouts).values({
       id,
       userId: context.userId,
-      routineId: input.routineId,
+      routineId: routine.id,
       scheduledFor,
       notes: input.notes ?? null,
       updatedAt: now,
@@ -70,7 +69,7 @@ export async function scheduleWorkout(context: UserContext, input: ScheduleWorko
 
     return {
       id,
-      routineId: input.routineId,
+      routineId: routine.id,
       routineName: routine.name,
       scheduledFor: scheduledFor.toISOString(),
     };

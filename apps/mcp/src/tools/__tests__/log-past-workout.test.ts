@@ -273,7 +273,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("log_past_workout (#244)", () =>
           routineId: theirRoutine,
           exercises: [{ exercise: "bench press", sets: [{ weight: 100, reps: 5 }] }],
         }),
-      ).rejects.toThrow(/No routine found/);
+      ).rejects.toThrow(/No routine matches/);
       await expect(
         logPastWorkout(context, {
           startedAt: "2026-09-02T08:00:00Z",

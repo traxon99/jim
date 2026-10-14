@@ -6,11 +6,13 @@ import {
   dprAggressivenessEnum,
   dprExperienceEnum,
   fontFamilyEnum,
+  muscleEnum,
   sexEnum,
 } from "@jim/db";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { UserContext } from "./context.js";
+import { toolErrorMessage } from "./tool-error.js";
 import { deleteBodyMeasurement, logBodyMeasurement } from "./tools/body-measurements-write.js";
 import { createRoutine } from "./tools/create-routine.js";
 import { deleteRoutine } from "./tools/delete-routine.js";
@@ -42,8 +44,7 @@ function json(data: unknown) {
 }
 
 function toolError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return { content: [{ type: "text" as const, text: message }], isError: true };
+  return { content: [{ type: "text" as const, text: toolErrorMessage(error) }], isError: true };
 }
 
 /** Shared by every write tool (#245). Destructive tools (merges and deletes) pass `true`. */
@@ -437,7 +438,7 @@ export function createMcpServer(context: UserContext): McpServer {
       title: "Schedule workout",
       description: `Plan a future session from a routine. "date" is YYYY-MM-DD (that calendar day, stored as 12:00 UTC so it shows on the right day for timezones UTC-11 to UTC+11) or an ISO date-time with offset for a specific time.${PREVIEW_HINT}`,
       inputSchema: {
-        routineId: z.string(),
+        routineId: z.string().describe("Routine id, or its exact name"),
         date: scheduleDateSchema,
         notes: z.string().optional(),
         dry_run: dryRunParam(false),
@@ -468,7 +469,10 @@ export function createMcpServer(context: UserContext): McpServer {
             `How long it lasted (default ${DEFAULT_DURATION_MINUTES}). Must end in the past.`,
           ),
         name: z.string().optional().describe("Defaults to the routine's name, if one is given"),
-        routineId: z.string().optional().describe("The routine this workout followed, if any"),
+        routineId: z
+          .string()
+          .optional()
+          .describe("The routine this workout followed, if any (id or exact name)"),
         notes: z.string().optional(),
         bodyweight: z.number().positive().optional(),
         gym: z
@@ -517,8 +521,8 @@ export function createMcpServer(context: UserContext): McpServer {
         id: z.string().optional().describe("Omit to create a new exercise"),
         name: z.string().optional(),
         aliases: z.array(z.string()).optional(),
-        primaryMuscles: z.array(z.string()).optional(),
-        secondaryMuscles: z.array(z.string()).optional(),
+        primaryMuscles: z.array(z.enum(muscleEnum.enumValues)).optional(),
+        secondaryMuscles: z.array(z.enum(muscleEnum.enumValues)).optional(),
         equipment: z.string().optional(),
         mechanic: z.enum(["compound", "isolation"]).optional(),
         force: z.enum(["push", "pull", "static"]).optional(),
