@@ -204,7 +204,10 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
     }
 
     await mutate("routines", entity);
-    router.push(`/routines/${entity.id}`);
+    // A new routine has no exercises yet, so it opens straight in the
+    // editor (issue #565). Replace, so Back skips the spent New form.
+    if (mode === "new") router.replace(`/routines/${entity.id}?edit=1`);
+    else router.push(`/routines/${entity.id}`);
   }
 
   if (mode === "edit" && existing === undefined) {

@@ -53,7 +53,16 @@ import { useCallback, useMemo, useState } from "react";
 import { RoutineExerciseRow as RoutineExerciseRowItem } from "./routine-exercise-row";
 import { RoutineIcon } from "./routine-icon";
 
-export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
+export function RoutineDetail({
+  id,
+  userId,
+  startEditing = false,
+}: {
+  id: string;
+  userId: string;
+  /** Open in the editor, for a routine that was just created (issue #565). */
+  startEditing?: boolean;
+}) {
   const router = useRouter();
   const [pickerOpen, setPickerOpen] = useState(false);
   // The row whose ⋯ Replace Exercise opened the picker (issue #271).
@@ -62,7 +71,8 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
   const [supersetFromId, setSupersetFromId] = useState<string | null>(null);
   // Issue #326: the page opens as a read-only preview with a Start button;
   // the pencil switches it to the editor (targets, order, add, remove).
-  const [editing, setEditing] = useState(false);
+  // A just-created routine starts in the editor instead (issue #565).
+  const [editing, setEditing] = useState(startEditing);
   const [starting, setStarting] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
@@ -320,7 +330,11 @@ export function RoutineDetail({ id, userId }: { id: string; userId: string }) {
         {editing ? (
           <button
             type="button"
-            onClick={() => setEditing(false)}
+            onClick={() => {
+              setEditing(false);
+              // Drop ?edit=1 so a reload opens the preview, not the editor.
+              if (startEditing) router.replace(`/routines/${id}`, { scroll: false });
+            }}
             className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
           >
             Done
