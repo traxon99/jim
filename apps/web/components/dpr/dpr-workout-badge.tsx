@@ -50,7 +50,7 @@ export function DprWorkoutBadge({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={`PRP details for ${routineName}: ${summary}`}
-        className="flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-accent px-2 py-0.5 text-xs font-medium"
+        className="flex min-h-11 w-fit shrink-0 items-center gap-1.5 rounded-full border border-accent px-2 py-0.5 text-xs font-medium"
       >
         <span className="font-semibold">PRP</span>
         <CallMarkCounts counts={dprCallCounts(calls)} />

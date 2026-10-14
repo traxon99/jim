@@ -320,7 +320,7 @@ export function MuscleVolume() {
                     role="tab"
                     aria-selected={metric === option.value}
                     onClick={() => setMetric(option.value)}
-                    className={`min-h-9 rounded-md text-sm font-medium ${
+                    className={`min-h-11 rounded-md text-sm font-medium ${
                       metric === option.value
                         ? "bg-white shadow-sm dark:bg-zinc-800"
                         : "text-zinc-500 dark:text-zinc-500"
@@ -343,7 +343,7 @@ export function MuscleVolume() {
                       role="tab"
                       aria-selected={goal === option.value}
                       onClick={() => chooseGoal(option.value)}
-                      className={`min-h-9 rounded-md text-sm font-medium ${
+                      className={`min-h-11 rounded-md text-sm font-medium ${
                         goal === option.value
                           ? "bg-white shadow-sm dark:bg-zinc-800"
                           : "text-zinc-500 dark:text-zinc-500"

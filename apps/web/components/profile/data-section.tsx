@@ -258,7 +258,7 @@ export function DataSection({ userId }: { userId: string }) {
                         <button
                           type="button"
                           onClick={() => setRemapping(exercise.name)}
-                          className="min-h-8 px-1 text-xs font-medium underline underline-offset-4"
+                          className="min-h-11 px-1 text-xs font-medium underline underline-offset-4"
                         >
                           Change
                         </button>
@@ -268,7 +268,7 @@ export function DataSection({ userId }: { userId: string }) {
                             onClick={() =>
                               setMapping((current) => ({ ...current, [exercise.name]: null }))
                             }
-                            className="min-h-8 px-1 text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-500"
+                            className="min-h-11 px-1 text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-500"
                           >
                             Make custom
                           </button>
