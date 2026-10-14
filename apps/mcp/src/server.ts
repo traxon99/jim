@@ -27,7 +27,7 @@ import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
 import { mergeExercises } from "./tools/merge-exercises.js";
 import { createProgram, deleteProgram, listPrograms, updateProgram } from "./tools/programs.js";
-import { scheduleWorkout } from "./tools/schedule-workout.js";
+import { scheduleDateSchema, scheduleWorkout } from "./tools/schedule-workout.js";
 import { cancelScheduledWorkout, listScheduledWorkouts } from "./tools/scheduled-workouts.js";
 import { searchExercisesTool } from "./tools/search-exercises.js";
 import { getSettings, updateSettings } from "./tools/settings.js";
@@ -132,8 +132,12 @@ export function createMcpServer(context: UserContext): McpServer {
       description:
         "Finished workout sessions with summary stats (volume, duration, PR count) and the gym each was at.",
       inputSchema: {
-        from: z.string().datetime().optional().describe("ISO date/time lower bound"),
-        to: z.string().datetime().optional().describe("ISO date/time upper bound"),
+        from: z
+          .string()
+          .datetime({ offset: true })
+          .optional()
+          .describe("ISO date/time lower bound"),
+        to: z.string().datetime({ offset: true }).optional().describe("ISO date/time upper bound"),
         limit: z.number().int().positive().max(100).optional(),
       },
     },
@@ -171,8 +175,8 @@ export function createMcpServer(context: UserContext): McpServer {
         "Every set logged for one exercise over time (with rest taken vs target), plus its estimated-1RM series.",
       inputSchema: {
         exercise: z.string().describe("Exercise name or id"),
-        from: z.string().datetime().optional(),
-        to: z.string().datetime().optional(),
+        from: z.string().datetime({ offset: true }).optional(),
+        to: z.string().datetime({ offset: true }).optional(),
       },
     },
     async (input) => {
@@ -292,8 +296,8 @@ export function createMcpServer(context: UserContext): McpServer {
         "Training volume grouped by muscle, exercise, or week, over a date range. Counts working sets only (warm-up sets excluded). By muscle, each week also has working sets per muscle (a secondary muscle counts half a set) and whether each muscle is under, within or over the weekly set range for `goal` (strength 5–10 sets, hypertrophy 10–20; default hypertrophy).",
       inputSchema: {
         groupBy: z.enum(["muscle", "exercise", "week"]),
-        from: z.string().datetime(),
-        to: z.string().datetime(),
+        from: z.string().datetime({ offset: true }),
+        to: z.string().datetime({ offset: true }),
         goal: z.enum(["strength", "hypertrophy"]).optional(),
       },
     },
@@ -431,10 +435,10 @@ export function createMcpServer(context: UserContext): McpServer {
     "schedule_workout",
     {
       title: "Schedule workout",
-      description: `Plan a future session from a routine, for a given date.${PREVIEW_HINT}`,
+      description: `Plan a future session from a routine. "date" is YYYY-MM-DD (that calendar day, stored as 12:00 UTC so it shows on the right day for timezones UTC-11 to UTC+11) or an ISO date-time with offset for a specific time.${PREVIEW_HINT}`,
       inputSchema: {
         routineId: z.string(),
-        date: z.string().datetime(),
+        date: scheduleDateSchema,
         notes: z.string().optional(),
         dry_run: dryRunParam(false),
       },
