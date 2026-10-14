@@ -1,4 +1,5 @@
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import type { SyncTable } from "@jim/core";
 import {
   type DbOrTx,
   bodyMeasurements,
@@ -20,25 +21,26 @@ import { gt } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
 
-// `exercises` and `scheduledWorkouts` are pull-only (the read-only seed
-// catalog, and rows the MCP server writes — see @jim/core's SYNC_TABLES,
-// which push uses and deliberately excludes both).
-const PULL_TABLES = [
-  ["routines", routines, routines.serverSeq],
-  ["routineExercises", routineExercises, routineExercises.serverSeq],
-  ["sessions", sessions, sessions.serverSeq],
-  ["sessionExercises", sessionExercises, sessionExercises.serverSeq],
-  ["sets", sets, sets.serverSeq],
-  ["personalRecords", personalRecords, personalRecords.serverSeq],
-  ["bodyMeasurements", bodyMeasurements, bodyMeasurements.serverSeq],
-  ["exercises", exercises, exercises.serverSeq],
-  ["programs", programs, programs.serverSeq],
-  ["programRoutines", programRoutines, programRoutines.serverSeq],
-  ["dprBlocks", dprBlocks, dprBlocks.serverSeq],
-  ["dprBlockLifts", dprBlockLifts, dprBlockLifts.serverSeq],
-  ["gyms", gyms, gyms.serverSeq],
-  ["scheduledWorkouts", scheduledWorkouts, scheduledWorkouts.serverSeq],
-] as const;
+// Every table push accepts (@jim/core's SYNC_TABLES), plus
+// `scheduledWorkouts`, which only the MCP server writes. Keyed by table
+// name, so a table added to SYNC_TABLES without one here fails typecheck
+// (issue #554).
+const PULL_TABLES: Record<SyncTable | "scheduledWorkouts", PgTable & { serverSeq: PgColumn }> = {
+  routines: routines,
+  routineExercises: routineExercises,
+  sessions: sessions,
+  sessionExercises: sessionExercises,
+  sets: sets,
+  personalRecords: personalRecords,
+  bodyMeasurements: bodyMeasurements,
+  exercises: exercises,
+  programs: programs,
+  programRoutines: programRoutines,
+  dprBlocks: dprBlocks,
+  dprBlockLifts: dprBlockLifts,
+  gyms: gyms,
+  scheduledWorkouts: scheduledWorkouts,
+};
 
 /**
  * Rows per table per pull (issue #489). A first pull after sign-in starts at
@@ -89,8 +91,8 @@ export async function GET(request: Request) {
         // nothing above it is returned yet, so the cursor never skips a row.
         let cutoff = Number.POSITIVE_INFINITY;
 
-        for (const [name, table, serverSeq] of PULL_TABLES) {
-          const rows = await pullTable(tx, table, serverSeq, since, limit);
+        for (const [name, table] of Object.entries(PULL_TABLES)) {
+          const rows = await pullTable(tx, table, table.serverSeq, since, limit);
           changes[name] = rows;
           const last = rows.at(-1);
           if (rows.length === limit && last) cutoff = Math.min(cutoff, seqOf(last));
