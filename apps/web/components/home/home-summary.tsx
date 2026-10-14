@@ -1,8 +1,8 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
-import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
+import { useSessionList } from "@/lib/history/use-session-list";
 import {
   STAT_RANGES,
   type StatRange,
@@ -41,16 +41,7 @@ export function HomeSummary({ username }: { username: string | null }) {
   const achievements = useAchievements();
   const [range, setRange] = useState<StatRange>(7);
 
-  const entries = useLiveQuery(async () => {
-    const [sessions, sessionExercises, exercises, sets, personalRecords] = await Promise.all([
-      db.sessions.toArray(),
-      db.sessionExercises.toArray(),
-      db.exercises.toArray(),
-      db.sets.toArray(),
-      db.personalRecords.toArray(),
-    ]);
-    return buildSessionListEntries(sessions, sessionExercises, exercises, sets, personalRecords);
-  }, []);
+  const entries = useSessionList()?.entries;
 
   // Not a bare new Date(): the app can resume days later with this still mounted (#523).
   const today = useToday();

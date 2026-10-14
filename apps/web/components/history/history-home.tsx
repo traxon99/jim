@@ -5,7 +5,7 @@ import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { buildSessionHighlights, formatHighlightSet } from "@/lib/history/session-highlights";
-import { buildSessionListEntries } from "@/lib/history/session-list-entries";
+import { useSessionList } from "@/lib/history/use-session-list";
 import { formatMinutes } from "@/lib/home/stats";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
@@ -40,24 +40,13 @@ export function HistoryHome() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [shown, setShown] = useState(PAGE_SIZE);
 
-  const rawSessions = useLiveQuery(() => db.sessions.toArray(), []);
-  const rawSessionExercises = useLiveQuery(() => db.sessionExercises.toArray(), []);
-  const rawExercises = useLiveQuery(() => db.exercises.toArray(), []);
-  const rawSets = useLiveQuery(() => db.sets.toArray(), []);
-  const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
+  const list = useSessionList();
+  const rawSessions = list?.sessions;
+  const rawSessionExercises = list?.sessionExercises;
+  const rawExercises = list?.exercises;
+  const rawSets = list?.sets;
   const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
-
-  const entries = useMemo(
-    () =>
-      buildSessionListEntries(
-        rawSessions ?? [],
-        rawSessionExercises ?? [],
-        rawExercises ?? [],
-        rawSets ?? [],
-        rawPersonalRecords ?? [],
-      ),
-    [rawSessions, rawSessionExercises, rawExercises, rawSets, rawPersonalRecords],
-  );
+  const entries = useMemo(() => list?.entries ?? [], [list]);
 
   // Session id → the routine it was started from, so the list can show that
   // routine's icon next to the session name (issue #154).
@@ -86,12 +75,7 @@ export function HistoryHome() {
   }, [entries, selectedDate]);
   const visibleSessions = selectedDate ? listedSessions : listedSessions.slice(0, shown);
 
-  const loading =
-    rawSessions === undefined ||
-    rawSessionExercises === undefined ||
-    rawExercises === undefined ||
-    rawSets === undefined ||
-    rawPersonalRecords === undefined;
+  const loading = list === undefined;
 
   if (loading) {
     return (

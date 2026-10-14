@@ -55,6 +55,20 @@ function toolError(error: unknown) {
   return { content: [{ type: "text" as const, text: toolErrorMessage(error) }], isError: true };
 }
 
+/**
+ * Wraps a tool's work: its result goes back as JSON, and anything it throws
+ * comes back as a tool error rather than crashing the request (#556).
+ */
+function handle<A extends unknown[]>(run: (...args: A) => Promise<unknown>) {
+  return async (...args: A) => {
+    try {
+      return json(await run(...args));
+    } catch (error) {
+      return toolError(error);
+    }
+  };
+}
+
 /** Shared by every write tool (#245). Destructive tools (merges and deletes) pass `true`. */
 function dryRunParam(defaultValue: boolean) {
   return z
@@ -150,13 +164,7 @@ export function createMcpServer(context: UserContext): McpServer {
         limit: z.number().int().positive().max(100).optional(),
       },
     },
-    async (input) => {
-      try {
-        return json(await listWorkouts(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => listWorkouts(context, input)),
   );
 
   server.registerTool(
@@ -167,13 +175,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Full detail for one workout session: every exercise, every set (with rest taken vs target), PRs achieved, the session's intensity pick and the gym it was at.",
       inputSchema: { sessionId: z.string().describe("Session id") },
     },
-    async ({ sessionId }) => {
-      try {
-        return json(await getWorkout(context, sessionId));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ sessionId }) => getWorkout(context, sessionId)),
   );
 
   server.registerTool(
@@ -188,13 +190,7 @@ export function createMcpServer(context: UserContext): McpServer {
         to: z.string().datetime({ offset: true }).optional(),
       },
     },
-    async (input) => {
-      try {
-        return json(await exerciseHistory(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => exerciseHistory(context, input)),
   );
 
   server.registerTool(
@@ -207,13 +203,7 @@ export function createMcpServer(context: UserContext): McpServer {
         kind: z.enum(prKindEnum.enumValues).optional(),
       },
     },
-    async (input) => {
-      try {
-        return json(await getPrs(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => getPrs(context, input)),
   );
 
   server.registerTool(
@@ -232,13 +222,7 @@ export function createMcpServer(context: UserContext): McpServer {
         to: z.string().datetime({ offset: true }).optional().describe("ISO date/time upper bound"),
       },
     },
-    async (input) => {
-      try {
-        return json(await getBodyMeasurements(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => getBodyMeasurements(context, input)),
   );
 
   server.registerTool(
@@ -252,13 +236,7 @@ export function createMcpServer(context: UserContext): McpServer {
         query: z.string().optional().describe("Only routines whose name contains this text"),
       },
     },
-    async (input) => {
-      try {
-        return json(await listRoutines(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => listRoutines(context, input)),
   );
 
   server.registerTool(
@@ -271,13 +249,7 @@ export function createMcpServer(context: UserContext): McpServer {
         routine: z.string().describe("Routine id, or its exact name (case-insensitive)"),
       },
     },
-    async (input) => {
-      try {
-        return json(await getRoutine(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => getRoutine(context, input)),
   );
 
   server.registerTool(
@@ -288,13 +260,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Read-only. Whether PR Progression (PRP, formerly DPR) is on, the current training block, and for each focused lift: its rep ranges, PRP's next call (increase / hold / deload / reenter / insufficient) with weight and reason, baseline / current / goal e1RM with on-track status, and the last 5 decisions.",
       inputSchema: {},
     },
-    async () => {
-      try {
-        return json(await dprStatus(context));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(() => dprStatus(context)),
   );
 
   server.registerTool(
@@ -310,13 +276,7 @@ export function createMcpServer(context: UserContext): McpServer {
         goal: z.enum(["strength", "hypertrophy"]).optional(),
       },
     },
-    async (input) => {
-      try {
-        return json(await volumeReport(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => volumeReport(context, input)),
   );
 
   server.registerTool(
@@ -341,13 +301,7 @@ export function createMcpServer(context: UserContext): McpServer {
         goal: z.enum(["strength", "hypertrophy"]).optional(),
       },
     },
-    async (input) => {
-      try {
-        return json(await weeklySummary(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => weeklySummary(context, input)),
   );
 
   server.registerTool(
@@ -362,13 +316,7 @@ export function createMcpServer(context: UserContext): McpServer {
         equipment: z.string().optional(),
       },
     },
-    async (input) => {
-      try {
-        return json(await searchExercisesTool(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => searchExercisesTool(context, input)),
   );
 
   server.registerTool(
@@ -394,13 +342,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await createRoutine(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => createRoutine(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -431,13 +373,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await updateRoutine(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => updateRoutine(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -452,13 +388,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await scheduleWorkout(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => scheduleWorkout(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -511,13 +441,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await logPastWorkout(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => logPastWorkout(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -554,13 +478,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await upsertExercise(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => upsertExercise(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -571,13 +489,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Repoints every historical reference from mergeId to keepId and archives mergeId, without orphaning any set. Hard to undo, so dry_run defaults to true: the first call only reports how many session exercises, routine exercises and PRs would be repointed. Show that to the user and call again with dry_run: false to actually merge.",
       inputSchema: { keepId: z.string(), mergeId: z.string(), dry_run: dryRunParam(true) },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await mergeExercises(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => mergeExercises(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -590,13 +502,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(true),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await deleteRoutine(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => deleteRoutine(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -607,13 +513,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Read-only. The built-in warm-up templates the phone offers (full body, legs, upper body, full-body stretch): key, name, timer minutes and exercises. Pass a key to create_warmup to add one.",
       inputSchema: {},
     },
-    async () => {
-      try {
-        return json(await listWarmupTemplates(context));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(() => listWarmupTemplates(context)),
   );
 
   server.registerTool(
@@ -650,13 +550,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await createWarmup(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => createWarmup(context, { ...input, dryRun: dry_run })),
   );
 
   const programEntrySchema = z.object({
@@ -682,13 +576,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Read-only. Every program: a rotating sequence (next = the one after the last completed) or a weekly schedule (each routine pinned to a weekday). Shows which one is active, its entries in order (rest days included), and week N of M for one with a planned length.",
       inputSchema: {},
     },
-    async () => {
-      try {
-        return json(await listPrograms(context));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(() => listPrograms(context)),
   );
 
   server.registerTool(
@@ -706,13 +594,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await createProgram(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => createProgram(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -731,13 +613,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await updateProgram(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => updateProgram(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -751,13 +627,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(true),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await deleteProgram(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => deleteProgram(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -768,13 +638,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Read-only. Workouts planned with schedule_workout, soonest first. Upcoming only unless includePast.",
       inputSchema: { includePast: z.boolean().optional() },
     },
-    async (input) => {
-      try {
-        return json(await listScheduledWorkouts(context, input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => listScheduledWorkouts(context, input)),
   );
 
   server.registerTool(
@@ -785,13 +649,9 @@ export function createMcpServer(context: UserContext): McpServer {
         "Remove a planned workout (id from list_scheduled_workouts). dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
       inputSchema: { id: z.string(), dry_run: dryRunParam(true) },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await cancelScheduledWorkout(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) =>
+      cancelScheduledWorkout(context, { ...input, dryRun: dry_run }),
+    ),
   );
 
   server.registerTool(
@@ -805,13 +665,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(true),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await deleteWorkout(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => deleteWorkout(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -834,13 +688,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await logBodyMeasurement(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => logBodyMeasurement(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -851,13 +699,9 @@ export function createMcpServer(context: UserContext): McpServer {
         "Delete one measurement entry (its id from get_body_measurements). dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
       inputSchema: { id: z.string(), dry_run: dryRunParam(true) },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await deleteBodyMeasurement(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) =>
+      deleteBodyMeasurement(context, { ...input, dryRun: dry_run }),
+    ),
   );
 
   server.registerTool(
@@ -868,13 +712,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Read-only. The gyms the user trains at, home gym first, with each one's address, notes and, when the address is matched to a real place, its coordinates (onMap).",
       inputSchema: {},
     },
-    async () => {
-      try {
-        return json(await listGyms(context));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(() => listGyms(context)),
   );
 
   server.registerTool(
@@ -887,13 +725,7 @@ export function createMcpServer(context: UserContext): McpServer {
         query: z.string().describe("A gym name and/or address, at least 3 characters"),
       },
     },
-    async (input) => {
-      try {
-        return json(await findPlaces(input));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle((input) => findPlaces(input)),
   );
 
   server.registerTool(
@@ -918,13 +750,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await createGym(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => createGym(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -951,13 +777,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await updateGym(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => updateGym(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -971,13 +791,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(true),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await deleteGym(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => deleteGym(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
@@ -988,13 +802,7 @@ export function createMcpServer(context: UserContext): McpServer {
         "Read-only. The user's settings: units, bar weight, plates, default rest, week start, appearance, profile (sex, birthdate, height, bodyweight) and PR Progression (PRP, stored as dpr*) options.",
       inputSchema: {},
     },
-    async () => {
-      try {
-        return json(await getSettings(context));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(() => getSettings(context)),
   );
 
   server.registerTool(
@@ -1036,13 +844,7 @@ export function createMcpServer(context: UserContext): McpServer {
         dry_run: dryRunParam(false),
       },
     },
-    async ({ dry_run, ...input }) => {
-      try {
-        return json(await updateSettings(context, { ...input, dryRun: dry_run }));
-      } catch (error) {
-        return toolError(error);
-      }
-    },
+    handle(({ dry_run, ...input }) => updateSettings(context, { ...input, dryRun: dry_run })),
   );
 
   return server;
