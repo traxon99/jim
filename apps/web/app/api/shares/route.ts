@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { OwnShareLink } from "@/lib/sharing/types";
@@ -13,10 +14,6 @@ import { NextResponse } from "next/server";
 
 /** Well past any real routine or program, but keeps a bad client from storing megabytes. */
 const MAX_BODY_BYTES = 256 * 1024;
-
-function unauthenticated() {
-  return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-}
 
 /** The signed-in user's share links, newest first. */
 export async function GET() {

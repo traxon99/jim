@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { createClient } from "@/lib/supabase/server";
 import { cleanPlaceQuery, searchPlaces } from "@jim/core";
 import { NextResponse } from "next/server";
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims.sub) {
-    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    return unauthenticated();
   }
 
   const query = cleanPlaceQuery(new URL(request.url).searchParams.get("q") ?? "");

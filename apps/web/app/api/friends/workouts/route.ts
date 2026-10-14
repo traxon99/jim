@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { FriendWorkout, FriendWorkoutExercise, WorkoutReaction } from "@/lib/friends/types";
 import { sql } from "drizzle-orm";
@@ -50,7 +51,7 @@ export async function GET() {
     return NextResponse.json({ workouts });
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return unauthenticated();
     }
     throw error;
   }

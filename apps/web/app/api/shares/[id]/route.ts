@@ -1,3 +1,4 @@
+import { isUuid, unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { OpenedShareLink } from "@/lib/sharing/types";
 import { parseShareSnapshot } from "@jim/core";
@@ -8,13 +9,7 @@ import { NextResponse } from "next/server";
 // One share link by its id (issue #254): opened by anyone signed in through
 // migration 0036's SECURITY DEFINER function, revoked by its sharer under RLS.
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 const GONE = "This link doesn't work anymore. It may have been revoked.";
-
-function unauthenticated() {
-  return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-}
 
 interface LinkRow extends Record<string, unknown> {
   id: string;
@@ -29,7 +24,7 @@ interface LinkRow extends Record<string, unknown> {
 /** The link's snapshot and who shared it, or 404 once it's revoked. */
 export async function GET(_request: Request, context: RouteContext<"/api/shares/[id]">) {
   const { id } = await context.params;
-  if (!UUID_PATTERN.test(id)) return NextResponse.json({ error: GONE }, { status: 404 });
+  if (!isUuid(id)) return NextResponse.json({ error: GONE }, { status: 404 });
 
   try {
     const row = await withUserDb(async (tx) => {
@@ -57,7 +52,7 @@ export async function GET(_request: Request, context: RouteContext<"/api/shares/
 /** Revokes one of the signed-in user's links, so it stops working for everyone. */
 export async function DELETE(_request: Request, context: RouteContext<"/api/shares/[id]">) {
   const { id } = await context.params;
-  if (!UUID_PATTERN.test(id)) {
+  if (!isUuid(id)) {
     return NextResponse.json({ error: "No such link" }, { status: 404 });
   }
 

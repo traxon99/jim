@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import { type ApplyResult, applyMutation } from "@/lib/sync/apply-mutation";
 import { type Mutation, SYNC_TABLES } from "@jim/core";
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ results });
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return unauthenticated();
     }
     throw error;
   }

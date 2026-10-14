@@ -1,3 +1,4 @@
+import { isUuid, readJsonObject, unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { OwnPost } from "@/lib/friends/types";
@@ -10,21 +11,6 @@ import { NextResponse } from "next/server";
 // readable by their author only); created and deleted through migration
 // 0031's SECURITY DEFINER functions, which check a linked workout is theirs.
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function unauthenticated() {
-  return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-}
-
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
-  try {
-    const body: unknown = await request.json();
-    return typeof body === "object" && body !== null ? (body as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-}
-
 function optionalText(value: unknown): string | null | undefined {
   if (value === undefined || value === null) return null;
   return typeof value === "string" ? value : undefined;
@@ -34,7 +20,7 @@ function optionalText(value: unknown): string | null | undefined {
 function parseDraft(body: Record<string, unknown> | null): PostDraft | null {
   if (!body || !isPostKind(body.kind) || typeof body.title !== "string") return null;
   const sessionId = body.sessionId ?? null;
-  if (sessionId !== null && (typeof sessionId !== "string" || !UUID_PATTERN.test(sessionId))) {
+  if (sessionId !== null && (typeof sessionId !== "string" || !isUuid(sessionId))) {
     return null;
   }
   const detail = optionalText(body.detail);
@@ -73,7 +59,7 @@ export async function GET() {
 
 /** Shares something with friends: `{ kind, sessionId?, title, detail?, caption? }`. */
 export async function POST(request: Request) {
-  const draft = parseDraft(await readJson(request));
+  const draft = parseDraft(await readJsonObject(request));
   if (!draft) return NextResponse.json({ error: "Invalid post" }, { status: 400 });
   const invalid = postDraftError(draft);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
@@ -102,8 +88,8 @@ export async function POST(request: Request) {
 
 /** Deletes one of the signed-in user's posts: `{ postId }`. */
 export async function DELETE(request: Request) {
-  const postId = (await readJson(request))?.postId;
-  if (typeof postId !== "string" || !UUID_PATTERN.test(postId)) {
+  const postId = (await readJsonObject(request))?.postId;
+  if (typeof postId !== "string" || !isUuid(postId)) {
     return NextResponse.json({ error: "Invalid post id" }, { status: 400 });
   }
 

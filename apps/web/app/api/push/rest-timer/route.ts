@@ -1,4 +1,5 @@
-import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { readJsonBody, unauthenticatedOrThrow } from "@/lib/api/route-helpers";
+import { withUserDb } from "@/lib/db/user-scoped";
 import {
   type RestTimerFirePayload,
   parseRestTimerStart,
@@ -9,21 +10,6 @@ import { pushSubscriptions, restTimerPushes } from "@jim/db";
 import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-
-async function readJson(request: Request): Promise<{ ok: true; body: unknown } | { ok: false }> {
-  try {
-    return { ok: true, body: await request.json() };
-  } catch {
-    return { ok: false };
-  }
-}
-
-function unauthenticatedOrThrow(error: unknown) {
-  if (error instanceof UnauthenticatedError) {
-    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  }
-  throw error;
-}
 
 /**
  * Schedules the "Rest complete" push for the rest period the signed-in user
@@ -40,7 +26,7 @@ function unauthenticatedOrThrow(error: unknown) {
  * own page-side notification.
  */
 export async function POST(request: Request) {
-  const parsed = await readJson(request);
+  const parsed = await readJsonBody(request);
   if (!parsed.ok) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   const start = parseRestTimerStart(parsed.body, new Date());
   if (!start) return NextResponse.json({ error: "Invalid rest timer" }, { status: 400 });

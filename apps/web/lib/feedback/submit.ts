@@ -1,3 +1,4 @@
+import { OFFLINE_MESSAGE } from "@/lib/api/client";
 export type FeedbackType = "bug" | "feature" | "question";
 
 export async function submitFeedback(
@@ -18,6 +19,6 @@ export async function submitFeedback(
     const payload = (await response.json()) as { url?: string };
     return { ok: true, url: payload.url };
   } catch {
-    return { ok: false, error: "No connection — try again once you're back online" };
+    return { ok: false, error: OFFLINE_MESSAGE };
   }
 }

@@ -1,3 +1,4 @@
+import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import { users } from "@jim/db";
@@ -86,7 +87,7 @@ export async function GET() {
     return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return unauthenticated();
     }
     throw error;
   }
@@ -281,7 +282,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof UnauthenticatedError) {
-      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+      return unauthenticated();
     }
     throw error;
   }

@@ -1,3 +1,4 @@
+import { isUuid, readJsonObject, unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { FriendEntry, FriendRequestResult, FriendsPayload } from "@/lib/friends/types";
@@ -9,8 +10,6 @@ import { NextResponse } from "next/server";
 // SECURITY DEFINER functions, which act for auth.uid() alone — see the
 // comment on `friendships` in @jim/db's schema for why.
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 interface FriendRow extends Record<string, unknown> {
   user_id: string;
   username: string;
@@ -20,22 +19,9 @@ interface FriendRow extends Record<string, unknown> {
   since: Date | string;
 }
 
-function unauthenticated() {
-  return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-}
-
-async function readJson(request: Request): Promise<Record<string, unknown> | null> {
-  try {
-    const body: unknown = await request.json();
-    return typeof body === "object" && body !== null ? (body as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-}
-
 function userIdFrom(body: Record<string, unknown> | null): string | null {
   const userId = body?.userId;
-  return typeof userId === "string" && UUID_PATTERN.test(userId) ? userId : null;
+  return isUuid(userId) ? userId : null;
 }
 
 /** The signed-in user's username, friends and pending requests. */
@@ -65,7 +51,7 @@ export async function GET() {
 
 /** Sends a friend request to an exact username: `{ username }`. */
 export async function POST(request: Request) {
-  const body = await readJson(request);
+  const body = await readJsonObject(request);
   const username = typeof body?.username === "string" ? normalizeUsername(body.username) : "";
   if (username === "") {
     return NextResponse.json({ error: "Enter a username" }, { status: 400 });
@@ -88,7 +74,7 @@ export async function POST(request: Request) {
 
 /** Accepts or declines an incoming request: `{ userId, accept }`. */
 export async function PATCH(request: Request) {
-  const body = await readJson(request);
+  const body = await readJsonObject(request);
   const requesterId = userIdFrom(body);
   if (!requesterId || typeof body?.accept !== "boolean") {
     return NextResponse.json({ error: "Invalid friend request response" }, { status: 400 });
@@ -112,7 +98,7 @@ export async function PATCH(request: Request) {
 
 /** Unfriends someone, or cancels a request: `{ userId }`. */
 export async function DELETE(request: Request) {
-  const otherId = userIdFrom(await readJson(request));
+  const otherId = userIdFrom(await readJsonObject(request));
   if (!otherId) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
   }
