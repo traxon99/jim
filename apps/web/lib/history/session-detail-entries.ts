@@ -1,5 +1,11 @@
 import type { ExerciseRow, PersonalRecordRow, SessionExerciseRow, SetRow } from "@/lib/db/schema";
-import { type PrKind, exerciseDisplayName, isVisiblePrKind, resolveCurrentRows } from "@jim/core";
+import {
+  type PrKind,
+  exerciseDisplayName,
+  isVisiblePrKind,
+  isWarmupExercise,
+  resolveCurrentRows,
+} from "@jim/core";
 
 export interface SessionDetailSet {
   id: string;
@@ -21,6 +27,8 @@ export interface SessionDetailExercise {
   sessionExerciseId: string;
   exerciseId: string;
   exerciseName: string;
+  /** A warm-up exercise (jumping jacks, arm circles), not training. */
+  isWarmup: boolean;
   notes: string | null;
   sets: SessionDetailSet[];
 }
@@ -34,12 +42,15 @@ export interface SessionDetailExercise {
 export function buildSessionDetailExercises(
   sessionId: string,
   sessionExercises: readonly SessionExerciseRow[],
-  exercises: readonly Pick<ExerciseRow, "id" | "name">[],
+  exercises: readonly Pick<ExerciseRow, "id" | "name" | "category">[],
   sets: readonly SetRow[],
   personalRecords: readonly PersonalRecordRow[],
 ): SessionDetailExercise[] {
   const exerciseNames = new Map(
     exercises.map((exercise) => [exercise.id, exerciseDisplayName(exercise)]),
+  );
+  const warmupExerciseIds = new Set(
+    exercises.filter((exercise) => isWarmupExercise(exercise)).map((exercise) => exercise.id),
   );
 
   const resolvedSets = resolveCurrentRows(sets).filter((set) => !set.deletedAt);
@@ -73,6 +84,7 @@ export function buildSessionDetailExercises(
       sessionExerciseId: sessionExercise.id,
       exerciseId: sessionExercise.exerciseId,
       exerciseName: exerciseNames.get(sessionExercise.exerciseId) ?? "Unknown exercise",
+      isWarmup: warmupExerciseIds.has(sessionExercise.exerciseId),
       notes: sessionExercise.notes,
       sets: (setsBySessionExercise.get(sessionExercise.id) ?? [])
         .sort((a, b) => a.setIndex - b.setIndex)

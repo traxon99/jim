@@ -35,7 +35,8 @@ function formatSet(set: SessionDetailSet, unit: DistanceUnit): string {
 /**
  * Plain-text summary of a finished workout, for sharing outside the app
  * (issue #64) — a stats line matching the finalize screen, then one line
- * per exercise listing every set in order.
+ * per exercise listing its sets in order. Warm-ups stay out (issue #635):
+ * warm-up exercises and warm-up sets, like the stats line's counts.
  */
 export function buildWorkoutShareText({
   name,
@@ -53,11 +54,13 @@ export function buildWorkoutShareText({
 
   const distanceUnit = distanceUnitFor(units === "kg" ? "kg" : "lb");
   for (const exercise of exercises) {
-    if (exercise.sets.length === 0) continue;
+    if (exercise.isWarmup) continue;
+    const sets = exercise.sets.filter((set) => set.kind !== "warmup");
+    if (sets.length === 0) continue;
     lines.push(
       "",
       exercise.exerciseName,
-      exercise.sets.map((set) => formatSet(set, distanceUnit)).join(", "),
+      sets.map((set) => formatSet(set, distanceUnit)).join(", "),
     );
   }
 
