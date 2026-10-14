@@ -6,6 +6,7 @@ import {
   type RoutineIconColor,
   type RoutineIconShape,
 } from "../routines/icon";
+import { LB_PER_KG } from "../units";
 
 // Routine and program share links (issue #254). Sharing freezes a routine or
 // a program, with the routines and exercises it uses, into one self-contained
@@ -564,8 +565,6 @@ export function matchShareExercises(
     );
   });
 }
-
-const LB_PER_KG = 2.20462262;
 
 /**
  * A starting weight in the recipient's units. Converted weights land on a

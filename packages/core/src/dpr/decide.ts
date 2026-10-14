@@ -1,3 +1,4 @@
+import { epleyRepsToFailure, epleyWeightForReps } from "../epley";
 import { isShortRest } from "../sessions/rest-compliance";
 import { rpeAdjustedE1rm } from "./e1rm";
 import { jumpFor, roundToIncrement } from "./equipment-increments";
@@ -195,7 +196,7 @@ function median(values: readonly number[]): number {
  */
 function expectedRpe(s: Summary, e1rm: number): number {
   const total = s.topSets.reduce((sum, set) => {
-    const toFailure = 30 * (e1rm / set.weight - 1);
+    const toFailure = epleyRepsToFailure(e1rm, set.weight);
     return sum + 10 - (toFailure - set.reps);
   }, 0);
   return total / s.topSets.length;
@@ -310,7 +311,7 @@ function outperformance(
   const moreReps = top >= suggested && latest.topSets.every((set) => set.reps > repRange.high);
   if (!heavier && !moreReps) return null;
 
-  const target = summaryE1rm(latest) / (1 + (repRange.low + (10 - preset.rpeCap)) / 30);
+  const target = epleyWeightForReps(summaryE1rm(latest), repRange.low + (10 - preset.rpeCap));
   const floor = roundToIncrement(top + jumpFor(top, preset, increment), increment);
   const ceiling = roundToIncrement(top * (1 + OUTPERFORM_MAX_JUMP_PCT), increment, "down");
   const weight = Math.max(floor, Math.min(ceiling, roundToIncrement(target, increment, "down")));
