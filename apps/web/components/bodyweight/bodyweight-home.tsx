@@ -1,6 +1,15 @@
 "use client";
 
-import { UndoBar, useUndoable } from "@/components/undo-bar";
+import {
+  LogEntryForm,
+  MEASUREMENT_INPUT_CLASS,
+  MeasurementHistory,
+  RangePicker,
+  formatMeasurement,
+  formatMeasurementChange,
+  localDateInput,
+} from "@/components/bodyweight/measurement-log";
+import { useUndoable } from "@/components/undo-bar";
 import type { BodyMeasurementRow } from "@/lib/db/schema";
 
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
@@ -21,7 +30,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type WeightUnit, WorkoutCsvError } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardPaste, HeartPulse, Trash2, Upload } from "lucide-react";
+import { ClipboardPaste, HeartPulse, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 const RANGES = [
@@ -33,28 +42,8 @@ const RANGES = [
 
 type RangeKey = (typeof RANGES)[number]["key"];
 
-/** How many weigh-ins the history list shows before "Show all". */
-const HISTORY_PREVIEW = 20;
-
 const secondaryButton =
   "flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-700";
-const inputClass =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
-
-function localDateInput(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function formatWeight(value: number): string {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
-}
-
-function formatChange(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
-  if (rounded === 0) return "±0";
-  return `${rounded > 0 ? "+" : "−"}${formatWeight(Math.abs(rounded))}`;
-}
 
 function plural(count: number, word: string): string {
   return `${count.toLocaleString()} ${word}${count === 1 ? "" : "s"}`;
@@ -76,7 +65,6 @@ export function BodyweightHome({ userId }: { userId: string }) {
   const [date, setDate] = useState(() => localDateInput(new Date()));
   const [logError, setLogError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [showAll, setShowAll] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);
   const healthInput = useRef<HTMLInputElement>(null);
@@ -194,12 +182,12 @@ export function BodyweightHome({ userId }: { userId: string }) {
           {latest ? (
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-semibold tabular-nums">
-                {formatWeight(latest.value)}
+                {formatMeasurement(latest.value)}
               </span>
               <span className="text-sm text-zinc-500 dark:text-zinc-500">{units}</span>
               {first && first !== latest && (
                 <span className="ml-auto text-sm tabular-nums text-zinc-600 dark:text-zinc-400">
-                  {formatChange(latest.value - first.value)} {units} since{" "}
+                  {formatMeasurementChange(latest.value - first.value)} {units} since{" "}
                   {first.measuredAt.toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -215,69 +203,24 @@ export function BodyweightHome({ userId }: { userId: string }) {
 
           {series.length > 0 && (
             <>
-              <fieldset className="flex gap-1" aria-label="Chart range">
-                {RANGES.map((option) => (
-                  <button
-                    key={option.key}
-                    type="button"
-                    aria-pressed={range === option.key}
-                    onClick={() => setRange(option.key)}
-                    className={`flex min-h-11 flex-1 items-center justify-center rounded-lg text-sm font-medium ${
-                      range === option.key
-                        ? "bg-accent text-accent-foreground"
-                        : "text-zinc-600 dark:text-zinc-400"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </fieldset>
-              <BodyweightChart points={visible} />
+              <RangePicker ranges={RANGES} value={range} onChange={setRange} />
+              <BodyweightChart points={visible} unit={units} />
             </>
           )}
         </section>
 
-        <section className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            Log a weigh-in
-          </h2>
-          <div className="flex gap-2">
-            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
-              Weight ({units})
-              <input
-                type="text"
-                inputMode="decimal"
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") void handleLog();
-                }}
-                className={inputClass}
-              />
-            </label>
-            <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium">
-              Date
-              <input
-                type="date"
-                value={date}
-                max={localDateInput(new Date())}
-                onChange={(event) => setDate(event.target.value)}
-                className={inputClass}
-              />
-            </label>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleLog()}
-            disabled={saving || value.trim() === ""}
-            className="flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Log weight"}
-          </button>
-          {logError && (
-            <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{logError}</p>
-          )}
-        </section>
+        <LogEntryForm
+          heading="Log a weigh-in"
+          valueLabel={`Weight (${units})`}
+          value={value}
+          onValueChange={setValue}
+          date={date}
+          onDateChange={setDate}
+          saving={saving}
+          error={logError}
+          submitLabel="Log weight"
+          onSubmit={() => void handleLog()}
+        />
 
         <section className="flex flex-col gap-2">
           <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
@@ -295,7 +238,7 @@ export function BodyweightHome({ userId }: { userId: string }) {
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  className={inputClass}
+                  className={MEASUREMENT_INPUT_CLASS}
                 />
               </label>
               <div className="flex gap-2">
@@ -493,51 +436,14 @@ export function BodyweightHome({ userId }: { userId: string }) {
           )}
         </section>
 
-        {/* Kept up while an Undo is offered, so deleting the last entry can be undone. */}
-        {(history.length > 0 || undoableDelete.label) && (
-          <section className="flex flex-col gap-1">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-              History
-            </h2>
-            {undoableDelete.label && (
-              <UndoBar label={undoableDelete.label} onUndo={() => void handleUndoDelete()} />
-            )}
-            <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-              {(showAll ? history : history.slice(0, HISTORY_PREVIEW)).map((point) => (
-                <li key={point.id} className="flex items-center gap-2 py-1">
-                  <span className="flex-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    {point.measuredAt.toLocaleDateString(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                  <span className="text-sm font-medium tabular-nums">
-                    {formatWeight(point.value)} {units}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(point.id)}
-                    aria-label={`Delete the ${point.measuredAt.toLocaleDateString()} weigh-in`}
-                    className="flex h-11 w-11 items-center justify-center text-zinc-400 dark:text-zinc-600"
-                  >
-                    <Trash2 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {!showAll && history.length > HISTORY_PREVIEW && (
-              <button
-                type="button"
-                onClick={() => setShowAll(true)}
-                className="min-h-11 text-sm font-medium underline underline-offset-4"
-              >
-                Show all {history.length.toLocaleString()}
-              </button>
-            )}
-          </section>
-        )}
+        <MeasurementHistory
+          points={history}
+          formatValue={(point) => `${formatMeasurement(point.value)} ${units}`}
+          deleteLabel={(point) => `Delete the ${point.measuredAt.toLocaleDateString()} weigh-in`}
+          onDelete={(id) => void handleDelete(id)}
+          undoLabel={undoableDelete.label}
+          onUndo={() => void handleUndoDelete()}
+        />
       </div>
     </main>
   );

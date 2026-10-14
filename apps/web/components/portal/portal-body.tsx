@@ -1,6 +1,7 @@
 "use client";
 
 import { BODYWEIGHT_TREND_DAYS } from "@/components/bodyweight/bodyweight-chart";
+import { TrendChart } from "@/components/charts/trend-chart";
 import {
   type PortalBodyData,
   summarizeTrend,
@@ -11,7 +12,6 @@ import { analysisRangeStart } from "@jim/core";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";
 import { PortalMeasurements } from "./portal-measurements";
-import { PortalTrendChart } from "./trend-chart";
 import { useIsClient } from "./use-is-client";
 
 /** How many weigh-ins the table shows before "Show all". */
@@ -96,7 +96,7 @@ export function PortalBody({ data }: { data: PortalBodyData }) {
               </div>
             )}
             {isClient && (
-              <PortalTrendChart
+              <TrendChart
                 points={visible}
                 label="Bodyweight"
                 unit={units}

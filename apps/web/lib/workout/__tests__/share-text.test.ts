@@ -12,6 +12,7 @@ function set(overrides: Partial<SessionDetailSet> = {}): SessionDetailSet {
     reps: 5,
     durationSeconds: null,
     distance: null,
+    rpe: null,
     restSeconds: null,
     restTargetSeconds: null,
     prKinds: [],

@@ -6,27 +6,38 @@ import { clientXToViewBox, nearestIndexByX } from "@/lib/charts/chart-hover";
 import type { TrendPoint } from "@/lib/portal/body-data";
 import { type KeyboardEvent, type MouseEvent, useState } from "react";
 
-const WIDTH = 640;
-const HEIGHT = 200;
-const PADDING = 12;
+/** Wide for the desktop portal; compact for the phone's Profile screens. */
+const SIZES = {
+  wide: { width: 640, height: 200, padding: 12, fontSize: 11, dot: 2.5 },
+  compact: { width: 320, height: 140, padding: 10, fontSize: 9, dot: 2 },
+} as const;
 
 function formatValue(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
 
+/** "18%" with no space, "182.4 lb" with one, and no unit at all when there is none. */
+function withUnit(text: string, unit: string): string {
+  if (!unit) return text;
+  return unit === "%" ? `${text}%` : `${text} ${unit}`;
+}
+
 /**
- * A body measurement over time on desktop (issue #470): the phone's
- * `TrendChart` drawn wider, with hover and arrow-key tooltips like the e1RM
- * chart (issue #468). With `trendDays` the line is that trailing average and
- * the dots are the raw entries; without it the line joins the entries.
+ * One measurement over time (issues #377, #249, #470), on the phone and the
+ * desktop portal alike (#551). Time-proportional along x and drawn in
+ * `currentColor`, with hover, tap and arrow-key tooltips like the e1RM chart
+ * (issue #468). With `trendDays` the line is that trailing average and the
+ * dots are the raw entries; without it the line joins the entries, which
+ * suits measurements taken weeks apart. A single entry draws as one dot.
  */
-export function PortalTrendChart({
+export function TrendChart({
   points,
   label,
   unit,
   trendDays = null,
   emptyText,
   format = formatValue,
+  size = "wide",
 }: {
   points: readonly TrendPoint[];
   label: string;
@@ -35,7 +46,9 @@ export function PortalTrendChart({
   emptyText: string;
   /** How a value reads, e.g. "25:07" for a time; numbers by default. */
   format?: (value: number) => string;
+  size?: keyof typeof SIZES;
 }) {
+  const { width: WIDTH, height: HEIGHT, padding: PADDING, fontSize, dot } = SIZES[size];
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   if (points.length === 0) {
@@ -81,7 +94,7 @@ export function PortalTrendChart({
     const average = trendDays
       ? `, ${trendDays}-day average ${format(trend[index] ?? point.value)}`
       : "";
-    return `${formatTooltipDate(point.measuredAt)}: ${format(point.value)} ${unit}${average}`;
+    return `${formatTooltipDate(point.measuredAt)}: ${withUnit(format(point.value), unit)}${average}`;
   }
 
   const path = points
@@ -99,7 +112,7 @@ export function PortalTrendChart({
         className="relative touch-pan-y"
         role="slider"
         tabIndex={0}
-        aria-label={`${label} over time, ranging from ${format(minValue)} to ${format(maxValue)} ${unit}`}
+        aria-label={`${label} over time, ranging from ${format(minValue)} to ${withUnit(format(maxValue), unit)}`}
         aria-valuemin={0}
         aria-valuemax={last}
         aria-valuenow={activeIndex ?? last}
@@ -124,8 +137,8 @@ export function PortalTrendChart({
                 />
                 <text
                   x={PADDING}
-                  y={index === 0 ? y(value) + 11 : y(value) - 4}
-                  fontSize={11}
+                  y={index === 0 ? y(value) + fontSize : y(value) - 4}
+                  fontSize={fontSize}
                   fill="currentColor"
                   opacity={0.55}
                 >
@@ -139,7 +152,7 @@ export function PortalTrendChart({
               key={point.id}
               cx={x(point)}
               cy={y(point.value)}
-              r={trendDays ? 2.5 : 3.5}
+              r={trendDays ? dot : dot + 1}
               fill="currentColor"
               opacity={trendDays ? 0.35 : 1}
             />
@@ -178,9 +191,7 @@ export function PortalTrendChart({
         {active && activeIndex != null && (
           <ChartTooltip xFraction={x(active) / WIDTH} yFraction={y(active.value) / HEIGHT}>
             <span className="font-semibold">{formatTooltipDate(active.measuredAt)}</span>
-            <span className="tabular-nums">
-              {format(active.value)} {unit}
-            </span>
+            <span className="tabular-nums">{withUnit(format(active.value), unit)}</span>
             {trendDays && (
               <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
                 {trendDays}-day avg {format(trend[activeIndex] ?? active.value)}

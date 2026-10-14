@@ -1,6 +1,15 @@
 "use client";
 
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
+import {
+  NewBadge,
+  PR_KIND_LABELS,
+  PR_SORT_OPTIONS,
+  PlateMedal,
+  formatPrValue,
+  nextTierHint,
+  tierBadgeLabel,
+} from "@/components/history/pr-badges";
 import { PrSparkline } from "@/components/history/pr-sparkline";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
@@ -33,19 +42,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
-const PR_KIND_LABELS: Record<PrKind, string> = {
-  "1rm": "Estimated 1RM",
-  weight: "Heaviest weight",
-  volume: "Best single-set volume",
-  reps_at_weight: "Most reps at a weight",
-};
-
-const SORT_OPTIONS: { value: PersonalRecordSortKey; label: string }[] = [
-  { value: "recent", label: "Most recent" },
-  { value: "heaviest", label: "Heaviest" },
-  { value: "name", label: "Alphabetical" },
-];
-
 /** Cards rendered before "Show more", so hundreds of PRs stay quick to open. */
 const PAGE_SIZE = 25;
 
@@ -54,53 +50,6 @@ const RECENT_LIMIT = 5;
 
 const SELECT_CLASS =
   "flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
-
-function formatValue(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-function NewBadge() {
-  return (
-    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-      <Sparkles className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
-      New
-    </span>
-  );
-}
-
-function nextTierHint(standard: {
-  tier: StrengthStandardTier | null;
-  thresholds: Record<StrengthStandardTier, number>;
-}): string {
-  const upcoming = nextTier(standard.tier);
-  if (!upcoming) return "Elite — the top published standard";
-  return `${STRENGTH_TIER_LABELS[upcoming]} standard: ${standard.thresholds[upcoming]}`;
-}
-
-/** Every PR eligible for classification gets a badge — "Below Beginner" included, rather than none at all. */
-function tierBadgeLabel(tier: StrengthStandardTier | null): string {
-  return tier ? STRENGTH_TIER_LABELS[tier] : "Below Beginner";
-}
-
-/** Bronze → silver → gold → platinum for 1–4+ plates a side (issue #237). */
-const PLATE_MEDAL_CLASSES = [
-  "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
-  "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
-  "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
-] as const;
-
-function PlateMedal({ plates }: { plates: number }) {
-  const tone = PLATE_MEDAL_CLASSES[Math.min(plates, PLATE_MEDAL_CLASSES.length) - 1];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}
-    >
-      <Medal className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
-      {plates} {plates === 1 ? "plate" : "plates"}
-    </span>
-  );
-}
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
@@ -312,7 +261,7 @@ export function PrList() {
                 }
                 className={SELECT_CLASS}
               >
-                {SORT_OPTIONS.map((option) => (
+                {PR_SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -343,7 +292,7 @@ export function PrList() {
                     </span>
                   </span>
                   <span className="flex shrink-0 flex-col items-end">
-                    <span className="font-medium">{formatValue(record.value)}</span>
+                    <span className="font-medium">{formatPrValue(record.value)}</span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-500">
                       {record.achievedAt.toLocaleDateString()}
                     </span>
@@ -418,7 +367,7 @@ export function PrList() {
                     </span>
                     <span className="flex items-center gap-2">
                       <span className="font-semibold tabular-nums">
-                        {formatValue(group.headlineRecord.value)}
+                        {formatPrValue(group.headlineRecord.value)}
                       </span>
                       {group.records.length > 1 && (
                         <span className="text-xs text-zinc-500 dark:text-zinc-500">
@@ -455,7 +404,7 @@ export function PrList() {
                               {isRecentPersonalRecord(record, now) && <NewBadge />}
                             </span>
                             <span className="flex flex-col items-end">
-                              <span className="font-medium">{formatValue(record.value)}</span>
+                              <span className="font-medium">{formatPrValue(record.value)}</span>
                               <span className="text-xs text-zinc-500 dark:text-zinc-500">
                                 {record.achievedAt.toLocaleDateString()}
                               </span>

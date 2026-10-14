@@ -1,5 +1,6 @@
 "use client";
 
+import { TrendChart } from "@/components/charts/trend-chart";
 import { TRACKED_MEASUREMENT_KINDS, type TrackedMeasurementKind } from "@/lib/bodyweight/series";
 import {
   MEASUREMENT_RANGES,
@@ -11,7 +12,6 @@ import {
 } from "@/lib/portal/body-data";
 import { MEASUREMENT_LABELS, displayUnitFor, measurementUnitLabel } from "@jim/core";
 import { useMemo, useState } from "react";
-import { PortalTrendChart } from "./trend-chart";
 import { useIsClient } from "./use-is-client";
 
 function formatValue(value: number): string {
@@ -136,7 +136,7 @@ export function PortalMeasurements({ data }: { data: PortalBodyData }) {
               </fieldset>
             </div>
             {isClient && (
-              <PortalTrendChart
+              <TrendChart
                 points={visible}
                 label={label}
                 unit={unitLabel}
