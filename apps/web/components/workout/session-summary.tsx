@@ -3,7 +3,7 @@
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
-import { RestStatsLine } from "@/components/workout/rest-stats-line";
+import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
@@ -11,7 +11,7 @@ import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-draft
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRestStats } from "@/lib/settings/features";
+import { showsRestStats, showsSetTimer } from "@/lib/settings/features";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import {
@@ -151,6 +151,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
       </dl>
 
       {showsRestStats(settings) && <RestStatsLine sets={sets} className="-mt-2" />}
+      {showsSetTimer(settings) && <WorkStatsLine sets={sets} className="-mt-2" />}
 
       <SaveRoutineChangesCard session={session} />
 

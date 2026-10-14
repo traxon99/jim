@@ -115,6 +115,7 @@ async function logSession(
       rir: null,
       restSeconds: null,
       restTargetSeconds: null,
+      workSeconds: null,
       completedAt: startedAt,
       supersedesId: null,
       deletedAt: null,

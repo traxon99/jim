@@ -99,6 +99,7 @@ function set(
     rir: null,
     restSeconds: null,
     restTargetSeconds: null,
+    workSeconds: null,
     completedAt: new Date(),
     supersedesId: null,
     deletedAt: null,

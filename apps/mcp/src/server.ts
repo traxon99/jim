@@ -843,6 +843,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .boolean()
           .optional()
           .describe("Average rest vs target and per-set rest times in summaries and history"),
+        showSetTimer: z
+          .boolean()
+          .optional()
+          .describe(
+            "Working set timer (off by default): Start set / End set during a workout times each set, shown in summaries and history",
+          ),
         sex: z.enum(sexEnum.enumValues).nullable().optional(),
         birthdate: z
           .string()

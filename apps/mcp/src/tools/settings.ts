@@ -23,6 +23,7 @@ function toSettings(row: UserRow) {
     showStrengthHints: row.showStrengthHints,
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
+    showSetTimer: row.showSetTimer,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm == null ? null : Number(row.heightCm),

@@ -48,6 +48,18 @@ export function showsRestStats(
 }
 
 /**
+ * Whether the working set timer (issue #634) shows during a workout: Start
+ * set / End set, timing each set, and the set times in summaries and
+ * history. Off by default, so unlike the other switches a settings row
+ * cached before it existed counts as off.
+ */
+export function showsSetTimer(
+  settings: Pick<SettingsRow, "advancedFeatures" | "showSetTimer">,
+): boolean {
+  return settings.advancedFeatures !== false && settings.showSetTimer === true;
+}
+
+/**
  * Whether to open the setup walkthrough on launch (issue #464): only for a
  * settings row the server sent with `onboardedAt` null, i.e. a new account.
  * No cached row yet (first fetch still in flight), or one cached before the

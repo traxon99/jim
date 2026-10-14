@@ -8,6 +8,7 @@ export * from "./pace";
 export * from "./rpe";
 export * from "./last-set";
 export * from "./rest-compliance";
+export * from "./set-timer";
 export * from "./exercise-extras";
 export * from "./smart-workout";
 export * from "./set-limits";

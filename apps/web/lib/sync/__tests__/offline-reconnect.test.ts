@@ -113,6 +113,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("offline logging, then reconnect
           rir: null,
           restSeconds: null,
           restTargetSeconds: null,
+          workSeconds: null,
           completedAt: new Date(),
           supersedesId: null,
           deletedAt: null,

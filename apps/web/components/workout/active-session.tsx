@@ -28,7 +28,8 @@ import { useRuleSnapshot } from "@/lib/progression/use-rule-snapshot";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
 import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
-import { DEFAULT_SETTINGS, showsPaceTracker } from "@/lib/settings";
+import { useSetTimer } from "@/lib/sessions/use-set-timer";
+import { DEFAULT_SETTINGS, showsPaceTracker, showsSetTimer } from "@/lib/settings";
 import {
   addExerciseItems,
   applySupersetChanges as applyItemSupersetChanges,
@@ -66,6 +67,7 @@ import { PaceTracker } from "./pace-tracker";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
 import { SessionSummary } from "./session-summary";
+import { SetTimerBar } from "./set-timer-bar";
 import { WarmupBlock } from "./warmup-block";
 import { WarmupExerciseSection } from "./warmup-exercise-section";
 
@@ -128,6 +130,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const dprContext = useDprContext();
 
   const restTimer = useRestTimer(id);
+  const setTimer = useSetTimer(id);
+  const setTimerOn = showsSetTimer(settings);
   const isActive = session != null && !session.endedAt && !session.deletedAt;
   useWakeLock(isActive);
 
@@ -301,6 +305,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   // superset (issue #228) the rest comes after each round, not each set, and
   // focus mode moves on to the next exercise in the round by itself.
   function handleSetLogged(itemId: string, restSeconds: number, remainingPlannedSets: number) {
+    // The set's time (issue #634) went into the set just saved.
+    setTimer.clear();
     const mainIds = new Set(mainItems.map((se) => se.id));
     const others = focusCandidates.filter(
       (candidate) => candidate.id !== itemId && mainIds.has(candidate.id),
@@ -324,6 +330,24 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       const nextIndex = sessionExercises.findIndex((se) => se.id === followUp.nextId);
       if (nextIndex !== -1) setFocusedIndex(nextIndex);
     }
+  }
+
+  // The rest timer has the bottom bar while it runs; otherwise, with the
+  // working set timer on (issue #634), the set timer has it until the
+  // workout's sets are all logged.
+  function timerBar(aboveTabBar: boolean) {
+    if (restTimer.active) {
+      return (
+        <RestTimerBar
+          timer={restTimer}
+          aboveTabBar={aboveTabBar}
+          onStartSet={setTimerOn ? setTimer.start : undefined}
+        />
+      );
+    }
+    if (!setTimerOn || !isActive) return null;
+    if (allSetsLogged && setTimer.phase === "idle") return null;
+    return <SetTimerBar timer={setTimer} aboveTabBar={aboveTabBar} />;
   }
 
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
@@ -438,6 +462,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       // A rest still counting down would otherwise push "Time for your
       // next set" after the workout is over.
       restTimer.skip();
+      setTimer.clear();
       if (cancelled) router.replace("/workout");
     } finally {
       setFinalizing(false);
@@ -454,6 +479,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     try {
       await cancelSession(session);
       restTimer.skip();
+      setTimer.clear();
       // Replace, not push: the cancelled session's URL shouldn't stay in
       // history for Back to land on.
       router.replace("/workout");
@@ -560,6 +586,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         }
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}
+        workSeconds={setTimerOn ? setTimer.workSeconds : undefined}
         onSetLogged={(restSeconds, remainingPlannedSets) =>
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
@@ -671,7 +698,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               </button>
             ) : undefined
           }
-          footer={<RestTimerBar timer={restTimer} />}
+          footer={timerBar(false)}
           finishAction={
             allSetsLogged ? (
               <button
@@ -808,7 +835,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           );
         })()}
 
-      {!(focusMode && focusedItem) && <RestTimerBar timer={restTimer} aboveTabBar />}
+      {!(focusMode && focusedItem) && timerBar(true)}
     </main>
   );
 }

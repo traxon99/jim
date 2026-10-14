@@ -1,4 +1,4 @@
-import { SetRestTag } from "@/components/workout/rest-stats-line";
+import { SetRestTag, SetWorkTag } from "@/components/workout/rest-stats-line";
 import type { SessionDetailSet } from "@/lib/history/session-detail-entries";
 import { setKindLabel } from "@/lib/sessions/set-kinds";
 import { PR_KIND_LABELS } from "@/lib/workout/summary-exercises";
@@ -14,6 +14,7 @@ export function SessionSetRow({
   units,
   showRpe,
   showRest = true,
+  showWork = true,
 }: {
   set: SessionDetailSet;
   /** "1", "2", … from `setNumberLabels`; warm-ups show "W" instead. */
@@ -22,6 +23,8 @@ export function SessionSetRow({
   showRpe: boolean;
   /** False when Settings → Advanced has rest stats off (issue #640). */
   showRest?: boolean;
+  /** False when Settings → Advanced has the working set timer off (issue #634). */
+  showWork?: boolean;
 }) {
   return (
     <li className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
@@ -53,6 +56,7 @@ export function SessionSetRow({
             {setKindLabel(set.kind)}
           </span>
         )}
+        {showWork && <SetWorkTag set={set} />}
         {showRest && <SetRestTag set={set} />}
       </span>
       {set.prKinds.length > 0 && (

@@ -310,6 +310,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       showStrengthHints: true,
       showSetTypes: true,
       showRestStats: true,
+      // The working set timer (issue #634) starts off.
+      showSetTimer: false,
     });
     const toggles = await updateSettings(context, { showSetTypes: false, showRestStats: false });
     expect(toggles.changed.sort()).toEqual(["showRestStats", "showSetTypes"]);
@@ -318,6 +320,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       showRestStats: false,
       showRpe: true,
     });
+    const timer = await updateSettings(context, { showSetTimer: true });
+    expect(timer.changed).toEqual(["showSetTimer"]);
+    expect(timer.settings.showSetTimer).toBe(true);
     await expect(updateSettings(context, { dprDefaultRepLow: 20 })).rejects.toThrow(/above/);
     await expect(updateSettings(context, {})).rejects.toThrow(/Nothing to change/);
   });

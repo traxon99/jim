@@ -116,6 +116,7 @@ export type SettingsRow = Pick<
   | "showStrengthHints"
   | "showSetTypes"
   | "showRestStats"
+  | "showSetTimer"
   | "sex"
   | "birthdate"
   | "heightCm"

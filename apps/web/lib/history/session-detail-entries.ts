@@ -19,6 +19,8 @@ export interface SessionDetailSet {
   /** Rest taken before the set and its target (issue #233). */
   restSeconds: number | null;
   restTargetSeconds: number | null;
+  /** How long the set took, from the working set timer (issue #634). */
+  workSeconds?: number | null;
   /** PR kinds the set achieved that show outside the PR page (`isVisiblePrKind`). */
   prKinds: PrKind[];
 }
@@ -99,6 +101,7 @@ export function buildSessionDetailExercises(
           rpe: set.rpe == null ? null : Number(set.rpe),
           restSeconds: set.restSeconds ?? null,
           restTargetSeconds: set.restTargetSeconds ?? null,
+          workSeconds: set.workSeconds ?? null,
           prKinds: prKindsBySetId.get(set.id) ?? [],
         })),
     }));
