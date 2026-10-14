@@ -88,6 +88,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #535 | Another site could make a signed-in user's browser POST to our cookie-auth API routes | Nothing checked the `Origin` header on mutating `/api/*` requests | The proxy rejects a mutating `/api/*` request whose `Origin` isn't our own; server-to-server routes are exempted explicitly |
 | #545 | A screen reader said "Log set 3" for the row shown as 1 (after two warm-ups); the Exercises muscle and equipment selects had no label | Button labels used the raw row index, and the selects had no `aria-label` or `min-w-0` | Label a row's controls with the number the row shows; every `<select>` gets an `aria-label` and `min-w-0` in a flex row |
 | #546 | Link-buttons on History, Profile and Settings gave no tap feedback, and a long press opened iOS's "Open in New Tab" menu | The `<Link>`s styled as buttons lacked `data-ripple` | An `<a>`/`<Link>` used as a button carries `data-ripple` (`docs/PWA.md` §7) |
 | #534 | A QStash-signed rest-timer message could be replayed against any other endpoint that shares the signing key | The fire route verified only the body, not the URL the signature was issued for | Verify third-party webhook signatures against the URL too (`url:`), built by the same helper that publishes it |

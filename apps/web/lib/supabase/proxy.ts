@@ -1,3 +1,4 @@
+import { isCrossOriginMutation } from "@/lib/security/csrf";
 import { isSharePreviewRequest } from "@/lib/sharing/preview-request";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
@@ -21,6 +22,18 @@ const PUBLIC_PATHS = [
  * so this is the one place a refreshed token actually gets persisted.
  */
 export async function updateSession(request: NextRequest) {
+  // Cookie-auth API routes must not be drivable from another site (CSRF).
+  if (
+    isCrossOriginMutation({
+      method: request.method,
+      pathname: request.nextUrl.pathname,
+      origin: request.headers.get("origin"),
+      requestOrigin: request.nextUrl.origin,
+    })
+  ) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   let response = NextResponse.next({ request });
 
   const { url, anonKey } = supabaseEnv();
