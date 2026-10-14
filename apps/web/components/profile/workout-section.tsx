@@ -1,12 +1,10 @@
 "use client";
 
-import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
-import { DprSettings } from "./dpr-settings";
 
 const UNIT_OPTIONS: { value: SettingsRow["units"]; label: string }[] = [
   { value: "lb", label: "lb" },
@@ -22,16 +20,14 @@ function formatRest(seconds: number): string {
   return rest === 0 ? `${minutes} min` : `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
-// Units, default rest, the pace tracker toggle and DPR, saved the moment they
-// change — same "no Save button" pattern as ColorSchemeSection. These used to sit in a Save-button
+// Units and default rest, saved the moment they change (the advanced
+// feature switches and PRP moved to Settings → Advanced, issue #640) — same "no Save button" pattern as ColorSchemeSection. These used to sit in a Save-button
 // form on the Profile page alongside bar weight and plates, which nothing in
 // the app reads; that form is gone and these two moved here.
 export function WorkoutSection() {
   const cached = useLiveQuery(() => db.settings.get("me"), []);
   const units = cached?.units ?? DEFAULT_SETTINGS.units;
   const restSeconds = cached?.defaultRestSeconds ?? DEFAULT_SETTINGS.defaultRestSeconds;
-  const showPaceTracker = cached?.showPaceTracker ?? DEFAULT_SETTINGS.showPaceTracker;
-  const advancedFeatures = cached?.advancedFeatures ?? DEFAULT_SETTINGS.advancedFeatures;
   const [error, setError] = useState<string | null>(null);
 
   // A rest value set before this picker existed may not be one of the
@@ -40,19 +36,7 @@ export function WorkoutSection() {
     ? REST_OPTIONS
     : [...REST_OPTIONS, restSeconds].sort((a, b) => a - b);
 
-  async function save(
-    patch: Partial<
-      Pick<
-        SettingsRow,
-        | "units"
-        | "defaultRestSeconds"
-        | "showPaceTracker"
-        | "advancedFeatures"
-        | "dprEnabled"
-        | "dprEquipmentIncrements"
-      >
-    >,
-  ) {
+  async function save(patch: Partial<Pick<SettingsRow, "units" | "defaultRestSeconds">>) {
     setError(null);
     const result = await patchSettings(patch);
     if (!result.ok) setError(result.error);
@@ -101,40 +85,6 @@ export function WorkoutSection() {
           ))}
         </select>
       </label>
-
-      {/* Simple mode (issue #464) hides these during a workout; PRP keeps RPE. */}
-      <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
-        <span className="flex flex-col gap-0.5">
-          Advanced features
-          <span className="font-normal text-zinc-500 dark:text-zinc-500">
-            RPE column and pace tracker during a workout
-          </span>
-        </span>
-        <input
-          type="checkbox"
-          role="switch"
-          aria-checked={advancedFeatures}
-          checked={advancedFeatures}
-          onChange={(event) => void save({ advancedFeatures: event.target.checked })}
-          className={SWITCH_CLASS}
-        />
-      </label>
-
-      {advancedFeatures && (
-        <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
-          Show pace tracker
-          <input
-            type="checkbox"
-            role="switch"
-            aria-checked={showPaceTracker}
-            checked={showPaceTracker}
-            onChange={(event) => void save({ showPaceTracker: event.target.checked })}
-            className={SWITCH_CLASS}
-          />
-        </label>
-      )}
-
-      <DprSettings settings={cached ?? DEFAULT_SETTINGS} onSave={save} />
 
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
     </div>

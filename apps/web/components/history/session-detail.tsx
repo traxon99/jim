@@ -13,7 +13,7 @@ import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRpe } from "@/lib/settings/features";
+import { showsRestStats, showsRpe } from "@/lib/settings/features";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -188,7 +188,7 @@ export function SessionDetail({ id }: { id: string }) {
           </dl>
         )}
 
-        <RestStatsLine sets={groups.flatMap((group) => group.sets)} />
+        {showsRestStats(settings) && <RestStatsLine sets={groups.flatMap((group) => group.sets)} />}
 
         {session.notes && (
           <p className="text-sm text-zinc-700 dark:text-zinc-300">{session.notes}</p>
@@ -219,6 +219,7 @@ export function SessionDetail({ id }: { id: string }) {
                       label={group.setLabels[i] ?? ""}
                       units={settings.units}
                       showRpe={showsRpe(settings)}
+                      showRest={showsRestStats(settings)}
                     />
                   ))}
                 </ul>

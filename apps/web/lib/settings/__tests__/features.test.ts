@@ -1,22 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../defaults";
-import { needsSetup, showsPaceTracker, showsRpe } from "../features";
+import {
+  needsSetup,
+  showsPaceTracker,
+  showsRestStats,
+  showsRpe,
+  showsSetTypes,
+  showsStrengthHints,
+} from "../features";
 
 describe("showsRpe", () => {
   it("shows RPE in Advanced mode", () => {
-    expect(showsRpe({ advancedFeatures: true, dprEnabled: false })).toBe(true);
+    expect(showsRpe({ advancedFeatures: true, dprEnabled: false, showRpe: true })).toBe(true);
   });
 
   it("hides RPE in Simple mode", () => {
-    expect(showsRpe({ advancedFeatures: false, dprEnabled: false })).toBe(false);
+    expect(showsRpe({ advancedFeatures: false, dprEnabled: false, showRpe: true })).toBe(false);
   });
 
   it("keeps RPE in Simple mode while PRP is on, since PRP reads it", () => {
-    expect(showsRpe({ advancedFeatures: false, dprEnabled: true })).toBe(true);
+    expect(showsRpe({ advancedFeatures: false, dprEnabled: true, showRpe: true })).toBe(true);
   });
 
-  it("treats a row cached before the setting existed as Advanced", () => {
-    const { advancedFeatures: _, ...old } = DEFAULT_SETTINGS;
+  it("follows its own switch in Advanced mode", () => {
+    expect(showsRpe({ advancedFeatures: true, dprEnabled: false, showRpe: false })).toBe(false);
+  });
+
+  it("keeps RPE with its switch off while PRP is on", () => {
+    expect(showsRpe({ advancedFeatures: true, dprEnabled: true, showRpe: false })).toBe(true);
+  });
+
+  it("treats a row cached before the settings existed as Advanced", () => {
+    const { advancedFeatures: _, showRpe: __, ...old } = DEFAULT_SETTINGS;
     expect(showsRpe(old as typeof DEFAULT_SETTINGS)).toBe(true);
   });
 });
@@ -29,6 +44,26 @@ describe("showsPaceTracker", () => {
 
   it("is hidden in Simple mode", () => {
     expect(showsPaceTracker({ advancedFeatures: false, showPaceTracker: true })).toBe(false);
+  });
+});
+
+describe.each([
+  ["showsStrengthHints", showsStrengthHints, "showStrengthHints"],
+  ["showsSetTypes", showsSetTypes, "showSetTypes"],
+  ["showsRestStats", showsRestStats, "showRestStats"],
+] as const)("%s", (_name, shows, key) => {
+  it("follows its own switch in Advanced mode", () => {
+    expect(shows({ ...DEFAULT_SETTINGS, advancedFeatures: true, [key]: true })).toBe(true);
+    expect(shows({ ...DEFAULT_SETTINGS, advancedFeatures: true, [key]: false })).toBe(false);
+  });
+
+  it("is hidden in Simple mode", () => {
+    expect(shows({ ...DEFAULT_SETTINGS, advancedFeatures: false, [key]: true })).toBe(false);
+  });
+
+  it("treats a row cached before the setting existed as on", () => {
+    const { [key]: _, ...old } = DEFAULT_SETTINGS;
+    expect(shows(old as typeof DEFAULT_SETTINGS)).toBe(true);
   });
 });
 

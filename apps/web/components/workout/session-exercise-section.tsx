@@ -41,7 +41,7 @@ import {
 } from "@/lib/sessions/set-actions";
 import { type SetKind, deletedWarmupIndices, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
-import { showsRpe } from "@/lib/settings/features";
+import { showsRpe, showsSetTypes, showsStrengthHints } from "@/lib/settings/features";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -288,6 +288,8 @@ export function SessionExerciseSection({
   const standardLift = useMemo(() => standardLiftForSlug(exercise?.slug), [exercise?.slug]);
   // Simple mode drops the RPE column unless PRP needs it (issue #464).
   const showRpe = showsRpe(settings);
+  const showSetTypes = showsSetTypes(settings);
+  const showStrengthHints = showsStrengthHints(settings);
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
   function defaultDraft(index: number): DraftValues {
@@ -443,14 +445,14 @@ export function SessionExerciseSection({
   // The standard lifts are all barbell lifts, so each tier's weight is
   // rounded to one the bar and plates can make (issue #320).
   const suggestedWeights = useMemo(() => {
-    if (!standardLift || !strengthProfile) return null;
+    if (!showStrengthHints || !standardLift || !strengthProfile) return null;
     const raw = suggestedWeightsByTier(standardLift, strengthProfile, suggestionReps);
     const loadable = { ...raw };
     for (const tier of STRENGTH_STANDARD_TIERS) {
       loadable[tier] = nearestLoadableWeight(raw[tier], barWeight, plates);
     }
     return loadable;
-  }, [standardLift, strengthProfile, suggestionReps, barWeight, plates]);
+  }, [showStrengthHints, standardLift, strengthProfile, suggestionReps, barWeight, plates]);
   // With history for the lift (last time's sets, or a set already logged
   // today) the tiers are noise, so they wait behind "Suggest weight".
   const hasHistory =
@@ -751,6 +753,7 @@ export function SessionExerciseSection({
         isPr={set.kind !== "warmup" && prsBySetId.has(set.id)}
         rpeNudge={needsRpeNudge(dpr !== null, set)}
         showRpe={showRpe}
+        showSetTypes={showSetTypes}
         onEdit={(patch) => void handleEdit(set, patch)}
         onChangeKind={(kind) => void handleChangeKind(set, kind)}
         onDelete={() => void handleDelete(set)}
@@ -772,6 +775,7 @@ export function SessionExerciseSection({
                 kind={draft.kind}
                 onChange={(kind) => updateDraft(index, { kind })}
                 onDelete={remove}
+                showKinds={showSetTypes}
               />
             </td>
             <td className={sizes.prevCell}>

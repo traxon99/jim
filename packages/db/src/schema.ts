@@ -208,6 +208,13 @@ export const users = pgTable(
     // Advanced features (issue #464): the RPE column and pace tracker. Off is
     // "Simple" mode for new lifters; on keeps the app as it always was.
     advancedFeatures: boolean("advanced_features").notNull().default(true),
+    // Per-feature switches on Settings → Advanced (issue #640). Each only
+    // takes effect while `advancedFeatures` is on; Simple mode hides them all.
+    // RPE stays shown while PRP is on regardless, since PRP reads it.
+    showRpe: boolean("show_rpe").notNull().default(true),
+    showStrengthHints: boolean("show_strength_hints").notNull().default(true),
+    showSetTypes: boolean("show_set_types").notNull().default(true),
+    showRestStats: boolean("show_rest_stats").notNull().default(true),
     // When the user finished or skipped the setup walkthrough (issue #464).
     // Null means a new user who hasn't seen it yet; existing rows were
     // backfilled so only new sign-ups get it.

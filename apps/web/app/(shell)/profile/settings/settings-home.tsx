@@ -3,7 +3,6 @@ import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { BodyStatsSection } from "@/components/profile/body-stats-section";
 import { CardStyleSection } from "@/components/profile/card-style-section";
 import { ColorSchemeSection } from "@/components/profile/color-scheme-section";
-import { ConnectClaudeSection } from "@/components/profile/connect-claude-section";
 import { DataSection } from "@/components/profile/data-section";
 import { FeedbackSection } from "@/components/profile/feedback-section";
 import { FontFamilySection } from "@/components/profile/font-family-section";
@@ -64,13 +63,19 @@ export function SettingsHome({
         <SharedLinksSection />
         <BodyStatsSection userId={userId} />
         <WorkoutSection />
+        {/* Advanced features, PRP and Connect Claude live on their own page (issue #640). */}
         <Link
-          href="/progression"
+          href="/profile/settings/advanced"
           data-ripple
-          className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-zinc-300 px-4 py-2 text-left text-sm font-medium dark:border-zinc-700"
         >
-          Progression
-          <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          <span className="flex min-w-0 flex-col">
+            Advanced
+            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
+              RPE, PRP, pace tracker, set types and Claude
+            </span>
+          </span>
+          <ChevronRight className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
         </Link>
         <Link
           href="/profile/gyms"
@@ -85,7 +90,6 @@ export function SettingsHome({
         <FontFamilySection />
         <CardStyleSection />
         <PushNotificationsSection />
-        <ConnectClaudeSection />
         <FeedbackSection />
         {userId && <DataSection userId={userId} />}
         <SignOutButton />

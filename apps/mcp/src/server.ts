@@ -799,7 +799,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Get settings",
       description:
-        "Read-only. The user's settings: units, bar weight, plates, default rest, week start, appearance, profile (sex, birthdate, height, bodyweight) and PR Progression (PRP, stored as dpr*) options.",
+        "Read-only. The user's settings: units, bar weight, plates, default rest, week start, appearance, Advanced feature switches, profile (sex, birthdate, height, bodyweight) and PR Progression (PRP, stored as dpr*) options.",
       inputSchema: {},
     },
     handle(() => getSettings(context)),
@@ -820,13 +820,29 @@ export function createMcpServer(context: UserContext): McpServer {
         accentColor: z.enum(accentColorEnum.enumValues).optional(),
         fontFamily: z.enum(fontFamilyEnum.enumValues).optional(),
         cardStyle: z.enum(cardStyleEnum.enumValues).optional(),
-        showPaceTracker: z.boolean().optional(),
         advancedFeatures: z
           .boolean()
           .optional()
           .describe(
-            "Advanced (true) or Simple (false) mode: Simple hides the RPE column (unless PRP is on) and the pace tracker",
+            "Advanced (true) or Simple (false) mode, the master switch on Settings → Advanced: Simple hides every feature below (RPE stays while PRP is on)",
           ),
+        showRpe: z
+          .boolean()
+          .optional()
+          .describe("RPE column during a workout; always shown while PRP is on"),
+        showPaceTracker: z.boolean().optional().describe("Live pace card during a workout"),
+        showStrengthHints: z
+          .boolean()
+          .optional()
+          .describe("Strength-standard weights (Beginner to Elite) under the big lifts"),
+        showSetTypes: z
+          .boolean()
+          .optional()
+          .describe("Set type menu (warm-up / working / failure); off, sets log as working"),
+        showRestStats: z
+          .boolean()
+          .optional()
+          .describe("Average rest vs target and per-set rest times in summaries and history"),
         sex: z.enum(sexEnum.enumValues).nullable().optional(),
         birthdate: z
           .string()

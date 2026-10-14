@@ -21,7 +21,7 @@ Supabase Auth account as the web app (Supabase has no hosted authorize page of
 its own — see `src/auth/`).
 
 A client that can't do OAuth can use a personal access token instead. Create
-one in the web app under Settings → Connect Claude, then send it as a bearer
+one in the web app under Settings → Advanced → Connect Claude, then send it as a bearer
 header:
 
 ```
@@ -73,5 +73,5 @@ To bring up the official server:
 2. Set `DATABASE_URL` (the transaction pooler string), `SUPABASE_URL`,
    `SUPABASE_ANON_KEY`, and `MCP_ISSUER_URL` = the deployed HTTPS origin.
 3. Set `NEXT_PUBLIC_MCP_URL` = the same origin in the web app's Vercel env and
-   redeploy it. Settings → Connect Claude then shows the server URL and the
+   redeploy it. Settings → Advanced → Connect Claude then shows the server URL and the
    `claude mcp add` command.

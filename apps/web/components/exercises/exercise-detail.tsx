@@ -6,6 +6,7 @@ import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { showsRestStats } from "@/lib/settings/features";
 import {
   PULLEY_LABELS,
   computeCardioBests,
@@ -56,6 +57,7 @@ export function ExerciseDetail({
   const titleId = useId();
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const showRest = showsRestStats(settings);
   // The machine's gym (issue #451); a deleted gym reads as none.
   const gym = useLiveQuery(async () => {
     const gymId = exercise?.gymId;
@@ -368,7 +370,9 @@ export function ExerciseDetail({
 
             <section>
               <h2 className="text-sm font-semibold">Your history</h2>
-              {!isWarmup && resolvedSets && <RestStatsLine sets={resolvedSets} className="mt-1" />}
+              {!isWarmup && resolvedSets && showRest && (
+                <RestStatsLine sets={resolvedSets} className="mt-1" />
+              )}
               {!history || history.length === 0 ? (
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">No sets logged yet.</p>
               ) : (
@@ -394,7 +398,7 @@ export function ExerciseDetail({
                                     ? `${set.reps} reps`
                                     : (formatTimedSet(set, distanceUnit) ?? "—")}
                               </span>
-                              <SetRestTag set={set} />
+                              {showRest && <SetRestTag set={set} />}
                             </span>
                           </li>
                         ))}

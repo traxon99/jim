@@ -396,7 +396,7 @@ export function SetupWalkthrough({ userId, from }: { userId: string; from: strin
             <div className="flex flex-col gap-2">
               <h2 className="text-2xl font-semibold">How much detail?</h2>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                You can change this any time in Settings → Workout.
+                You can change this, or pick features one by one, any time in Settings → Advanced.
               </p>
             </div>
             <div className="flex flex-col gap-2">
@@ -410,7 +410,7 @@ export function SetupWalkthrough({ userId, from }: { userId: string; from: strin
                 pressed={settings.advancedFeatures !== false}
                 onClick={() => void saveAdvanced(true)}
                 title="Advanced"
-                detail="Also log RPE (how hard each set felt) and track your pace during a workout."
+                detail="Also log RPE (how hard each set felt), set types and rest stats, and track your pace during a workout."
               />
             </div>
             <div className="flex gap-2">

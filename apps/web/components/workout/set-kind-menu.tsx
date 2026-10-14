@@ -16,6 +16,11 @@ interface Props {
    */
   onDelete?: () => void;
   large?: boolean;
+  /**
+   * False when Settings → Advanced has set types off (issue #640): the menu
+   * keeps only Delete, and a row with nothing to delete shows a plain label.
+   */
+  showKinds?: boolean;
 }
 
 /**
@@ -23,7 +28,14 @@ interface Props {
  * old always-visible "Kind" column/field. Warm-ups show a yellow W instead of
  * a number (issue #220).
  */
-export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: Props) {
+export function SetKindMenu({
+  label,
+  kind,
+  onChange,
+  onDelete,
+  large = false,
+  showKinds = true,
+}: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +59,47 @@ export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: 
   // The W already says "warm-up"; other non-working kinds get a subtitle.
   const subtitle = kind !== "working" && !isWarmup ? setKindLabel(kind) : null;
   const warmupClass = "font-bold text-amber-500 dark:text-amber-400";
+  const hasMenu = showKinds || onDelete !== undefined;
+  const chevron = hasMenu ? (
+    <ChevronDown className={large ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={2} aria-hidden="true" />
+  ) : null;
+  const triggerClass = large
+    ? "flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
+    : "flex min-h-11 flex-col items-start justify-center gap-0 rounded px-0.5 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-500";
+  const triggerContent = large ? (
+    <>
+      {isWarmup ? (
+        <span className={warmupClass}>Warm-up</span>
+      ) : (
+        <span>
+          Set {label}
+          {subtitle ? ` · ${subtitle}` : ""}
+        </span>
+      )}
+      {chevron}
+    </>
+  ) : (
+    <>
+      <span
+        className={`flex items-center gap-0.5 ${isWarmup ? warmupClass : ""}`}
+        aria-label={isWarmup ? "Warm-up set" : `Set ${label}`}
+      >
+        {label}
+        {chevron}
+      </span>
+      {subtitle && (
+        <span className="text-[10px] font-normal text-zinc-400 dark:text-zinc-500">{subtitle}</span>
+      )}
+    </>
+  );
+
+  if (!hasMenu) {
+    return (
+      <div className="relative inline-block text-left">
+        <div className={triggerClass}>{triggerContent}</div>
+      </div>
+    );
+  }
 
   return (
     <div ref={rootRef} className="relative inline-block text-left">
@@ -55,65 +108,35 @@ export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: 
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={
-          large
-            ? "flex items-center gap-1 text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
-            : "flex min-h-11 flex-col items-start justify-center gap-0 rounded px-0.5 py-0.5 text-xs font-medium text-zinc-500 dark:text-zinc-500"
-        }
+        className={triggerClass}
       >
-        {large ? (
-          <>
-            {isWarmup ? (
-              <span className={warmupClass}>Warm-up</span>
-            ) : (
-              <span>
-                Set {label}
-                {subtitle ? ` · ${subtitle}` : ""}
-              </span>
-            )}
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
-          </>
-        ) : (
-          <>
-            <span
-              className={`flex items-center gap-0.5 ${isWarmup ? warmupClass : ""}`}
-              aria-label={isWarmup ? "Warm-up set" : `Set ${label}`}
-            >
-              {label}
-              <ChevronDown className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
-            </span>
-            {subtitle && (
-              <span className="text-[10px] font-normal text-zinc-400 dark:text-zinc-500">
-                {subtitle}
-              </span>
-            )}
-          </>
-        )}
+        {triggerContent}
       </button>
       {open && (
         <div
           role="menu"
           className="absolute left-0 top-full z-10 mt-1 flex min-w-28 flex-col overflow-hidden rounded-md border border-zinc-200 bg-white py-1 shadow-md dark:border-zinc-700 dark:bg-zinc-900"
         >
-          {SET_KINDS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="menuitemradio"
-              aria-checked={option === kind}
-              onClick={() => {
-                onChange(option);
-                setOpen(false);
-              }}
-              className={
-                option === kind
-                  ? "min-h-11 px-3 py-2 text-left text-sm font-medium text-accent"
-                  : "min-h-11 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300"
-              }
-            >
-              {setKindLabel(option)}
-            </button>
-          ))}
+          {showKinds &&
+            SET_KINDS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="menuitemradio"
+                aria-checked={option === kind}
+                onClick={() => {
+                  onChange(option);
+                  setOpen(false);
+                }}
+                className={
+                  option === kind
+                    ? "min-h-11 px-3 py-2 text-left text-sm font-medium text-accent"
+                    : "min-h-11 px-3 py-2 text-left text-sm text-zinc-700 dark:text-zinc-300"
+                }
+              >
+                {setKindLabel(option)}
+              </button>
+            ))}
           {onDelete && (
             <button
               type="button"
@@ -122,7 +145,7 @@ export function SetKindMenu({ label, kind, onChange, onDelete, large = false }: 
                 setOpen(false);
                 onDelete();
               }}
-              className="mt-1 border-t border-zinc-200 px-3 py-2 text-left text-sm text-red-600 dark:border-zinc-700 dark:text-red-500"
+              className={`${showKinds ? "mt-1 border-t border-zinc-200 dark:border-zinc-700" : ""} min-h-11 px-3 py-2 text-left text-sm text-red-600 dark:text-red-500`}
             >
               Delete set
             </button>

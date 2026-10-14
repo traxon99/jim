@@ -25,7 +25,7 @@ import { CopyField } from "./copy-field";
 const DEFAULT_EXPIRY: AccessTokenExpiryDays = 90;
 
 /**
- * Settings → Connect Claude → Access tokens (issue #246): bearer tokens for
+ * Settings → Advanced → Connect Claude → Access tokens (issue #246): bearer tokens for
  * scripts and MCP clients that can't sign in with OAuth. A new token's
  * plaintext is shown once, right after it's created; the list only ever has
  * its first few characters.

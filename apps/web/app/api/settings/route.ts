@@ -37,6 +37,10 @@ interface SettingsPayload {
   cardStyle: "plain" | "glass";
   showPaceTracker: boolean;
   advancedFeatures: boolean;
+  showRpe: boolean;
+  showStrengthHints: boolean;
+  showSetTypes: boolean;
+  showRestStats: boolean;
   sex: "male" | "female" | null;
   birthdate: string | null;
   heightCm: string | null;
@@ -66,6 +70,10 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     cardStyle: row.cardStyle,
     showPaceTracker: row.showPaceTracker,
     advancedFeatures: row.advancedFeatures,
+    showRpe: row.showRpe,
+    showStrengthHints: row.showStrengthHints,
+    showSetTypes: row.showSetTypes,
+    showRestStats: row.showRestStats,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm,
@@ -145,6 +153,18 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     return false;
   }
   if ("advancedFeatures" in candidate && typeof candidate.advancedFeatures !== "boolean") {
+    return false;
+  }
+  if ("showRpe" in candidate && typeof candidate.showRpe !== "boolean") {
+    return false;
+  }
+  if ("showStrengthHints" in candidate && typeof candidate.showStrengthHints !== "boolean") {
+    return false;
+  }
+  if ("showSetTypes" in candidate && typeof candidate.showSetTypes !== "boolean") {
+    return false;
+  }
+  if ("showRestStats" in candidate && typeof candidate.showRestStats !== "boolean") {
     return false;
   }
   if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
@@ -262,6 +282,10 @@ export async function PATCH(request: Request) {
       if (body.cardStyle !== undefined) patch.cardStyle = body.cardStyle;
       if (body.showPaceTracker !== undefined) patch.showPaceTracker = body.showPaceTracker;
       if (body.advancedFeatures !== undefined) patch.advancedFeatures = body.advancedFeatures;
+      if (body.showRpe !== undefined) patch.showRpe = body.showRpe;
+      if (body.showStrengthHints !== undefined) patch.showStrengthHints = body.showStrengthHints;
+      if (body.showSetTypes !== undefined) patch.showSetTypes = body.showSetTypes;
+      if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
       if (body.sex !== undefined) patch.sex = body.sex;
       if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
       if (body.heightCm !== undefined) {

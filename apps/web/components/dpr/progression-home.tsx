@@ -172,7 +172,7 @@ export function ProgressionHome({ userId }: { userId: string }) {
         />
         <div className="flex flex-col gap-2">
           <Link
-            href="/profile/settings"
+            href="/profile/settings/advanced"
             className="flex min-h-11 items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
           >
             Weight steps
@@ -202,7 +202,10 @@ export function ProgressionHome({ userId }: { userId: string }) {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Progression" back={{ href: "/profile/settings", label: "Settings" }} />
+      <PageHeader
+        title="Progression"
+        back={{ href: "/profile/settings/advanced", label: "Advanced" }}
+      />
       <div className={PAGE_BODY}>
         {loading && <LoadingText />}
 
