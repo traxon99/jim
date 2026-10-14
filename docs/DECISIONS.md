@@ -524,3 +524,22 @@ drop Y%" deload. No scripting language: these options cover the common programs.
 
 **Rejected: a Liftoscript-style language.** It would be more expressive, but it's hard to edit on a
 phone and hard to check, and the structured options already express the programs people asked for.
+
+## ADR-020 — Share links are readable by anyone who has the link
+
+**Status:** Accepted · 2026-10-14
+
+**Context.** A share link (issue #254) only opened in the installed, signed-in app. A friend without
+Jim, or someone on a computer, got sign-in or the install gate, and the chat preview (#431) showed
+a few names at most. The ask (issue #638) was that anyone can open the link and read the routine.
+
+**Decision.** `/share/<id>` and its preview image are public paths in the proxy and skip the install
+gate. Signed out, the page renders the snapshot on the server (`loadSharePreview`, the server's own
+connection, narrowed to one link by its id) with no tab bar or sync engine. Signed in, the page is
+the existing preview; in a browser tab it hides "Add", since adding writes to IndexedDB, which only
+the installed app keeps (ADR-010). `/api/shares/*` still takes signing in.
+
+- **The link is the capability.** Ids are random UUIDs and revoking a link still stops it working.
+  The snapshot holds only what the sharer chose to share (names, targets, notes), and the page
+  sends `noindex`.
+

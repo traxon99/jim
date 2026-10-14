@@ -1,3 +1,5 @@
+import { isSharePagePath } from "@/lib/sharing/public-share";
+
 export const PORTAL_PATH = "/portal";
 
 /**
@@ -12,11 +14,15 @@ const ACCOUNT_RECOVERY_PATHS = ["/forgot-password", "/reset-password", "/auth/au
  * server, never IndexedDB — so none of ADR-010's eviction risk applies and
  * it stays reachable from a desktop browser. Signing in on the way to it
  * (`/login?next=/portal`) is let through too; signing in on the way
- * anywhere else still hits the gate. So is password recovery (#444).
+ * anywhere else still hits the gate. So are password recovery (#444) and
+ * share links (#638).
  */
 export function isInstallGateExempt(pathname: string, search: string): boolean {
   if (pathname === PORTAL_PATH || pathname.startsWith(`${PORTAL_PATH}/`)) return true;
   if (ACCOUNT_RECOVERY_PATHS.includes(pathname)) return true;
+  // A share link's page only reads the link (#638). Adding it to your
+  // routines, the one part that writes to IndexedDB, stays in the installed app.
+  if (isSharePagePath(pathname)) return true;
   if (pathname === "/login" || pathname === "/signup") {
     const next = new URLSearchParams(search).get("next");
     return next === PORTAL_PATH || (next?.startsWith(`${PORTAL_PATH}/`) ?? false);

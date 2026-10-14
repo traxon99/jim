@@ -15,17 +15,30 @@ export default async function ShellLayout({ children }: { children: React.ReactN
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims.sub;
 
-  // proxy.ts already redirects unauthenticated requests to /login — this is
-  // only reached in the brief window before that redirect completes.
-  const tabs = userId
-    ? {
-        workout: <WorkoutHome userId={userId} />,
-        routines: <RoutinesList userId={userId} />,
-        history: <HistoryHome />,
-        exercises: <ExercisesList userId={userId} />,
-        home: <HomeScreen />,
-      }
-    : { workout: null, routines: null, history: null, exercises: null, home: null };
+  // Signed out, proxy.ts only lets through a share link's read-only page
+  // (issue #638): no tabs, tab bar or sync engine, just the page.
+  if (!userId) {
+    return (
+      <div
+        data-edge-to-edge
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  const tabs = {
+    workout: <WorkoutHome userId={userId} />,
+    routines: <RoutinesList userId={userId} />,
+    history: <HistoryHome />,
+    exercises: <ExercisesList userId={userId} />,
+    home: <HomeScreen />,
+  };
 
   return (
     // data-edge-to-edge drops body's safe-area padding (globals.css): the
@@ -33,7 +46,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
     // up under the status bar scrim instead of into a solid band (issue #305).
     <div data-edge-to-edge className="relative flex min-h-0 flex-1 flex-col">
       <SyncEngineBoot />
-      {userId && <SetupGate />}
+      <SetupGate />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {/* The tab bar floats over the bottom of this scroller (content blurs
             under it), so pad by its measured height to keep the last row
