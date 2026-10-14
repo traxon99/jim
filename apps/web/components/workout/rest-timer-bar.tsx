@@ -10,7 +10,7 @@ interface RestTimer {
 /** How much each −/+ tap takes off or adds (issue #324), as Strong and Hevy do. */
 const ADJUST_SECONDS = 15;
 
-function formatClock(totalSeconds: number): string {
+export function formatClock(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -19,10 +19,16 @@ function formatClock(totalSeconds: number): string {
 export function RestTimerBar({
   timer,
   aboveTabBar = false,
+  onStartSet,
 }: {
   timer: RestTimer;
   /** Stick above the translucent tab bar, which overlays the shell's scroller. */
   aboveTabBar?: boolean;
+  /**
+   * With the working set timer on (issue #634), Skip becomes Start: it ends
+   * the rest and starts timing the set.
+   */
+  onStartSet?: () => void;
 }) {
   if (!timer.active) return null;
 
@@ -54,13 +60,27 @@ export function RestTimerBar({
         >
           +{ADJUST_SECONDS}s
         </button>
-        <button
-          type="button"
-          onClick={() => timer.skip()}
-          className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
-        >
-          Skip
-        </button>
+        {onStartSet ? (
+          <button
+            type="button"
+            onClick={() => {
+              timer.skip();
+              onStartSet();
+            }}
+            aria-label="Skip the rest and start the set"
+            className="min-h-11 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+          >
+            Start
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => timer.skip()}
+            className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+          >
+            Skip
+          </button>
+        )}
       </div>
     </div>
   );

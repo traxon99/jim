@@ -103,6 +103,8 @@ interface Props {
    * of the workout means there's nothing to rest for).
    */
   onSetLogged: (restSeconds: number, remainingPlannedSets: number) => void;
+  /** The working set timer's time for the set being logged (issue #634); absent when it's off. */
+  workSeconds?: () => number | null;
   /**
    * The ⋯ menu's items after this section's own (note, sticky note, warm-ups,
    * rest): Replace, superset options, Preferences and Remove (#269, #271).
@@ -192,6 +194,7 @@ export function SessionExerciseSection({
   large = false,
   supersetLabel = null,
   onSetLogged,
+  workSeconds,
   actions,
 }: Props) {
   const sizes = sizesFor(large);
@@ -477,6 +480,7 @@ export function SessionExerciseSection({
       weight,
       reps,
       rpe: toRpeOrNull(draft.rpe),
+      workSeconds: workSeconds?.() ?? null,
     });
     if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
       setPrsBySetId((map) => new Map(map).set(set.id, prs));
@@ -505,6 +509,7 @@ export function SessionExerciseSection({
       weight: lastSet.weight == null ? null : Number(lastSet.weight),
       reps: lastSet.reps,
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
+      workSeconds: workSeconds?.() ?? null,
     });
     if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
       setPrsBySetId((map) => new Map(map).set(set.id, prs));

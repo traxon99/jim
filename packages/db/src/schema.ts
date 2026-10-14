@@ -215,6 +215,9 @@ export const users = pgTable(
     showStrengthHints: boolean("show_strength_hints").notNull().default(true),
     showSetTypes: boolean("show_set_types").notNull().default(true),
     showRestStats: boolean("show_rest_stats").notNull().default(true),
+    // Working set timer (issue #634): a Start set / End set timer that times
+    // each set. Unlike the switches above it's off until turned on.
+    showSetTimer: boolean("show_set_timer").notNull().default(false),
     // When the user finished or skipped the setup walkthrough (issue #464).
     // Null means a new user who hasn't seen it yet; existing rows were
     // backfilled so only new sign-ups get it.
@@ -675,6 +678,9 @@ export const sets = pgTable(
     // a session's first set and for warm-up exercises, which have no rest.
     restSeconds: integer("rest_seconds"),
     restTargetSeconds: integer("rest_target_seconds"),
+    // How long the set itself took (issue #634): Start set to End set (or to
+    // the log tap), from the working set timer. Null when it wasn't used.
+    workSeconds: integer("work_seconds"),
     completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
     supersedesId: uuid("supersedes_id"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

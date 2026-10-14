@@ -266,3 +266,50 @@ describe("session gym (issue #454)", () => {
     expect((await testDb.sessions.get(sessionId))?.gymId).toBeNull();
   });
 });
+
+describe("set time from the working set timer (issue #634)", () => {
+  it("stores the time it's given, and keeps it through an edit", async () => {
+    const sessionId = await startEmptySession(USER_ID, testDb);
+    const sessionExercise = {
+      id: uuidv7(),
+      userId: USER_ID,
+      sessionId,
+      exerciseId: BENCH,
+      position: 0,
+      supersetGroup: null,
+      notes: null,
+      stickyNote: null,
+      restSeconds: null,
+      warmupSets: null,
+      updatedAt: T0,
+      deviceId: "d",
+      deletedAt: null,
+      serverSeq: 0,
+    };
+    await testDb.sessionExercises.put(sessionExercise);
+
+    const untimed = await log(sessionExercise.id, BENCH, 0);
+    expect(untimed.workSeconds).toBeNull();
+
+    const { set: timed } = await completeSet(
+      {
+        userId: USER_ID,
+        sessionExerciseId: sessionExercise.id,
+        exerciseId: BENCH,
+        setIndex: 1,
+        kind: "working",
+        weight: 100,
+        reps: 8,
+        workSeconds: 42,
+      },
+      testDb,
+    );
+    expect(timed.workSeconds).toBe(42);
+
+    const edited = await editSet(
+      { original: timed, weight: 105, reps: 8, kind: "working" },
+      testDb,
+    );
+    expect(edited.workSeconds).toBe(42);
+  });
+});

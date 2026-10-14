@@ -97,6 +97,7 @@ export async function getWorkout(context: UserContext, sessionId: string) {
             restSeconds: set.restSeconds,
             restTargetSeconds: set.restTargetSeconds,
             shortRest: isShortRest(set.restSeconds, set.restTargetSeconds),
+            workSeconds: set.workSeconds,
             completedAt: set.completedAt.toISOString(),
             prKinds: prKindsBySetId.get(set.id) ?? [],
           })),

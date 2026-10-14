@@ -41,6 +41,7 @@ interface SettingsPayload {
   showStrengthHints: boolean;
   showSetTypes: boolean;
   showRestStats: boolean;
+  showSetTimer: boolean;
   sex: "male" | "female" | null;
   birthdate: string | null;
   heightCm: string | null;
@@ -74,6 +75,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     showStrengthHints: row.showStrengthHints,
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
+    showSetTimer: row.showSetTimer,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm,
@@ -165,6 +167,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     return false;
   }
   if ("showRestStats" in candidate && typeof candidate.showRestStats !== "boolean") {
+    return false;
+  }
+  if ("showSetTimer" in candidate && typeof candidate.showSetTimer !== "boolean") {
     return false;
   }
   if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
@@ -286,6 +291,7 @@ export async function PATCH(request: Request) {
       if (body.showStrengthHints !== undefined) patch.showStrengthHints = body.showStrengthHints;
       if (body.showSetTypes !== undefined) patch.showSetTypes = body.showSetTypes;
       if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
+      if (body.showSetTimer !== undefined) patch.showSetTimer = body.showSetTimer;
       if (body.sex !== undefined) patch.sex = body.sex;
       if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
       if (body.heightCm !== undefined) {

@@ -4,6 +4,7 @@ import {
   isShortRest,
   resolveCurrentRows,
   restStats,
+  workStats,
 } from "@jim/core";
 import { sessionExercises, sessions, sets } from "@jim/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
@@ -41,6 +42,7 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
         exercise: { id: exercise.id, name: exercise.name },
         sets: [],
         rest: restStats([]),
+        setTime: workStats([]),
         estimatedOneRepMaxSeries: [],
       };
     }
@@ -80,10 +82,13 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
         restSeconds: set.restSeconds,
         restTargetSeconds: set.restTargetSeconds,
         shortRest: isShortRest(set.restSeconds, set.restTargetSeconds),
+        workSeconds: set.workSeconds,
         completedAt: set.completedAt.toISOString(),
       })),
       // Rest compliance across these sets (issue #233).
       rest: restStats(filtered),
+      // Set times from the working set timer (issue #634).
+      setTime: workStats(filtered),
       estimatedOneRepMaxSeries: series.map((point) => ({
         date: point.date.toISOString(),
         sessionId: point.sessionId,

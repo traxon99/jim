@@ -15,9 +15,11 @@ type FeatureKey =
   | "showPaceTracker"
   | "showStrengthHints"
   | "showSetTypes"
-  | "showRestStats";
+  | "showRestStats"
+  | "showSetTimer";
 
-const FEATURES: { key: FeatureKey; label: string; detail: string }[] = [
+/** `defaultOn: false` for a switch that starts off, so a missing value reads as off. */
+const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: false }[] = [
   { key: "showRpe", label: "RPE column", detail: "How hard each set felt, logged next to reps" },
   { key: "showPaceTracker", label: "Pace tracker", detail: "Live pace card during a workout" },
   {
@@ -34,6 +36,12 @@ const FEATURES: { key: FeatureKey; label: string; detail: string }[] = [
     key: "showRestStats",
     label: "Rest stats",
     detail: "Average rest against your target, and each set's rest",
+  },
+  {
+    key: "showSetTimer",
+    label: "Working set timer",
+    detail: "Start set and End set buttons that time each set",
+    defaultOn: false,
   },
 ];
 
@@ -86,7 +94,9 @@ export function AdvancedSection() {
           {FEATURES.map((feature) => {
             // PRP reads its calls from RPE, so the column stays while PRP is on.
             const lockedOn = feature.key === "showRpe" && settings.dprEnabled;
-            const checked = lockedOn || settings[feature.key] !== false;
+            const value = settings[feature.key];
+            const checked =
+              lockedOn || (feature.defaultOn === false ? value === true : value !== false);
             return (
               <label
                 key={feature.key}

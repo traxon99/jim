@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   showStrengthHints: true,
   showSetTypes: true,
   showRestStats: true,
+  showSetTimer: false,
   sex: null,
   birthdate: null,
   heightCm: null,

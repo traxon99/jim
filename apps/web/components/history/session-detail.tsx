@@ -4,7 +4,7 @@ import { SessionSetRow } from "@/components/history/session-set-row";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
-import { RestStatsLine } from "@/components/workout/rest-stats-line";
+import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
@@ -13,7 +13,7 @@ import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRestStats, showsRpe } from "@/lib/settings/features";
+import { showsRestStats, showsRpe, showsSetTimer } from "@/lib/settings/features";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -189,6 +189,7 @@ export function SessionDetail({ id }: { id: string }) {
         )}
 
         {showsRestStats(settings) && <RestStatsLine sets={groups.flatMap((group) => group.sets)} />}
+        {showsSetTimer(settings) && <WorkStatsLine sets={groups.flatMap((group) => group.sets)} />}
 
         {session.notes && (
           <p className="text-sm text-zinc-700 dark:text-zinc-300">{session.notes}</p>
@@ -220,6 +221,7 @@ export function SessionDetail({ id }: { id: string }) {
                       units={settings.units}
                       showRpe={showsRpe(settings)}
                       showRest={showsRestStats(settings)}
+                      showWork={showsSetTimer(settings)}
                     />
                   ))}
                 </ul>

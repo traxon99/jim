@@ -180,6 +180,8 @@ export interface CompleteSetInput {
   durationSeconds?: number | null;
   /** For cardio (issue #423), in the user's distance unit (km with kg, miles with lb). */
   distance?: number | null;
+  /** How long the set took, from the working set timer (issue #634). */
+  workSeconds?: number | null;
 }
 
 export interface CompleteSetResult {
@@ -218,6 +220,7 @@ export async function completeSet(
     rir: null,
     restSeconds: rest.restSeconds,
     restTargetSeconds: rest.restTargetSeconds,
+    workSeconds: input.workSeconds ?? null,
     completedAt: now,
     supersedesId: null,
     deletedAt: null,

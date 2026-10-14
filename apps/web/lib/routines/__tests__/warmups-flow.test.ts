@@ -268,6 +268,7 @@ describe("logging warm-ups (against Dexie)", () => {
         rir: null,
         restSeconds: null,
         restTargetSeconds: null,
+        workSeconds: null,
         completedAt: when,
         supersedesId: null,
         deletedAt: null,

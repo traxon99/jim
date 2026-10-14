@@ -438,6 +438,7 @@ export async function commitWorkoutImport(
           rir: null,
           restSeconds: null,
           restTargetSeconds: null,
+          workSeconds: null,
           completedAt: new Date(startMs + Math.round((spanMs * setOrdinal) / setTotal)),
           supersedesId: null,
           deletedAt: null,

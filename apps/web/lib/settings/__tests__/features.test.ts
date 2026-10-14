@@ -5,6 +5,7 @@ import {
   showsPaceTracker,
   showsRestStats,
   showsRpe,
+  showsSetTimer,
   showsSetTypes,
   showsStrengthHints,
 } from "../features";
@@ -64,6 +65,26 @@ describe.each([
   it("treats a row cached before the setting existed as on", () => {
     const { [key]: _, ...old } = DEFAULT_SETTINGS;
     expect(shows(old as typeof DEFAULT_SETTINGS)).toBe(true);
+  });
+});
+
+describe("showsSetTimer", () => {
+  it("is off by default", () => {
+    expect(showsSetTimer(DEFAULT_SETTINGS)).toBe(false);
+  });
+
+  it("follows its own switch in Advanced mode", () => {
+    expect(showsSetTimer({ advancedFeatures: true, showSetTimer: true })).toBe(true);
+    expect(showsSetTimer({ advancedFeatures: true, showSetTimer: false })).toBe(false);
+  });
+
+  it("is hidden in Simple mode", () => {
+    expect(showsSetTimer({ advancedFeatures: false, showSetTimer: true })).toBe(false);
+  });
+
+  it("treats a row cached before the setting existed as off", () => {
+    const { showSetTimer: _, ...old } = DEFAULT_SETTINGS;
+    expect(showsSetTimer(old as typeof DEFAULT_SETTINGS)).toBe(false);
   });
 });
 
