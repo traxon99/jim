@@ -13,12 +13,15 @@ export function SessionSetRow({
   label,
   units,
   showRpe,
+  showRest = true,
 }: {
   set: SessionDetailSet;
   /** "1", "2", … from `setNumberLabels`; warm-ups show "W" instead. */
   label: string;
   units: "lb" | "kg";
   showRpe: boolean;
+  /** False when Settings → Advanced has rest stats off (issue #640). */
+  showRest?: boolean;
 }) {
   return (
     <li className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
@@ -50,7 +53,7 @@ export function SessionSetRow({
             {setKindLabel(set.kind)}
           </span>
         )}
-        <SetRestTag set={set} />
+        {showRest && <SetRestTag set={set} />}
       </span>
       {set.prKinds.length > 0 && (
         <span className="flex flex-wrap gap-1">

@@ -304,6 +304,20 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       sex: "male",
       advancedFeatures: false,
     });
+    // The per-feature switches on Settings → Advanced (issue #640).
+    expect(await getSettings(context)).toMatchObject({
+      showRpe: true,
+      showStrengthHints: true,
+      showSetTypes: true,
+      showRestStats: true,
+    });
+    const toggles = await updateSettings(context, { showSetTypes: false, showRestStats: false });
+    expect(toggles.changed.sort()).toEqual(["showRestStats", "showSetTypes"]);
+    expect(await getSettings(context)).toMatchObject({
+      showSetTypes: false,
+      showRestStats: false,
+      showRpe: true,
+    });
     await expect(updateSettings(context, { dprDefaultRepLow: 20 })).rejects.toThrow(/above/);
     await expect(updateSettings(context, {})).rejects.toThrow(/Nothing to change/);
   });

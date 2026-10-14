@@ -17,7 +17,7 @@ const BUCKET_LABELS: Record<EquipmentBucket, string> = {
 type DprPatch = Partial<Pick<SettingsRow, "dprEnabled" | "dprEquipmentIncrements">>;
 
 /**
- * Settings → Workout's Dynamic Progression controls (issue #203): the on/off
+ * Settings → Advanced's Dynamic Progression controls (issue #203): the on/off
  * toggle, and while on, the per-equipment weight steps DPR rounds to.
  * Turning DPR off keeps its blocks and focus, so turning it back on picks
  * up where it left off.

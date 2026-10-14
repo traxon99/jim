@@ -55,6 +55,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       cardStyle: "plain",
       showPaceTracker: true,
       advancedFeatures: true,
+      showRpe: true,
+      showStrengthHints: true,
+      showSetTypes: true,
+      showRestStats: true,
       sex: null,
       birthdate: null,
       heightCm: null,
@@ -123,6 +127,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
 
   it("rejects a non-boolean advanced features toggle or a bad onboarding date", async () => {
     expect((await patch({ advancedFeatures: "yes" })).status).toBe(400);
+    expect((await patch({ showSetTypes: "yes" })).status).toBe(400);
+    expect((await patch({ showRestStats: 1 })).status).toBe(400);
     expect((await patch({ onboardedAt: "not a date" })).status).toBe(400);
   });
 
@@ -196,6 +202,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       fontFamily: "serif",
       cardStyle: "glass",
       showPaceTracker: false,
+      showRpe: false,
+      showStrengthHints: false,
+      showSetTypes: false,
+      showRestStats: false,
       sex: "female",
       birthdate: "1990-06-15",
       heightCm: 170,
@@ -222,6 +232,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.fontFamily).toBe("serif");
     expect(again.cardStyle).toBe("glass");
     expect(again.showPaceTracker).toBe(false);
+    expect(again.showRpe).toBe(false);
+    expect(again.showStrengthHints).toBe(false);
+    expect(again.showSetTypes).toBe(false);
+    expect(again.showRestStats).toBe(false);
     expect(again.sex).toBe("female");
     expect(again.birthdate).toBe("1990-06-15");
     expect(again.heightCm).toBe("170.0");

@@ -4,7 +4,7 @@ import { claudeCodeAddCommand, mcpEndpointUrl } from "@/lib/mcp/connect";
 import { AccessTokensSection } from "./access-tokens-section";
 import { CopyField } from "./copy-field";
 
-/** Settings → Connect Claude: the official MCP server's URL, ready to paste into a client. */
+/** Settings → Advanced → Connect Claude: the official MCP server's URL, ready to paste into a client. */
 export function ConnectClaudeSection() {
   const endpoint = mcpEndpointUrl();
   if (!endpoint) return null;

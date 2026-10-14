@@ -11,6 +11,7 @@ import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-draft
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { showsRestStats } from "@/lib/settings/features";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import {
@@ -149,7 +150,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         </div>
       </dl>
 
-      <RestStatsLine sets={sets} className="-mt-2" />
+      {showsRestStats(settings) && <RestStatsLine sets={sets} className="-mt-2" />}
 
       <SaveRoutineChangesCard session={session} />
 

@@ -21,6 +21,8 @@ interface Props {
   rpeNudge?: boolean;
   /** False in Simple mode without PRP (issue #464): the RPE column is left out. */
   showRpe?: boolean;
+  /** False when Settings → Advanced has set types off (issue #640). */
+  showSetTypes?: boolean;
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
   onDelete: () => void;
@@ -137,6 +139,7 @@ export function SetRow({
   isPr,
   rpeNudge = false,
   showRpe = true,
+  showSetTypes = true,
   onEdit,
   onChangeKind,
   onDelete,
@@ -178,7 +181,13 @@ export function SetRow({
       className={`[&>td]:bg-accent/[0.07] [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg ${swipe.rowProps.className}`}
     >
       <td className={sizes.indexCell}>
-        <SetKindMenu label={label} kind={set.kind} onChange={onChangeKind} onDelete={onDelete} />
+        <SetKindMenu
+          label={label}
+          kind={set.kind}
+          onChange={onChangeKind}
+          onDelete={onDelete}
+          showKinds={showSetTypes}
+        />
       </td>
       {previous}
       {/* The PR badge is pinned to the cell's corner rather than sitting
