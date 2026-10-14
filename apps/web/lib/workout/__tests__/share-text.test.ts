@@ -25,6 +25,7 @@ function exercise(overrides: Partial<SessionDetailExercise> = {}): SessionDetail
     sessionExerciseId: "se-1",
     exerciseId: "ex-1",
     exerciseName: "Barbell Bench Press",
+    isWarmup: false,
     notes: null,
     sets: [set()],
     ...overrides,
@@ -103,7 +104,7 @@ describe("buildWorkoutShareText", () => {
       exercises: [
         exercise({
           sets: [
-            set({ id: "w", kind: "warmup", weight: 95, reps: 8 }),
+            set({ id: "f", kind: "failure", weight: 135, reps: 10 }),
             set({ id: "p", weight: 175, reps: 3, prKinds: ["1rm"] }),
             set({ id: "d", kind: "drop", weight: 115, reps: 8, prKinds: ["volume"] }),
           ],
@@ -111,7 +112,7 @@ describe("buildWorkoutShareText", () => {
       ],
     });
 
-    expect(text).toContain("95×8 (Warmup), 175×3 (PR), 115×8 (Drop, PR)");
+    expect(text).toContain("135×10 (Failure), 175×3 (PR), 115×8 (Drop, PR)");
   });
 
   it("formats a duration-only set in seconds and a distance-only set as-is", () => {
@@ -147,6 +148,34 @@ describe("buildWorkoutShareText", () => {
 
     expect(text).not.toContain("Skipped");
     expect(text).toContain("Barbell Bench Press");
+  });
+
+  it("leaves out warm-up sets and warm-up exercises (#635)", () => {
+    const text = buildWorkoutShareText({
+      name: "Push Day",
+      startedAt: new Date(2026, 8, 22),
+      units: "lb",
+      summary: SUMMARY,
+      exercises: [
+        exercise({ exerciseName: "Arm Circles", isWarmup: true, sets: [set({ reps: 15 })] }),
+        exercise({
+          sets: [
+            set({ id: "w1", kind: "warmup", weight: 45, reps: 10 }),
+            set({ id: "w2", kind: "warmup", weight: 95, reps: 5 }),
+            set({ id: "a", weight: 185, reps: 5 }),
+          ],
+        }),
+        exercise({
+          exerciseName: "Overhead Press",
+          sets: [set({ id: "w3", kind: "warmup", weight: 45, reps: 10 })],
+        }),
+      ],
+    });
+
+    expect(text).not.toContain("Arm Circles");
+    expect(text).not.toContain("Overhead Press");
+    expect(text).not.toContain("Warmup");
+    expect(text).toContain("Barbell Bench Press\n185×5");
   });
 });
 

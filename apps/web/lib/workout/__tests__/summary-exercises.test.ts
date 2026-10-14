@@ -29,6 +29,7 @@ function group(id: string, name: string, sets: SessionDetailSet[]): SessionDetai
     sessionExerciseId: id,
     exerciseId: `ex-${id}`,
     exerciseName: name,
+    isWarmup: false,
     notes: null,
     sets,
   };
