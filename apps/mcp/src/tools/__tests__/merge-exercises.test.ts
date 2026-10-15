@@ -42,6 +42,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("merge_exercises (#497)", () => 
     const { id: mergeId } = await upsertExercise(context, {
       name: "Flat Barbell Bench",
       trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
     });
     await admin`
       INSERT INTO dpr_block_lifts (user_id, block_id, exercise_id)
@@ -68,6 +69,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("merge_exercises (#497)", () => 
     const { id: mergeId } = await upsertExercise(context, {
       name: "Barbell Bench Variant",
       trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
     });
     await admin`
       INSERT INTO dpr_block_lifts (user_id, block_id, exercise_id)
@@ -86,6 +88,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("merge_exercises (#497)", () => 
     const { id: mergeId } = await upsertExercise(context, {
       name: "Weighted Plank",
       trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
     });
     await expect(mergeExercises(context, { keepId: plankId, mergeId })).rejects.toThrow(
       /can't be merged/,

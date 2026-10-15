@@ -65,7 +65,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("exercise machine details (#450)
 
   it("rejects an unknown gym", async () => {
     await expect(
-      upsertExercise(context, { name: "Cable Row", trackingType: "weight_reps", gym: "Nowhere" }),
+      upsertExercise(context, {
+        name: "Cable Row",
+        trackingType: "weight_reps",
+        primaryMuscles: ["middle back"],
+        gym: "Nowhere",
+      }),
     ).rejects.toThrow(/list_gyms/);
   });
 });

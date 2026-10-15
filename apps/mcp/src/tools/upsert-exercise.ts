@@ -1,4 +1,12 @@
-import { type PulleyType, applyExerciseEdit, cleanMachineText, slugify, uuidv7 } from "@jim/core";
+import {
+  type PulleyType,
+  applyExerciseEdit,
+  cleanMachineText,
+  muscleTagsError,
+  slugify,
+  uuidv7,
+  withoutPrimary,
+} from "@jim/core";
 import type { DbOrTx } from "@jim/db";
 import { exercises } from "@jim/db";
 import { eq, sql } from "drizzle-orm";
@@ -8,6 +16,9 @@ import { MCP_DEVICE_ID } from "./create-routine.js";
 import { findGym } from "./gyms.js";
 import { ExerciseNotFoundError } from "./resolve-exercise.js";
 import type { ExerciseRow } from "./resolve-exercise.js";
+
+/** A strength exercise saved with no primary muscle counts toward no muscle's volume (#643). */
+export class MuscleTagsError extends Error {}
 
 export interface UpsertExerciseInput {
   /** Omit to create a new custom exercise; provide to edit one (copy-on-write for a global row, ADR-008). */
@@ -55,6 +66,9 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
       if (!input.name || !input.trackingType) {
         throw new Error("name and trackingType are required to create a new exercise");
       }
+      const primaryMuscles = input.primaryMuscles ?? [];
+      const tagsError = muscleTagsError("strength", primaryMuscles);
+      if (tagsError) throw new MuscleTagsError(tagsError);
       const id = uuidv7();
       await tx.insert(exercises).values({
         id,
@@ -62,8 +76,11 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
         slug: slugify(input.name),
         name: input.name,
         aliases: input.aliases ?? [],
-        primaryMuscles: (input.primaryMuscles ?? []) as ExerciseRow["primaryMuscles"],
-        secondaryMuscles: (input.secondaryMuscles ?? []) as ExerciseRow["secondaryMuscles"],
+        primaryMuscles: primaryMuscles as ExerciseRow["primaryMuscles"],
+        secondaryMuscles: withoutPrimary(
+          input.secondaryMuscles ?? [],
+          primaryMuscles,
+        ) as ExerciseRow["secondaryMuscles"],
         equipment: input.equipment ?? null,
         mechanic: input.mechanic ?? null,
         force: input.force ?? null,
@@ -81,14 +98,27 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
     const [current] = await tx.select().from(exercises).where(eq(exercises.id, input.id));
     if (!current) throw new ExerciseNotFoundError(input.id);
 
+    // Only an edit that sets the muscles is checked, so renaming an exercise
+    // that was saved untagged before #643 still works.
+    const primaryMuscles = input.primaryMuscles ?? current.primaryMuscles;
+    if (input.primaryMuscles !== undefined) {
+      const tagsError = muscleTagsError(current.category, primaryMuscles);
+      if (tagsError) throw new MuscleTagsError(tagsError);
+    }
+    const musclesEdited =
+      input.primaryMuscles !== undefined || input.secondaryMuscles !== undefined;
+
     const edits: Partial<ExerciseRow> = {
       ...(input.name !== undefined && { name: input.name }),
       ...(input.aliases !== undefined && { aliases: input.aliases }),
       ...(input.primaryMuscles !== undefined && {
         primaryMuscles: input.primaryMuscles as ExerciseRow["primaryMuscles"],
       }),
-      ...(input.secondaryMuscles !== undefined && {
-        secondaryMuscles: input.secondaryMuscles as ExerciseRow["secondaryMuscles"],
+      ...(musclesEdited && {
+        secondaryMuscles: withoutPrimary(
+          input.secondaryMuscles ?? current.secondaryMuscles,
+          primaryMuscles,
+        ) as ExerciseRow["secondaryMuscles"],
       }),
       ...(input.equipment !== undefined && { equipment: input.equipment }),
       ...(input.mechanic !== undefined && { mechanic: input.mechanic }),

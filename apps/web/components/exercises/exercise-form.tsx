@@ -17,15 +17,17 @@ import {
   applyExerciseEdit,
   cleanMachineText,
   exerciseCategoryOf,
+  muscleTagsError,
   normalizeVideoUrl,
   slugify,
   uuidv7,
+  withoutPrimary,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const TRACKING_TYPES = [
   "weight_reps",
@@ -91,6 +93,8 @@ export function ExerciseForm({
     defaultTrackingType(initialCategory),
   );
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
+  const [secondaryMuscles, setSecondaryMuscles] = useState<Muscle[]>([]);
+  const [muscleError, setMuscleError] = useState<string | null>(null);
   const [instructionsText, setInstructionsText] = useState("");
   const [videoUrlText, setVideoUrlText] = useState("");
   const [machineBrand, setMachineBrand] = useState("");
@@ -102,14 +106,18 @@ export function ExerciseForm({
   const gymRows = useLiveQuery(() => db.gyms.toArray(), []);
   const gyms = sortGyms(gymRows ?? []);
 
-  // Populate the form once the existing row loads (edit mode).
+  // Populate the form once the existing row loads (edit mode). Seed it once,
+  // so a sync landing mid-edit can't replace what's being picked (#518).
+  const seededFrom = useRef<string | null>(null);
   useEffect(() => {
-    if (!existing) return;
+    if (!existing || seededFrom.current === existing.id) return;
+    seededFrom.current = existing.id;
     setName(existing.name);
     setEquipment(existing.equipment ?? "");
     setCategory(exerciseCategoryOf(existing));
     setTrackingType(existing.trackingType);
     setPrimaryMuscles([...existing.primaryMuscles]);
+    setSecondaryMuscles([...existing.secondaryMuscles]);
     setInstructionsText(existing.instructions.join("\n"));
     setVideoUrlText(existing.videoUrl ?? "");
     setMachineBrand(existing.machineBrand ?? "");
@@ -144,10 +152,25 @@ export function ExerciseForm({
     return t.replace(/_/g, " ");
   }
 
-  function toggleMuscle(muscle: Muscle) {
-    setPrimaryMuscles((current) =>
-      current.includes(muscle) ? current.filter((m) => m !== muscle) : [...current, muscle],
-    );
+  // A muscle is primary or secondary, not both (issue #643): picking it in
+  // one list takes it out of the other.
+  function togglePrimary(muscle: Muscle) {
+    if (primaryMuscles.includes(muscle)) {
+      setPrimaryMuscles(primaryMuscles.filter((m) => m !== muscle));
+      return;
+    }
+    setPrimaryMuscles([...primaryMuscles, muscle]);
+    setSecondaryMuscles(secondaryMuscles.filter((m) => m !== muscle));
+    setMuscleError(null);
+  }
+
+  function toggleSecondary(muscle: Muscle) {
+    if (secondaryMuscles.includes(muscle)) {
+      setSecondaryMuscles(secondaryMuscles.filter((m) => m !== muscle));
+      return;
+    }
+    setSecondaryMuscles([...secondaryMuscles, muscle]);
+    setPrimaryMuscles(primaryMuscles.filter((m) => m !== muscle));
   }
 
   // A failed save frees the button and says so instead of sticking on
@@ -155,6 +178,10 @@ export function ExerciseForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
+    // An untagged strength exercise counts toward no muscle's volume (#643).
+    const tagsError = muscleTagsError(category, primaryMuscles);
+    setMuscleError(tagsError);
+    if (tagsError) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -191,7 +218,7 @@ export function ExerciseForm({
         name,
         aliases: [],
         primaryMuscles,
-        secondaryMuscles: [],
+        secondaryMuscles: withoutPrimary(secondaryMuscles, primaryMuscles),
         equipment: equipment.trim() || null,
         mechanic: null,
         force: null,
@@ -217,6 +244,7 @@ export function ExerciseForm({
           trackingType,
           category,
           primaryMuscles,
+          secondaryMuscles: withoutPrimary(secondaryMuscles, primaryMuscles),
           instructions,
           videoUrl,
           ...machine,
@@ -436,29 +464,19 @@ export function ExerciseForm({
           </select>
         </label>
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium">Primary muscles</legend>
-          <div className="flex flex-wrap gap-2">
-            {MUSCLES.map((muscle) => {
-              const active = primaryMuscles.includes(muscle);
-              return (
-                <button
-                  key={muscle}
-                  type="button"
-                  onClick={() => toggleMuscle(muscle)}
-                  aria-pressed={active}
-                  className={`min-h-11 rounded-full border px-3 py-1.5 text-sm ${
-                    active
-                      ? "border-accent bg-accent text-accent-foreground"
-                      : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
-                  }`}
-                >
-                  {muscle}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+        <MusclePicker
+          legend="Primary muscles"
+          hint="Each set counts as a full set for these muscles."
+          selected={primaryMuscles}
+          onToggle={togglePrimary}
+        />
+
+        <MusclePicker
+          legend="Secondary muscles"
+          hint="Muscles that help out. Each set counts as half a set for these."
+          selected={secondaryMuscles}
+          onToggle={toggleSecondary}
+        />
 
         <label className="flex flex-col gap-1 text-sm font-medium">
           Instructions (one step per line)
@@ -493,6 +511,12 @@ export function ExerciseForm({
           {saving ? "Saving…" : "Save"}
         </button>
 
+        {muscleError && (
+          <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-500">
+            {muscleError}
+          </p>
+        )}
+
         {saveError && (
           <p role="alert" className="allow-pwa-select text-sm text-red-600 dark:text-red-500">
             {saveError}
@@ -511,5 +535,44 @@ export function ExerciseForm({
         )}
       </form>
     </Container>
+  );
+}
+
+function MusclePicker({
+  legend,
+  hint,
+  selected,
+  onToggle,
+}: {
+  legend: string;
+  hint: string;
+  selected: readonly Muscle[];
+  onToggle: (muscle: Muscle) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-sm font-medium">{legend}</legend>
+      <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">{hint}</span>
+      <div className="flex flex-wrap gap-2">
+        {MUSCLES.map((muscle) => {
+          const active = selected.includes(muscle);
+          return (
+            <button
+              key={muscle}
+              type="button"
+              onClick={() => onToggle(muscle)}
+              aria-pressed={active}
+              className={`min-h-11 rounded-full border px-3 py-1.5 text-sm ${
+                active
+                  ? "border-accent bg-accent text-accent-foreground"
+                  : "border-zinc-300 text-zinc-700 dark:border-zinc-700 dark:text-zinc-300"
+              }`}
+            >
+              {muscle}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
