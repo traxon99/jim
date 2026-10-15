@@ -265,6 +265,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("log_past_workout (#244)", () =>
       const { id: theirExercise } = await upsertExercise(other, {
         name: "B's Secret Lift",
         trackingType: "weight_reps",
+        primaryMuscles: ["chest"],
       });
 
       await expect(

@@ -448,7 +448,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "upsert_exercise",
     {
       title: "Upsert exercise",
-      description: `Create a custom exercise, or edit one (editing a global catalog exercise clones it into your own copy, ADR-008).${PREVIEW_HINT}`,
+      description: `Create a custom exercise, or edit one (editing a global catalog exercise clones it into your own copy, ADR-008). A strength exercise needs at least one primary muscle; list helpers as secondary muscles (each counts half a set), not primary.${PREVIEW_HINT}`,
       inputSchema: {
         id: z.string().optional().describe("Omit to create a new exercise"),
         name: z.string().optional(),

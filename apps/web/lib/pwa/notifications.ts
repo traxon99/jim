@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "New in Settings → Advanced: a working set timer. Tap Start set and End set to time each set, and see your set times in history.";
+  "Custom exercises now ask for at least one primary muscle and can list secondary muscles, so every lift counts toward your weekly volume.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

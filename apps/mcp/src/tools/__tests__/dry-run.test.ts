@@ -102,6 +102,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("dry_run on MCP write tools (#24
     const created = await upsertExercise(context, {
       name: "Cable Fly",
       trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
       dryRun: true,
     });
     const cloned = await upsertExercise(context, { id: benchId, name: "My Bench", dryRun: true });
@@ -114,6 +115,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("dry_run on MCP write tools (#24
     const { id: mergeId } = await upsertExercise(context, {
       name: "Flat Bench",
       trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
     });
     await createRoutine(context, { name: "Chest", exercises: [{ exercise: mergeId }] });
 
@@ -137,6 +139,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("dry_run on MCP write tools (#24
     const { id: mergeId } = await upsertExercise(context, {
       name: "Box Squat",
       trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
     });
     const merge = await client.callTool({
       name: "merge_exercises",
