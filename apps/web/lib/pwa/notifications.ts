@@ -19,7 +19,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Custom exercises now ask for at least one primary muscle and can list secondary muscles, so every lift counts toward your weekly volume.";
+  "Logged sets now show weights like 100 instead of 100.00, so the ✓ on every set row stays on screen.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
