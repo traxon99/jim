@@ -58,6 +58,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 **Workout and set logic**
 - [ ] Matching this session's sets against last time's? Match by set kind **and** position, never by
       raw index. Warm-ups shifted Prev values and turned into extra working sets (#381).
+- [ ] Showing a stored weight, reps or RPE? Format it (`formatSetValue`): synced values are
+      Postgres numeric strings like "100.00" and "10.0", wider than phone-logged ones (#646).
 - [ ] Showing or pre-filling a computed weight? Round it to what the user's bar and plates can load
       (`nearestLoadableWeight`), never raw math like 51.08 (#320).
 - [ ] Counting training volume (sets, weight × reps, per muscle)? Count working sets only: leave
@@ -93,6 +95,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #646 | Synced sets read "100.00" and "10.0" in the active workout, and those rows pushed the ✓ off the card | The set row printed the server's numeric strings as-is, so they were wider than values logged on the phone | Display stored set values through `formatSetValue`; a long value drops a text size rather than widening its column |
 | #643 | A custom Bench Press and Squat counted toward no muscle, so weekly chest, shoulder and leg volume read low | The exercise form saved a strength exercise with no muscles and had no secondary picker, so users either left lifts untagged or tagged every helper as primary; `upsert_exercise` also allowed empty muscles | Strength exercises need a primary muscle in the form and the MCP (`muscleTagsError`); helpers go in the secondary picker, deduped with `withoutPrimary` |
 | #511 | Claude's weekly summary put a Sunday-evening workout in Los Angeles into the next week | Week grouping used the runtime's local date, and the MCP server runs in UTC | Server-side calendar math takes the user's stored IANA time zone (`users.time_zone`, reported by the phone); never the server's |
 | #520 | Cardio and warm-up sets, weigh-ins and measurements deleted in one tap with no Undo; removing a routine exercise, a program day or a gym, and skipping a PRP deload, didn't ask | Each screen chose its own delete behavior; the strength section's Undo (#318) was never shared | List rows delete with the shared `UndoBar`/`useUndoable` (components/undo-bar.tsx); removals that lose configuration ask with `confirm()` first |

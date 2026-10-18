@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setFieldEditPatch } from "../set-field-edit";
+import { formatSetValue, setFieldEditPatch } from "../set-field-edit";
 
 const logged = { weight: "135.00", reps: 5, rpe: "8.0" };
 
@@ -38,5 +38,29 @@ describe("setFieldEditPatch", () => {
   it("saves nothing for a value the server can't store (#500)", () => {
     expect(setFieldEditPatch(logged, "weight", "100000")).toBeNull();
     expect(setFieldEditPatch(logged, "reps", "12000")).toBeNull();
+  });
+});
+
+describe("formatSetValue", () => {
+  it("drops the trailing zeros synced values carry", () => {
+    expect(formatSetValue("100.00")).toBe("100");
+    expect(formatSetValue("110.50")).toBe("110.5");
+    expect(formatSetValue("10.0")).toBe("10");
+    expect(formatSetValue("7.5")).toBe("7.5");
+    expect(formatSetValue(90)).toBe("90");
+  });
+
+  it("formats values logged on the phone and synced ones the same way", () => {
+    expect(formatSetValue("135.00")).toBe(formatSetValue(135));
+  });
+
+  it("keeps at most two decimals", () => {
+    expect(formatSetValue(102.499999)).toBe("102.5");
+    expect(formatSetValue("22.68")).toBe("22.68");
+  });
+
+  it("shows nothing for a missing value", () => {
+    expect(formatSetValue(null)).toBe("");
+    expect(formatSetValue("")).toBe("");
   });
 });

@@ -2,7 +2,7 @@
 
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import type { SetKind } from "@/lib/sessions/set-kinds";
-import { type SetField, setFieldEditPatch } from "@/lib/workout/set-field-edit";
+import { type SetField, formatSetValue, setFieldEditPatch } from "@/lib/workout/set-field-edit";
 import { RPE_MAX, RPE_MIN } from "@jim/core";
 import { Check } from "lucide-react";
 import { useRef, useState } from "react";
@@ -48,6 +48,10 @@ const SIZES = {
   // A logged value reads as plain text but is its own tap target (issue
   // #234): tapping it swaps in an input for just that value.
   valueButton: "min-h-11 w-full rounded-md tabular-nums",
+  // Past five characters ("1002.5") a value drops a size, so a heavy or
+  // fractional weight can't widen its column and push the ✓ off the card
+  // (issue #646).
+  longValue: "text-base",
   // The Log ✓ stays put once the set is logged (issue #318), in a quieter
   // "done" state and not a button: a second tap in the same spot does
   // nothing, rather than landing on a delete button.
@@ -156,14 +160,18 @@ export function SetRow({
   }
 
   function editable(field: SetField, label: string, value: string | number | null) {
+    // Synced sets carry the server's "100.00"; show them like phone-logged ones.
+    const shown = formatSetValue(value);
     return (
       <EditableValue
         field={field}
         label={label}
-        value={value == null ? "" : String(value)}
+        value={shown}
         editing={editingField === field}
         inputClassName={sizes.input}
-        buttonClassName={sizes.valueButton}
+        buttonClassName={
+          shown.length > 5 ? `${sizes.valueButton} ${sizes.longValue}` : sizes.valueButton
+        }
         onStartEdit={() => setEditingField(field)}
         onCommit={(raw) => commit(field, raw)}
         onCancel={() => setEditingField(null)}
