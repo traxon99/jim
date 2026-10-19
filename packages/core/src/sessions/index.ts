@@ -12,3 +12,4 @@ export * from "./set-timer";
 export * from "./exercise-extras";
 export * from "./smart-workout";
 export * from "./set-limits";
+export * from "./workout-idle";

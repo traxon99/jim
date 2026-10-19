@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../defaults";
 import {
+  autoEndWorkoutMinutes,
   needsSetup,
   showsPaceTracker,
   showsRestStats,
@@ -85,6 +86,18 @@ describe("showsSetTimer", () => {
   it("treats a row cached before the setting existed as off", () => {
     const { showSetTimer: _, ...old } = DEFAULT_SETTINGS;
     expect(showsSetTimer(old as typeof DEFAULT_SETTINGS)).toBe(false);
+  });
+});
+
+describe("autoEndWorkoutMinutes", () => {
+  it("is the stored value, with null meaning Off", () => {
+    expect(autoEndWorkoutMinutes({ autoEndWorkoutMinutes: 90 })).toBe(90);
+    expect(autoEndWorkoutMinutes({ autoEndWorkoutMinutes: null })).toBeNull();
+  });
+
+  it("gives a row cached before the setting existed the 1 hr default", () => {
+    const { autoEndWorkoutMinutes: _, ...old } = DEFAULT_SETTINGS;
+    expect(autoEndWorkoutMinutes(old as typeof DEFAULT_SETTINGS)).toBe(60);
   });
 });
 

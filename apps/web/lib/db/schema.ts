@@ -117,6 +117,7 @@ export type SettingsRow = Pick<
   | "showSetTypes"
   | "showRestStats"
   | "showSetTimer"
+  | "autoEndWorkoutMinutes"
   | "sex"
   | "birthdate"
   | "heightCm"

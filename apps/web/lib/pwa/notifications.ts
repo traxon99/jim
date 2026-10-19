@@ -1,3 +1,5 @@
+import { IDLE_REMINDER_MINUTES, formatIdleMinutes } from "@jim/core";
+
 /**
  * Legacy per-browser "on" flag from before notifications moved to Web Push.
  * Only read now, to carry an existing opt-in over to a real push
@@ -19,7 +21,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Logged sets now show weights like 100 instead of 100.00, so the ✓ on every set row stays on screen.";
+  "Jim now nudges you when a workout sits idle for 10 minutes, and ends it after an hour of no activity (change it in Settings → Workout).";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
@@ -60,6 +62,35 @@ export function restCompleteMessage(): PushMessage {
     body: "Time for your next set.",
     url: "/",
     tag: "jim-rest-timer",
+  };
+}
+
+/**
+ * Sent when an active workout has gone `IDLE_REMINDER_MINUTES` with no
+ * activity (issue #648), scheduled through QStash like the rest timer
+ * (app/api/push/workout-idle). Tapping it opens the workout to finish it.
+ */
+export function idleWorkoutMessage(sessionId: string): PushMessage {
+  return {
+    title: "Still working out?",
+    body: `Nothing logged for ${formatIdleMinutes(IDLE_REMINDER_MINUTES)}. Open Jim to finish your workout.`,
+    url: `/workout/${sessionId}`,
+    tag: "jim-workout-idle",
+  };
+}
+
+/**
+ * Sent at the user's auto-end time (Settings → Workout, issue #648). The
+ * phone ends the workout itself the next time Jim runs, dated to its last
+ * activity, so the summary shows the time actually spent. Same tag as the
+ * reminder, so it replaces it.
+ */
+export function workoutAutoEndedMessage(sessionId: string, autoEndMinutes: number): PushMessage {
+  return {
+    title: "Workout ended",
+    body: `No activity for ${formatIdleMinutes(autoEndMinutes)}, so Jim ended your workout.`,
+    url: `/workout/${sessionId}`,
+    tag: "jim-workout-idle",
   };
 }
 

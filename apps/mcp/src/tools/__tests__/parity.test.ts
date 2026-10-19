@@ -320,6 +320,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       showRestStats: false,
       showRpe: true,
     });
+    // Idle workouts end after an hour by default (issue #648); null is Off.
+    expect((await getSettings(context)).autoEndWorkoutMinutes).toBe(60);
+    const autoEnd = await updateSettings(context, { autoEndWorkoutMinutes: null });
+    expect(autoEnd.settings.autoEndWorkoutMinutes).toBeNull();
     const timer = await updateSettings(context, { showSetTimer: true });
     expect(timer.changed).toEqual(["showSetTimer"]);
     expect(timer.settings.showSetTimer).toBe(true);

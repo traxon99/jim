@@ -1,7 +1,7 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
-import { isValidTimeZone } from "@jim/core";
+import { isValidAutoEndMinutes, isValidTimeZone } from "@jim/core";
 import { users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -42,6 +42,7 @@ interface SettingsPayload {
   showSetTypes: boolean;
   showRestStats: boolean;
   showSetTimer: boolean;
+  autoEndWorkoutMinutes: number | null;
   sex: "male" | "female" | null;
   birthdate: string | null;
   heightCm: string | null;
@@ -76,6 +77,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
+    autoEndWorkoutMinutes: row.autoEndWorkoutMinutes,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm,
@@ -170,6 +172,12 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     return false;
   }
   if ("showSetTimer" in candidate && typeof candidate.showSetTimer !== "boolean") {
+    return false;
+  }
+  if (
+    "autoEndWorkoutMinutes" in candidate &&
+    !isValidAutoEndMinutes(candidate.autoEndWorkoutMinutes)
+  ) {
     return false;
   }
   if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
@@ -292,6 +300,9 @@ export async function PATCH(request: Request) {
       if (body.showSetTypes !== undefined) patch.showSetTypes = body.showSetTypes;
       if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
       if (body.showSetTimer !== undefined) patch.showSetTimer = body.showSetTimer;
+      if (body.autoEndWorkoutMinutes !== undefined) {
+        patch.autoEndWorkoutMinutes = body.autoEndWorkoutMinutes;
+      }
       if (body.sex !== undefined) patch.sex = body.sex;
       if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
       if (body.heightCm !== undefined) {

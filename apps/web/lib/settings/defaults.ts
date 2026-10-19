@@ -1,4 +1,5 @@
 import type { SettingsRow } from "@/lib/db/schema";
+import { DEFAULT_AUTO_END_MINUTES } from "@jim/core";
 
 /** Mirrors packages/db's `users` table column defaults exactly. */
 export const DEFAULT_SETTINGS: SettingsRow = {
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   showSetTypes: true,
   showRestStats: true,
   showSetTimer: false,
+  autoEndWorkoutMinutes: DEFAULT_AUTO_END_MINUTES,
   sex: null,
   birthdate: null,
   heightCm: null,

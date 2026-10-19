@@ -1,4 +1,11 @@
-import { MEASUREMENT_KINDS, PROGRESSION_TYPES, RPE_MAX, RPE_MIN } from "@jim/core";
+import {
+  MAX_AUTO_END_MINUTES,
+  MEASUREMENT_KINDS,
+  MIN_AUTO_END_MINUTES,
+  PROGRESSION_TYPES,
+  RPE_MAX,
+  RPE_MIN,
+} from "@jim/core";
 import {
   accentColorEnum,
   cardStyleEnum,
@@ -799,7 +806,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Get settings",
       description:
-        "Read-only. The user's settings: units, bar weight, plates, default rest, week start, appearance, Advanced feature switches, profile (sex, birthdate, height, bodyweight) and PR Progression (PRP, stored as dpr*) options.",
+        "Read-only. The user's settings: units, bar weight, plates, default rest, idle-workout auto-end, week start, appearance, Advanced feature switches, profile (sex, birthdate, height, bodyweight) and PR Progression (PRP, stored as dpr*) options.",
       inputSchema: {},
     },
     handle(() => getSettings(context)),
@@ -848,6 +855,16 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional()
           .describe(
             "Working set timer (off by default): Start set / End set during a workout times each set, shown in summaries and history",
+          ),
+        autoEndWorkoutMinutes: z
+          .number()
+          .int()
+          .min(MIN_AUTO_END_MINUTES)
+          .max(MAX_AUTO_END_MINUTES)
+          .nullable()
+          .optional()
+          .describe(
+            "Minutes with no activity before the phone ends a workout by itself (default 60); null turns auto-end off",
           ),
         sex: z.enum(sexEnum.enumValues).nullable().optional(),
         birthdate: z

@@ -1,4 +1,5 @@
 import type { SettingsRow } from "@/lib/db/schema";
+import { DEFAULT_SETTINGS } from "./defaults";
 
 type FeatureSettings = Pick<SettingsRow, "advancedFeatures" | "dprEnabled" | "showRpe">;
 
@@ -67,4 +68,16 @@ export function showsSetTimer(
  */
 export function needsSetup(row: Pick<SettingsRow, "onboardedAt"> | undefined): boolean {
   return row !== undefined && row.onboardedAt === null;
+}
+
+/**
+ * Minutes of no activity before a workout ends by itself (issue #648), or
+ * null with auto-end off. Not an Advanced switch: it applies in Simple mode
+ * too. A settings row cached before the setting existed gets the default.
+ */
+export function autoEndWorkoutMinutes(
+  settings: Pick<SettingsRow, "autoEndWorkoutMinutes">,
+): number | null {
+  const minutes = settings.autoEndWorkoutMinutes;
+  return minutes === undefined ? DEFAULT_SETTINGS.autoEndWorkoutMinutes : minutes;
 }
