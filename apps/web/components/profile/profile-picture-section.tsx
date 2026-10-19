@@ -4,6 +4,7 @@ import { Avatar } from "@/components/friends/avatar";
 import { photoToAvatar } from "@/lib/friends/avatar-image";
 import { fetchProfile, updateProfile } from "@/lib/friends/client";
 import type { ProfilePayload } from "@/lib/friends/types";
+import { refreshFriends } from "@/lib/friends/use-friends";
 import { Trash2 } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
@@ -30,8 +31,11 @@ export function ProfilePictureSection() {
 
   async function save(avatar: string | null) {
     const result = await updateProfile({ avatar });
-    if (result.ok) setProfile(result.value);
-    else setError(result.error);
+    if (result.ok) {
+      setProfile(result.value);
+      // Home shows it too, and stays mounted (#524).
+      void refreshFriends();
+    } else setError(result.error);
   }
 
   async function handlePick(event: ChangeEvent<HTMLInputElement>) {

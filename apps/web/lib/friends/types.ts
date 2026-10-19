@@ -17,6 +17,8 @@ export interface FriendEntry {
 export interface FriendsPayload {
   /** The signed-in user's own username. */
   username: string | null;
+  /** The signed-in user's own profile picture, or null. */
+  avatar: string | null;
   friends: FriendEntry[];
 }
 
