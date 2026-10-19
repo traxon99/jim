@@ -25,3 +25,29 @@ export function reorderRoutineExercises<T extends { id: string; position: number
 
   return ordered.map((item, index) => ({ ...item, position: index }));
 }
+
+/**
+ * Puts `items` in the order `orderedIds` lists them (issue #658), reusing the
+ * items' own positions so anything outside `items` (a workout's warm-ups)
+ * keeps its place. Positions are bumped where needed to stay strictly
+ * increasing, so two items that shared a position get a definite order.
+ * Items missing from `orderedIds` keep their relative order after the rest.
+ */
+export function applyItemOrder<T extends { id: string; position: number }>(
+  items: readonly T[],
+  orderedIds: readonly string[],
+): T[] {
+  const sorted = [...items].sort((a, b) => a.position - b.position);
+  const rank = new Map(orderedIds.map((id, index) => [id, index]));
+  const ordered = [...sorted].sort(
+    (a, b) =>
+      (rank.get(a.id) ?? Number.POSITIVE_INFINITY) - (rank.get(b.id) ?? Number.POSITIVE_INFINITY),
+  );
+  let previous = Number.NEGATIVE_INFINITY;
+  return ordered.map((item, index) => {
+    const slot = sorted[index]?.position ?? index;
+    const position = Math.max(slot, previous + 1);
+    previous = position;
+    return { ...item, position };
+  });
+}

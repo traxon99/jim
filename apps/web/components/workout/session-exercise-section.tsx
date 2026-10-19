@@ -5,6 +5,7 @@ import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
+import { type LongPressStart, useLongPress } from "@/components/workout/use-long-press";
 import { mutate } from "@/lib/db/mutate";
 import {
   type ExerciseRow,
@@ -110,6 +111,11 @@ interface Props {
    * rest): Replace, superset options, Preferences and Remove (#269, #271).
    */
   actions: readonly ExerciseAction[];
+  /**
+   * Press and hold the exercise name to rearrange the workout (issue #658);
+   * the finger is still down when it's called.
+   */
+  onNameLongPress?: (start: LongPressStart) => void;
 }
 
 function toNumberOrNull(value: string): number | null {
@@ -196,7 +202,9 @@ export function SessionExerciseSection({
   onSetLogged,
   workSeconds,
   actions,
+  onNameLongPress,
 }: Props) {
+  const nameLongPress = useLongPress(onNameLongPress);
   const sizes = sizesFor(large);
   const fieldId = useId();
   const rawSets = useLiveQuery(
@@ -826,7 +834,12 @@ export function SessionExerciseSection({
         <h2 className={`${sizes.title} flex min-w-0 items-center gap-2`}>
           {supersetLabel && <SupersetBadge label={supersetLabel} />}
           {exercise ? (
-            <button type="button" onClick={() => setDetailOpen(true)} className="min-w-0 text-left">
+            <button
+              type="button"
+              {...nameLongPress}
+              onClick={() => setDetailOpen(true)}
+              className="min-w-0 text-left"
+            >
               {exerciseDisplayName(exercise)}
             </button>
           ) : (

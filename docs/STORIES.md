@@ -155,6 +155,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - Plate-math breakdown from the user's configured bar and available plates
 - Live PR detection with inline celebration
 - Session and per-exercise notes
+- Rearrange exercises mid-workout: press and hold an exercise name to collapse the workout to a list of names and drag one to a new spot (#658)
 - Screen Wake Lock held for the session's duration
 - Finalize: summary of volume, duration and PRs
 

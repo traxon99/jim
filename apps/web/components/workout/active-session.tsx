@@ -6,6 +6,7 @@ import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import {
   preferencesAction,
   removeExerciseAction,
+  reorderExercisesAction,
   replaceExerciseAction,
   supersetActions,
   supersetMemberIds,
@@ -34,6 +35,7 @@ import {
   addExerciseItems,
   applySupersetChanges as applyItemSupersetChanges,
   formSupersetIn,
+  reorderItemsIn,
 } from "@/lib/supersets/item-mutations";
 import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
@@ -64,10 +66,12 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FocusView, type FocusViewExercise } from "./focus-view";
 import { PaceTracker } from "./pace-tracker";
+import { ReorderExercisesSheet } from "./reorder-exercises-sheet";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
 import { SessionSummary } from "./session-summary";
 import { SetTimerBar } from "./set-timer-bar";
+import type { LongPressStart } from "./use-long-press";
 import { WarmupBlock } from "./warmup-block";
 import { WarmupExerciseSection } from "./warmup-exercise-section";
 
@@ -100,6 +104,12 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const [cancelling, setCancelling] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  // The condensed list for rearranging (issue #658): which exercise opened
+  // it, and the finger still holding it when a long press did.
+  const [reordering, setReordering] = useState<{
+    itemId: string;
+    start: LongPressStart | null;
+  } | null>(null);
 
   const session = useLiveQuery(async () => (await db.sessions.get(id)) ?? null, [id]);
   const rawSessionExercises = useLiveQuery(
@@ -443,6 +453,27 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     await applySupersetChanges(normalizeSupersets(mainItems.filter((se) => se.id !== itemId)));
   }
 
+  // Warm-ups and the main exercises are rearranged within their own block:
+  // warm-ups always display first (issue #59).
+  function reorderGroupOf(itemId: string): SessionExerciseRow[] {
+    return warmupItems.some((se) => se.id === itemId) ? warmupItems : mainItems;
+  }
+
+  async function handleReorder(itemId: string, orderedIds: string[]) {
+    const group = reorderGroupOf(itemId);
+    const focusedId = sessionExercises[clampedFocusedIndex]?.id;
+    await reorderItemsIn("sessionExercises", group, orderedIds);
+    // Focus view follows the exercise it was on, not the index.
+    if (focusMode && focusedId) {
+      const reordered =
+        group === warmupItems
+          ? [...orderedIds, ...mainItems.map((se) => se.id)]
+          : [...warmupItems.map((se) => se.id), ...orderedIds];
+      const index = reordered.indexOf(focusedId);
+      if (index !== -1) setFocusedIndex(index);
+    }
+  }
+
   async function handleNotesBlur() {
     if (!session) return;
     const deviceId = await getDeviceId();
@@ -517,6 +548,14 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   function renderExercise(item: (typeof sessionExercises)[number], large = false) {
     const exercise = exerciseById.get(item.exerciseId);
     const target = targetByExerciseId.get(item.exerciseId);
+    // Nothing to rearrange in a block of one.
+    const canReorder = reorderGroupOf(item.id).length > 1;
+    const onNameLongPress = canReorder
+      ? (start: LongPressStart) => setReordering({ itemId: item.id, start })
+      : undefined;
+    const reorderActions = canReorder
+      ? [reorderExercisesAction(() => setReordering({ itemId: item.id, start: null }))]
+      : [];
     if (exercise && isWarmupExercise(exercise)) {
       return (
         <WarmupExerciseSection
@@ -526,7 +565,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           exercise={exercise}
           target={target}
           large={large}
+          onNameLongPress={onNameLongPress}
           actions={[
+            ...reorderActions,
             preferencesAction(item.exerciseId, router.push),
             removeExerciseAction(() => void handleRemoveExercise(item.id)),
           ]}
@@ -546,6 +587,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           onSetLogged={(restSeconds, remainingPlannedSets) =>
             handleSetLogged(item.id, restSeconds, remainingPlannedSets)
           }
+          onNameLongPress={onNameLongPress}
           actions={[
             ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
             ...supersetActions(
@@ -554,6 +596,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               (changes) => void applySupersetChanges(changes),
               () => setSupersetFromId(item.id),
             ),
+            ...reorderActions,
             preferencesAction(item.exerciseId, router.push),
             removeExerciseAction(() => void handleRemoveExercise(item.id)),
           ]}
@@ -590,6 +633,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         onSetLogged={(restSeconds, remainingPlannedSets) =>
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
+        onNameLongPress={onNameLongPress}
         actions={[
           ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
           // Supersets are among the main exercises only (warm-ups return above).
@@ -599,6 +643,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             (changes) => void applySupersetChanges(changes),
             () => setSupersetFromId(item.id),
           ),
+          ...reorderActions,
           preferencesAction(item.exerciseId, router.push),
           removeExerciseAction(() => void handleRemoveExercise(item.id)),
         ]}
@@ -834,6 +879,22 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             />
           );
         })()}
+
+      {reordering && (
+        <ReorderExercisesSheet
+          items={reorderGroupOf(reordering.itemId).map((se) => {
+            const exercise = exerciseById.get(se.exerciseId);
+            return {
+              id: se.id,
+              name: exercise ? exerciseDisplayName(exercise) : "Exercise",
+              supersetLabel: supersetLabelById.get(se.id) ?? null,
+            };
+          })}
+          initialDrag={reordering.start ? { ...reordering.start, id: reordering.itemId } : null}
+          onReorder={(orderedIds) => void handleReorder(reordering.itemId, orderedIds)}
+          onClose={() => setReordering(null)}
+        />
+      )}
 
       {!(focusMode && focusedItem) && timerBar(true)}
     </main>

@@ -6,7 +6,16 @@ import {
   supersetBlocks,
   supersetLinks,
 } from "@jim/core";
-import { Eye, Pencil, SlidersVertical, TextQuote, Undo2, Unlink, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  Eye,
+  Pencil,
+  SlidersVertical,
+  TextQuote,
+  Undo2,
+  Unlink,
+  X,
+} from "lucide-react";
 
 /**
  * The superset entries for the ⋯ menu of the exercise at `index` (issues
@@ -48,6 +57,14 @@ export function supersetMemberIds(items: readonly SupersetItem[], id: string): s
 /** Swap this exercise for another, through the picker. */
 export function replaceExerciseAction(onReplace: () => void): ExerciseAction {
   return { label: "Replace Exercise", icon: Undo2, onSelect: onReplace };
+}
+
+/**
+ * Opens the condensed list to rearrange the workout (issue #658), the same
+ * one a long press on an exercise name opens.
+ */
+export function reorderExercisesAction(onReorder: () => void): ExerciseAction {
+  return { label: "Reorder Exercises", icon: ArrowUpDown, onSelect: onReorder };
 }
 
 /** The Preferences › submenu: the exercise's own page and its edit form. */

@@ -3,6 +3,7 @@
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
+import { type LongPressStart, useLongPress } from "@/components/workout/use-long-press";
 import type {
   ExerciseRow,
   RoutineExerciseRow,
@@ -39,6 +40,11 @@ interface Props {
   /** The ⋯ menu's items (issue #269). */
   actions: readonly ExerciseAction[];
   onSetLogged: (restSeconds: number, remainingPlannedSets: number) => void;
+  /**
+   * Press and hold the exercise name to rearrange the workout (issue #658);
+   * the finger is still down when it's called.
+   */
+  onNameLongPress?: (start: LongPressStart) => void;
 }
 
 const RECORD_LABELS: Record<CardioRecordKind, string> = {
@@ -79,7 +85,9 @@ export function CardioExerciseSection({
   large = false,
   actions,
   onSetLogged,
+  onNameLongPress,
 }: Props) {
+  const nameLongPress = useLongPress(onNameLongPress);
   const fieldId = useId();
   const [distance, setDistance] = useState("");
   const [minutes, setMinutes] = useState("");
@@ -229,7 +237,12 @@ export function CardioExerciseSection({
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className={large ? "text-2xl font-bold" : "text-base font-semibold"}>
-            <button type="button" onClick={() => setDetailOpen(true)} className="text-left">
+            <button
+              type="button"
+              {...nameLongPress}
+              onClick={() => setDetailOpen(true)}
+              className="text-left"
+            >
               {exerciseDisplayName(exercise)}
             </button>
           </h3>
