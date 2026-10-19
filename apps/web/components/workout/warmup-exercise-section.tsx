@@ -3,6 +3,7 @@
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
+import { type LongPressStart, useLongPress } from "@/components/workout/use-long-press";
 import type { ExerciseRow, RoutineExerciseRow, SessionExerciseRow } from "@/lib/db/schema";
 import { type SetRow, db } from "@/lib/db/schema";
 import { alertSetValueError, completeSet, deleteSet, restoreSet } from "@/lib/sessions/set-actions";
@@ -20,6 +21,11 @@ interface Props {
   large?: boolean;
   /** The ⋯ menu's items (issue #269). */
   actions: readonly ExerciseAction[];
+  /**
+   * Press and hold the exercise name to rearrange the workout (issue #658);
+   * the finger is still down when it's called.
+   */
+  onNameLongPress?: (start: LongPressStart) => void;
 }
 
 function toPositiveIntOrNull(value: string): number | null {
@@ -42,7 +48,9 @@ export function WarmupExerciseSection({
   target,
   large = false,
   actions,
+  onNameLongPress,
 }: Props) {
+  const nameLongPress = useLongPress(onNameLongPress);
   const fieldId = useId();
   const [value, setValue] = useState("");
   const [showHowTo, setShowHowTo] = useState(false);
@@ -110,7 +118,12 @@ export function WarmupExerciseSection({
         <div className="flex min-w-0 flex-col gap-0.5">
           <h3 className={large ? "text-2xl font-bold" : "text-base font-semibold"}>
             {exercise ? (
-              <button type="button" onClick={() => setDetailOpen(true)} className="text-left">
+              <button
+                type="button"
+                {...nameLongPress}
+                onClick={() => setDetailOpen(true)}
+                className="text-left"
+              >
                 {exerciseDisplayName(exercise)}
               </button>
             ) : (

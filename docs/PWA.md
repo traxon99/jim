@@ -97,6 +97,12 @@ does nothing, which is how it shipped at first (579b923).
 Reorder handles (`routine-exercise-row.tsx`, `program-routine-row.tsx`) are `touch-none` so a drag
 reorders instead of scrolling the list.
 
+A drag that starts with a long press on something that scrolls (an exercise name in the workout,
+`use-long-press.ts` → `reorder-exercises-sheet.tsx`, #658) can't rely on `touch-none`: touch-action
+is fixed when the finger lands. Instead the drag adds a non-passive `touchmove` listener on `window`
+that calls `preventDefault()` while it runs, and the long press gives up if the finger moves first,
+so a scroll never turns into a drag.
+
 ---
 
 ## 3. Never widen the page
@@ -162,7 +168,7 @@ The current scale:
 |---|---|
 | `z-10` | In-flow chrome and small popups: `RestTimerBar` (sticky), `SetKindMenu`, `RpeInfoMenu`, `ExerciseActionsMenu` |
 | `z-20` | Full-screen overlays: `FocusView`, `ExercisePicker` (never shown together; the picker is portaled to `<body>`), `FloatingCard` (portaled to `<body>`) |
-| `z-30` | `ExerciseDialog` (sticky note, rest timer; portaled to `<body>`), which can open over Focus view |
+| `z-30` | `ExerciseDialog` (sticky note, rest timer; portaled to `<body>`), which can open over Focus view; `ReorderExercisesSheet` (portaled), opened by a long press on an exercise name, Focus view included |
 | `z-50` | Boot `LoadingScreen` (above everything) |
 
 **A z-index only competes inside its stacking context, and `fixed` doesn't escape it.** The DPR

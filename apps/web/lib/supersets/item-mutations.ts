@@ -1,7 +1,13 @@
 import { mutate } from "@/lib/db/mutate";
 import { type JimDatabase, type SyncTableRowMap, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
-import { type SupersetChange, formSuperset, nextSupersetGroup } from "@jim/core";
+import {
+  type SupersetChange,
+  applyItemOrder,
+  formSuperset,
+  nextSupersetGroup,
+  normalizeSupersets,
+} from "@jim/core";
 
 /**
  * The exercise lists the workout and the routine editor both edit the same
@@ -56,6 +62,39 @@ export async function formSupersetIn<T extends ExerciseItemTable>(
     await mutate(
       table,
       { ...original, position, supersetGroup: item.supersetGroup, updatedAt: now, deviceId },
+      database,
+    );
+  }
+}
+
+/**
+ * Saves `items` in the order `orderedIds` lists them (issue #658). The items
+ * reuse their own positions, so anything outside `items` (a workout's
+ * warm-ups) stays put, and a move that splits or strands a superset cleans
+ * it up (issue #228). Only rows whose position or group changed are written.
+ */
+export async function reorderItemsIn<T extends ExerciseItemTable>(
+  table: T,
+  items: readonly ItemRow<T>[],
+  orderedIds: readonly string[],
+  database: JimDatabase = db,
+): Promise<void> {
+  const reordered = applyItemOrder(items, orderedIds);
+  const groups = new Map(
+    normalizeSupersets(reordered).map((change) => [change.id, change.supersetGroup]),
+  );
+  const deviceId = await getDeviceId(database);
+  const now = new Date();
+  for (const item of reordered) {
+    const original = items.find((other) => other.id === item.id);
+    if (!original) continue;
+    const supersetGroup = groups.has(item.id)
+      ? (groups.get(item.id) ?? null)
+      : original.supersetGroup;
+    if (original.position === item.position && original.supersetGroup === supersetGroup) continue;
+    await mutate(
+      table,
+      { ...original, position: item.position, supersetGroup, updatedAt: now, deviceId },
       database,
     );
   }

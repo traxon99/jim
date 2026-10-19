@@ -26,6 +26,7 @@ import {
   addExerciseItems,
   applySupersetChanges as applyItemSupersetChanges,
   formSupersetIn,
+  reorderItemsIn,
 } from "@/lib/supersets/item-mutations";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -147,28 +148,11 @@ export function RoutineDetail({
 
     const reordered = reorderRoutineExercises(items, String(active.id), String(over.id));
     // A move can split a superset or strand one member (issue #228).
-    const groups = new Map(
-      normalizeSupersets(reordered).map((change) => [change.id, change.supersetGroup]),
+    await reorderItemsIn(
+      "routineExercises",
+      items,
+      reordered.map((item) => item.id),
     );
-    const deviceId = await getDeviceId();
-    const now = new Date();
-
-    for (const reorderedItem of reordered) {
-      const original = items.find((item) => item.id === reorderedItem.id);
-      if (!original) continue;
-      const supersetGroup = groups.has(original.id)
-        ? (groups.get(original.id) ?? null)
-        : original.supersetGroup;
-      if (original.position === reorderedItem.position && original.supersetGroup === supersetGroup)
-        continue;
-      await mutate("routineExercises", {
-        ...original,
-        position: reorderedItem.position,
-        supersetGroup,
-        updatedAt: now,
-        deviceId,
-      });
-    }
   }
 
   function applySupersetChanges(changes: readonly SupersetChange[]) {
