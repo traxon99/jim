@@ -155,3 +155,41 @@ export async function cancelRestCompletePush(): Promise<void> {
   const response = await fetch("/api/push/rest-timer", { method: "DELETE", keepalive: true });
   if (!response.ok) throw new Error(`Cancelling the rest timer push failed (${response.status})`);
 }
+
+/**
+ * Hands the active workout's last activity to the server, which pushes
+ * "Still working out?" 10 minutes later and "Workout ended" at the auto-end
+ * time (issue #648, app/api/push/workout-idle). Resolves false when this
+ * device can't receive pushes; the phone still ends the workout itself.
+ */
+export async function scheduleWorkoutIdlePush(input: {
+  sessionId: string;
+  lastActivityAt: Date;
+  autoEndMinutes: number | null;
+}): Promise<boolean> {
+  if (process.env.NODE_ENV !== "production") return false;
+  if (currentPushSupport() !== "supported" || !VAPID_PUBLIC_KEY) return false;
+  if (Notification.permission !== "granted") return false;
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+  if (!subscription) return false;
+
+  const response = await fetch("/api/push/workout-idle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId: input.sessionId,
+      lastActivityAt: input.lastActivityAt.toISOString(),
+      autoEndMinutes: input.autoEndMinutes,
+      endpoint: subscription.endpoint,
+    }),
+  });
+  return response.ok;
+}
+
+/** Cancels the pushes scheduled by scheduleWorkoutIdlePush (the workout is over). */
+export async function cancelWorkoutIdlePush(): Promise<void> {
+  const response = await fetch("/api/push/workout-idle", { method: "DELETE", keepalive: true });
+  if (!response.ok) throw new Error(`Cancelling the workout idle push failed (${response.status})`);
+}

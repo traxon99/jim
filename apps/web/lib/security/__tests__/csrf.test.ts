@@ -39,13 +39,11 @@ describe("isCrossOriginMutation", () => {
     ).toBe(false);
   });
 
-  it("exempts the QStash callback", () => {
-    expect(
-      isCrossOriginMutation({
-        ...base,
-        pathname: "/api/push/rest-timer/fire",
-        origin: "https://qstash.upstash.io",
-      }),
-    ).toBe(false);
+  it("exempts the QStash callbacks", () => {
+    for (const pathname of ["/api/push/rest-timer/fire", "/api/push/workout-idle/fire"]) {
+      expect(
+        isCrossOriginMutation({ ...base, pathname, origin: "https://qstash.upstash.io" }),
+      ).toBe(false);
+    }
   });
 });

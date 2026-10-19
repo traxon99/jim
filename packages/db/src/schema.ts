@@ -218,6 +218,10 @@ export const users = pgTable(
     // Working set timer (issue #634): a Start set / End set timer that times
     // each set. Unlike the switches above it's off until turned on.
     showSetTimer: boolean("show_set_timer").notNull().default(false),
+    // Ends a workout left open with no activity for this many minutes
+    // (issue #648); null turns auto-end off. The phone ends it; the server
+    // only pushes the "Workout ended" alert (workout_idle_pushes below).
+    autoEndWorkoutMinutes: integer("auto_end_workout_minutes").default(60),
     // When the user finished or skipped the setup walkthrough (issue #464).
     // Null means a new user who hasn't seen it yet; existing rows were
     // backfilled so only new sign-ups get it.
@@ -942,6 +946,32 @@ export const restTimerPushes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [...ownRowPolicies("rest_timer_pushes", table.userId)],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// workout_idle_pushes — at most one per user (issue #648): the active
+// workout's last activity, and the device that logged it. POST
+// /api/push/workout-idle upserts it and schedules a QStash callback 10
+// minutes later ("Still working out?"), which in turn schedules one at the
+// user's auto-end time ("Workout ended"). A callback only sends while the row
+// still holds the same `last_activity_at`, so a new set (a new upsert) or a
+// finished workout (DELETE) quietly invalidates the earlier ones, the same
+// way rest_timer_pushes works (ADR-014).
+// ---------------------------------------------------------------------------
+
+export const workoutIdlePushes = pgTable(
+  "workout_idle_pushes",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").notNull(),
+    endpoint: text("endpoint").notNull(),
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull(),
+    autoEndMinutes: integer("auto_end_minutes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [...ownRowPolicies("workout_idle_pushes", table.userId)],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------

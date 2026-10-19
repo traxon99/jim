@@ -8,6 +8,7 @@ import { SyncEngineBoot } from "@/components/sync-engine-boot";
 import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { TabbedShell } from "@/components/tabbed-shell";
 import { WorkoutHome } from "@/components/workout/workout-home";
+import { WorkoutIdleWatcher } from "@/components/workout/workout-idle-watcher";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ShellLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +47,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
     // up under the status bar scrim instead of into a solid band (issue #305).
     <div data-edge-to-edge className="relative flex min-h-0 flex-1 flex-col">
       <SyncEngineBoot />
+      <WorkoutIdleWatcher />
       <SetupGate />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {/* The tab bar floats over the bottom of this scroller (content blurs

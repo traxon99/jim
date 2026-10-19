@@ -23,11 +23,15 @@ async function hasLoggedSets(sessionId: string, database: JimDatabase): Promise<
  * sync trigger (ADR-002, docs/ARCHITECTURE.md §3), not something that waits
  * for the next foreground trigger. A session with no exercises added, or none
  * with any set logged, is cancelled (soft-deleted) instead of being tracked.
+ *
+ * `endedAt` defaults to now; auto-end (issue #648) passes the workout's last
+ * activity instead, so an idle hour doesn't count as training time.
  */
 export async function finalizeSession(
   session: SessionRow,
   database: JimDatabase = db,
   fetchImpl: typeof fetch = fetch,
+  endedAt?: Date,
 ): Promise<{ cancelled: boolean }> {
   const deviceId = await getDeviceId(database);
   const now = new Date();
@@ -37,7 +41,7 @@ export async function finalizeSession(
     "sessions",
     cancelled
       ? { ...session, deletedAt: now, updatedAt: now, deviceId }
-      : { ...session, endedAt: now, updatedAt: now, deviceId },
+      : { ...session, endedAt: endedAt ?? now, updatedAt: now, deviceId },
     database,
   );
   await runSyncCycle(database, fetchImpl);

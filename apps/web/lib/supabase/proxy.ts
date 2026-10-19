@@ -10,9 +10,10 @@ const PUBLIC_PATHS = [
   "/forgot-password",
   "/auth/confirm",
   "/auth/auth-code-error",
-  // QStash's server-to-server callback: no cookie, authenticated by its
+  // QStash's server-to-server callbacks: no cookie, authenticated by their
   // request signature instead (app/api/push/rest-timer/fire/route.ts).
   "/api/push/rest-timer/fire",
+  "/api/push/workout-idle/fire",
 ];
 
 /**

@@ -24,6 +24,7 @@ function toSettings(row: UserRow) {
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
+    autoEndWorkoutMinutes: row.autoEndWorkoutMinutes,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm == null ? null : Number(row.heightCm),

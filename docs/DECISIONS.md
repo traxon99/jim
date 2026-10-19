@@ -543,3 +543,35 @@ the installed app keeps (ADR-010). `/api/shares/*` still takes signing in.
   The snapshot holds only what the sharer chose to share (names, targets, notes), and the page
   sends `noindex`.
 
+
+---
+
+## ADR-021 — Idle workouts end on the phone; the server only sends the alerts
+
+**Status:** Accepted · 2026-10-19
+
+**Context.** A workout left open after the user walks out keeps running for hours and wrecks its
+duration (issue #648). The user wants a "Still working out?" push after 10 minutes with nothing
+logged, a setting to end workouts automatically after a period of no activity (default 1 hr), and
+a push saying the workout ended.
+
+**Decision.** The phone ends the workout; the server only times the pushes.
+
+- **Last activity** is the latest of the workout's start, its own edits, its exercises' edits and
+  its sets' `completedAt` (`lastWorkoutActivity` in `@jim/core`).
+- **Pushes.** `WorkoutIdleWatcher` (mounted in the shell, so any tab works) posts the active
+  workout's last activity to `/api/push/workout-idle` whenever it moves. The server keeps one
+  `workout_idle_pushes` row per user and publishes a QStash message for 10 minutes later; that
+  callback sends "Still working out?" and publishes the "Workout ended" one for the auto-end time.
+  Each callback sends only while the row still has the same `last_activity_at`, and the server's
+  copy of the session isn't ended or deleted, exactly as ADR-014 invalidates stale rests. Finishing,
+  cancelling or auto-ending deletes the row.
+- **Ending.** The watcher ends a workout idle past `users.auto_end_workout_minutes` on launch, on
+  returning to Jim and once a minute while open, with `ended_at` set to its last activity, so the
+  idle time never counts. Only the device that owns the session (its `device_id`) does this, since
+  another device may not have its latest sets yet.
+
+**Rejected: ending the session on the server when the "ended" callback fires.** ADR-007 keeps the
+live session phone-owned, and a server write would race sets the phone hasn't synced yet. The cost
+is that the portal and MCP show the workout as in progress until the phone next opens Jim; the push
+still arrives on time, and the workout's recorded end is the same either way.
