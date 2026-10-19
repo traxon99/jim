@@ -6,7 +6,5 @@ export default async function SettingsPage(props: PageProps<"/profile/settings">
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
-  return (
-    <SettingsHome email={data?.claims.email} userId={data?.claims.sub} fromHome={from === "home"} />
-  );
+  return <SettingsHome email={data?.claims.email} fromHome={from === "home"} />;
 }

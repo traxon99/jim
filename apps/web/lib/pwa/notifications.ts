@@ -21,7 +21,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Jim now nudges you when a workout sits idle for 10 minutes, and ends it after an hour of no activity (change it in Settings → Workout).";
+  "Settings is tidier: Account, Social, Workout, Appearance and Notifications each have their own screen.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
