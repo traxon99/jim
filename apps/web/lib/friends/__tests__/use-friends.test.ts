@@ -5,7 +5,7 @@ vi.mock("../client", () => ({ fetchFriends: () => fetchFriends() }));
 
 const { getFriendsLoad, refreshFriends, subscribeFriends } = await import("../use-friends");
 
-const payload = { username: "jim", friends: [] };
+const payload = { username: "jim", avatar: null, friends: [] };
 
 describe("shared friends state (#524)", () => {
   beforeEach(() => {

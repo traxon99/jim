@@ -43,7 +43,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
   it("creates the user's row with an email-derived username", async () => {
     signInAs(USER_B, "bob@example.com");
     const response = await friends.GET();
-    expect(await response.json()).toEqual({ username: "bob", friends: [] });
+    expect(await response.json()).toEqual({ username: "bob", avatar: null, friends: [] });
   });
 
   it("lets a user pick a new username, but not a taken one", async () => {

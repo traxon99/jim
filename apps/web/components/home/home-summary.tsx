@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/components/friends/avatar";
 import { db } from "@/lib/db/schema";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { useSessionList } from "@/lib/history/use-session-list";
@@ -36,7 +37,13 @@ const SHORTCUTS: readonly { href: string; label: string; Icon: LucideIcon }[] = 
  * for the last 7/30/90 days against the period before. All of it reads
  * local history, so it works offline.
  */
-export function HomeSummary({ username }: { username: string | null }) {
+export function HomeSummary({
+  username,
+  avatar,
+}: {
+  username: string | null;
+  avatar: string | null;
+}) {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const achievements = useAchievements();
   const [range, setRange] = useState<StatRange>(7);
@@ -68,12 +75,16 @@ export function HomeSummary({ username }: { username: string | null }) {
     <section className="flex w-full flex-col text-left">
       <div className="flex items-center gap-4 px-4 pt-2">
         {/* Not a link: the header's Profile button is the one way there (#528). */}
-        <span
-          aria-hidden="true"
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-bold uppercase text-accent-foreground"
-        >
-          {username ? username.charAt(0) : ""}
-        </span>
+        {avatar ? (
+          <Avatar username={username} avatar={avatar} className="h-16 w-16 text-2xl" />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent text-2xl font-bold uppercase text-accent-foreground"
+          >
+            {username ? username.charAt(0) : ""}
+          </span>
+        )}
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="allow-pwa-select truncate text-sm text-zinc-500 dark:text-zinc-500">
             Welcome back{username ? `, @${username}` : ""}

@@ -17,6 +17,7 @@ import { HomeShortcuts, HomeSummary } from "./home-summary";
 export function HomeScreen() {
   const { load } = useFriends();
   const username = load.status === "ready" ? load.username : null;
+  const avatar = load.status === "ready" ? load.avatar : null;
   const requests =
     load.status === "ready" ? load.friends.filter((f) => f.direction === "incoming").length : 0;
   const hasFriends = load.status === "ready" && load.friends.some((f) => f.status === "accepted");
@@ -60,7 +61,7 @@ export function HomeScreen() {
           </>
         }
       />
-      <HomeSummary username={username} />
+      <HomeSummary username={username} avatar={avatar} />
       <div className="flex flex-1 flex-col gap-6 bg-zinc-100 pt-5 pb-6 dark:bg-zinc-900/50">
         <HomeShortcuts />
         <div className="px-4">

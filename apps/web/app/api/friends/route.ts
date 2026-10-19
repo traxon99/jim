@@ -32,6 +32,7 @@ export async function GET() {
       const rows = await tx.execute<FriendRow>(sql`SELECT * FROM list_friends()`);
       return {
         username: me.username,
+        avatar: me.avatar,
         friends: rows.map((row) => ({
           userId: row.user_id,
           username: row.username,
