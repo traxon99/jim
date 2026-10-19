@@ -39,7 +39,7 @@ const FILES: {
     kind: "json",
     title: "Everything",
     description:
-      "All your data as JSON: workouts, routines, programs, custom exercises, PRs, measurements, PRP blocks, gyms and settings. The same file as Settings → Your data on the phone.",
+      "All your data as JSON: workouts, routines, programs, custom exercises, PRs, measurements, PRP blocks, gyms and settings. The same file as Settings → Account → Your data on the phone.",
     button: "Download JSON",
   },
 ];

@@ -50,7 +50,7 @@ function LinkReadyCard({
           </h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Anyone with Jim who opens it can add a copy of {title}. Later edits you make won't
-            change it. Revoke it any time from the link itself or in Settings.
+            change it. Revoke it any time from the link itself or in Settings → Social.
           </p>
           <p className="allow-pwa-select break-all rounded-lg bg-zinc-100 px-3 py-2 text-sm dark:bg-zinc-900">
             {url}

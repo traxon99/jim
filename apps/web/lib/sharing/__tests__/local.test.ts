@@ -301,7 +301,10 @@ describe("shareBackTarget", () => {
   it("returns to Settings when the link was opened from Shared links", () => {
     const id = "0b9d1a2e-3c4d-4e5f-8a6b-7c8d9e0f1a2b";
     expect(sharePath(id, "settings")).toBe(`/share/${id}?from=settings`);
-    expect(shareBackTarget("settings")).toEqual({ href: "/profile/settings", label: "Settings" });
+    expect(shareBackTarget("settings")).toEqual({
+      href: "/profile/settings/social",
+      label: "Social",
+    });
   });
 
   it("falls back to Routines for no or an unknown origin", () => {

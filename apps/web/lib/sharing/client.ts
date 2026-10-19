@@ -62,7 +62,7 @@ export type ShareOrigin = "settings";
 
 /** Where the share preview's Back button goes: the screen named by `?from=`, else Routines. */
 export function shareBackTarget(from: string | undefined): { href: string; label: string } {
-  if (from === "settings") return { href: "/profile/settings", label: "Settings" };
+  if (from === "settings") return { href: "/profile/settings/social", label: "Social" };
   return { href: "/routines", label: "Routines" };
 }
 

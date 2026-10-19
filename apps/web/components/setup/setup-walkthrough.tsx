@@ -447,7 +447,7 @@ export function SetupWalkthrough({ userId, from }: { userId: string; from: strin
                 pressed={!(prpChoice ?? settings.dprEnabled)}
                 onClick={() => setPrpChoice(false)}
                 title="Not now"
-                detail="Turn it on later in Settings."
+                detail="Turn it on later in Settings → Advanced."
               />
             </div>
             <div className="flex gap-2">
