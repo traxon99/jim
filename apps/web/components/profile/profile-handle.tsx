@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 /**
  * Your picture and @username at the top of Profile, read-only (issues #331,
- * #316): both are edited in Settings with the rest of your account details.
+ * #316): both are edited in Settings → Account, and your shared links live in Settings → Social.
  */
 export function ProfileHandle() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
@@ -51,13 +51,22 @@ export function ProfileHandle() {
           </button>
         </>
       )}
-      <Link
-        href="/profile/settings"
-        data-ripple
-        className="text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
-      >
-        Edit profile and sharing
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/profile/settings/account"
+          data-ripple
+          className="text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+        >
+          Edit profile
+        </Link>
+        <Link
+          href="/profile/settings/social"
+          data-ripple
+          className="text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
+        >
+          Sharing links
+        </Link>
+      </div>
     </div>
   );
 }
