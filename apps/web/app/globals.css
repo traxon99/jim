@@ -27,9 +27,16 @@
   --font-serif: var(--font-playfair-display);
 }
 
+:root {
+  /* Native controls (date and time pickers, selects, checkboxes, autofill,
+     scrollbars) follow this, not the `.dark` class (#669). */
+  color-scheme: light;
+}
+
 :root.dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  color-scheme: dark;
 }
 
 /* Accent color themes (Profile > Appearance, apps/web/components/profile/accent-color-section.tsx).
@@ -527,11 +534,11 @@ body.pwa {
   transition: opacity 200ms ease-out;
 }
 
-@media (prefers-color-scheme: dark) {
-  .loading-screen {
-    --splash-bg: #0a0a0a;
-    --splash-fg: #ededed;
-  }
+/* `.dark` is on <html> before first paint (lib/boot/color-scheme.ts), so the
+   splash follows the in-app setting, not just the system (#669). */
+:root.dark .loading-screen {
+  --splash-bg: #0a0a0a;
+  --splash-fg: #ededed;
 }
 
 .loading-screen[data-loaded="true"] {
