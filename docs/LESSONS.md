@@ -53,6 +53,10 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
 - [ ] Themed color? `bg-accent`/`text-accent-foreground`, never a fixed palette color (#445).
+- [ ] A view that swaps its content in place resets its scroller when the item changes, and a
+      strip of tap targets keeps `min-w-11` and scrolls sideways instead of shrinking (#677, #683).
+- [ ] A new iPhone screen size gets a `SPLASH_DEVICES` entry, or it launches on a blank white
+      screen (#672).
 - [ ] Adding a rule to `globals.css` that targets elements (`*`, `button`, `input`…)? Put it in
       `@layer base`. Unlayered CSS beats every Tailwind utility, which is how one rule switched off
       every `touch-none` (#663; guard test for `touch-action`).
