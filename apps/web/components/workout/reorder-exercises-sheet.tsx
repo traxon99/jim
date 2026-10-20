@@ -207,7 +207,7 @@ export function ReorderExercisesSheet({ items, initialDrag, onReorder, onClose }
     // and the rest timer bar (z-10); portaled out of the workout's scroller.
     <section
       aria-label="Reorder exercises"
-      className="route-fade fixed inset-0 z-30 flex flex-col overscroll-none bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50"
+      className="route-fade safe-x fixed inset-0 z-30 flex flex-col overscroll-none bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <header className="flex shrink-0 touch-none items-center justify-between gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">

@@ -1,4 +1,4 @@
-import { safeNextPath } from "@/lib/pwa/install-gate-exempt";
+import { PORTAL_PATH, safeNextPath } from "@/lib/pwa/install-gate-exempt";
 import { createClient } from "@/lib/supabase/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
@@ -14,6 +14,13 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) {
+      // A sign-up confirmation opens in Safari, not the installed app, so
+      // say where to go next instead of showing the install gate to someone
+      // who already installed Jim (#670). Password resets and the portal
+      // carry on to where they were headed.
+      if ((type === "signup" || type === "email") && !next.startsWith(PORTAL_PATH)) {
+        redirect(`/auth/confirmed?next=${encodeURIComponent(next)}`);
+      }
       redirect(next);
     }
   }

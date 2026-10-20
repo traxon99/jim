@@ -1,4 +1,3 @@
-import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -13,9 +12,14 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     start_url: "/workout",
     display: "standalone",
-    background_color: ICON_BACKGROUND,
-    theme_color: ICON_BACKGROUND,
+    // The app's light background: Android draws the launch screen and status
+    // bar from these, and a dark one flashed before a white app (#681). The
+    // viewport's themeColor pair follows the system theme after launch.
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     orientation: "portrait",
+    // Long-press shortcut on Android (#681).
+    shortcuts: [{ name: "Start workout", short_name: "Workout", url: "/workout" }],
     icons: [
       { src: "/icons/192", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/512", sizes: "512x512", type: "image/png", purpose: "any" },

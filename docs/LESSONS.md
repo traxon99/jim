@@ -50,6 +50,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       `globals.css`, so never give one `min-w-min`/`min-w-fit`; guard test), and
       `<input>`/`<select>` keep an intrinsic width unless they and every flex/grid ancestor have
       `min-w-0`. Fixing one form? Sweep its siblings (#458, #526).
+- [ ] A new full-screen `fixed` overlay? Add `safe-x` so it clears the Dynamic Island in landscape
+      (#673).
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
 - [ ] Themed color? `bg-accent`/`text-accent-foreground`, never a fixed palette color (#445).

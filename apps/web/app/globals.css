@@ -105,6 +105,17 @@ body {
   /* Bottom clearance is each screen's own job (the tab bar pads itself;
      centered auth screens don't reach the edge), so only top is global. */
   padding-top: env(safe-area-inset-top);
+  /* iOS ignores the manifest's portrait lock, so a phone on its side puts the
+     Dynamic Island over one edge (#673). Zero in portrait. Full-screen
+     overlays are `fixed`, outside this padding, and use `safe-x` instead. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Side safe areas for full-screen `fixed` overlays (#673). */
+@utility safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* The app shell ((shell)/layout.tsx) draws edge to edge instead: its scroller
@@ -479,7 +490,20 @@ body.pwa {
   animation: sheet-rise-out 160ms ease-in forwards;
 }
 
+/* The rest and set timer bars rise into place instead of snapping in (#680). */
+@keyframes timer-rise-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+.timer-rise {
+  animation: timer-rise-in 180ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .timer-rise,
   .page-fade,
   .route-fade,
   .sheet-backdrop,

@@ -100,7 +100,7 @@ self.addEventListener("push", (event) => {
         .showNotification(message.title || "Jim", {
           body: message.body || "",
           icon: "/icons/192",
-          badge: "/icons/192",
+          badge: "/icons/badge",
           tag: message.tag,
           data: { url: message.url || "/" },
         })
