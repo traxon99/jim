@@ -1,6 +1,6 @@
 "use client";
 
-import { BASE_TABS, type BaseTab } from "@/lib/navigation/tabs";
+import { BASE_TABS, type BaseTab, isExerciseCardPath } from "@/lib/navigation/tabs";
 import { usePathname } from "next/navigation";
 import { Activity, type ReactNode } from "react";
 
@@ -33,9 +33,7 @@ export function TabbedShell({
 }) {
   const pathname = usePathname();
   const isBaseTab = (BASE_TABS as readonly string[]).includes(pathname);
-  // Exercise detail is a floating card over the Exercises tab (issue #294),
-  // so that tab stays visible underneath instead of a blank page.
-  const isExerciseCard = /^\/exercises\/(?!new$)[^/]+$/.test(pathname);
+  const isExerciseCard = isExerciseCardPath(pathname);
   const activeTab: string = isExerciseCard ? "/exercises" : pathname;
 
   const content: Record<BaseTab, ReactNode> = {

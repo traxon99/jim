@@ -87,6 +87,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       action on one tab updates the others (#524, #653).
 - [ ] Depends on today's date? Use `useToday()` and list it in memo deps; iOS resumes a suspended
       app with yesterday's state (#523).
+- [ ] Theme-dependent paint (splash, `color-scheme`) is set before first paint, not after Dexie
+      loads. A tab or page keeps its own scroll position (`scrollKey`) (#666, #669).
 - [ ] A `setTimeout`/`setInterval` in a component or hook? Keep it in a ref and clear it on
       unmount (#549).
 - [ ] A screen that loads from the network? A failed load shows the error with Try again (#543).

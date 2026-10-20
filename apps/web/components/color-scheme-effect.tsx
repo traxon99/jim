@@ -1,5 +1,6 @@
 "use client";
 
+import { storeColorScheme } from "@/lib/boot/color-scheme";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -24,6 +25,12 @@ export function ColorSchemeEffect() {
   const accentColor = cached?.accentColor ?? DEFAULT_SETTINGS.accentColor;
   const fontFamily = cached?.fontFamily ?? DEFAULT_SETTINGS.fontFamily;
   const cardStyle = cached?.cardStyle ?? DEFAULT_SETTINGS.cardStyle;
+
+  useEffect(() => {
+    // Only once the row has loaded, so the default can't overwrite a stored
+    // choice. The next open applies it before first paint (#669).
+    if (cached) storeColorScheme(colorScheme);
+  }, [cached, colorScheme]);
 
   useEffect(() => {
     const root = document.documentElement;

@@ -1,5 +1,6 @@
 "use client";
 
+import { SHELL_SCROLLER_ATTRIBUTE } from "@/components/shell-scroller";
 import { type BaseTab, isTabActive } from "@/lib/navigation/tabs";
 import { useHasActiveSession } from "@/lib/sessions/use-active-session";
 import {
@@ -59,6 +60,14 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
+              onClick={() => {
+                // Tapping the tab you're already on scrolls it to the top,
+                // as in every iOS app (#666).
+                if (pathname !== href) return;
+                document
+                  .querySelector(`[${SHELL_SCROLLER_ATTRIBUTE}]`)
+                  ?.scrollTo({ top: 0, behavior: "smooth" });
+              }}
               data-ripple
               className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium leading-none ${
                 active ? "text-accent" : "text-zinc-500 dark:text-zinc-500"

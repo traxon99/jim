@@ -4,6 +4,7 @@ import { HistoryHome } from "@/components/history/history-home";
 import { HomeScreen } from "@/components/home/home-screen";
 import { RoutinesList } from "@/components/routines/routines-list";
 import { SetupGate } from "@/components/setup/setup-gate";
+import { ShellScroller } from "@/components/shell-scroller";
 import { SyncEngineBoot } from "@/components/sync-engine-boot";
 import { SyncStatusIndicator } from "@/components/sync-status-indicator";
 import { TabbedShell } from "@/components/tabbed-shell";
@@ -49,7 +50,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
       <SyncEngineBoot />
       <WorkoutIdleWatcher />
       <SetupGate />
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <ShellScroller>
         {/* The tab bar floats over the bottom of this scroller (content blurs
             under it), so pad by its measured height to keep the last row
             reachable. */}
@@ -62,7 +63,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         >
           <TabbedShell {...tabs}>{children}</TabbedShell>
         </div>
-      </div>
+      </ShellScroller>
       <BottomTabBar syncStatus={<SyncStatusIndicator />} />
     </div>
   );
