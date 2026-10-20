@@ -323,12 +323,13 @@ the exact same in-memory JS, React state included, indefinitely.
 ## 10. Verifying a UI change
 
 jsdom unit tests won't catch any of the layout bugs above. For anything that touches layout,
-overlays, popups, or inputs:
+overlays, popups, or inputs, run the real signed-in app with `pnpm dev:stack` and screenshot it
+with `pnpm dev:shot <path>` (the `run-app` skill, `.claude/skills/run-app/SKILL.md`), then:
 
 1. Run it at **393 × 852** (iPhone 16), and also at 430 wide if the layout depends on width.
 2. **Standalone mode matters.** `body.pwa` and all the installed-only CSS only apply under
-   `display-mode: standalone`. In Chromium, open it as an app window (or emulate the media
-   feature) so you're testing the real path.
+   `display-mode: standalone`. `dev:shot` and its `openApp` helper fake that for you; in your
+   own Chromium, open it as an app window so you're testing the real path.
 3. Try the things that broke before:
    - drag from the tab bar and from each fixed header or footer (the page must not move),
    - scroll to the bottom of the longest list and keep pulling,

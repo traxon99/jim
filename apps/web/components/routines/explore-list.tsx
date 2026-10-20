@@ -347,6 +347,7 @@ function ProgramCard({
           {addedProgramId ? (
             <Link
               href={`/routines/programs/${addedProgramId}`}
+              data-ripple
               className="flex min-h-11 items-center justify-center rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
             >
               Open program

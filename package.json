@@ -8,6 +8,8 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "pnpm --filter @jim/web dev",
+    "dev:stack": "pnpm --filter @jim/web dev:stack",
+    "dev:shot": "pnpm --filter @jim/web dev:shot",
     "build": "pnpm -r --filter=./packages/** --filter=./apps/** build",
     "test": "pnpm -r test",
     "lint": "biome check .",
