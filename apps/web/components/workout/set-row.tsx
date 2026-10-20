@@ -3,7 +3,7 @@
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import type { SetKind } from "@/lib/sessions/set-kinds";
 import { type SetField, formatSetValue, setFieldEditPatch } from "@/lib/workout/set-field-edit";
-import { RPE_MAX, RPE_MIN } from "@jim/core";
+import { normalizeDecimalInput } from "@jim/core";
 import { Check } from "lucide-react";
 import { useRef, useState } from "react";
 import { PrBadge } from "./pr-badge";
@@ -72,9 +72,10 @@ interface EditableValueProps {
 }
 
 const INPUT_ATTRS: Record<SetField, React.InputHTMLAttributes<HTMLInputElement>> = {
-  weight: { inputMode: "decimal" },
-  reps: { inputMode: "numeric" },
-  rpe: { inputMode: "decimal", min: RPE_MIN, max: RPE_MAX, step: 0.5 },
+  // Decimal fields are text, so a decimal comma isn't thrown away (#675).
+  weight: { type: "text", inputMode: "decimal" },
+  reps: { type: "number", inputMode: "numeric" },
+  rpe: { type: "text", inputMode: "decimal" },
 };
 
 function EditableValue({
@@ -111,14 +112,13 @@ function EditableValue({
 
   return (
     <input
-      type="number"
       {...INPUT_ATTRS[field]}
       // biome-ignore lint/a11y/noAutofocus: the input only exists because the value was just tapped
       autoFocus
       aria-label={label}
       value={draft}
       onFocus={(event) => event.currentTarget.select()}
-      onChange={(event) => setDraft(event.target.value)}
+      onChange={(event) => setDraft(normalizeDecimalInput(event.target.value))}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.currentTarget.blur();

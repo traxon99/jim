@@ -2,7 +2,7 @@
 
 import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
-import { DEFAULT_INCREMENTS, type EquipmentBucket } from "@jim/core";
+import { DEFAULT_INCREMENTS, type EquipmentBucket, normalizeDecimalInput } from "@jim/core";
 
 const BUCKET_LABELS: Record<EquipmentBucket, string> = {
   barbell: "Barbell",
@@ -78,13 +78,13 @@ export function DprSettings({
               <label key={bucket} className="flex flex-col gap-1 font-medium">
                 {BUCKET_LABELS[bucket]}
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
                   min="0"
                   step="any"
                   defaultValue={overrides[bucket]?.[units] ?? DEFAULT_INCREMENTS[bucket][units]}
                   key={`${bucket}-${units}-${overrides[bucket]?.[units] ?? "default"}`}
-                  onBlur={(event) => saveStep(bucket, event.target.value)}
+                  onBlur={(event) => saveStep(bucket, normalizeDecimalInput(event.target.value))}
                   className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                 />
               </label>

@@ -23,6 +23,7 @@ import {
   formatCardioSet,
   formatDuration,
   formatPace,
+  normalizeDecimalInput,
   resolveCurrentRows,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -320,13 +321,13 @@ export function CardioExerciseSection({
             </label>
             <input
               id={`${fieldId}-distance`}
-              type="number"
+              type="text"
               inputMode="decimal"
               min={0}
               step="0.01"
               placeholder={previousDistance != null ? String(previousDistance) : "0.0"}
               value={distance}
-              onChange={(event) => setDistance(event.target.value)}
+              onChange={(event) => setDistance(normalizeDecimalInput(event.target.value))}
               className={`${INPUT_CLASS} w-20`}
             />
             <span className="pb-2 text-sm text-zinc-500 dark:text-zinc-500">{unit}</span>

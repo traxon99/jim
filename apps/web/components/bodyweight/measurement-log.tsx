@@ -1,6 +1,7 @@
 "use client";
 
 import { UndoBar } from "@/components/undo-bar";
+import { normalizeDecimalInput } from "@jim/core";
 import { Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
@@ -98,7 +99,7 @@ export function LogEntryForm({
             type="text"
             inputMode="decimal"
             value={value}
-            onChange={(event) => onValueChange(event.target.value)}
+            onChange={(event) => onValueChange(normalizeDecimalInput(event.target.value))}
             onKeyDown={(event) => {
               if (event.key === "Enter") onSubmit();
             }}

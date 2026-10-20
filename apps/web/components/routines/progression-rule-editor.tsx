@@ -6,6 +6,7 @@ import {
   type ProgressionRule,
   type ProgressionType,
   type RepScheme,
+  normalizeDecimalInput,
   parseProgressionRule,
 } from "@jim/core";
 import { useState } from "react";
@@ -130,11 +131,11 @@ export function ProgressionRuleEditor({ rule, units, dprFocused, onChange }: Pro
           <label className="flex flex-col gap-1 text-xs font-medium">
             +{units} on success
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
               min={0}
               value={increment}
-              onChange={(event) => setIncrement(event.target.value)}
+              onChange={(event) => setIncrement(normalizeDecimalInput(event.target.value))}
               onBlur={() => commit()}
               className={`w-20 ${FIELD}`}
             />
