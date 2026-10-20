@@ -23,14 +23,35 @@ export async function getDeviceId(database: JimDatabase = db): Promise<string> {
 
 /**
  * Surfaces a failed request: `signed-out` for a 401, so the user is asked to
- * sign in again rather than shown a generic error forever (#487), `error`
- * for anything else.
+ * sign in again rather than shown a generic error forever (#487), `offline`
+ * when the request never got an answer (no signal is the normal gym-basement
+ * case, not breakage, #665), `error` for anything else.
  */
-async function reportFailure(database: JimDatabase, response?: Response): Promise<void> {
+async function reportFailure(
+  database: JimDatabase,
+  failure: { response?: Response; unreachable?: boolean } = {},
+): Promise<void> {
   const count = await database.outbox.count();
+  if (failure.unreachable) {
+    setSyncStatus({ kind: "offline", count });
+    return;
+  }
   setSyncStatus(
-    response?.status === 401 ? { kind: "signed-out", count } : { kind: "error", count },
+    failure.response?.status === 401 ? { kind: "signed-out", count } : { kind: "error", count },
   );
+}
+
+/**
+ * How long one sync request may take. On bad signal a hung request would
+ * otherwise hold the single-flight cycle until iOS gives up, a minute or
+ * more, and no later cycle could start (#684).
+ */
+export const SYNC_REQUEST_TIMEOUT_MS = 15_000;
+
+function requestTimeout(): AbortSignal | undefined {
+  return typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(SYNC_REQUEST_TIMEOUT_MS)
+    : undefined;
 }
 
 /**
@@ -73,7 +94,7 @@ export const PUSH_BATCH_SIZE = 200;
  * batches of `PUSH_BATCH_SIZE`. Applied and duplicate mutations are removed;
  * anything the server reports as an error stays queued for the next cycle.
  * A network failure or non-2xx response stops the drain, leaving that batch
- * and everything after it untouched, and surfaces `error`.
+ * and everything after it untouched, and surfaces `offline` or `error`.
  */
 export async function drainOutbox(
   database: JimDatabase = db,
@@ -95,14 +116,15 @@ export async function drainOutbox(
         body: JSON.stringify({
           mutations: batch.map(({ id, table, entity }) => ({ id, table, entity })),
         }),
+        signal: requestTimeout(),
       });
     } catch {
-      await reportFailure(database);
+      await reportFailure(database, { unreachable: true });
       return;
     }
 
     if (!response.ok) {
-      await reportFailure(database, response);
+      await reportFailure(database, { response });
       return;
     }
 
@@ -167,13 +189,15 @@ export async function pullChanges(
 
     let response: Response;
     try {
-      response = await fetchImpl(`/api/sync/pull?since=${meta.cursor}`);
+      response = await fetchImpl(`/api/sync/pull?since=${meta.cursor}`, {
+        signal: requestTimeout(),
+      });
     } catch {
-      await reportFailure(database);
+      await reportFailure(database, { unreachable: true });
       return;
     }
     if (!response.ok) {
-      await reportFailure(database, response);
+      await reportFailure(database, { response });
       return;
     }
 
@@ -198,8 +222,10 @@ export async function pullChanges(
 
 async function runSyncCycleOnce(database: JimDatabase, fetchImpl: typeof fetch): Promise<void> {
   await drainOutbox(database, fetchImpl);
-  // A signed-out push would only be refused again by the pull.
-  if (getSyncStatus().kind === "signed-out") return;
+  // A signed-out push would only be refused again by the pull, and one that
+  // couldn't reach the server would only wait out another timeout.
+  const { kind } = getSyncStatus();
+  if (kind === "signed-out" || kind === "offline") return;
   await pullChanges(database, fetchImpl);
 }
 
