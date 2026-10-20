@@ -21,7 +21,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Drag handles hold on to your finger on iPhone, and a crash now offers Reload instead of a dead screen.";
+  "Jim now opens with no signal, and taps on slow signal show a spinner straight away.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
