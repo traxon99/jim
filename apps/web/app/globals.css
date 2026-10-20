@@ -396,6 +396,14 @@ body.pwa {
   -webkit-touch-callout: none;
 }
 
+/* A sideways strip that scrolls without showing a bar (Focus view's steps, #683). */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* A very brief fade on tab switches (components/page-fade.tsx). */
 @keyframes page-fade-in {
   from {

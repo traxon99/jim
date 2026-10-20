@@ -98,6 +98,9 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #672 | Most iPhones (Pro Max, Air, 13/14, Plus, mini, SE) opened on a blank white screen, which flashed white in dark mode | Launch images existed only for the three iPhone 16 sizes | One `SPLASH_DEVICES` entry per screen size still in use; the splash routes are generated from it |
+| #677 | Focus view's Next opened the next exercise partway down, past its first sets | Prev/Next swapped the content inside the same scroller without resetting it | A view that swaps its content in place resets its scroller when the item changes |
+| #683 | With 12+ exercises Focus view's step strip shrank each step under 30 px | The steps were `flex-1` with no minimum | Tap targets keep `min-w-11`; a strip that can't fit them scrolls sideways |
 | #667 | Tapping "Still working out?" or "Workout ended" opened Jim wherever it was left, not on the workout | `notificationclick` focused any existing window and ignored the notification's URL; a suspended PWA always counts as existing | A notification with a page posts `jim-navigate` to the focused app, which routes there client-side |
 | #671 | With notifications off, Jim kept running an old build for days | The worker only checked for updates on page load or a release push, and a suspended PWA isn't reloaded | Check for updates when the app returns to the foreground (throttled), and let `reloadOnUpdateWhenAway` apply them |
 | #665 | No signal showed a red "Sync error · N pending", and a set logged offline didn't show up in the count until the next cycle | A fetch that never got an answer was reported the same as a server rejection, and the indicator only read the count saved at the end of a cycle | Unreachable (thrown fetch, timeout) is `offline`, shown neutral with the live outbox count; red is for 5xx and rejected rows. Every sync request has a timeout (#684) |
