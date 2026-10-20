@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:stack": "tsx scripts/dev-stack/index.ts",
+    "dev:shot": "tsx scripts/dev-stack/shot.ts",
     "prebuild": "node scripts/prebuild.mjs",
     "build": "next build",
     "start": "next start",
@@ -40,6 +42,7 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "fake-indexeddb": "^6.2.5",
+    "playwright-core": "1.56.1",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5",
