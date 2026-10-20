@@ -51,14 +51,13 @@ import {
   type PrCandidate,
   type PreviousSet,
   type PreviousSetsByKind,
-  RPE_MAX,
-  RPE_MIN,
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   clampRpe,
   exerciseDisplayName,
   isVisiblePrKind,
   nearestLoadableWeight,
+  normalizeDecimalInput,
   plannedSetRowCount,
   prefillWeightForSet,
   remainingPlannedSetCount,
@@ -645,11 +644,13 @@ export function SessionExerciseSection({
     return (
       <input
         id={index === nextIndex ? `${fieldId}-weight` : undefined}
-        type="number"
+        type="text"
         inputMode="decimal"
         placeholder={suggestedWeightFor(index)}
         value={draft.weight}
-        onChange={(event) => updateDraft(index, { weight: event.target.value })}
+        onChange={(event) =>
+          updateDraft(index, { weight: normalizeDecimalInput(event.target.value) })
+        }
         className={sizes.input}
       />
     );
@@ -672,14 +673,11 @@ export function SessionExerciseSection({
       <input
         id={index === nextIndex ? `${fieldId}-rpe` : undefined}
         aria-labelledby={index === nextIndex ? `${fieldId}-rpe-label` : undefined}
-        type="number"
+        type="text"
         inputMode="decimal"
-        min={RPE_MIN}
-        max={RPE_MAX}
-        step={0.5}
         placeholder={dpr && draft.kind === "working" ? "RPE" : "—"}
         value={draft.rpe}
-        onChange={(event) => updateDraft(index, { rpe: event.target.value })}
+        onChange={(event) => updateDraft(index, { rpe: normalizeDecimalInput(event.target.value) })}
         className={
           // Soft-required on focused lifts: sessions without RPE don't count.
           dpr && draft.kind === "working"

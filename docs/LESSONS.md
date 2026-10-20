@@ -115,6 +115,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       `RPE_MAX`, `SET_LIMITS`), never literals (#500, #512; guard test for RPE).
 - [ ] Repointing references to an exercise (merge, archive)? Cover every table with an
       `exercise_id`; name lookups skip archived rows (#497).
+- [ ] Adding a field for a weight, distance or other decimal? `type="text" inputMode="decimal"` with
+      `normalizeDecimalInput` on change, never `type="number"`, which drops a decimal comma (#675).
 - [ ] Sets are append-only and sync is foreground-driven (`docs/DECISIONS.md`). Don't edit rows in
       place. A planned row must not reappear over a synced tombstone (#438).
 

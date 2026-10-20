@@ -5,7 +5,7 @@ import { SupersetBadge } from "@/components/supersets/superset-badge";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { parseProgressionRule } from "@jim/core";
+import { normalizeDecimalInput, parseProgressionRule } from "@jim/core";
 import { useEffect, useRef, useState } from "react";
 import { ProgressionRuleEditor } from "./progression-rule-editor";
 
@@ -227,11 +227,11 @@ export function RoutineExerciseRow({
             <label className="flex flex-col gap-1 text-xs font-medium">
               Time (min)
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
                 min={0}
                 value={durationMinutes}
-                onChange={(event) => setDurationMinutes(event.target.value)}
+                onChange={(event) => setDurationMinutes(normalizeDecimalInput(event.target.value))}
                 onBlur={() => {
                   const minutes = toNumberOrNull(durationMinutes);
                   onUpdate({
@@ -296,11 +296,11 @@ export function RoutineExerciseRow({
             <label className="flex flex-col gap-1 text-xs font-medium">
               Weight ({units})
               <input
-                type="number"
+                type="text"
                 inputMode="decimal"
                 min={0}
                 value={targetWeight}
-                onChange={(event) => setTargetWeight(event.target.value)}
+                onChange={(event) => setTargetWeight(normalizeDecimalInput(event.target.value))}
                 onBlur={commitTargetWeight}
                 className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
               />

@@ -5,6 +5,7 @@ import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { cmToFeetInches, feetInchesToCm } from "@/lib/settings/height";
 import { runSyncCycle } from "@/lib/sync/engine";
+import { normalizeDecimalInput } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -204,10 +205,10 @@ export function BodyStatsSection({ userId }: { userId?: string }) {
       <label className="flex flex-col gap-1 text-xs font-medium">
         Bodyweight ({settings.units})
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
           value={bodyweight}
-          onChange={(event) => setBodyweight(event.target.value)}
+          onChange={(event) => setBodyweight(normalizeDecimalInput(event.target.value))}
           onBlur={() => void handleSave()}
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />

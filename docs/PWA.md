@@ -210,7 +210,9 @@ appear on, including during an active workout while the rest timer is running.
   The rule lives in `@layer base`: outside a layer it beat Tailwind's `touch-none` utility and
   quietly disabled every one in the app (#663). Any element-wide rule added to `globals.css` goes in
   `@layer base` for the same reason.
-- `inputmode="decimal"` for weights and `inputmode="numeric"` for reps.
+- `inputmode="decimal"` for weights and `inputmode="numeric"` for reps. Decimal fields are
+  `type="text"` and run input through `normalizeDecimalInput`: in decimal-comma regions the keypad
+  shows ",", which a `type="number"` input throws away (#675).
 
 ---
 
