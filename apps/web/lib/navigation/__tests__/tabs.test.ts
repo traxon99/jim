@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE_TABS, isTabActive } from "../tabs";
+import { BASE_TABS, isExerciseCardPath, isTabActive, scrollKey } from "../tabs";
 
 describe("isTabActive", () => {
   it("replaces the Profile tab with Home", () => {
@@ -25,5 +25,19 @@ describe("isTabActive", () => {
     expect(isTabActive("/home", "/progression")).toBe(true);
     expect(isTabActive("/home", "/friends")).toBe(true);
     expect(isTabActive("/workout", "/profile")).toBe(false);
+  });
+});
+
+describe("scrollKey (#666)", () => {
+  it("gives every page its own scroll position", () => {
+    expect(scrollKey("/history")).toBe("/history");
+    expect(scrollKey("/workout/abc")).toBe("/workout/abc");
+  });
+
+  it("keeps the Exercises list's position under an exercise card", () => {
+    expect(isExerciseCardPath("/exercises/abc")).toBe(true);
+    expect(scrollKey("/exercises/abc")).toBe("/exercises");
+    expect(isExerciseCardPath("/exercises/new")).toBe(false);
+    expect(scrollKey("/exercises/new")).toBe("/exercises/new");
   });
 });

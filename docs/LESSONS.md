@@ -98,6 +98,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #666 | Scrolling down History then tapping Workout opened Workout partway down, and coming back lost History's place | All tabs and pages scroll in the shell's one scroller, and tab pages render `null`, so nothing reset or restored it | `ShellScroller` remembers a position per page (`scrollKey`) and restores it before paint; tapping the active tab scrolls to top |
 | #669 | Set to Dark on a light-mode phone (or the reverse), Jim opened white then flipped to black, and date pickers and selects stayed light in dark mode | The setting lived only in Dexie, applied after first paint; the splash followed `prefers-color-scheme`; no CSS `color-scheme` | Theme-dependent first-paint styles key off `.dark`, which `COLOR_SCHEME_SCRIPT` applies from localStorage before paint; `:root` sets `color-scheme` to match |
 | #672 | Most iPhones (Pro Max, Air, 13/14, Plus, mini, SE) opened on a blank white screen, which flashed white in dark mode | Launch images existed only for the three iPhone 16 sizes | One `SPLASH_DEVICES` entry per screen size still in use; the splash routes are generated from it |
 | #677 | Focus view's Next opened the next exercise partway down, past its first sets | Prev/Next swapped the content inside the same scroller without resetting it | A view that swaps its content in place resets its scroller when the item changes |
