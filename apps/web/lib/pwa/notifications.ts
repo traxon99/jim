@@ -21,7 +21,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Weights like 62,5 now save, and installing Jim is clearer on iOS 26, iPad, Android and in-app browsers.";
+  "Confirming your email now points you back to Jim, and turning your phone sideways keeps everything clear of the Dynamic Island.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
