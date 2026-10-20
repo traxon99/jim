@@ -176,7 +176,7 @@ export function ExercisePicker({
     // stacking context can paint over it (#521).
     return portal(
       <div
-        className="fixed inset-0 z-20 flex flex-col overflow-y-auto overscroll-contain bg-white dark:bg-zinc-950"
+        className="safe-x fixed inset-0 z-20 flex flex-col overflow-y-auto overscroll-contain bg-white dark:bg-zinc-950"
         style={{
           paddingTop: "env(safe-area-inset-top)",
           paddingBottom: "max(12px, env(safe-area-inset-bottom))",
@@ -207,7 +207,7 @@ export function ExercisePicker({
   // stacking context can paint over it (#521).
   return portal(
     <div
-      className="fixed inset-0 z-20 flex flex-col overscroll-none bg-white dark:bg-zinc-950"
+      className="safe-x fixed inset-0 z-20 flex flex-col overscroll-none bg-white dark:bg-zinc-950"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex touch-none items-center justify-between gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">

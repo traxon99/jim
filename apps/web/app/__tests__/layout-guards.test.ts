@@ -24,6 +24,25 @@ describe("layout guards", () => {
     expect(css).toMatch(/touch-action:\s*manipulation/);
   });
 
+  it("pads the side safe areas, so landscape content clears the Dynamic Island (#673)", () => {
+    const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    expect(css).toMatch(/body\s*\{[^}]*padding-left:\s*env\(safe-area-inset-left\)/);
+    // Full-screen overlays (fixed, edge to edge, with their own page
+    // background) sit outside body's padding, so they pad themselves.
+    const offenders = ["app", "components"]
+      .flatMap((dir) => tsxFiles(path.join(webRoot, dir)))
+      .filter((file) =>
+        [...readFileSync(file, "utf8").matchAll(/className="([^"]*)"/g)].some(
+          ([, classes = ""]) =>
+            /\bfixed inset-0\b/.test(classes) &&
+            /\bbg-white\b/.test(classes) &&
+            !/\bsafe-x\b/.test(classes),
+        ),
+      )
+      .map((file) => path.relative(webRoot, file));
+    expect(offenders).toEqual([]);
+  });
+
   it("never sizes a fieldset to its content, which undoes that reset", () => {
     const offenders = ["app", "components"]
       .flatMap((dir) => sourceFiles(path.join(webRoot, dir)))
