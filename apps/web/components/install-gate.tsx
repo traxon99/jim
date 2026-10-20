@@ -1,6 +1,7 @@
 "use client";
 
 import { PORTAL_PATH, isInstallGateExempt } from "@/lib/pwa/install-gate-exempt";
+import { takeEarlyInstallPrompt } from "@/lib/pwa/install-prompt";
 import { type InstallPlatform, detectInstallPlatform } from "@/lib/pwa/platform";
 import { STANDALONE_MEDIA_QUERY, isStandalone } from "@/lib/pwa/standalone";
 import Link from "next/link";
@@ -98,6 +99,8 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
       setInstallPrompt(event as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onInstallPrompt);
+    const early = takeEarlyInstallPrompt();
+    if (early) setInstallPrompt(early as BeforeInstallPromptEvent);
 
     const query = window.matchMedia(STANDALONE_MEDIA_QUERY);
     query.addEventListener("change", update);

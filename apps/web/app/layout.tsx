@@ -9,6 +9,7 @@ import { StatusBarScrim } from "@/components/status-bar-scrim";
 import { COLD_OPEN_SCRIPT } from "@/lib/boot/cold-open";
 import { COLOR_SCHEME_SCRIPT } from "@/lib/boot/color-scheme";
 import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
+import { INSTALL_PROMPT_SCRIPT } from "@/lib/pwa/install-prompt";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Playfair_Display, Roboto } from "next/font/google";
@@ -86,6 +87,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             included (lib/boot/color-scheme.ts, #669). */}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed, build-time string with no user input. */}
         <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_SCRIPT }} />
+        {/* Chrome fires beforeinstallprompt once, possibly before React
+            hydrates; keep it for the install gate's button (#676). */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed, build-time string with no user input. */}
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_PROMPT_SCRIPT }} />
       </head>
       <body className="flex h-lvh flex-col">
         <LoadingScreen />

@@ -20,7 +20,8 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * place the notification's content lives, and every production deploy
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
-export const LATEST_RELEASE_NOTE = "Weights with a decimal comma, like 62,5, now save correctly.";
+export const LATEST_RELEASE_NOTE =
+  "Weights like 62,5 now save, and installing Jim is clearer on iOS 26, iPad, Android and in-app browsers.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {
