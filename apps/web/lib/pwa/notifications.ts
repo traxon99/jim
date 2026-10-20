@@ -21,7 +21,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * pushes it to every subscribed device (scripts/send-release-push.ts).
  */
 export const LATEST_RELEASE_NOTE =
-  "Confirming your email points you back to Jim, landscape clears the Dynamic Island, and pickers and timers ease in.";
+  "Jim opens faster on slow signal, and empty History and PR lists point you to your first workout.";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

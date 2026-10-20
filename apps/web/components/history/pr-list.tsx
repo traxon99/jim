@@ -304,9 +304,19 @@ export function PrList() {
         )}
 
         {byExercise.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-            No PRs yet — log a set to get started.
-          </p>
+          <div className="flex flex-col items-center gap-3 py-8 text-center">
+            <p className="text-sm text-zinc-500 dark:text-zinc-500">
+              No PRs yet. Log a set to get started.
+            </p>
+            {/* Somewhere to go from an empty list (#686). */}
+            <Link
+              href="/workout"
+              data-ripple
+              className="flex min-h-11 items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+            >
+              Start a workout
+            </Link>
+          </div>
         ) : visibleGroups.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
             No exercises with PRs match.
