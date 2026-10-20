@@ -8,7 +8,6 @@ import { RippleEffect } from "@/components/ripple-effect";
 import { StatusBarScrim } from "@/components/status-bar-scrim";
 import { COLD_OPEN_SCRIPT } from "@/lib/boot/cold-open";
 import { COLOR_SCHEME_SCRIPT } from "@/lib/boot/color-scheme";
-import { ICON_BACKGROUND } from "@/lib/pwa/icon-mark";
 import { INSTALL_PROMPT_SCRIPT } from "@/lib/pwa/install-prompt";
 import { SPLASH_DEVICES, splashMediaQuery } from "@/lib/pwa/splash-devices";
 import type { Metadata, Viewport } from "next";
@@ -67,7 +66,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: ICON_BACKGROUND,
+  // Matches --background in each system theme (#681).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

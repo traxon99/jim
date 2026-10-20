@@ -490,7 +490,20 @@ body.pwa {
   animation: sheet-rise-out 160ms ease-in forwards;
 }
 
+/* The rest and set timer bars rise into place instead of snapping in (#680). */
+@keyframes timer-rise-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+.timer-rise {
+  animation: timer-rise-in 180ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .timer-rise,
   .page-fade,
   .route-fade,
   .sheet-backdrop,

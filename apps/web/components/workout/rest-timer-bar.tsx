@@ -35,7 +35,7 @@ export function RestTimerBar({
   return (
     <div
       style={aboveTabBar ? { bottom: "var(--tab-bar-height, 0px)" } : undefined}
-      className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
+      className="timer-rise sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950"
     >
       <div className="flex items-baseline gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">

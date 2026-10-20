@@ -2,10 +2,17 @@
 
 import { SWITCH_CLASS } from "@/components/switch-class";
 import { VAPID_PUBLIC_KEY } from "@/lib/pwa/notifications";
+import { type InstallPlatform, detectInstallPlatform } from "@/lib/pwa/platform";
 import { currentPushSupport, subscribeToPush, unsubscribeFromPush } from "@/lib/pwa/push-client";
 import { useEffect, useState } from "react";
 
-type Status = "checking" | "unsupported" | "needs-install" | "not-configured" | "ready";
+type Status =
+  | "checking"
+  | "unsupported"
+  | "unavailable"
+  | "needs-install"
+  | "not-configured"
+  | "ready";
 
 /**
  * The service worker is registered only in production builds
@@ -13,7 +20,20 @@ type Status = "checking" | "unsupported" | "needs-install" | "not-configured" | 
  */
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (process.env.NODE_ENV !== "production") return null;
-  return navigator.serviceWorker.ready;
+  // Not `ready`: it never settles when the worker failed to install, which
+  // left this whole section blank (#685).
+  return (await navigator.serviceWorker.getRegistration()) ?? null;
+}
+
+/** Where to turn notifications back on, in the phone's own words (#685). */
+function blockedHelp(platform: InstallPlatform): string {
+  if (platform === "ios") {
+    return "Notifications are off for Jim. Turn them on in Settings → Notifications → Jim, then come back here.";
+  }
+  if (platform === "android") {
+    return "Notifications are blocked for Jim. Allow them in Settings → Apps → Jim → Notifications, then come back here.";
+  }
+  return "Notifications are blocked for Jim in this browser's site settings. Allow them there to turn this on.";
 }
 
 export function PushNotificationsSection() {
@@ -38,7 +58,7 @@ export function PushNotificationsSection() {
       const registration = await getRegistration();
       if (cancelled) return;
       if (!registration) {
-        setStatus("unsupported");
+        setStatus("unavailable");
         return;
       }
       const subscription = await registration.pushManager.getSubscription();
@@ -98,6 +118,12 @@ export function PushNotificationsSection() {
         </p>
       )}
 
+      {status === "unavailable" && (
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          Notifications aren't available right now. Close Jim fully and open it again to retry.
+        </p>
+      )}
+
       {status === "needs-install" && (
         <p className="text-xs text-zinc-600 dark:text-zinc-400">
           To get notifications on iPhone or iPad, add Jim to your Home Screen (Share → Add to Home
@@ -117,8 +143,7 @@ export function PushNotificationsSection() {
             <span className="flex flex-col">
               <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">Alerts</span>
               <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                Get notified when your rest timer finishes or a new version of Jim is ready, even
-                when the app isn't the active tab
+                Rest timer, workout reminders and what's new in Jim, even when Jim is closed
               </span>
             </span>
             <input
@@ -134,8 +159,9 @@ export function PushNotificationsSection() {
 
           {permission === "denied" && (
             <p className="text-xs text-red-600 dark:text-red-500">
-              Notifications are blocked for Jim in your browser settings. Allow them there to turn
-              this on.
+              {blockedHelp(
+                detectInstallPlatform(navigator.userAgent, navigator.maxTouchPoints ?? 0),
+              )}
             </p>
           )}
 

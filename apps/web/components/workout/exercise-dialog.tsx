@@ -45,7 +45,7 @@ export function ExerciseDialog({ title, onClose, children }: Props) {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-30 flex items-center justify-center overscroll-none bg-black/50 px-4">
+    <div className="sheet-backdrop fixed inset-0 z-30 flex items-center justify-center overscroll-none bg-black/50 px-4">
       <button
         type="button"
         aria-label="Close"
@@ -59,7 +59,7 @@ export function ExerciseDialog({ title, onClose, children }: Props) {
         open
         aria-modal="true"
         aria-label={title}
-        className="relative m-0 flex w-full max-w-sm flex-col gap-4 rounded-xl border-0 bg-white p-4 text-zinc-950 shadow-xl dark:bg-zinc-900 dark:text-zinc-50"
+        className="sheet-panel relative m-0 flex w-full max-w-sm flex-col gap-4 rounded-xl border-0 bg-white p-4 text-zinc-950 shadow-xl dark:bg-zinc-900 dark:text-zinc-50"
       >
         <h2 className="text-lg font-semibold">{title}</h2>
         {children}

@@ -10,6 +10,7 @@ docs/LESSONS-LEDGER.md`) when a code comment or checklist line cites an issue nu
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #685 | Settings → Notifications could render nothing at all, and told iPhone users to look in "browser settings" | It awaited `navigator.serviceWorker.ready`, which never settles if the worker failed to install; the copy was written for a browser tab | Read the registration with `getRegistration()` and show an "unavailable" state; name the phone's own settings path |
 | #673 | With the phone on its side, content ran under the Dynamic Island | iOS ignores the manifest's portrait lock, and nothing padded the left and right safe areas | `body` pads the side insets; full-screen `fixed` overlays use `safe-x` (guarded in `layout-guards.test.ts`) |
 | #670 | A new user who tapped the sign-up confirmation link was told to "Install Jim to continue", though Jim was installed | iOS opens the link in Safari, which got signed in and sent to the install-gated app; the installed app stayed signed out | Confirmations land on the install-gate exempt `/auth/confirmed`, which says to go back to Jim and sign in |
 | #676 | The install gate told iOS 26 users to tap a Share button that moved under •••, told iPad Safari users to open Safari, and gave in-app browsers (Instagram, Gmail) steps that can't work there | `detectInstallPlatform` sniffed only "iPhone/iPad" and "Android" | Install steps come from `detectInstallPlatform`, which checks in-app browsers first and treats a touch-screen "Mac" as an iPad |
