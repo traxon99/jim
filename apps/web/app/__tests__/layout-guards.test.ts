@@ -30,7 +30,7 @@ describe("layout guards", () => {
     // Full-screen overlays (fixed, edge to edge, with their own page
     // background) sit outside body's padding, so they pad themselves.
     const offenders = ["app", "components"]
-      .flatMap((dir) => tsxFiles(path.join(webRoot, dir)))
+      .flatMap((dir) => sourceFiles(path.join(webRoot, dir)))
       .filter((file) =>
         [...readFileSync(file, "utf8").matchAll(/className="([^"]*)"/g)].some(
           ([, classes = ""]) =>
