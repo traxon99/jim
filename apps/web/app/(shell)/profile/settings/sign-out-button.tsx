@@ -1,6 +1,11 @@
 "use client";
 
-import { clearAuthCookies, clearLocalData, flushOutboxBeforeSignOut } from "@/lib/auth/sign-out";
+import {
+  clearAuthCookies,
+  clearCachedPages,
+  clearLocalData,
+  flushOutboxBeforeSignOut,
+} from "@/lib/auth/sign-out";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
@@ -40,6 +45,7 @@ export function SignOutButton() {
       .catch((caught: unknown) => ({ error: caught }));
     if (error) clearAuthCookies();
     await clearLocalData();
+    await clearCachedPages().catch(() => {});
 
     // A full page load, not router.push: the shell's mounted tabs and live
     // queries still hold the old account's state, and the Dexie instance

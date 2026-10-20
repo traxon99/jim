@@ -3,31 +3,60 @@
 // beats a bundler-plugin-based one here (Turbopack, Next 16's default
 // bundler, doesn't support webpack plugins like Serwist's).
 const CACHE_NAME = "jim-shell-__BUILD_ID__";
+// Page HTML is per-user, so it lives in its own cache that sign-out deletes
+// (lib/auth/sign-out.ts clearCachedPages, #289). Build output stays shared.
+const PAGES_CACHE = "jim-pages-__BUILD_ID__";
 const PRECACHE_URLS = __PRECACHE_URLS__;
+const PRECACHE_PAGES = __PRECACHE_PAGES__;
 
-// Safari refuses a redirected response for a navigation (#506), and "/"
-// redirects to /login while signed out, which is when this worker often
-// installs. So a redirected page isn't stored: /login is the offline shell
-// until the first signed-in visit to "/" caches the real one (fetch handler).
-function precache(cache) {
-  return Promise.all(
-    PRECACHE_URLS.map((url) =>
-      fetch(url).then((response) => {
-        if (!response.ok) throw new Error(`Precache of ${url} failed (${response.status})`);
-        if (response.redirected) return undefined;
-        return cache.put(url, response);
-      }),
+// Safari refuses a redirected response for a navigation (#506), so a page is
+// always stored as a fresh copy, under the URL it ended on: "/" signed in
+// lands on /workout, signed out on /login.
+function storablePage(response) {
+  if (!response.ok || !response.url) return null;
+  if (!(response.headers.get("content-type") || "").includes("text/html")) return null;
+  return {
+    key: new URL(response.url).pathname,
+    response: new Response(response.clone().body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    }),
+  };
+}
+
+function precache() {
+  return Promise.all([
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        PRECACHE_URLS.map((url) =>
+          fetch(url).then((response) => {
+            if (!response.ok) throw new Error(`Precache of ${url} failed (${response.status})`);
+            return cache.put(url, response);
+          }),
+        ),
+      ),
     ),
-  );
+    // Best effort: the shell must install even if a page can't be fetched.
+    caches
+      .open(PAGES_CACHE)
+      .then((cache) =>
+        Promise.all(
+          PRECACHE_PAGES.map((url) =>
+            fetch(url)
+              .then((response) => {
+                const page = storablePage(response);
+                return page ? cache.put(page.key, page.response) : undefined;
+              })
+              .catch(() => {}),
+          ),
+        ),
+      ),
+  ]);
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then(precache)
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -35,7 +64,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME && key !== PAGES_CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -138,21 +171,24 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
-    // Fresh HTML while online; the precached shell while offline.
+    // Fresh HTML while online, kept for the next offline launch. Offline, the
+    // page itself if it was cached, else the Workout tab: the app's real
+    // landing page, since "/" only ever redirects to it (#661). Next's router
+    // corrects the address bar to the page it rendered.
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (url.pathname === "/" && response.ok && !response.redirected) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
-          }
+          const page = storablePage(response);
+          if (page) caches.open(PAGES_CACHE).then((cache) => cache.put(page.key, page.response));
           return response;
         })
         .catch(() =>
-          caches
-            .match(request)
-            .then((cached) => cached || caches.match("/"))
-            .then((cached) => cached || caches.match("/login")),
+          caches.open(PAGES_CACHE).then((cache) =>
+            cache
+              .match(url.pathname)
+              .then((cached) => cached || cache.match("/workout"))
+              .then((cached) => cached || cache.match("/login")),
+          ),
         ),
     );
     return;
