@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   COLOR_SCHEME_KEY,
   COLOR_SCHEME_SCRIPT,
+  applyThemeColor,
   prefersDark,
   storeColorScheme,
 } from "../color-scheme";
@@ -9,7 +10,10 @@ import {
 /** Runs the inline <head> script against a stored setting and a system theme. */
 function runScript(stored: string | null, systemDark: boolean): boolean {
   const classes = new Set<string>();
-  const document = { documentElement: { classList: { add: (name: string) => classes.add(name) } } };
+  const document = {
+    documentElement: { classList: { add: (name: string) => classes.add(name) } },
+    querySelectorAll: () => [],
+  };
   const window = { matchMedia: () => ({ matches: systemDark }) };
   const localStorage = { getItem: (key: string) => (key === COLOR_SCHEME_KEY ? stored : null) };
   new Function("localStorage", "window", "document", COLOR_SCHEME_SCRIPT)(
@@ -34,7 +38,10 @@ describe("color scheme before first paint (#669)", () => {
   });
 
   it("follows the system when storage throws", () => {
-    const document = { documentElement: { classList: { add: () => {} } } };
+    const document = {
+      documentElement: { classList: { add: () => {} } },
+      querySelectorAll: () => [],
+    };
     const throwing = {
       getItem: () => {
         throw new Error("blocked");
@@ -60,5 +67,21 @@ describe("color scheme before first paint (#669)", () => {
         },
       }),
     ).not.toThrow();
+  });
+});
+
+describe("applyThemeColor (#681)", () => {
+  it("points every theme-color meta at the app's theme", () => {
+    const metas = [new Map<string, string>(), new Map<string, string>()];
+    const doc = {
+      querySelectorAll: () =>
+        metas.map((attributes) => ({
+          setAttribute: (name: string, value: string) => attributes.set(name, value),
+        })),
+    } as unknown as Pick<Document, "querySelectorAll">;
+    applyThemeColor(true, doc);
+    expect(metas.map((attributes) => attributes.get("content"))).toEqual(["#0a0a0a", "#0a0a0a"]);
+    applyThemeColor(false, doc);
+    expect(metas[0]?.get("content")).toBe("#ffffff");
   });
 });

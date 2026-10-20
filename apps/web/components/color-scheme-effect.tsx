@@ -1,6 +1,6 @@
 "use client";
 
-import { storeColorScheme } from "@/lib/boot/color-scheme";
+import { applyThemeColor, storeColorScheme } from "@/lib/boot/color-scheme";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -37,11 +37,15 @@ export function ColorSchemeEffect() {
 
     if (colorScheme !== "system") {
       root.classList.toggle("dark", colorScheme === "dark");
+      applyThemeColor(colorScheme === "dark");
       return;
     }
 
     const query = window.matchMedia(DARK_MEDIA_QUERY);
-    const update = () => root.classList.toggle("dark", query.matches);
+    const update = () => {
+      root.classList.toggle("dark", query.matches);
+      applyThemeColor(query.matches);
+    };
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
