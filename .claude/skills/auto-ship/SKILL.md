@@ -1,6 +1,6 @@
 ---
 name: auto-ship
-description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR that closes the issue with a closing keyword (so GitHub links them in the Development panel), babysit that PR until CI and review checks are green, and merge it — the issue auto-closes with the merge. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
+description: End-to-end feature delivery for this repo, tracked through a GitHub issue — find or create the issue (checking for duplicates first), implement the requested change, verify it, have a fresh subagent review the diff against docs/LESSONS.md, document the result with a short written summary (plus a screenshot when a real browser run is practical), open a PR that closes the issue with a closing keyword (so GitHub links them in the Development panel), babysit that PR until CI and review checks are green, and merge it — the issue auto-closes with the merge. Use this whenever the user asks to "ship", "auto-ship", "just get this done", "build and merge", or says "auto-ship <feature>" (e.g. "auto-ship friend feature") to point at a specific feature or existing issue. Don't use it for exploratory changes, questions, or anything the user wants to review before it goes out — this skill's whole point is closing the loop unattended, so only reach for it when the user actually wants that.
 ---
 
 # Auto-ship
@@ -15,7 +15,7 @@ Every run of this skill is tracked through exactly one GitHub issue in `traxon99
 the first line of code to the merge. The issue is the record of what was asked for and what
 happened — don't treat it as paperwork bolted on after the fact.
 
-Don't skip the verification or documentation stages to get to green faster — a fast merge of
+Don't skip the verification, review or documentation stages to get to green faster — a fast merge of
 something broken or undocumented isn't a win. The run ends with the code merged, CI green, and the
 issue **auto-closed by the merge** (step 8 explains the tradeoff this means accepting). Don't wait
 on or try to confirm the Vercel deploy.
@@ -76,9 +76,9 @@ default branch, named for the feature (`feat/<short-slug>`, matching whatever co
 
 ## 4. Implement
 
-**First, read `docs/LESSONS.md` in full** — every run, not just the first. It's the ledger of bugs
-that already shipped and the pre-ship checklist that prevents them, and it changes as fixes land.
-Keep its checklist in mind while building, not only at the end.
+Skim the section headings of the `docs/LESSONS.md` checklist and read the sections your change
+will touch (overlays, forms, sync, MCP…). The full pass against the diff happens in review
+(step 5), so build first and leave the line-by-line check to the reviewer.
 
 Build the feature. Standard engineering judgment applies here — same as any other task: keep the
 diff scoped to what was asked, follow the patterns already in the surrounding code (this repo's
@@ -98,16 +98,9 @@ feature belongs in the MCP (for example it publishes to other people, or only ma
 phone, like the rest timer), ask the user in the chat instead of guessing, and keep building the
 rest while you wait.
 
-## 5. Verify locally
+## 5. Verify locally, then review
 
-Go through the `docs/LESSONS.md` pre-ship checklist against your actual diff, item by item for
-everything it touches, and fix what it catches. **If this run fixes a bug, add a row to the top of
-that file's ledger** (issue/PR, what broke, cause, rule), and add the rule to the checklist (and to
-`docs/PWA.md` for layout/iOS lessons) if it isn't covered yet. That's how the next run avoids
-shipping the same bug.
-
-Before anything gets pushed, run what CI would run so a red check is a surprise, not the
-expected outcome:
+Run what CI runs, so a red check is a surprise rather than the expected outcome:
 
 ```
 pnpm lint
@@ -115,8 +108,27 @@ pnpm typecheck
 pnpm test
 ```
 
-Fix failures here rather than discovering them after opening the PR — a local red run is cheap to
-fix, a CI red run costs a round trip.
+Fix failures here; a local red run is cheap, a CI red run costs a round trip. For a UI change,
+also follow `docs/PWA.md` §10 in the real signed-in app using the `run-app` skill.
+
+**Then review the diff in a fresh agent.** The implementer has the most context pressure and the
+least distance from its own code, so the checklist pass belongs to someone who sees only the
+diff. Spawn one subagent (`Agent`, `general-purpose`) with this prompt, filling in the base:
+
+> You are reviewing a diff for the jim repo before it merges. Run `git diff origin/main...HEAD`.
+> Read `docs/LESSONS.md` and apply every checklist line in each section the diff touches; for each
+> line that applies, open the changed files as needed and decide whether the diff follows it. Also
+> check the diff against what issue #NN asked for. Report only real violations, each with the
+> file and line, the checklist line it breaks, and the fix. Reply "No findings" if there are none.
+> Don't edit files.
+
+The review is done when every finding is either fixed in the branch or answered in the PR body
+under "Lessons check" with why it doesn't apply. Run lint, typecheck and tests again after fixes.
+
+**If this run fixes a bug, add a row to the top of `docs/LESSONS-LEDGER.md`** (issue/PR, what
+broke, cause, rule), and add the rule to the `docs/LESSONS.md` checklist (and to `docs/PWA.md` for
+layout/iOS lessons) if it isn't covered yet. A rule that's a fixed source pattern gets a guard test
+in `apps/web/app/__tests__/lesson-guards.test.ts` instead of, or as well as, a checklist line.
 
 ## 6. Document the result
 
@@ -124,10 +136,9 @@ This is what makes the PR readable to someone (including future-you) who wasn't 
 session. Write a few sentences for the PR body covering what changed, why, and how it was
 verified (which commands ran, what they confirmed; for a UI-facing change, note which components/
 screens are affected). Terse and factual beats padded; this is a changelog entry, not marketing
-copy. A screenshot is not required — this repo's auth-gated backend and lack of a disposable test
-environment usually make a real browser run impractical from here — but if the `run` skill can
-actually exercise the feature (iPhone 16 viewport, ~393×852) without touching real user data, feel
-free to capture one and send it to the user directly.
+copy. For a UI change, take a screenshot of the
+real signed-in app at 393×852 with the `run-app` skill (it runs against a throwaway local database,
+never real user data) and attach it.
 
 ## 7. Update the release note
 
@@ -148,7 +159,7 @@ bumps) — everything else updates it.
 Commit, push, and open the PR. Check for a PR template first (per the harness's standing PR
 instructions) and populate it; if there's none, structure the body as Summary / Verification. This
 is also where the documentation from step 6 lands (tick the template's "Lessons check" boxes
-only for what you actually checked) — embed the written verification summary (and a
+only for what the step 5 review actually covered) — embed the written verification summary (and a
 screenshot, if one was taken) in the body, don't leave it only in chat.
 
 Reference the tracking issue with a closing keyword — **`Fixes #NN`** (`Closes #NN` / `Resolves #NN`

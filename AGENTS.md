@@ -1,9 +1,9 @@
 # Agent instructions
 
-**Before you ship any change (commit, push, open a PR, or run auto-ship), read
-[`docs/LESSONS.md`](docs/LESSONS.md) and go through its pre-ship checklist against your diff.** It
-lists the bugs that have already reached the user's phone and the rule that prevents each one.
-When you fix a bug, add a row to its ledger in the same PR.
+**Before any change merges, check the diff against the pre-ship checklist in
+[`docs/LESSONS.md`](docs/LESSONS.md).** Each line is a bug that already reached the user's phone.
+In auto-ship a review subagent does this pass; otherwise do it yourself. When you fix a bug, add a
+row to [`docs/LESSONS-LEDGER.md`](docs/LESSONS-LEDGER.md) in the same PR.
 
 Also read, when they apply:
 
@@ -11,4 +11,5 @@ Also read, when they apply:
 - `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`: local-first IndexedDB, append-only sets,
   foreground-driven sync.
 
-Run `pnpm lint`, `pnpm typecheck` and `pnpm test` before pushing.
+Run `pnpm lint`, `pnpm typecheck` and `pnpm test` before pushing. To see a UI change in the real
+signed-in app, use the `run-app` skill (`pnpm dev:stack`).
