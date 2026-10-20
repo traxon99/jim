@@ -173,6 +173,7 @@ export function ProgressionHome({ userId }: { userId: string }) {
         <div className="flex flex-col gap-2">
           <Link
             href="/profile/settings/advanced"
+            data-ripple
             className="flex min-h-11 items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
           >
             Weight steps

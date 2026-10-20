@@ -343,6 +343,7 @@ export function RoutineDetail({
           {sessionInfo?.activeId ? (
             <Link
               href={`/workout/${sessionInfo.activeId}`}
+              data-ripple
               className="flex min-h-14 items-center justify-center rounded-xl border border-zinc-300 px-4 text-base font-semibold dark:border-zinc-700"
             >
               Resume workout in progress

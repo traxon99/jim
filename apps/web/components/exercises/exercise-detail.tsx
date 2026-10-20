@@ -233,6 +233,7 @@ export function ExerciseDetail({
               href={demo.url}
               target="_blank"
               rel="noopener noreferrer"
+              data-ripple
               className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
             >
               <ExternalLink className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />

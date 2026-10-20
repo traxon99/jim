@@ -10,6 +10,7 @@ docs/LESSONS-LEDGER.md`) when a code comment or checklist line cites an issue nu
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #688 | Five button-styled links (Weight steps, Bodyweight history, Open program, Resume workout, the exercise demo) still had no tap ripple and opened iOS's link menu on a long press, and the Feedback type select had no name | #546 and #545 were fixed screen by screen, and the rules lived only in the checklist | Mechanical rules get a guard test (`apps/web/app/__tests__/lesson-guards.test.ts`) that scans every screen, not just the one that broke |
 | #653 | Home showed only your initial, never the profile picture set in Settings | `HomeSummary` drew its own initial circle and `/api/friends` never returned the user's own avatar | A picture shown for the signed-in user comes from the shared `useFriends` store; saving one refreshes it so mounted tabs update |
 | #654 | Profile's "Edit profile and sharing" link opened the general Settings menu instead of the picture and share-link screens | #650 split Settings into sub screens, but the link kept pointing at `/profile/settings` | When a feature moves, grep for links to its old home and point them at the new screen (same as #543) |
 | #646 | Synced sets read "100.00" and "10.0" in the active workout, and those rows pushed the ✓ off the card | The set row printed the server's numeric strings as-is, so they were wider than values logged on the phone | Display stored set values through `formatSetValue`; a long value drops a text size rather than widening its column |
