@@ -15,7 +15,7 @@ function InstallSteps({ platform }: { platform: InstallPlatform }) {
     return (
       <>
         <li>
-          Tap the <strong>Share</strong> button in Safari's toolbar
+          Tap <strong>Share</strong> in Safari (on iOS 26, tap <strong>•••</strong> first)
         </li>
         <li>
           Choose <strong>Add to Home Screen</strong>
@@ -39,6 +39,21 @@ function InstallSteps({ platform }: { platform: InstallPlatform }) {
     );
   }
 
+  if (platform === "in-app") {
+    // Instagram, Gmail and friends open links in their own browser, which
+    // can't add to the home screen (#676).
+    return (
+      <>
+        <li>
+          Open this page in <strong>Safari</strong> (iPhone) or <strong>Chrome</strong> (Android):
+          tap <strong>•••</strong> or the share icon, then <strong>Open in browser</strong>
+        </li>
+        <li>Add Jim to your home screen from there</li>
+        <li>Open Jim from your home screen</li>
+      </>
+    );
+  }
+
   return (
     <>
       <li>
@@ -50,6 +65,11 @@ function InstallSteps({ platform }: { platform: InstallPlatform }) {
   );
 }
 
+/** Chrome's install prompt event, which TypeScript's DOM types don't include. */
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+}
+
 /**
  * Hard-gates the app on home-screen install (ADR-010): iOS evicts storage
  * for non-installed web apps after 7 days, so nothing here should accept
@@ -58,6 +78,8 @@ function InstallSteps({ platform }: { platform: InstallPlatform }) {
 export function InstallGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<InstallState>("checking");
   const [platform, setPlatform] = useState<InstallPlatform>("other");
+  // Android Chrome offers a one-tap install; keep its event for the button.
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const pathname = usePathname();
   // From the router, not window.location: during a client-side navigation
   // this renders before the URL bar updates, so window.location.search still
@@ -67,11 +89,22 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const update = () => setState(isStandalone() ? "installed" : "not-installed");
     update();
-    setPlatform(detectInstallPlatform(window.navigator.userAgent));
+    setPlatform(
+      detectInstallPlatform(window.navigator.userAgent, window.navigator.maxTouchPoints ?? 0),
+    );
+
+    const onInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onInstallPrompt);
 
     const query = window.matchMedia(STANDALONE_MEDIA_QUERY);
     query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onInstallPrompt);
+      query.removeEventListener("change", update);
+    };
   }, []);
 
   if (state === "checking") return null;
@@ -88,9 +121,22 @@ export function InstallGate({ children }: { children: React.ReactNode }) {
           Jim only works installed to your home screen — that's what keeps your training data from
           being cleared after a week away.
         </p>
-        <ol className="max-w-xs list-decimal space-y-1 pl-5 text-left text-sm text-zinc-600 dark:text-zinc-400">
-          <InstallSteps platform={platform} />
-        </ol>
+        {installPrompt ? (
+          <button
+            type="button"
+            onClick={() => {
+              void installPrompt.prompt().catch(() => {});
+              setInstallPrompt(null);
+            }}
+            className="min-h-11 w-full max-w-xs rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground"
+          >
+            Install Jim
+          </button>
+        ) : (
+          <ol className="max-w-xs list-decimal space-y-1 pl-5 text-left text-sm text-zinc-600 dark:text-zinc-400">
+            <InstallSteps platform={platform} />
+          </ol>
+        )}
         <p className="max-w-xs text-sm text-zinc-600 dark:text-zinc-400">
           On a computer?{" "}
           <Link href={PORTAL_PATH} className="font-medium underline underline-offset-4">
