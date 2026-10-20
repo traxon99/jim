@@ -32,3 +32,40 @@ export function reloadOnUpdateWhenAway(
     doc.removeEventListener("visibilitychange", reloadIfPending);
   };
 }
+
+/** At most one update check per this long when the app comes back to the foreground. */
+export const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+
+/**
+ * Asks the browser to look for a new service worker whenever the app comes
+ * back to the foreground, at most once per `UPDATE_CHECK_INTERVAL_MS` (#671).
+ * A suspended PWA is never reloaded, so without this someone with
+ * notifications off (no release push) kept the old build until iOS killed
+ * the app. `reloadOnUpdateWhenAway` then applies the update safely.
+ *
+ * Returns a cleanup that removes the listener.
+ */
+export function checkForUpdateOnReturn(
+  registration: Pick<ServiceWorkerRegistration, "update">,
+  doc: Pick<Document, "visibilityState" | "addEventListener" | "removeEventListener">,
+  now: () => number = Date.now,
+): () => void {
+  let lastCheck = now();
+  const onVisibilityChange = () => {
+    if (doc.visibilityState !== "visible") return;
+    if (now() - lastCheck < UPDATE_CHECK_INTERVAL_MS) return;
+    lastCheck = now();
+    registration.update().catch(() => {});
+  };
+  doc.addEventListener("visibilitychange", onVisibilityChange);
+  return () => doc.removeEventListener("visibilitychange", onVisibilityChange);
+}
+
+/** The path a notification tap asks the running app to open, or null (#667). */
+export function navigateMessagePath(data: unknown): string | null {
+  if (typeof data !== "object" || data === null) return null;
+  const { type, path } = data as Record<string, unknown>;
+  if (type !== "jim-navigate" || typeof path !== "string") return null;
+  // Only a path on this origin, never "//host" or a full URL.
+  return path.startsWith("/") && !path.startsWith("//") ? path : null;
+}
