@@ -1,7 +1,12 @@
 "use client";
 
 import { syncPushSubscription } from "@/lib/pwa/push-client";
-import { reloadOnUpdateWhenAway } from "@/lib/pwa/update-reload";
+import {
+  checkForUpdateOnReturn,
+  navigateMessagePath,
+  reloadOnUpdateWhenAway,
+} from "@/lib/pwa/update-reload";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 /**
@@ -14,6 +19,8 @@ import { useEffect } from "react";
  * (public/sw.template.js), so it reaches the user even when Jim is closed.
  */
 export function RegisterServiceWorker() {
+  const router = useRouter();
+
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
@@ -36,15 +43,34 @@ export function RegisterServiceWorker() {
       ? reloadOnUpdateWhenAway(navigator.serviceWorker, document, () => window.location.reload())
       : undefined;
 
+    let stopUpdateChecks: (() => void) | undefined;
     navigator.serviceWorker
       .register("/sw.js")
-      .then((registration) => syncPushSubscription(registration))
+      .then((registration) => {
+        stopUpdateChecks = checkForUpdateOnReturn(registration, document);
+        return syncPushSubscription(registration);
+      })
       .catch((error) => {
         console.error("Service worker registration or push sync failed:", error);
       });
 
-    return stopReloadOnUpdate;
+    return () => {
+      stopReloadOnUpdate?.();
+      stopUpdateChecks?.();
+    };
   }, []);
+
+  // A notification tapped while Jim is running: the worker focuses this
+  // window and says where the notification points (#667).
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (event: MessageEvent) => {
+      const path = navigateMessagePath(event.data);
+      if (path) router.push(path);
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, [router]);
 
   return null;
 }

@@ -130,6 +130,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] An unreachable server (thrown fetch, timeout) is `offline`, shown neutral; red is for 5xx and
       rejected rows. Every sync request has a timeout (#665, #684).
 - [ ] Keep `app/error.tsx` and `app/global-error.tsx` on the shared `ErrorScreen` (#664).
+- [ ] A notification that opens a page posts `jim-navigate` to the focused app rather than just
+      focusing it, and the app checks for updates when it returns to the foreground (#667, #671).
 
 **MCP tools**
 - [ ] A new thing a user can do in the app gets a matching MCP tool (see auto-ship step 4).
