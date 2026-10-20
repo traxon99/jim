@@ -1,6 +1,7 @@
 "use client";
 
 import { ExerciseForm } from "@/components/exercises/exercise-form";
+import { useIncrementalList } from "@/components/use-incremental-list";
 import { db } from "@/lib/db/schema";
 import { EXERCISE_CATEGORY_TABS, exerciseMetaLine, useGymNames } from "@/lib/exercises/display";
 import {
@@ -12,7 +13,7 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Plus } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface Props {
@@ -71,6 +72,8 @@ export function ExercisePicker({
   useEffect(() => setMounted(true), []);
   const portal = (content: ReactNode) => (mounted ? createPortal(content, document.body) : null);
   const [query, setQuery] = useState("");
+  // Filtering ~870 exercises per keystroke can't hold up typing (#674).
+  const deferredQuery = useDeferredValue(query);
   const [category, setCategory] = useState<ExerciseCategory | "all">(initialCategory);
   // Issue #169: create a missing exercise from here with the same form the
   // Exercises page uses, then add it straight away.
@@ -109,8 +112,8 @@ export function ExercisePicker({
     const filtered = filterExercises(owned, {
       category: category === "all" ? undefined : category,
     }).filter((exercise) => !excludeExerciseIds.has(exercise.id));
-    return searchExercises(filtered, query);
-  }, [allExercises, userId, query, excludeExerciseIds, category]);
+    return searchExercises(filtered, deferredQuery);
+  }, [allExercises, userId, deferredQuery, excludeExerciseIds, category]);
 
   // Suggestions are strength work, so they sit out a search and the
   // Warm-ups and Cardio tabs; while they show, the list below doesn't repeat them.
@@ -126,6 +129,8 @@ export function ExercisePicker({
     const suggestedIds = new Set(suggestions.map((exercise) => exercise.id));
     return results.filter((exercise) => !suggestedIds.has(exercise.id));
   }, [results, suggestions]);
+
+  const incremental = useIncrementalList(listed, `${deferredQuery}|${category}`);
 
   function renderRow(exercise: (typeof results)[number]) {
     const order = selectedIds.indexOf(exercise.id);
@@ -264,7 +269,10 @@ export function ExercisePicker({
             {listed.length > 0 && <li className={SECTION_LABEL}>All exercises</li>}
           </>
         )}
-        {listed.map(renderRow)}
+        {incremental.visible.map(renderRow)}
+        {incremental.hasMore && (
+          <li ref={incremental.sentinelRef} aria-hidden="true" className="h-px" />
+        )}
         {results.length === 0 && (
           <li className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
             No exercises match.

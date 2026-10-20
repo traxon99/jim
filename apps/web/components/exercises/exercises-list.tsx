@@ -2,6 +2,7 @@
 
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { useIncrementalList } from "@/components/use-incremental-list";
 import { db } from "@/lib/db/schema";
 import { EXERCISE_CATEGORY_TABS, exerciseMetaLine, useGymNames } from "@/lib/exercises/display";
 import { formatLastDone } from "@/lib/routines/last-done";
@@ -19,7 +20,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 
 const SORT_OPTIONS: { value: ExerciseSortKey; label: string }[] = [
   { value: "name", label: "Name" },
@@ -54,6 +55,8 @@ export function ExercisesList({ userId }: { userId: string }) {
   }, []);
 
   const [query, setQuery] = useState("");
+  // Filtering ~870 exercises per keystroke can't hold up typing (#674).
+  const deferredQuery = useDeferredValue(query);
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState("");
   const [category, setCategory] = useState<ExerciseCategory | "all">("all");
@@ -78,7 +81,7 @@ export function ExercisesList({ userId }: { userId: string }) {
       category: category === "all" ? undefined : category,
     });
     const sorted = sortExercisesByUsage(filtered, usageByExerciseId, sortKey);
-    const ranked = searchExercises(sorted, query);
+    const ranked = searchExercises(sorted, deferredQuery);
 
     const muscleSet = new Set<string>();
     const equipmentSet = new Set<string>();
@@ -94,11 +97,11 @@ export function ExercisesList({ userId }: { userId: string }) {
       equipmentOptions: [...equipmentSet].sort(),
       usage: usageByExerciseId,
     };
-  }, [allExercises, usageRows, userId, query, muscle, equipment, category, sortKey]);
+  }, [allExercises, usageRows, userId, deferredQuery, muscle, equipment, category, sortKey]);
 
   // Issue #330: exercises you've logged come first, most recent first, above
   // the untouched catalog, unless a search or another sort is in charge.
-  const sectioned = query.trim() === "" && sortKey === "name";
+  const sectioned = deferredQuery.trim() === "" && sortKey === "name";
   const yours = sectioned
     ? results
         .filter((exercise) => usage.has(exercise.id))
@@ -109,6 +112,10 @@ export function ExercisesList({ userId }: { userId: string }) {
         )
     : [];
   const rest = sectioned ? results.filter((exercise) => !usage.has(exercise.id)) : results;
+  const restPage = useIncrementalList(
+    rest,
+    [deferredQuery, muscle, equipment, category, sortKey].join("|"),
+  );
 
   function renderRow(exercise: (typeof results)[number]) {
     const used = usage.get(exercise.id);
@@ -288,7 +295,10 @@ export function ExercisesList({ userId }: { userId: string }) {
                   </h2>
                 )}
                 <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {rest.map(renderRow)}
+                  {restPage.visible.map(renderRow)}
+                  {restPage.hasMore && (
+                    <li ref={restPage.sentinelRef} aria-hidden="true" className="h-px" />
+                  )}
                 </ul>
               </section>
             )}
