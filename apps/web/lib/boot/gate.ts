@@ -102,6 +102,15 @@ export function subscribeBootRevealed(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Drops the splash now. The error screen calls this: a crash can leave a boot
+ * task that never settles, and the splash would cover the way out until the
+ * backstop (#664).
+ */
+export function revealBootNow(): void {
+  reveal();
+}
+
 function reveal(): void {
   if (revealed) return;
   revealed = true;

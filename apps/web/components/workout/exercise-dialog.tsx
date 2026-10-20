@@ -45,7 +45,7 @@ export function ExerciseDialog({ title, onClose, children }: Props) {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-30 flex touch-none items-center justify-center overscroll-none bg-black/50 px-4">
+    <div className="fixed inset-0 z-30 flex items-center justify-center overscroll-none bg-black/50 px-4">
       <button
         type="button"
         aria-label="Close"
@@ -53,7 +53,7 @@ export function ExerciseDialog({ title, onClose, children }: Props) {
         // `absolute!`: globals.css gives every enabled button `position: relative`
         // for the tap ripple, which beats plain `absolute` and left this backdrop
         // a zero-size flex item that ignored taps (#356, #493).
-        className="absolute! inset-0 cursor-default"
+        className="absolute! inset-0 cursor-default touch-none"
       />
       <dialog
         open

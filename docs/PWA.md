@@ -207,6 +207,9 @@ appear on, including during an active workout while the rest timer is running.
 - `touch-action: manipulation` globally stops double-tap zoom and the 300ms tap delay. It
   *doesn't* stop pinch-zoom, so the viewport also sets `maximumScale: 1, userScalable: false`
   (3d6bb81). iOS honors this only in standalone mode.
+  The rule lives in `@layer base`: outside a layer it beat Tailwind's `touch-none` utility and
+  quietly disabled every one in the app (#663). Any element-wide rule added to `globals.css` goes in
+  `@layer base` for the same reason.
 - `inputmode="decimal"` for weights and `inputmode="numeric"` for reps.
 
 ---
