@@ -414,6 +414,11 @@ body.pwa {
   animation: page-fade-in 220ms ease-out;
 }
 
+/* app/(shell)/loading.tsx: held back so a quick load never flashes a spinner. */
+.route-loading {
+  animation: page-fade-in 200ms ease-out 300ms both, spin 1s linear infinite;
+}
+
 /* Bottom sheet overlays (components/workout/pre-workout-sheet.tsx): the
    backdrop fades while the sheet rises; data-closing plays it in reverse
    before the sheet unmounts. */

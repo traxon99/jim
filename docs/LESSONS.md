@@ -98,6 +98,7 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #661 | Opening Jim with no signal showed Safari's "not connected" page for a signed-in user, even after #506 | `/` always redirects to `/workout`, and the worker only stored `/` when it wasn't redirected, so it never stored a page | Cache the page a navigation actually lands on (keyed by the final URL, as a fresh non-redirected copy), fall back to `/workout`, and check an offline cold start (PWA.md §10) |
 | #663 | Every `touch-none` in the app did nothing, so overlay bars could scroll the page and drag handles could pan the list on iPhone | `* { touch-action: manipulation }` sat outside a CSS layer in `globals.css`, and unlayered CSS beats Tailwind's utilities layer | Element-wide rules in `globals.css` go in `@layer base` so a utility can override them (guarded in `layout-guards.test.ts`) |
 | #664 | A render error left the installed app on Next's bare "Application error" screen, with no way out but force-quitting | There was no `error.tsx` or `global-error.tsx` | Keep `app/error.tsx` and `app/global-error.tsx` (shared `ErrorScreen`): Reload, Go to Workout, Send feedback |
 | #653 | Home showed only your initial, never the profile picture set in Settings | `HomeSummary` drew its own initial circle and `/api/friends` never returned the user's own avatar | A picture shown for the signed-in user comes from the shared `useFriends` store; saving one refreshes it so mounted tabs update |

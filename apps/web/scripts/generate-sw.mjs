@@ -26,15 +26,19 @@ const staticUrls = walk(staticDir).map(
   (file) => `/_next/static/${relative(staticDir, file).split(sep).join("/")}`,
 );
 
-// "/" and "/login" so the shell loads offline whether or not the user is
-// currently signed in (proxy.ts redirects "/" to "/login" when signed out;
-// the worker skips a redirected response rather than store it, #506).
-const precacheUrls = ["/", "/login", "/manifest.webmanifest", ...staticUrls];
+const precacheUrls = ["/manifest.webmanifest", ...staticUrls];
+// Pages so a cold start works offline whether or not the user is signed in:
+// /workout is where a signed-in launch lands (#661), /login where a
+// signed-out one does. Each redirect is stored under where it ended (#506).
+const precachePages = ["/workout", "/login"];
 
 const template = readFileSync(join(root, "public", "sw.template.js"), "utf8");
 const output = template
   .replaceAll("__BUILD_ID__", buildId)
-  .replace("__PRECACHE_URLS__", JSON.stringify(precacheUrls));
+  .replace("__PRECACHE_URLS__", JSON.stringify(precacheUrls))
+  .replace("__PRECACHE_PAGES__", JSON.stringify(precachePages));
 
 writeFileSync(join(root, "public", "sw.js"), output);
-console.log(`Generated public/sw.js precaching ${precacheUrls.length} URLs (build ${buildId}).`);
+console.log(
+  `Generated public/sw.js precaching ${precacheUrls.length} URLs and ${precachePages.length} pages (build ${buildId}).`,
+);
