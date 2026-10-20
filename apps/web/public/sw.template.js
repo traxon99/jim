@@ -96,13 +96,15 @@ self.addEventListener("push", (event) => {
     Promise.all([
       // Chrome and Safari require every push to show a notification
       // (userVisibleOnly), so this always shows one, even for an unexpected payload.
-      self.registration.showNotification(message.title || "Jim", {
-        body: message.body || "",
-        icon: "/icons/192",
-        badge: "/icons/192",
-        tag: message.tag,
-        data: { url: message.url || "/" },
-      }),
+      self.registration
+        .showNotification(message.title || "Jim", {
+          body: message.body || "",
+          icon: "/icons/192",
+          badge: "/icons/192",
+          tag: message.tag,
+          data: { url: message.url || "/" },
+        })
+        .then(() => (message.tag === "jim-rest-timer" ? dismissIfJimIsOpen(message.tag) : null)),
       // A release push means a new sw.js is (or is about to be) live. Checking
       // now lets the new version download and precache in the background, so
       // it's already there when the user opens Jim. A failure here (offline,
@@ -112,17 +114,38 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// "Rest complete" while Jim is on screen: the in-app timer already showed it,
+// so the banner dropping over the app is noise (#682). The push still had to
+// show a notification, so close it straight away.
+function dismissIfJimIsOpen(tag) {
+  return self.clients.matchAll({ type: "window" }).then((windows) => {
+    if (!windows.some((client) => client.visibilityState === "visible")) return;
+    return self.registration.getNotifications({ tag }).then((shown) => {
+      for (const notification of shown) notification.close();
+    });
+  });
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  const target = new URL(event.notification.data?.url || "/", self.location.origin);
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
       const existing = windows.find(
         (client) => new URL(client.url).origin === self.location.origin,
       );
-      if (existing) return existing.focus();
-      return self.clients.openWindow(target);
+      if (!existing) return self.clients.openWindow(target.href);
+      // A running (or suspended) Jim is focused where it was left, so tell it
+      // where the notification points; it routes there client-side
+      // (components/register-service-worker.tsx), with no reload (#667).
+      return existing.focus().then((focused) => {
+        if (target.pathname === "/") return;
+        (focused || existing).postMessage({
+          type: "jim-navigate",
+          path: target.pathname + target.search,
+        });
+      });
     }),
   );
 });
