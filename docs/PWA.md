@@ -207,6 +207,9 @@ appear on, including during an active workout while the rest timer is running.
 - `touch-action: manipulation` globally stops double-tap zoom and the 300ms tap delay. It
   *doesn't* stop pinch-zoom, so the viewport also sets `maximumScale: 1, userScalable: false`
   (3d6bb81). iOS honors this only in standalone mode.
+  The rule lives in `@layer base`: outside a layer it beat Tailwind's `touch-none` utility and
+  quietly disabled every one in the app (#663). Any element-wide rule added to `globals.css` goes in
+  `@layer base` for the same reason.
 - `inputmode="decimal"` for weights and `inputmode="numeric"` for reps.
 
 ---
@@ -325,7 +328,12 @@ with `pnpm dev:shot <path>` (the `run-app` skill, `.claude/skills/run-app/SKILL.
    - focus an input, close the keyboard, and check that the tab bar is back at the bottom,
    - open each overlay during an active workout with the rest timer running,
    - switch tabs mid-action, come back, and check that no stale state is left behind.
-4. Things only a real iPhone shows: keyboard scroll behavior, the `dvh` first-paint bug, safe-area
+4. **Changing the service worker, routing or auth?** Check an offline cold start: sign in, load
+   the app once, deploy (or bump the build), load once more, then force-quit, switch on Airplane
+   Mode and open Jim from the home screen. It must open on the Workout tab, not Safari's "not
+   connected" page. The worker keeps signed-in pages in `jim-pages-<build>`, stored under the URL a
+   redirect ended on, and sign-out deletes it (#661).
+5. Things only a real iPhone shows: keyboard scroll behavior, the `dvh` first-paint bug, safe-area
    insets. If you can't test on a device, say so in the PR rather than implying it was verified.
 
 Pure policy logic (`context-menu.ts`, `keyboard-scroll.ts`) lives in `lib/pwa/` as plain functions

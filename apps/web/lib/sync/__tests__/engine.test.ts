@@ -101,14 +101,32 @@ describe("drainOutbox", () => {
     expect(getSyncStatus()).toEqual({ kind: "synced" });
   });
 
-  it("leaves the outbox untouched and reports error on a network failure", async () => {
+  it("leaves the outbox untouched and reports offline, not error, on a network failure (#665)", async () => {
     await testDb.outbox.put({ id: "m1", table: "routines", entity: routine({ id: "r1" }) });
-    const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("Load failed"));
 
     await drainOutbox(testDb, fetchMock);
 
     expect(await testDb.outbox.count()).toBe(1);
-    expect(getSyncStatus()).toEqual({ kind: "error", count: 1 });
+    expect(getSyncStatus()).toEqual({ kind: "offline", count: 1 });
+  });
+
+  it("gives every sync request a timeout, and reports one that times out as offline (#684)", async () => {
+    await testDb.outbox.put({ id: "m1", table: "routines", entity: routine({ id: "r1" }) });
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    });
+
+    await runSyncCycle(testDb, fetchMock as unknown as typeof fetch);
+
+    expect(getSyncStatus()).toEqual({ kind: "offline", count: 1 });
+  });
+
+  it("reports offline when a pull can't reach the server", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("Load failed"));
+    await pullChanges(testDb, fetchMock);
+    expect(getSyncStatus()).toEqual({ kind: "offline", count: 0 });
   });
 
   it("leaves the outbox untouched and reports error on a non-2xx response", async () => {
@@ -161,7 +179,9 @@ describe("pullChanges", () => {
 
     await pullChanges(testDb, fetchMock);
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=0");
+    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=0", {
+      signal: expect.any(AbortSignal),
+    });
     const stored = await testDb.routines.get("r1");
     expect(stored?.name).toBe("From server");
     expect(stored?.updatedAt).toBeInstanceOf(Date);
@@ -204,7 +224,9 @@ describe("pullChanges", () => {
 
     await pullChanges(testDb, fetchMock);
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7");
+    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7", {
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it("pulls from the start once after a schema upgrade adds tables (#501)", async () => {
@@ -232,7 +254,9 @@ describe("pullChanges", () => {
 
     await pullChanges(testDb, fetchMock);
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7");
+    expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7", {
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it("keeps pulling pages while the server says there are more (#489)", async () => {

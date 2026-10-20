@@ -14,6 +14,16 @@ describe("layout guards", () => {
     expect(css).toMatch(/fieldset\s*\{[^}]*min-width:\s*0/);
   });
 
+  it("keeps the global touch-action rule in a layer, so `touch-none` can win (#663)", () => {
+    const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    // Strip @layer blocks (one level of nesting), then make sure no
+    // touch-action declaration is left outside a layer: unlayered CSS beats
+    // every Tailwind utility.
+    const unlayered = css.replace(/@layer\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
+    expect(unlayered).not.toMatch(/touch-action:\s*manipulation/);
+    expect(css).toMatch(/touch-action:\s*manipulation/);
+  });
+
   it("never sizes a fieldset to its content, which undoes that reset", () => {
     const offenders = ["app", "components"]
       .flatMap((dir) => sourceFiles(path.join(webRoot, dir)))

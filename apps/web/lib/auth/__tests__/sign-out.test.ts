@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type JimDatabase, createTestDb } from "../../db/schema";
-import { clearAuthCookies, clearLocalData, flushOutboxBeforeSignOut } from "../sign-out";
+import {
+  clearAuthCookies,
+  clearCachedPages,
+  clearLocalData,
+  flushOutboxBeforeSignOut,
+} from "../sign-out";
 
 let testDb: JimDatabase;
 
@@ -63,6 +68,24 @@ describe("clearLocalData", () => {
     expect(await reopened.outbox.count()).toBe(0);
     expect(await reopened.syncMeta.get("meta")).toBeUndefined();
     reopened.close();
+  });
+});
+
+describe("clearCachedPages", () => {
+  it("deletes the cached pages but keeps the build's static assets", async () => {
+    const deleted: string[] = [];
+    await clearCachedPages({
+      keys: async () => ["jim-shell-b1", "jim-pages-b1", "jim-pages-b0"],
+      delete: async (key: string) => {
+        deleted.push(key);
+        return true;
+      },
+    });
+    expect(deleted).toEqual(["jim-pages-b1", "jim-pages-b0"]);
+  });
+
+  it("does nothing where there's no Cache Storage", async () => {
+    await expect(clearCachedPages(undefined)).resolves.toBeUndefined();
   });
 });
 

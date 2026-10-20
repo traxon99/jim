@@ -26,6 +26,21 @@ export async function clearLocalData(database: JimDatabase = db): Promise<void> 
 }
 
 /**
+ * Deletes the service worker's cached pages (public/sw.template.js
+ * PAGES_CACHE). They're the signed-in user's HTML, kept for offline launches
+ * (#661), so they mustn't outlive the session (#289).
+ */
+export async function clearCachedPages(
+  cacheStorage: Pick<CacheStorage, "keys" | "delete"> | undefined = globalThis.caches,
+): Promise<void> {
+  if (!cacheStorage) return;
+  const keys = await cacheStorage.keys();
+  await Promise.all(
+    keys.filter((key) => key.startsWith("jim-pages-")).map((key) => cacheStorage.delete(key)),
+  );
+}
+
+/**
  * Expires every Supabase auth cookie (`sb-<ref>-auth-token`, plus its
  * `.0`/`.1` chunks). A fallback for when `signOut()` itself fails — e.g. the
  * revoke request can't reach Supabase — since supabase-js then keeps the

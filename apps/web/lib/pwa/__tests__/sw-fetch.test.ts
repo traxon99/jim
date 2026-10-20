@@ -4,7 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const TEMPLATE = readFileSync(new URL("../../../public/sw.template.js", import.meta.url), "utf8")
   .replaceAll("__BUILD_ID__", "test")
-  .replace("__PRECACHE_URLS__", "[]");
+  .replace("__PRECACHE_URLS__", "[]")
+  .replace("__PRECACHE_PAGES__", "[]");
 
 const ORIGIN = "https://jim.test";
 

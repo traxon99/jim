@@ -53,6 +53,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
 - [ ] Themed color? `bg-accent`/`text-accent-foreground`, never a fixed palette color (#445).
+- [ ] Adding a rule to `globals.css` that targets elements (`*`, `button`, `input`…)? Put it in
+      `@layer base`. Unlayered CSS beats every Tailwind utility, which is how one rule switched off
+      every `touch-none` (#663; guard test for `touch-action`).
 
 **Taps and destructive actions**
 - [ ] Can a fast double tap run a save twice? Guard it until the result has rendered, not just until
@@ -121,8 +124,12 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] State a client must still find after a deploy lives in Postgres, never process memory (#499).
 - [ ] Server-side calendar math uses the user's stored IANA time zone, never the server's (#511).
 - [ ] A validator for data the app already saved accepts everything the app lets you save (#433).
-- [ ] The service worker never stores a redirected response, and an update reload waits until the
-      user has left the app (#506, #507).
+- [ ] The service worker never stores a redirected response; it caches the page a navigation lands
+      on (by final URL) and falls back to `/workout`. Check an offline cold start. An update reload
+      waits until the user has left the app (#506, #507, #661).
+- [ ] An unreachable server (thrown fetch, timeout) is `offline`, shown neutral; red is for 5xx and
+      rejected rows. Every sync request has a timeout (#665, #684).
+- [ ] Keep `app/error.tsx` and `app/global-error.tsx` on the shared `ErrorScreen` (#664).
 
 **MCP tools**
 - [ ] A new thing a user can do in the app gets a matching MCP tool (see auto-ship step 4).

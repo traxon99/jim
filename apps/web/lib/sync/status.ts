@@ -2,6 +2,8 @@ export type SyncStatus =
   | { kind: "synced" }
   | { kind: "pending"; count: number }
   | { kind: "error"; count: number }
+  /** The request never reached the server (no signal, or it timed out). Not an error (#665). */
+  | { kind: "offline"; count: number }
   /** The server answered 401: the session expired or was revoked. */
   | { kind: "signed-out"; count: number };
 
