@@ -2,7 +2,7 @@
 
 import { type FocusExerciseCandidate, isFocusExerciseComplete } from "@jim/core";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 export interface FocusViewExercise extends FocusExerciseCandidate {
   id: string;
@@ -75,6 +75,23 @@ export function FocusView({
     };
   }, []);
 
+  // Prev/Next swaps the content inside one scroller, so start each exercise
+  // at its top rather than wherever the last one was left (#677). The step
+  // strip scrolls sideways on a long workout, so bring the current step into
+  // view too (#683).
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLOListElement>(null);
+  const currentId = exercises[index]?.id;
+  useEffect(() => {
+    if (!currentId) return;
+    scrollerRef.current?.scrollTo({ top: 0 });
+    const strip = stripRef.current;
+    const step = strip?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (strip && step) {
+      strip.scrollLeft = step.offsetLeft - (strip.clientWidth - step.offsetWidth) / 2;
+    }
+  }, [currentId]);
+
   const current = exercises[index];
   if (!current) return null;
   const next = exercises[index + 1];
@@ -113,13 +130,22 @@ export function FocusView({
         <div className="flex min-w-11 shrink-0 justify-end">{headerAction}</div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3">
-        <ol className="flex gap-1.5" aria-label="Exercises">
+      <div
+        ref={scrollerRef}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 py-3"
+      >
+        {/* Each step keeps a 44px tap target (min-w-11); past about seven
+            exercises the strip scrolls sideways instead of shrinking them (#683). */}
+        <ol
+          ref={stripRef}
+          className="no-scrollbar relative -mx-4 flex gap-1.5 overflow-x-auto px-4"
+          aria-label="Exercises"
+        >
           {exercises.map((exercise, i) => {
             const complete = isFocusExerciseComplete(exercise);
             const active = i === index;
             return (
-              <li key={exercise.id} className="flex-1">
+              <li key={exercise.id} className="min-w-11 flex-1">
                 <button
                   type="button"
                   onClick={() => onIndexChange(i)}
