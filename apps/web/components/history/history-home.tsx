@@ -154,9 +154,21 @@ export function HistoryHome() {
             )}
           </div>
           {visibleSessions.length === 0 ? (
-            <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
-              {entries.length === 0 ? "No workouts finished yet." : "No workouts on this day."}
-            </p>
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="text-sm text-zinc-500 dark:text-zinc-500">
+                {entries.length === 0 ? "No workouts finished yet." : "No workouts on this day."}
+              </p>
+              {/* A brand-new user needs somewhere to go from here (#686). */}
+              {entries.length === 0 && (
+                <Link
+                  href="/workout"
+                  data-ripple
+                  className="flex min-h-11 items-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+                >
+                  Start a workout
+                </Link>
+              )}
+            </div>
           ) : (
             <ul className="flex flex-col gap-2">
               {visibleSessions.map((session) => {
