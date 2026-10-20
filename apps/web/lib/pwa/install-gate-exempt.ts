@@ -7,7 +7,13 @@ export const PORTAL_PATH = "/portal";
  * and the reset email often opens in a plain browser tab even for someone who
  * uses the installed app, so they stay reachable from any browser.
  */
-const ACCOUNT_RECOVERY_PATHS = ["/forgot-password", "/reset-password", "/auth/auth-code-error"];
+const ACCOUNT_RECOVERY_PATHS = [
+  "/forgot-password",
+  "/reset-password",
+  "/auth/auth-code-error",
+  // A sign-up confirmation link opens in Safari even once Jim is installed (#670).
+  "/auth/confirmed",
+];
 
 /**
  * The web portal (issue #38, ADR-015) is read-only and reads from the

@@ -53,7 +53,8 @@ export function SignupForm({ next }: { next: string }) {
   if (status === "sent") {
     return (
       <p className="max-w-xs text-sm text-zinc-600 dark:text-zinc-400">
-        Check <strong>{email}</strong> for a link to confirm your account.
+        Check <strong>{email}</strong> for a link to confirm your account. The link opens in your
+        browser; after that, come back to Jim and sign in.
       </p>
     );
   }

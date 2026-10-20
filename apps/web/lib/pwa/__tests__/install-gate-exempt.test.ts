@@ -9,6 +9,10 @@ describe("isInstallGateExempt", () => {
     expect(isInstallGateExempt(`/share/${ID}`, "from=settings")).toBe(true);
   });
 
+  it("lets Safari show the sign-up confirmation page (#670)", () => {
+    expect(isInstallGateExempt("/auth/confirmed", "next=%2F")).toBe(true);
+  });
+
   it("still gates the rest of the app", () => {
     expect(isInstallGateExempt("/routines", "")).toBe(false);
     expect(isInstallGateExempt("/share/not-a-link", "")).toBe(false);
