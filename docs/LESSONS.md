@@ -39,6 +39,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       `globals.css`, so never give one `min-w-min`/`min-w-fit`), and `<input>`/`<select>` keep an
       intrinsic width unless they and every flex/grid ancestor have `min-w-0` (#458).
 - [ ] Use `PageHeader` for a tab's header instead of building a one-off one (#309).
+- [ ] Adding a rule to `globals.css` that targets elements (`*`, `button`, `input`…)? Put it in
+      `@layer base`. Unlayered CSS beats every Tailwind utility, which is how one rule switched off
+      every `touch-none` (#663).
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376).
 
@@ -95,6 +98,8 @@ Newest first. One line on what broke, the cause, and the rule. Add yours at the 
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #663 | Every `touch-none` in the app did nothing, so overlay bars could scroll the page and drag handles could pan the list on iPhone | `* { touch-action: manipulation }` sat outside a CSS layer in `globals.css`, and unlayered CSS beats Tailwind's utilities layer | Element-wide rules in `globals.css` go in `@layer base` so a utility can override them (guarded in `layout-guards.test.ts`) |
+| #664 | A render error left the installed app on Next's bare "Application error" screen, with no way out but force-quitting | There was no `error.tsx` or `global-error.tsx` | Keep `app/error.tsx` and `app/global-error.tsx` (shared `ErrorScreen`): Reload, Go to Workout, Send feedback |
 | #653 | Home showed only your initial, never the profile picture set in Settings | `HomeSummary` drew its own initial circle and `/api/friends` never returned the user's own avatar | A picture shown for the signed-in user comes from the shared `useFriends` store; saving one refreshes it so mounted tabs update |
 | #654 | Profile's "Edit profile and sharing" link opened the general Settings menu instead of the picture and share-link screens | #650 split Settings into sub screens, but the link kept pointing at `/profile/settings` | When a feature moves, grep for links to its old home and point them at the new screen (same as #543) |
 | #646 | Synced sets read "100.00" and "10.0" in the active workout, and those rows pushed the ✓ off the card | The set row printed the server's numeric strings as-is, so they were wider than values logged on the phone | Display stored set values through `formatSetValue`; a long value drops a text size rather than widening its column |

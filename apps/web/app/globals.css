@@ -308,9 +308,13 @@ body {
   }
 }
 
-/* Global iOS hygiene (docs/ARCHITECTURE.md §6) */
-* {
-  touch-action: manipulation;
+/* Global iOS hygiene (docs/ARCHITECTURE.md §6). In the base layer: outside a layer it
+   beat Tailwind's `touch-none` utility, which silently undid every one of them,
+   drag handles included (#663). */
+@layer base {
+  * {
+    touch-action: manipulation;
+  }
 }
 
 input,
