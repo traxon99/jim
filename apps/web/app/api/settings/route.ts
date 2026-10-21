@@ -46,6 +46,7 @@ interface SettingsPayload {
   pushRestTimer: boolean;
   pushWorkoutReminders: boolean;
   pushWhatsNew: boolean;
+  pushWhatsNewEveryDeploy: boolean;
   sex: "male" | "female" | null;
   birthdate: string | null;
   heightCm: string | null;
@@ -84,6 +85,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     pushRestTimer: row.pushRestTimer,
     pushWorkoutReminders: row.pushWorkoutReminders,
     pushWhatsNew: row.pushWhatsNew,
+    pushWhatsNewEveryDeploy: row.pushWhatsNewEveryDeploy,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm,
@@ -180,7 +182,12 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("showSetTimer" in candidate && typeof candidate.showSetTimer !== "boolean") {
     return false;
   }
-  for (const key of ["pushRestTimer", "pushWorkoutReminders", "pushWhatsNew"] as const) {
+  for (const key of [
+    "pushRestTimer",
+    "pushWorkoutReminders",
+    "pushWhatsNew",
+    "pushWhatsNewEveryDeploy",
+  ] as const) {
     if (key in candidate && typeof candidate[key] !== "boolean") return false;
   }
   if (
@@ -313,6 +320,8 @@ export async function PATCH(request: Request) {
       if (body.pushWorkoutReminders !== undefined)
         patch.pushWorkoutReminders = body.pushWorkoutReminders;
       if (body.pushWhatsNew !== undefined) patch.pushWhatsNew = body.pushWhatsNew;
+      if (body.pushWhatsNewEveryDeploy !== undefined)
+        patch.pushWhatsNewEveryDeploy = body.pushWhatsNewEveryDeploy;
       if (body.autoEndWorkoutMinutes !== undefined) {
         patch.autoEndWorkoutMinutes = body.autoEndWorkoutMinutes;
       }

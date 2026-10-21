@@ -393,6 +393,13 @@
       "when": 1792606150864,
       "tag": "0055_push_switches_release_pushes",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792607382251,
+      "tag": "0056_whats_new_every_deploy",
+      "breakpoints": true
     }
   ]
 }

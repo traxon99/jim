@@ -302,8 +302,8 @@ the exact same in-memory JS, React state included, indefinitely.
 - A production deploy pushes a "Jim updated" notification with `LATEST_RELEASE_NOTE`
   (`lib/pwa/notifications.ts`) as its text, to users with What's new on. **Update that string in
   every user-facing change.** It's sent only when the note changed, and at most once a day
-  (`shouldSendReleasePush`, the `release_pushes` table), so a stale note is never resent (#115,
-  #668).
+  unless the user turned on "Every new feature" (`shouldSendReleasePush`, the `release_pushes`
+  table, one row per audience), so a stale note is never resent (#115, #668, #702).
 - **Each kind of push has its own switch** (Settings → Notifications: Rest timer, Workout
   reminders, What's new; `users.push_*`, #668). The server checks the switch before it sends, so a
   new kind of push needs its own column and a check in its send path, not a ride on another's.

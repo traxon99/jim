@@ -121,6 +121,7 @@ export type SettingsRow = Pick<
   | "pushRestTimer"
   | "pushWorkoutReminders"
   | "pushWhatsNew"
+  | "pushWhatsNewEveryDeploy"
   | "sex"
   | "birthdate"
   | "heightCm"

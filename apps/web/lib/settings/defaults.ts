@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   pushRestTimer: true,
   pushWorkoutReminders: true,
   pushWhatsNew: true,
+  pushWhatsNewEveryDeploy: false,
   sex: null,
   birthdate: null,
   heightCm: null,

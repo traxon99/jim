@@ -878,6 +878,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .boolean()
           .optional()
           .describe("What's new notification after a Jim update, at most once a day"),
+        pushWhatsNewEveryDeploy: z
+          .boolean()
+          .optional()
+          .describe(
+            "With What's new on, send it for every new feature as soon as it's deployed instead of at most once a day",
+          ),
         sex: z.enum(sexEnum.enumValues).nullable().optional(),
         birthdate: z
           .string()

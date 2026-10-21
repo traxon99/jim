@@ -227,6 +227,9 @@ export const users = pgTable(
     pushRestTimer: boolean("push_rest_timer").notNull().default(true),
     pushWorkoutReminders: boolean("push_workout_reminders").notNull().default(true),
     pushWhatsNew: boolean("push_whats_new").notNull().default(true),
+    // What's new on every deploy with a new note instead of at most once a
+    // day (issue #702). Off unless the user picks it.
+    pushWhatsNewEveryDeploy: boolean("push_whats_new_every_deploy").notNull().default(false),
     // When the user finished or skipped the setup walkthrough (issue #464).
     // Null means a new user who hasn't seen it yet; existing rows were
     // backfilled so only new sign-ups get it.
@@ -1163,12 +1166,15 @@ export const personalAccessTokens = pgTable(
 /**
  * Every "What's new" push the production build sent (issue #668), so
  * scripts/send-release-push.ts can send at most one a day, and only when
- * LATEST_RELEASE_NOTE changed. RLS is on with no policies: only that build
- * script, on the migration role, reads or writes it.
+ * LATEST_RELEASE_NOTE changed. `audience` says who it went to: "daily" (the
+ * default, at most once a day) or "every_deploy" (users who asked for every
+ * new note, issue #702). RLS is on with no policies: only that build script,
+ * on the migration role, reads or writes it.
  */
 export const releasePushes = pgTable("release_pushes", {
   id: uuid("id").primaryKey().defaultRandom(),
   note: text("note").notNull(),
+  audience: text("audience").notNull().default("daily"),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 }).enableRLS();
 
