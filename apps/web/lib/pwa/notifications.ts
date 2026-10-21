@@ -23,7 +23,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Want every new feature as soon as it ships? Turn on Every new feature under What's new in Settings → Notifications.";
+  "Your active program now leads the Routines tab, showing where today falls in the rotation. Below it, routines are grouped by folder and warm-ups show which routines use them.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

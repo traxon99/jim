@@ -1,6 +1,7 @@
 "use client";
 
 import { type ProgramRoutineRow, type ProgramRow, type RoutineRow, db } from "@/lib/db/schema";
+import { useToday } from "@/lib/pwa/use-today";
 import { type NextWorkout, isWarmupRoutine, suggestNextWorkout } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 
@@ -8,6 +9,8 @@ export interface ProgramSuggestion {
   program: ProgramRow;
   next: NextWorkout<ProgramRoutineRow> | null;
   routine: RoutineRow | null;
+  /** The program's steps whose routine still exists, rest days included. */
+  items: ProgramRoutineRow[];
 }
 
 /**
@@ -15,6 +18,8 @@ export interface ProgramSuggestion {
  * omitted. `undefined` while loading, `null` when there's no such program.
  */
 export function useNextWorkout(programId?: string): ProgramSuggestion | null | undefined {
+  // Re-suggest when the app resumes on a new day (docs/LESSONS.md, #523).
+  const today = useToday();
   return useLiveQuery(async () => {
     const program = programId
       ? await db.programs.get(programId)
@@ -36,8 +41,8 @@ export function useNextWorkout(programId?: string): ProgramSuggestion | null | u
       (item) => item.routineId === null || liveRoutineIds.has(item.routineId),
     );
 
-    const next = suggestNextWorkout({ mode: program.mode, items, sessions, now: new Date() });
+    const next = suggestNextWorkout({ mode: program.mode, items, sessions, now: today });
     const routine = next ? (routines.find((r) => r.id === next.routineId) ?? null) : null;
-    return { program, next, routine };
-  }, [programId]);
+    return { program, next, routine, items };
+  }, [programId, today]);
 }
