@@ -18,11 +18,12 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * What the current deployed version's "app updated" notification says
  * changed. Update this string alongside whatever shipped. It's the only
  * place the notification's content lives. A production deploy pushes it to
- * everyone with What's new on, at most once a day and only when it changed
- * (scripts/send-release-push.ts, `shouldSendReleasePush`).
+ * everyone with What's new on, only when it changed, and at most once a day
+ * unless they picked every deploy (scripts/send-release-push.ts,
+ * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Pick which notifications you get: rest timer, workout reminders and What's new, which now comes at most once a day.";
+  "Want every new feature as soon as it ships? Turn on Every new feature under What's new in Settings → Notifications.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -32,18 +33,25 @@ export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
  * ships several times a day, so a push per deploy buried the rest timer in
  * update banners. Sends only a note that differs from the last one sent, and
  * not within a day of it. A note held back is still unsent, so a later deploy
- * that keeps it sends it once the day is up.
+ * that keeps it sends it once the day is up. Users who picked every deploy
+ * (issue #702) skip the day rule: `lastSent` is then the last push sent to
+ * them, and any new note goes out on the deploy that ships it.
  */
 export function shouldSendReleasePush(
   note: string,
   lastSent: { note: string; sentAt: Date } | undefined,
   now: Date,
+  audience: ReleasePushAudience = "daily",
 ): boolean {
   if (!note) return false;
   if (!lastSent) return true;
   if (lastSent.note === note) return false;
+  if (audience === "every_deploy") return true;
   return now.getTime() - lastSent.sentAt.getTime() >= RELEASE_PUSH_MIN_INTERVAL_MS;
 }
+
+/** Who a "What's new" push goes to: `release_pushes.audience`. */
+export type ReleasePushAudience = "daily" | "every_deploy";
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

@@ -53,6 +53,13 @@ describe("shouldSendReleasePush (#668)", () => {
   it("sends nothing for an empty note", () => {
     expect(shouldSendReleasePush("", undefined, now)).toBe(false);
   });
+
+  it("sends every new note right away to every-deploy users (#702)", () => {
+    const last = { note: "A", sentAt: hoursAgo(1) };
+    expect(shouldSendReleasePush("B", last, now, "every_deploy")).toBe(true);
+    expect(shouldSendReleasePush("A", last, now, "every_deploy")).toBe(false);
+    expect(shouldSendReleasePush("", undefined, now, "every_deploy")).toBe(false);
+  });
 });
 
 describe("restCompleteMessage", () => {

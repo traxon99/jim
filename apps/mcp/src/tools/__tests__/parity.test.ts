@@ -332,10 +332,14 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       pushRestTimer: true,
       pushWorkoutReminders: true,
       pushWhatsNew: true,
+      pushWhatsNewEveryDeploy: false,
     });
     const quiet = await updateSettings(context, { pushWhatsNew: false });
     expect(quiet.changed).toEqual(["pushWhatsNew"]);
     expect(quiet.settings).toMatchObject({ pushWhatsNew: false, pushRestTimer: true });
+    const eager = await updateSettings(context, { pushWhatsNewEveryDeploy: true });
+    expect(eager.changed).toEqual(["pushWhatsNewEveryDeploy"]);
+    expect(eager.settings.pushWhatsNewEveryDeploy).toBe(true);
     await expect(updateSettings(context, { dprDefaultRepLow: 20 })).rejects.toThrow(/above/);
     await expect(updateSettings(context, {})).rejects.toThrow(/Nothing to change/);
   });

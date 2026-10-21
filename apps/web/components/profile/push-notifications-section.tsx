@@ -9,17 +9,25 @@ import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
 
-type PushKindKey = "pushRestTimer" | "pushWorkoutReminders" | "pushWhatsNew";
+type PushKindKey =
+  | "pushRestTimer"
+  | "pushWorkoutReminders"
+  | "pushWhatsNew"
+  | "pushWhatsNewEveryDeploy";
 
 /** One switch per kind of push (issue #668), saved to the account like any setting. */
-const PUSH_KINDS: { key: PushKindKey; label: string; detail: string }[] = [
+const PUSH_KINDS: {
+  key: Exclude<PushKindKey, "pushWhatsNewEveryDeploy">;
+  label: string;
+  detail: string;
+}[] = [
   { key: "pushRestTimer", label: "Rest timer", detail: "When a rest ends and Jim is closed" },
   {
     key: "pushWorkoutReminders",
     label: "Workout reminders",
     detail: "When a workout's been left open, and when Jim ends it for you",
   },
-  { key: "pushWhatsNew", label: "What's new", detail: "After Jim updates, at most once a day" },
+  { key: "pushWhatsNew", label: "What's new", detail: "After Jim updates" },
 ];
 
 type Status =
@@ -187,7 +195,7 @@ export function PushNotificationsSection() {
             <div className="flex flex-col gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
               {PUSH_KINDS.map((kind) => {
                 const checked = settings[kind.key] !== false;
-                return (
+                const switchRow = (
                   <label
                     key={kind.key}
                     className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium"
@@ -207,6 +215,32 @@ export function PushNotificationsSection() {
                       className={SWITCH_CLASS}
                     />
                   </label>
+                );
+                if (kind.key !== "pushWhatsNew" || !checked) return switchRow;
+                // Opt back in to a push per deploy (issue #702), as before #668.
+                const everyDeploy = settings.pushWhatsNewEveryDeploy === true;
+                return (
+                  <div key={kind.key} className="flex flex-col gap-1">
+                    {switchRow}
+                    <label className="ml-3 flex min-h-11 items-center justify-between gap-3 border-l border-zinc-200 pl-3 text-xs font-medium dark:border-zinc-800">
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        Every new feature
+                        <span className="font-normal text-zinc-500 dark:text-zinc-500">
+                          As soon as it's deployed, instead of once a day
+                        </span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        aria-checked={everyDeploy}
+                        checked={everyDeploy}
+                        onChange={(event) =>
+                          void saveKind({ pushWhatsNewEveryDeploy: event.target.checked })
+                        }
+                        className={SWITCH_CLASS}
+                      />
+                    </label>
+                  </div>
                 );
               })}
             </div>

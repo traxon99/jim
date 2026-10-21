@@ -1,6 +1,7 @@
 // postbuild step (see package.json), after generate-sw.mjs. Sends the
-// "Jim updated" Web Push to every device whose user has What's new on, at
-// most once a day and only for a new note (issue #668), which is what lets it
+// "Jim updated" Web Push to every device whose user has What's new on, only
+// for a new note, and at most once a day (issue #668) unless the user picked
+// every deploy (issue #702), which is what lets it
 // arrive while Jim is closed: the push service wakes each device's service
 // worker, and public/sw.template.js shows the notification.
 //
@@ -11,6 +12,7 @@
 import postgres from "postgres";
 import {
   LATEST_RELEASE_NOTE,
+  type ReleasePushAudience,
   releasePushMessage,
   shouldSendReleasePush,
 } from "../lib/pwa/notifications";
@@ -40,16 +42,25 @@ async function main() {
   try {
     // Claimed before sending, under a lock, so two builds finishing together
     // can't both send. A send that then fails isn't retried: it's only news.
-    const claimed = await sql.begin(async (tx) => {
+    // Each audience has its own last push: every-deploy users get each new
+    // note, the rest at most one a day.
+    const audiences = await sql.begin(async (tx) => {
       await tx`LOCK TABLE release_pushes IN EXCLUSIVE MODE`;
-      const [last] = await tx<{ note: string; sentAt: Date }[]>`
-        SELECT note, sent_at AS "sentAt" FROM release_pushes ORDER BY sent_at DESC LIMIT 1
-      `;
-      if (!shouldSendReleasePush(LATEST_RELEASE_NOTE, last, new Date())) return false;
-      await tx`INSERT INTO release_pushes (note) VALUES (${LATEST_RELEASE_NOTE})`;
-      return true;
+      const now = new Date();
+      const claimed: ReleasePushAudience[] = [];
+      for (const audience of ["daily", "every_deploy"] as const) {
+        const [last] = await tx<{ note: string; sentAt: Date }[]>`
+          SELECT note, sent_at AS "sentAt" FROM release_pushes
+          WHERE audience = ${audience}
+          ORDER BY sent_at DESC LIMIT 1
+        `;
+        if (!shouldSendReleasePush(LATEST_RELEASE_NOTE, last, now, audience)) continue;
+        await tx`INSERT INTO release_pushes (note, audience) VALUES (${LATEST_RELEASE_NOTE}, ${audience})`;
+        claimed.push(audience);
+      }
+      return claimed;
     });
-    if (!claimed) {
+    if (audiences.length === 0) {
       console.log("[release-push] Same note, or one already sent in the last day; skipping.");
       return;
     }
@@ -58,6 +69,8 @@ async function main() {
       SELECT s.endpoint, s.p256dh, s.auth
       FROM push_subscriptions s JOIN users u ON u.id = s.user_id
       WHERE u.push_whats_new
+        AND (CASE WHEN u.push_whats_new_every_deploy THEN 'every_deploy' ELSE 'daily' END)
+          IN ${sql(audiences)}
     `;
     const result = await fanOutPush(subscriptions, releasePushMessage(), (sub, payload) =>
       webpush.sendNotification(

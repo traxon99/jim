@@ -251,7 +251,9 @@ worker re-subscribes on `pushsubscriptionchange`. After each production build,
 `scripts/send-release-push.ts` (postbuild) reads every subscription as the migration role, pushes
 `LATEST_RELEASE_NOTE` through each browser's push service, and deletes endpoints that answer 404/410.
 Since #668 it only sends to users with What's new on, only a note that changed, and at most once a
-day (`release_pushes` records each send).
+day (`release_pushes` records each send). Since #702 users can pick every deploy instead
+(`push_whats_new_every_deploy`): they get each new note on the deploy that ships it, tracked as
+its own `release_pushes.audience`.
 The service worker's `push` handler shows the notification without any page running, and asks for
 an update check so the new version precaches in the background.
 

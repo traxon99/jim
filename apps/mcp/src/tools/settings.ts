@@ -28,6 +28,7 @@ function toSettings(row: UserRow) {
     pushRestTimer: row.pushRestTimer,
     pushWorkoutReminders: row.pushWorkoutReminders,
     pushWhatsNew: row.pushWhatsNew,
+    pushWhatsNewEveryDeploy: row.pushWhatsNewEveryDeploy,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm == null ? null : Number(row.heightCm),
