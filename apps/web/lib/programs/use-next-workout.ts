@@ -8,6 +8,8 @@ export interface ProgramSuggestion {
   program: ProgramRow;
   next: NextWorkout<ProgramRoutineRow> | null;
   routine: RoutineRow | null;
+  /** The program's steps whose routine still exists, rest days included. */
+  items: ProgramRoutineRow[];
 }
 
 /**
@@ -38,6 +40,6 @@ export function useNextWorkout(programId?: string): ProgramSuggestion | null | u
 
     const next = suggestNextWorkout({ mode: program.mode, items, sessions, now: new Date() });
     const routine = next ? (routines.find((r) => r.id === next.routineId) ?? null) : null;
-    return { program, next, routine };
+    return { program, next, routine, items };
   }, [programId]);
 }
