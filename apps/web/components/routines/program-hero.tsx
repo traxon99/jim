@@ -15,7 +15,7 @@ import {
 } from "@jim/core";
 import { Check, ChevronRight, Layers, Moon, Repeat } from "lucide-react";
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { RoutineIcon } from "./routine-icon";
 
 interface Props {
@@ -41,6 +41,8 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
   const suggestion = useNextWorkout();
   const today = useToday();
   const [switching, setSwitching] = useState(false);
+  // Keeps today in view on a strip wider than the card (docs/LESSONS.md, #677).
+  const todayRef = useRef<HTMLLIElement>(null);
 
   const cycle = useMemo(() => {
     if (!suggestion) return null;
@@ -67,6 +69,13 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
     }
     return list;
   }, [suggestion, routinesById]);
+
+  const todayIndex = cycle?.todayIndex ?? -1;
+  const programId = suggestion?.program.id;
+  useEffect(() => {
+    if (todayIndex < 0 || !programId) return;
+    todayRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [todayIndex, programId]);
 
   // Still loading: hold the space quietly rather than flash the invite.
   if (suggestion === undefined) return null;
@@ -174,7 +183,11 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
       </div>
 
       {cycle && cycle.days.length > 0 && (
-        <ol aria-label="This cycle" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        <ol
+          key={program.id}
+          aria-label="This cycle"
+          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
+        >
           {cycle.days.map((day, index) => {
             const name = dayName(day);
             const weekday = day.weekday !== null ? WEEKDAY_NAMES[day.weekday].slice(0, 3) : null;
@@ -186,6 +199,7 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
                 // Days have no stable id of their own; the order is the identity.
                 // biome-ignore lint/suspicious/noArrayIndexKey: fixed-order strip
                 key={index}
+                ref={isToday ? todayRef : undefined}
                 aria-label={`${weekday ?? `Day ${index + 1}`}: ${name}, ${stateText}`}
                 className="flex w-14 min-w-14 shrink-0 flex-col items-center gap-1"
               >
