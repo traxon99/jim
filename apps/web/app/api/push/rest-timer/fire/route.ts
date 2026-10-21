@@ -3,7 +3,7 @@ import { restCompleteMessage } from "@/lib/pwa/notifications";
 import { isRestTimerFirePayload, restTimerFireUrl } from "@/lib/pwa/rest-timer-push";
 import { fanOutPush } from "@/lib/pwa/send-push";
 import { configureWebPush, webpush } from "@/lib/pwa/web-push-server";
-import { pushSubscriptions, restTimerPushes } from "@jim/db";
+import { pushSubscriptions, restTimerPushes, users } from "@jim/db";
 import { Receiver } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -17,7 +17,8 @@ import { NextResponse } from "next/server";
  *
  * Sends only if the user's pending rest still ends at the same instant: a
  * skipped rest has no row, a restarted one has a different `ends_at`. Either
- * way this answers 2xx so QStash doesn't retry a deliberate no-op.
+ * way this answers 2xx so QStash doesn't retry a deliberate no-op. So does
+ * a user who turned the Rest timer notification off.
  */
 export async function POST(request: Request) {
   const signature = request.headers.get("upstash-signature");
@@ -51,6 +52,12 @@ export async function POST(request: Request) {
       )
       .returning({ endpoint: restTimerPushes.endpoint });
     if (!pending) return undefined;
+    // Settings → Notifications → Rest timer (issue #668).
+    const [user] = await tx
+      .select({ on: users.pushRestTimer })
+      .from(users)
+      .where(eq(users.id, userId));
+    if (!user?.on) return undefined;
     const [row] = await tx
       .select({
         endpoint: pushSubscriptions.endpoint,

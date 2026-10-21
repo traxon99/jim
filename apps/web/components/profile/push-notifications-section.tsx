@@ -1,10 +1,26 @@
 "use client";
 
 import { SWITCH_CLASS } from "@/components/switch-class";
+import { type SettingsRow, db } from "@/lib/db/schema";
 import { VAPID_PUBLIC_KEY } from "@/lib/pwa/notifications";
 import { type InstallPlatform, detectInstallPlatform } from "@/lib/pwa/platform";
 import { currentPushSupport, subscribeToPush, unsubscribeFromPush } from "@/lib/pwa/push-client";
+import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useState } from "react";
+
+type PushKindKey = "pushRestTimer" | "pushWorkoutReminders" | "pushWhatsNew";
+
+/** One switch per kind of push (issue #668), saved to the account like any setting. */
+const PUSH_KINDS: { key: PushKindKey; label: string; detail: string }[] = [
+  { key: "pushRestTimer", label: "Rest timer", detail: "When a rest ends and Jim is closed" },
+  {
+    key: "pushWorkoutReminders",
+    label: "Workout reminders",
+    detail: "When a workout's been left open, and when Jim ends it for you",
+  },
+  { key: "pushWhatsNew", label: "What's new", detail: "After Jim updates, at most once a day" },
+];
 
 type Status =
   | "checking"
@@ -42,6 +58,14 @@ export function PushNotificationsSection() {
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cached = useLiveQuery(() => db.settings.get("me"), []);
+  const settings = cached ?? DEFAULT_SETTINGS;
+
+  async function saveKind(patch: Partial<Pick<SettingsRow, PushKindKey>>) {
+    setError(null);
+    const result = await patchSettings(patch);
+    if (!result.ok) setError(result.error);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -141,9 +165,11 @@ export function PushNotificationsSection() {
         <>
           <label className="flex items-center justify-between gap-3 rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
             <span className="flex flex-col">
-              <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">Alerts</span>
+              <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">
+                Notifications on this phone
+              </span>
               <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                Rest timer, workout reminders and what's new in Jim, even when Jim is closed
+                Jim can reach you even when it's closed
               </span>
             </span>
             <input
@@ -156,6 +182,35 @@ export function PushNotificationsSection() {
               className={SWITCH_CLASS}
             />
           </label>
+
+          {enabled && (
+            <div className="flex flex-col gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
+              {PUSH_KINDS.map((kind) => {
+                const checked = settings[kind.key] !== false;
+                return (
+                  <label
+                    key={kind.key}
+                    className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium"
+                  >
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      {kind.label}
+                      <span className="font-normal text-zinc-500 dark:text-zinc-500">
+                        {kind.detail}
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      aria-checked={checked}
+                      checked={checked}
+                      onChange={(event) => void saveKind({ [kind.key]: event.target.checked })}
+                      className={SWITCH_CLASS}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          )}
 
           {permission === "denied" && (
             <p className="text-xs text-red-600 dark:text-red-500">

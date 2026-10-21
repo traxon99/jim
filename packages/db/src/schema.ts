@@ -222,6 +222,11 @@ export const users = pgTable(
     // (issue #648); null turns auto-end off. The phone ends it; the server
     // only pushes the "Workout ended" alert (workout_idle_pushes below).
     autoEndWorkoutMinutes: integer("auto_end_workout_minutes").default(60),
+    // Which pushes this user gets (issue #668), once a device is subscribed
+    // (push_subscriptions). Each fire route and the release push check these.
+    pushRestTimer: boolean("push_rest_timer").notNull().default(true),
+    pushWorkoutReminders: boolean("push_workout_reminders").notNull().default(true),
+    pushWhatsNew: boolean("push_whats_new").notNull().default(true),
     // When the user finished or skipped the setup walkthrough (issue #464).
     // Null means a new user who hasn't seen it yet; existing rows were
     // backfilled so only new sign-ups get it.
@@ -1154,6 +1159,18 @@ export const personalAccessTokens = pgTable(
     ...ownRowPolicies("personal_access_tokens", table.userId),
   ],
 ).enableRLS();
+
+/**
+ * Every "What's new" push the production build sent (issue #668), so
+ * scripts/send-release-push.ts can send at most one a day, and only when
+ * LATEST_RELEASE_NOTE changed. RLS is on with no policies: only that build
+ * script, on the migration role, reads or writes it.
+ */
+export const releasePushes = pgTable("release_pushes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  note: text("note").notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
 
 /**
  * OAuth clients the MCP server registered through dynamic client

@@ -866,6 +866,18 @@ export function createMcpServer(context: UserContext): McpServer {
           .describe(
             "Minutes with no activity before the phone ends a workout by itself (default 60); null turns auto-end off",
           ),
+        pushRestTimer: z
+          .boolean()
+          .optional()
+          .describe("Rest timer notification when a rest ends while Jim is closed"),
+        pushWorkoutReminders: z
+          .boolean()
+          .optional()
+          .describe("Still-working-out reminder and workout-ended notification"),
+        pushWhatsNew: z
+          .boolean()
+          .optional()
+          .describe("What's new notification after a Jim update, at most once a day"),
         sex: z.enum(sexEnum.enumValues).nullable().optional(),
         birthdate: z
           .string()

@@ -17,11 +17,33 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 /**
  * What the current deployed version's "app updated" notification says
  * changed. Update this string alongside whatever shipped. It's the only
- * place the notification's content lives, and every production deploy
- * pushes it to every subscribed device (scripts/send-release-push.ts).
+ * place the notification's content lives. A production deploy pushes it to
+ * everyone with What's new on, at most once a day and only when it changed
+ * (scripts/send-release-push.ts, `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Jim opens faster on slow signal, and empty History and PR lists point you to your first workout.";
+  "Pick which notifications you get: rest timer, workout reminders and What's new, which now comes at most once a day.";
+
+/** At most one "What's new" push per this long (issue #668). */
+export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether this deploy sends the "What's new" push (issue #668). The repo
+ * ships several times a day, so a push per deploy buried the rest timer in
+ * update banners. Sends only a note that differs from the last one sent, and
+ * not within a day of it. A note held back is still unsent, so a later deploy
+ * that keeps it sends it once the day is up.
+ */
+export function shouldSendReleasePush(
+  note: string,
+  lastSent: { note: string; sentAt: Date } | undefined,
+  now: Date,
+): boolean {
+  if (!note) return false;
+  if (!lastSent) return true;
+  if (lastSent.note === note) return false;
+  return now.getTime() - lastSent.sentAt.getTime() >= RELEASE_PUSH_MIN_INTERVAL_MS;
+}
 
 /** Builds the body text for the "app updated" notification. */
 export function updateNotificationBody(releaseNote: string = LATEST_RELEASE_NOTE): string {

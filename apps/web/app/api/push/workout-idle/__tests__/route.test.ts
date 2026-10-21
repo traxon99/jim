@@ -205,6 +205,21 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout idle push scheduling", 
     expect(published).toHaveLength(1);
   });
 
+  it("sends nothing while Workout reminders are off, but keeps the chain going (#668)", async () => {
+    await admin`UPDATE users SET push_workout_reminders = false WHERE id = ${USER_A}`;
+    try {
+      await start(activity());
+      expect((await fire(published[0].body)).status).toBe(204);
+      expect(sent).toHaveLength(0);
+      expect(published).toHaveLength(2);
+      await admin`UPDATE users SET push_workout_reminders = true WHERE id = ${USER_A}`;
+      await fire(published[1].body);
+      expect(sentTitles()).toEqual(["Workout ended"]);
+    } finally {
+      await admin`UPDATE users SET push_workout_reminders = true WHERE id = ${USER_A}`;
+    }
+  });
+
   it("sends nothing once a newer set has moved the last activity", async () => {
     await start(activity({ lastActivityAt: minutesAgo(3) }));
     await start(activity({ lastActivityAt: minutesAgo(1) }));

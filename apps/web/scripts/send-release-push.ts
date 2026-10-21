@@ -1,5 +1,6 @@
 // postbuild step (see package.json), after generate-sw.mjs. Sends the
-// "Jim updated" Web Push to every subscribed device, which is what lets it
+// "Jim updated" Web Push to every device whose user has What's new on, at
+// most once a day and only for a new note (issue #668), which is what lets it
 // arrive while Jim is closed: the push service wakes each device's service
 // worker, and public/sw.template.js shows the notification.
 //
@@ -8,7 +9,11 @@
 // push to real users. Never fails the build: a deploy matters more than
 // its notification.
 import postgres from "postgres";
-import { releasePushMessage } from "../lib/pwa/notifications";
+import {
+  LATEST_RELEASE_NOTE,
+  releasePushMessage,
+  shouldSendReleasePush,
+} from "../lib/pwa/notifications";
 import { type StoredSubscription, fanOutPush } from "../lib/pwa/send-push";
 import { configureWebPush, webpush } from "../lib/pwa/web-push-server";
 
@@ -33,8 +38,26 @@ async function main() {
 
   const sql = postgres(url, { max: 1, prepare: false, ssl: "prefer", onnotice: () => {} });
   try {
+    // Claimed before sending, under a lock, so two builds finishing together
+    // can't both send. A send that then fails isn't retried: it's only news.
+    const claimed = await sql.begin(async (tx) => {
+      await tx`LOCK TABLE release_pushes IN EXCLUSIVE MODE`;
+      const [last] = await tx<{ note: string; sentAt: Date }[]>`
+        SELECT note, sent_at AS "sentAt" FROM release_pushes ORDER BY sent_at DESC LIMIT 1
+      `;
+      if (!shouldSendReleasePush(LATEST_RELEASE_NOTE, last, new Date())) return false;
+      await tx`INSERT INTO release_pushes (note) VALUES (${LATEST_RELEASE_NOTE})`;
+      return true;
+    });
+    if (!claimed) {
+      console.log("[release-push] Same note, or one already sent in the last day; skipping.");
+      return;
+    }
+
     const subscriptions = await sql<StoredSubscription[]>`
-      SELECT endpoint, p256dh, auth FROM push_subscriptions
+      SELECT s.endpoint, s.p256dh, s.auth
+      FROM push_subscriptions s JOIN users u ON u.id = s.user_id
+      WHERE u.push_whats_new
     `;
     const result = await fanOutPush(subscriptions, releasePushMessage(), (sub, payload) =>
       webpush.sendNotification(
