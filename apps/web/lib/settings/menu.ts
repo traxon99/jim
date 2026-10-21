@@ -61,7 +61,7 @@ export const SETTINGS_GROUPS: readonly (readonly SettingsScreen[])[] = [
     {
       key: "notifications",
       title: "Notifications",
-      hint: "Push notifications on this device",
+      hint: "Rest timer, workout reminders and What's new",
       href: "/profile/settings/notifications",
     },
   ],

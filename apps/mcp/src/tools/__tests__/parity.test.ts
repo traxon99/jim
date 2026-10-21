@@ -327,6 +327,15 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
     const timer = await updateSettings(context, { showSetTimer: true });
     expect(timer.changed).toEqual(["showSetTimer"]);
     expect(timer.settings.showSetTimer).toBe(true);
+    // Notification switches (issue #668) start on and change one at a time.
+    expect(await getSettings(context)).toMatchObject({
+      pushRestTimer: true,
+      pushWorkoutReminders: true,
+      pushWhatsNew: true,
+    });
+    const quiet = await updateSettings(context, { pushWhatsNew: false });
+    expect(quiet.changed).toEqual(["pushWhatsNew"]);
+    expect(quiet.settings).toMatchObject({ pushWhatsNew: false, pushRestTimer: true });
     await expect(updateSettings(context, { dprDefaultRepLow: 20 })).rejects.toThrow(/above/);
     await expect(updateSettings(context, {})).rejects.toThrow(/Nothing to change/);
   });

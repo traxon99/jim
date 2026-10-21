@@ -10,6 +10,7 @@ docs/LESSONS-LEDGER.md`) when a code comment or checklist line cites an issue nu
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #668 | Keeping rest timer alerts meant several "Jim updated" banners a day, one per deploy | One switch covered every push, and every production build pushed the release note | One switch per kind of push, checked by the server before sending; What's new sends only a changed note, at most once a day |
 | #678 | Every open on bad signal sat on the splash for up to 5 s more, though everything was already on the phone | The boot gate always waited for the first sync cycle and the settings fetch | The splash waits on the network only when the phone has nothing local yet (no sync cursor, no cached settings) |
 | #681 | Android launched Jim on a dark screen and status bar before a white app, and notification badges showed as white squares | `theme_color`/`background_color` were the dark icon color in every theme, and the full-color icon was used as `badge` | Manifest colors match the light background, theme-color follows Jim's own theme (`applyThemeColor`), and the badge is a transparent monochrome mark (`/icons/badge`) |
 | #680 | The exercise picker, the set dialog and the rest timer bar snapped in with no transition | They were built without the shared `route-fade`/`sheet-*` classes (PWA.md §7) | Every overlay and bar that appears uses a shared entry animation |

@@ -299,10 +299,14 @@ the exact same in-memory JS, React state included, indefinitely.
 - `public/sw.js` is generated at build time from `public/sw.template.js` by
   `scripts/generate-sw.mjs`, and only in production. It doesn't exist in dev. Edit the template,
   not `sw.js`.
-- Every production deploy pushes a "Jim updated" notification to every device, with
-  `LATEST_RELEASE_NOTE` (`lib/pwa/notifications.ts`) as its text. **Update that string in every
-  user-facing change.** The service worker changes on every build whether or not the note did, so
-  a stale note gets resent on every deploy (#115).
+- A production deploy pushes a "Jim updated" notification with `LATEST_RELEASE_NOTE`
+  (`lib/pwa/notifications.ts`) as its text, to users with What's new on. **Update that string in
+  every user-facing change.** It's sent only when the note changed, and at most once a day
+  (`shouldSendReleasePush`, the `release_pushes` table), so a stale note is never resent (#115,
+  #668).
+- **Each kind of push has its own switch** (Settings → Notifications: Rest timer, Workout
+  reminders, What's new; `users.push_*`, #668). The server checks the switch before it sends, so a
+  new kind of push needs its own column and a check in its send path, not a ride on another's.
 - **The service worker caches static assets and page HTML only.** Cache-first is limited to
   `/_next/static/`, icons, splash screens and the manifest (`isStaticAsset` in the template). Page
   HTML is network-first, kept in `jim-pages-<build>` for offline launches, and deleted on sign-out

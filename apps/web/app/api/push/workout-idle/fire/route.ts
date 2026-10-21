@@ -8,7 +8,7 @@ import {
   workoutIdleFireUrl,
 } from "@/lib/pwa/workout-idle-push";
 import { autoEndAt } from "@jim/core";
-import { pushSubscriptions, sessions, workoutIdlePushes } from "@jim/db";
+import { pushSubscriptions, sessions, users, workoutIdlePushes } from "@jim/db";
 import { Client, Receiver } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -86,6 +86,14 @@ export async function POST(request: Request) {
         retries: 1,
       });
     }
+
+    // Settings → Notifications → Workout reminders (issue #668). The chain
+    // above still runs, so turning it back on mid-workout picks it up.
+    const [user] = await tx
+      .select({ on: users.pushWorkoutReminders })
+      .from(users)
+      .where(eq(users.id, userId));
+    if (!user?.on) return undefined;
 
     const [subscription] = await tx
       .select({

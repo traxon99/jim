@@ -61,6 +61,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showRestStats: true,
       showSetTimer: false,
       autoEndWorkoutMinutes: 60,
+      pushRestTimer: true,
+      pushWorkoutReminders: true,
+      pushWhatsNew: true,
       sex: null,
       birthdate: null,
       heightCm: null,
@@ -132,6 +135,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ showSetTypes: "yes" })).status).toBe(400);
     expect((await patch({ showRestStats: 1 })).status).toBe(400);
     expect((await patch({ showSetTimer: "on" })).status).toBe(400);
+    expect((await patch({ pushRestTimer: "off" })).status).toBe(400);
+    expect((await patch({ pushWhatsNew: null })).status).toBe(400);
     expect((await patch({ autoEndWorkoutMinutes: 5 })).status).toBe(400);
     expect((await patch({ autoEndWorkoutMinutes: "60" })).status).toBe(400);
     expect((await patch({ onboardedAt: "not a date" })).status).toBe(400);
@@ -213,6 +218,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showRestStats: false,
       showSetTimer: true,
       autoEndWorkoutMinutes: null,
+      pushWorkoutReminders: false,
+      pushWhatsNew: false,
       sex: "female",
       birthdate: "1990-06-15",
       heightCm: 170,
@@ -245,6 +252,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.showRestStats).toBe(false);
     expect(again.showSetTimer).toBe(true);
     expect(again.autoEndWorkoutMinutes).toBeNull();
+    expect(again.pushRestTimer).toBe(true);
+    expect(again.pushWorkoutReminders).toBe(false);
+    expect(again.pushWhatsNew).toBe(false);
     expect(again.sex).toBe("female");
     expect(again.birthdate).toBe("1990-06-15");
     expect(again.heightCm).toBe("170.0");

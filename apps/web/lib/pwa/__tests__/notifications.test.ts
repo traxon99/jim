@@ -2,6 +2,7 @@ import {
   detectPushSupport,
   releasePushMessage,
   restCompleteMessage,
+  shouldSendReleasePush,
   updateNotificationBody,
   urlBase64ToUint8Array,
 } from "@/lib/pwa/notifications";
@@ -29,6 +30,28 @@ describe("releasePushMessage", () => {
       url: "/",
       tag: "jim-release",
     });
+  });
+});
+
+describe("shouldSendReleasePush (#668)", () => {
+  const now = new Date("2026-10-21T12:00:00Z");
+  const hoursAgo = (hours: number) => new Date(now.getTime() - hours * 3_600_000);
+
+  it("sends the first note ever", () => {
+    expect(shouldSendReleasePush("Faster sync.", undefined, now)).toBe(true);
+  });
+
+  it("never sends the same note twice, however long ago", () => {
+    expect(shouldSendReleasePush("A", { note: "A", sentAt: hoursAgo(72) }, now)).toBe(false);
+  });
+
+  it("holds a new note until a day after the last push", () => {
+    expect(shouldSendReleasePush("B", { note: "A", sentAt: hoursAgo(23) }, now)).toBe(false);
+    expect(shouldSendReleasePush("B", { note: "A", sentAt: hoursAgo(24) }, now)).toBe(true);
+  });
+
+  it("sends nothing for an empty note", () => {
+    expect(shouldSendReleasePush("", undefined, now)).toBe(false);
   });
 });
 

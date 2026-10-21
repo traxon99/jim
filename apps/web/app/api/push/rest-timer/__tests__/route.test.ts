@@ -187,6 +187,17 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("rest timer push scheduling", ()
     expect(sent).toHaveLength(0);
   });
 
+  it("sends nothing when the Rest timer notification is off (#668)", async () => {
+    await admin`UPDATE users SET push_rest_timer = false WHERE id = ${USER_A}`;
+    try {
+      await start({ endsAt: inSeconds(60), endpoint: ENDPOINT });
+      expect((await fire(published[0].body)).status).toBe(204);
+      expect(sent).toHaveLength(0);
+    } finally {
+      await admin`UPDATE users SET push_rest_timer = true WHERE id = ${USER_A}`;
+    }
+  });
+
   it("can't cancel or fire another user's rest", async () => {
     await start({ endsAt: inSeconds(60), endpoint: ENDPOINT });
     claims = { sub: USER_B, email: "b@example.com" };

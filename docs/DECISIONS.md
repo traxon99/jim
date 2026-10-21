@@ -250,6 +250,8 @@ app load re-posts the current subscription so the server's copy doesn't go stale
 worker re-subscribes on `pushsubscriptionchange`. After each production build,
 `scripts/send-release-push.ts` (postbuild) reads every subscription as the migration role, pushes
 `LATEST_RELEASE_NOTE` through each browser's push service, and deletes endpoints that answer 404/410.
+Since #668 it only sends to users with What's new on, only a note that changed, and at most once a
+day (`release_pushes` records each send).
 The service worker's `push` handler shows the notification without any page running, and asks for
 an update check so the new version precaches in the background.
 
