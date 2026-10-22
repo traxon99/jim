@@ -5,6 +5,7 @@ import {
   countVisiblePrs,
   detectPersonalRecords,
   isVisiblePrKind,
+  repsAtWeightExerciseIds,
   tracksRepsAtWeight,
 } from "../personal-records";
 
@@ -151,17 +152,37 @@ describe("isVisiblePrKind", () => {
 });
 
 describe("countVisiblePrs", () => {
+  const none = new Set<string>();
+  const row = (setId: string | null, kind: "1rm" | "volume" | "weight", extra = {}) => ({
+    setId,
+    kind,
+    exerciseId: "x",
+    ...extra,
+  });
+
   it("counts only live 1RM rows on the given sets (issue #510)", () => {
     const rows = [
-      { setId: "a", kind: "1rm" as const },
-      { setId: "a", kind: "volume" as const },
-      { setId: "b", kind: "weight" as const },
-      { setId: "c", kind: "1rm" as const },
-      { setId: "a", kind: "1rm" as const, deletedAt: new Date() },
-      { setId: null, kind: "1rm" as const },
+      row("a", "1rm"),
+      row("a", "volume"),
+      row("b", "weight"),
+      row("c", "1rm"),
+      row("a", "1rm", { deletedAt: new Date() }),
+      row(null, "1rm"),
     ];
-    expect(countVisiblePrs(rows, new Set(["a", "b"]))).toBe(1);
-    expect(countVisiblePrs(rows, new Set(["a", "c"]))).toBe(2);
-    expect(countVisiblePrs([{ setId: "b", kind: "volume" }], new Set(["b"]))).toBe(0);
+    expect(countVisiblePrs(rows, new Set(["a", "b"]), none)).toBe(1);
+    expect(countVisiblePrs(rows, new Set(["a", "c"]), none)).toBe(2);
+    expect(countVisiblePrs([row("b", "volume")], new Set(["b"]), none)).toBe(0);
+  });
+
+  it("counts reps PRs only for bodyweight exercises, not legacy rows on loaded lifts (issue #705)", () => {
+    const rows = [
+      { setId: "a", kind: "reps_at_weight" as const, exerciseId: "dips" },
+      { setId: "b", kind: "reps_at_weight" as const, exerciseId: "bench" },
+    ];
+    const repsIds = repsAtWeightExerciseIds([
+      { id: "dips", trackingType: "weighted_bodyweight" },
+      { id: "bench", trackingType: "weight_reps" },
+    ]);
+    expect(countVisiblePrs(rows, new Set(["a", "b"]), repsIds)).toBe(1);
   });
 });

@@ -16,18 +16,47 @@ export function isVisiblePrKind(kind: PrKind): boolean {
 }
 
 /**
- * How many visible PR rows (`isVisiblePrKind`) belong to the given sets. Counts
+ * The ids of exercises that earn reps-at-weight PRs. Before issue #354 those
+ * rows were also recorded for loaded exercises; they stay hidden.
+ */
+export function repsAtWeightExerciseIds(
+  exercises: ReadonlyArray<{ id: string; trackingType?: string | null }>,
+): Set<string> {
+  return new Set(exercises.filter((e) => tracksRepsAtWeight(e.trackingType)).map((e) => e.id));
+}
+
+/**
+ * Whether a stored PR row is shown outside the PR page: `isVisiblePrKind`,
+ * except a reps-at-weight row only counts for an exercise in `repsExerciseIds`
+ * (`repsAtWeightExerciseIds`), so legacy rows on loaded lifts stay hidden.
+ */
+export function isVisiblePr(
+  pr: { kind: PrKind; exerciseId: string },
+  repsExerciseIds: ReadonlySet<string>,
+): boolean {
+  if (pr.kind === "reps_at_weight") return repsExerciseIds.has(pr.exerciseId);
+  return isVisiblePrKind(pr.kind);
+}
+
+/**
+ * How many visible PR rows (`isVisiblePr`) belong to the given sets. Counts
  * rows, not distinct sets: one set can beat several kinds at once. Deleted
  * rows and rows without a set don't count. Shared by the app and the MCP
  * server so their PR counts can't drift (issue #510).
  */
 export function countVisiblePrs(
-  prRows: ReadonlyArray<{ setId: string | null; kind: PrKind; deletedAt?: Date | null }>,
+  prRows: ReadonlyArray<{
+    setId: string | null;
+    kind: PrKind;
+    exerciseId: string;
+    deletedAt?: Date | null;
+  }>,
   setIds: ReadonlySet<string>,
+  repsExerciseIds: ReadonlySet<string>,
 ): number {
   let count = 0;
   for (const pr of prRows) {
-    if (pr.deletedAt || !pr.setId || !isVisiblePrKind(pr.kind)) continue;
+    if (pr.deletedAt || !pr.setId || !isVisiblePr(pr, repsExerciseIds)) continue;
     if (setIds.has(pr.setId)) count++;
   }
   return count;

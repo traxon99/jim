@@ -9,6 +9,7 @@ import {
   type SessionListEntry,
   countVisiblePrs,
   deriveUntitledSessionName,
+  repsAtWeightExerciseIds,
   resolveCurrentRows,
   summarizeSession,
 } from "@jim/core";
@@ -22,13 +23,16 @@ import {
 export function buildSessionListEntries(
   sessions: readonly SessionRow[],
   sessionExercises: readonly SessionExerciseRow[],
-  exercises: readonly Pick<ExerciseRow, "id" | "primaryMuscles">[],
+  exercises: readonly (Pick<ExerciseRow, "id" | "primaryMuscles"> &
+    Partial<Pick<ExerciseRow, "trackingType">>)[],
   sets: readonly SetRow[],
   personalRecords: readonly PersonalRecordRow[],
 ): SessionListEntry[] {
   const primaryMusclesByExerciseId = new Map(
     exercises.map((exercise) => [exercise.id, exercise.primaryMuscles]),
   );
+
+  const repsExerciseIds = repsAtWeightExerciseIds(exercises);
 
   const sessionExerciseIdsBySession = new Map<string, string[]>();
   const primaryMusclesBySessionExerciseId = new Map<string, ExerciseRow["primaryMuscles"]>();
@@ -69,7 +73,7 @@ export function buildSessionListEntries(
         (sessionExerciseId) => setsBySessionExercise.get(sessionExerciseId) ?? [],
       );
       const sessionSetIds = new Set(sessionSets.map((set) => set.id));
-      const prCount = countVisiblePrs(personalRecords, sessionSetIds);
+      const prCount = countVisiblePrs(personalRecords, sessionSetIds, repsExerciseIds);
 
       const summary = summarizeSession(
         sessionSets.map((set) => ({
