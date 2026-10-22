@@ -16,13 +16,16 @@ describe("computePriorBests", () => {
     expect(computePriorBests([])).toEqual(EMPTY_PRIOR_BESTS);
   });
 
-  it("ignores sets missing weight or reps (time/distance/bodyweight tracking)", () => {
-    expect(
-      computePriorBests([
-        { weight: null, reps: 10 },
-        { weight: 100, reps: null },
-      ]),
-    ).toEqual(EMPTY_PRIOR_BESTS);
+  it("ignores sets missing reps (time/distance tracking)", () => {
+    expect(computePriorBests([{ weight: 100, reps: null }])).toEqual(EMPTY_PRIOR_BESTS);
+  });
+
+  it("tracks rep-only sets as the best reps at bodyweight (issue #705)", () => {
+    const bests = computePriorBests([
+      { weight: null, reps: 10 },
+      { weight: 0, reps: 12 },
+    ]);
+    expect(bests).toEqual({ ...EMPTY_PRIOR_BESTS, repsAtWeight: { "0.00": 12 } });
   });
 
   it("tracks the best 1RM, heaviest weight, best single-set volume, and best reps per weight", () => {
@@ -40,10 +43,25 @@ describe("computePriorBests", () => {
 });
 
 describe("detectPersonalRecords", () => {
-  it("returns nothing for a set with no weight or reps", () => {
-    expect(detectPersonalRecords({ weight: null, reps: 5 }, EMPTY_PRIOR_BESTS, BODYWEIGHT)).toEqual(
-      [],
-    );
+  it("returns nothing for a set with no reps", () => {
+    expect(
+      detectPersonalRecords({ weight: 50, reps: null }, EMPTY_PRIOR_BESTS, BODYWEIGHT),
+    ).toEqual([]);
+  });
+
+  it("flags more reps at bodyweight as a reps PR, and nothing else (issue #705)", () => {
+    const prior = computePriorBests([{ weight: 0, reps: 10 }]);
+    expect(detectPersonalRecords({ weight: 0, reps: 11 }, prior, BODYWEIGHT)).toEqual([
+      { kind: "reps_at_weight", value: 11 },
+    ]);
+    expect(detectPersonalRecords({ weight: null, reps: 11 }, prior, BODYWEIGHT)).toEqual([
+      { kind: "reps_at_weight", value: 11 },
+    ]);
+    expect(detectPersonalRecords({ weight: 0, reps: 10 }, prior, BODYWEIGHT)).toEqual([]);
+  });
+
+  it("ignores rep-only sets for a loaded exercise", () => {
+    expect(detectPersonalRecords({ weight: null, reps: 5 }, EMPTY_PRIOR_BESTS, LOADED)).toEqual([]);
   });
 
   it("detects every kind on the very first set ever logged", () => {
@@ -124,11 +142,11 @@ describe("tracksRepsAtWeight", () => {
 });
 
 describe("isVisiblePrKind", () => {
-  it("only shows estimated 1RM PRs outside the PR page (issue #389)", () => {
+  it("shows only 1RM and bodyweight reps PRs outside the PR page (issues #389, #705)", () => {
     expect(isVisiblePrKind("1rm")).toBe(true);
     expect(isVisiblePrKind("weight")).toBe(false);
     expect(isVisiblePrKind("volume")).toBe(false);
-    expect(isVisiblePrKind("reps_at_weight")).toBe(false);
+    expect(isVisiblePrKind("reps_at_weight")).toBe(true);
   });
 });
 

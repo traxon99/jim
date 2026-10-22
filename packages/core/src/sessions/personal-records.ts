@@ -5,12 +5,14 @@ export type PrKind = "1rm" | "weight" | "volume" | "reps_at_weight";
 
 /**
  * Whether a PR kind is shown as a PR outside the PR page: the 🎉 on a set
- * mid-workout, PR chips and PR counts on summaries and history. Only the
- * estimated 1RM is (issue #389). The other kinds are still detected and
- * recorded, and the PR page lists them all.
+ * mid-workout, PR chips and PR counts on summaries and history. The estimated
+ * 1RM is (issue #389), and so are reps at a weight, which is only ever
+ * detected for bodyweight movements where reps are the progress (issue #705).
+ * The other kinds are still detected and recorded, and the PR page lists them
+ * all.
  */
 export function isVisiblePrKind(kind: PrKind): boolean {
-  return kind === "1rm";
+  return kind === "1rm" || kind === "reps_at_weight";
 }
 
 /**
@@ -98,7 +100,11 @@ export function computePriorBests(history: readonly WeightRepsSet[]): PriorBests
   const repsAtWeight: Record<string, number> = {};
 
   for (const set of history) {
-    if (set.weight == null || set.reps == null || set.weight <= 0 || set.reps <= 0) continue;
+    if (set.reps == null || set.reps <= 0) continue;
+    if (set.weight == null || set.weight <= 0) {
+      repsAtWeight[weightKey(0)] = Math.max(repsAtWeight[weightKey(0)] ?? 0, set.reps);
+      continue;
+    }
 
     oneRepMax = Math.max(oneRepMax, estimateOneRepMax(set.weight, set.reps));
     weight = Math.max(weight, set.weight);
@@ -122,18 +128,23 @@ export function detectPersonalRecords(
   prior: PriorBests,
   options: DetectOptions,
 ): PrCandidate[] {
-  const { weight, reps: setReps } = set;
-  if (weight == null || setReps == null || weight <= 0 || setReps <= 0) return [];
+  const { weight: rawWeight, reps: setReps } = set;
+  if (setReps == null || setReps <= 0) return [];
+  const loaded = rawWeight != null && rawWeight > 0;
+  if (!loaded && !options.repsAtWeight) return [];
+  const weight = loaded ? rawWeight : 0;
 
   const candidates: PrCandidate[] = [];
 
-  const oneRepMax = estimateOneRepMax(weight, setReps);
-  if (oneRepMax > prior.oneRepMax) candidates.push({ kind: "1rm", value: oneRepMax });
+  if (loaded) {
+    const oneRepMax = estimateOneRepMax(weight, setReps);
+    if (oneRepMax > prior.oneRepMax) candidates.push({ kind: "1rm", value: oneRepMax });
 
-  if (weight > prior.weight) candidates.push({ kind: "weight", value: weight });
+    if (weight > prior.weight) candidates.push({ kind: "weight", value: weight });
 
-  const volume = weight * setReps;
-  if (volume > prior.volume) candidates.push({ kind: "volume", value: volume });
+    const volume = weight * setReps;
+    if (volume > prior.volume) candidates.push({ kind: "volume", value: volume });
+  }
 
   if (!options.repsAtWeight) return candidates;
 
