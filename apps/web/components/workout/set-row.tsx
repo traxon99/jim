@@ -5,7 +5,7 @@ import type { SetKind } from "@/lib/sessions/set-kinds";
 import { type SetField, formatSetValue, setFieldEditPatch } from "@/lib/workout/set-field-edit";
 import { normalizeDecimalInput } from "@jim/core";
 import { Check } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PrBadge } from "./pr-badge";
 import { SetKindMenu } from "./set-kind-menu";
 import { SwipeDeleteReveal, useSwipeToDelete } from "./use-swipe-to-delete";
@@ -23,6 +23,8 @@ interface Props {
   showRpe?: boolean;
   /** False when Settings → Advanced has set types off (issue #640). */
   showSetTypes?: boolean;
+  /** True just after this set was logged here: the row ripples full from its ✓. */
+  justLogged?: boolean;
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
   onDelete: () => void;
@@ -57,7 +59,23 @@ const SIZES = {
   // nothing, rather than landing on a delete button.
   doneMark: "flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
   icon: "h-4 w-4",
+  // The just-logged ripple's clip: the whole row's pill, hung off the right
+  // edge of the last cell (the only cell it can be positioned from).
+  rippleClip:
+    "set-logged-ripple pointer-events-none absolute inset-y-0 right-0 overflow-hidden rounded-lg",
+  rippleWave: "absolute rounded-full bg-accent",
 };
+
+// The ✓'s center sits this far in from the row's right edge: the action
+// cell's pr-1 plus half the 44px done mark.
+const RIPPLE_ORIGIN_RIGHT = 26;
+// Matches the .set-logged-ripple animation in globals.css.
+const RIPPLE_MS = 750;
+
+interface Ripple {
+  width: number;
+  diameter: number;
+}
 
 interface EditableValueProps {
   field: SetField;
@@ -144,6 +162,7 @@ export function SetRow({
   rpeNudge = false,
   showRpe = true,
   showSetTypes = true,
+  justLogged = false,
   onEdit,
   onChangeKind,
   onDelete,
@@ -151,6 +170,27 @@ export function SetRow({
   const sizes = SIZES;
   const [editingField, setEditingField] = useState<SetField | null>(null);
   const swipe = useSwipeToDelete(onDelete);
+  const rowRef = useRef<HTMLTableRowElement>(null);
+  const [ripple, setRipple] = useState<Ripple | null>(null);
+
+  // Logging a set ripples out from its ✓ to fill the row, then settles into
+  // the row's done tint. Measured here because the wave hangs off the last
+  // cell and has to reach the row's far corner.
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!justLogged || !row) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const { width, height } = row.getBoundingClientRect();
+    const reach = Math.hypot(width - RIPPLE_ORIGIN_RIGHT, height / 2);
+    setRipple({ width, diameter: Math.ceil(reach * 2) });
+  }, [justLogged]);
+
+  // Unmounted on a timer rather than animationend, which iOS can drop (#356).
+  useEffect(() => {
+    if (!ripple) return;
+    const timer = window.setTimeout(() => setRipple(null), RIPPLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [ripple]);
 
   function commit(field: SetField, raw: string) {
     // Empty, invalid or unchanged input just reverts to the logged value.
@@ -186,6 +226,7 @@ export function SetRow({
     // border-spacing puts the gap between them.
     <tr
       {...swipe.rowProps}
+      ref={rowRef}
       className={`[&>td]:bg-accent/[0.07] [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg ${swipe.rowProps.className}`}
     >
       <td className={sizes.indexCell}>
@@ -228,6 +269,19 @@ export function SetRow({
             <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
           </span>
         </div>
+        {ripple && (
+          <span aria-hidden="true" className={sizes.rippleClip} style={{ width: ripple.width }}>
+            <span
+              className={sizes.rippleWave}
+              style={{
+                width: ripple.diameter,
+                height: ripple.diameter,
+                right: RIPPLE_ORIGIN_RIGHT - ripple.diameter / 2,
+                top: `calc(50% - ${ripple.diameter / 2}px)`,
+              }}
+            />
+          </span>
+        )}
         <SwipeDeleteReveal reveal={swipe.reveal} armed={swipe.armed} />
       </td>
     </tr>

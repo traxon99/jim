@@ -212,6 +212,14 @@ export function SessionExerciseSection({
   );
   const [previousSets, setPreviousSets] = useState<PreviousSetsByKind>(NO_PREVIOUS_SETS);
   const [prsBySetId, setPrsBySetId] = useState<Map<string, PrCandidate[]>>(new Map());
+  // The set this section just logged ripples once (set-row.tsx); cleared soon
+  // after so the row doesn't ripple again when it remounts (focus view).
+  const [justLoggedId, setJustLoggedId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!justLoggedId) return;
+    const timer = window.setTimeout(() => setJustLoggedId(null), 1000);
+    return () => window.clearTimeout(timer);
+  }, [justLoggedId]);
   const [notes, setNotes] = useState(item.notes ?? "");
   // Both views collapse an empty note to "+ Add note" (issue #322); a note
   // that's already there shows without an extra tap.
@@ -489,6 +497,7 @@ export function SessionExerciseSection({
       rpe: toRpeOrNull(draft.rpe),
       workSeconds: workSeconds?.() ?? null,
     });
+    setJustLoggedId(set.id);
     if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
       setPrsBySetId((map) => new Map(map).set(set.id, prs));
     }
@@ -518,6 +527,7 @@ export function SessionExerciseSection({
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
       workSeconds: workSeconds?.() ?? null,
     });
+    setJustLoggedId(set.id);
     if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
       setPrsBySetId((map) => new Map(map).set(set.id, prs));
     }
@@ -765,6 +775,7 @@ export function SessionExerciseSection({
         rpeNudge={needsRpeNudge(dpr !== null, set)}
         showRpe={showRpe}
         showSetTypes={showSetTypes}
+        justLogged={set.id === justLoggedId}
         onEdit={(patch) => void handleEdit(set, patch)}
         onChangeKind={(kind) => void handleChangeKind(set, kind)}
         onDelete={() => void handleDelete(set)}

@@ -422,6 +422,32 @@ body.pwa {
   }
 }
 
+/* A set just logged (components/workout/set-row.tsx): a soft wave of the
+   accent ripples out from the ✓ across the row, then fades into the row's
+   steady done tint. Low opacity so it reads as a confirmation, not a flash. */
+.set-logged-ripple > span {
+  opacity: 0.16;
+  transform: scale(0);
+  animation: set-logged-ripple 750ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes set-logged-ripple {
+  65% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .set-logged-ripple {
+    display: none;
+  }
+}
+
 /* A very brief fade on tab switches (components/page-fade.tsx). */
 @keyframes page-fade-in {
   from {
