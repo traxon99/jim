@@ -17,7 +17,8 @@ import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-
 import {
   achievementsEarnedInSession,
   distanceUnitFor,
-  isVisiblePrKind,
+  isVisiblePr,
+  repsAtWeightExerciseIds,
   resolveCurrentRows,
   summarizeSession,
 } from "@jim/core";
@@ -56,13 +57,12 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   );
 
   const setIds = useMemo(() => new Set(sets.map((set) => set.id)), [sets]);
-  const prCount = useMemo(
-    () =>
-      (rawPersonalRecords ?? []).filter(
-        (pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId) && isVisiblePrKind(pr.kind),
-      ).length,
-    [rawPersonalRecords, setIds],
-  );
+  const prCount = useMemo(() => {
+    const repsExerciseIds = repsAtWeightExerciseIds(rawExercises ?? []);
+    return (rawPersonalRecords ?? []).filter(
+      (pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId) && isVisiblePr(pr, repsExerciseIds),
+    ).length;
+  }, [rawPersonalRecords, rawExercises, setIds]);
 
   const summary = useMemo(
     () =>

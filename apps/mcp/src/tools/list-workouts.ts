@@ -1,5 +1,10 @@
-import { countVisiblePrs, resolveCurrentRows, summarizeSession } from "@jim/core";
-import { gyms, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
+import {
+  countVisiblePrs,
+  repsAtWeightExerciseIds,
+  resolveCurrentRows,
+  summarizeSession,
+} from "@jim/core";
+import { exercises, gyms, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
 import { and, desc, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
@@ -50,6 +55,9 @@ export async function listWorkouts(context: UserContext, input: ListWorkoutsInpu
           .from(personalRecords)
           .where(and(inArray(personalRecords.setId, setIds), isNull(personalRecords.deletedAt)))
       : [];
+    const repsExerciseIds = repsAtWeightExerciseIds(
+      prRows.length ? await tx.select().from(exercises) : [],
+    );
     // The pre-workout gym pick (issue #454); a deleted gym reads as none.
     const gymNames = new Map(
       (await tx.select().from(gyms).where(isNull(gyms.deletedAt))).map((g) => [g.id, g.name]),
@@ -71,7 +79,11 @@ export async function listWorkouts(context: UserContext, input: ListWorkoutsInpu
     return finished.map((session) => {
       const seIds = sessionExerciseIdsBySession.get(session.id) ?? [];
       const sessionSets = seIds.flatMap((id) => setsBySessionExercise.get(id) ?? []);
-      const prCount = countVisiblePrs(prRows, new Set(sessionSets.map((set) => set.id)));
+      const prCount = countVisiblePrs(
+        prRows,
+        new Set(sessionSets.map((set) => set.id)),
+        repsExerciseIds,
+      );
 
       const summary = summarizeSession(
         sessionSets.map((set) => ({

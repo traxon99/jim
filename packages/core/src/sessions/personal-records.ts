@@ -5,27 +5,58 @@ export type PrKind = "1rm" | "weight" | "volume" | "reps_at_weight";
 
 /**
  * Whether a PR kind is shown as a PR outside the PR page: the 🎉 on a set
- * mid-workout, PR chips and PR counts on summaries and history. Only the
- * estimated 1RM is (issue #389). The other kinds are still detected and
- * recorded, and the PR page lists them all.
+ * mid-workout, PR chips and PR counts on summaries and history. The estimated
+ * 1RM is (issue #389), and so are reps at a weight, which is only ever
+ * detected for bodyweight movements where reps are the progress (issue #705).
+ * The other kinds are still detected and recorded, and the PR page lists them
+ * all.
  */
 export function isVisiblePrKind(kind: PrKind): boolean {
-  return kind === "1rm";
+  return kind === "1rm" || kind === "reps_at_weight";
 }
 
 /**
- * How many visible PR rows (`isVisiblePrKind`) belong to the given sets. Counts
+ * The ids of exercises that earn reps-at-weight PRs. Before issue #354 those
+ * rows were also recorded for loaded exercises; they stay hidden.
+ */
+export function repsAtWeightExerciseIds(
+  exercises: ReadonlyArray<{ id: string; trackingType?: string | null }>,
+): Set<string> {
+  return new Set(exercises.filter((e) => tracksRepsAtWeight(e.trackingType)).map((e) => e.id));
+}
+
+/**
+ * Whether a stored PR row is shown outside the PR page: `isVisiblePrKind`,
+ * except a reps-at-weight row only counts for an exercise in `repsExerciseIds`
+ * (`repsAtWeightExerciseIds`), so legacy rows on loaded lifts stay hidden.
+ */
+export function isVisiblePr(
+  pr: { kind: PrKind; exerciseId: string },
+  repsExerciseIds: ReadonlySet<string>,
+): boolean {
+  if (pr.kind === "reps_at_weight") return repsExerciseIds.has(pr.exerciseId);
+  return isVisiblePrKind(pr.kind);
+}
+
+/**
+ * How many visible PR rows (`isVisiblePr`) belong to the given sets. Counts
  * rows, not distinct sets: one set can beat several kinds at once. Deleted
  * rows and rows without a set don't count. Shared by the app and the MCP
  * server so their PR counts can't drift (issue #510).
  */
 export function countVisiblePrs(
-  prRows: ReadonlyArray<{ setId: string | null; kind: PrKind; deletedAt?: Date | null }>,
+  prRows: ReadonlyArray<{
+    setId: string | null;
+    kind: PrKind;
+    exerciseId: string;
+    deletedAt?: Date | null;
+  }>,
   setIds: ReadonlySet<string>,
+  repsExerciseIds: ReadonlySet<string>,
 ): number {
   let count = 0;
   for (const pr of prRows) {
-    if (pr.deletedAt || !pr.setId || !isVisiblePrKind(pr.kind)) continue;
+    if (pr.deletedAt || !pr.setId || !isVisiblePr(pr, repsExerciseIds)) continue;
     if (setIds.has(pr.setId)) count++;
   }
   return count;
@@ -98,7 +129,11 @@ export function computePriorBests(history: readonly WeightRepsSet[]): PriorBests
   const repsAtWeight: Record<string, number> = {};
 
   for (const set of history) {
-    if (set.weight == null || set.reps == null || set.weight <= 0 || set.reps <= 0) continue;
+    if (set.reps == null || set.reps <= 0) continue;
+    if (set.weight == null || set.weight <= 0) {
+      repsAtWeight[weightKey(0)] = Math.max(repsAtWeight[weightKey(0)] ?? 0, set.reps);
+      continue;
+    }
 
     oneRepMax = Math.max(oneRepMax, estimateOneRepMax(set.weight, set.reps));
     weight = Math.max(weight, set.weight);
@@ -122,18 +157,23 @@ export function detectPersonalRecords(
   prior: PriorBests,
   options: DetectOptions,
 ): PrCandidate[] {
-  const { weight, reps: setReps } = set;
-  if (weight == null || setReps == null || weight <= 0 || setReps <= 0) return [];
+  const { weight: rawWeight, reps: setReps } = set;
+  if (setReps == null || setReps <= 0) return [];
+  const loaded = rawWeight != null && rawWeight > 0;
+  if (!loaded && !options.repsAtWeight) return [];
+  const weight = loaded ? rawWeight : 0;
 
   const candidates: PrCandidate[] = [];
 
-  const oneRepMax = estimateOneRepMax(weight, setReps);
-  if (oneRepMax > prior.oneRepMax) candidates.push({ kind: "1rm", value: oneRepMax });
+  if (loaded) {
+    const oneRepMax = estimateOneRepMax(weight, setReps);
+    if (oneRepMax > prior.oneRepMax) candidates.push({ kind: "1rm", value: oneRepMax });
 
-  if (weight > prior.weight) candidates.push({ kind: "weight", value: weight });
+    if (weight > prior.weight) candidates.push({ kind: "weight", value: weight });
 
-  const volume = weight * setReps;
-  if (volume > prior.volume) candidates.push({ kind: "volume", value: volume });
+    const volume = weight * setReps;
+    if (volume > prior.volume) candidates.push({ kind: "volume", value: volume });
+  }
 
   if (!options.repsAtWeight) return candidates;
 

@@ -2,8 +2,9 @@ import type { ExerciseRow, PersonalRecordRow, SessionExerciseRow, SetRow } from 
 import {
   type PrKind,
   exerciseDisplayName,
-  isVisiblePrKind,
+  isVisiblePr,
   isWarmupExercise,
+  repsAtWeightExerciseIds,
   resolveCurrentRows,
 } from "@jim/core";
 
@@ -21,7 +22,7 @@ export interface SessionDetailSet {
   restTargetSeconds: number | null;
   /** How long the set took, from the working set timer (issue #634). */
   workSeconds?: number | null;
-  /** PR kinds the set achieved that show outside the PR page (`isVisiblePrKind`). */
+  /** PR kinds the set achieved that show outside the PR page (`isVisiblePr`). */
   prKinds: PrKind[];
 }
 
@@ -44,7 +45,8 @@ export interface SessionDetailExercise {
 export function buildSessionDetailExercises(
   sessionId: string,
   sessionExercises: readonly SessionExerciseRow[],
-  exercises: readonly Pick<ExerciseRow, "id" | "name" | "category">[],
+  exercises: readonly (Pick<ExerciseRow, "id" | "name" | "category"> &
+    Partial<Pick<ExerciseRow, "trackingType">>)[],
   sets: readonly SetRow[],
   personalRecords: readonly PersonalRecordRow[],
 ): SessionDetailExercise[] {
@@ -66,9 +68,10 @@ export function buildSessionDetailExercises(
     }
   }
 
+  const repsExerciseIds = repsAtWeightExerciseIds(exercises);
   const prKindsBySetId = new Map<string, PrKind[]>();
   for (const record of personalRecords) {
-    if (record.deletedAt || !record.setId || !isVisiblePrKind(record.kind)) continue;
+    if (record.deletedAt || !record.setId || !isVisiblePr(record, repsExerciseIds)) continue;
     const list = prKindsBySetId.get(record.setId);
     if (list) {
       list.push(record.kind);
