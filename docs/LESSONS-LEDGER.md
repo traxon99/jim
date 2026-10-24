@@ -10,6 +10,7 @@ docs/LESSONS-LEDGER.md`) when a code comment or checklist line cites an issue nu
 
 | Issue / PR | What broke | Cause | Rule |
 |---|---|---|---|
+| #710 | Add / Replace exercise had only category tabs: no muscle, equipment or sort filters, no "Your exercises" section and no last-done column, unlike the Exercises tab | The picker kept its own copy of the catalog's search, filters and row | Exercise catalog screens share `useExerciseCatalog`, `ExerciseCatalogControls` and `ExerciseCatalogRowContent` (`components/exercises/exercise-catalog.tsx`) |
 | #705 | More reps on a bodyweight exercise at 0 weight (Chest Dips) never showed a PR | PR detection skipped any set with no weight, and "reps at weight" PRs were hidden outside the PR page | Rep-only sets count as reps at bodyweight (key `0.00`); reps PRs are visible for bodyweight movements (`isVisiblePrKind`) |
 | #668 | Keeping rest timer alerts meant several "Jim updated" banners a day, one per deploy | One switch covered every push, and every production build pushed the release note | One switch per kind of push, checked by the server before sending; What's new sends only a changed note, at most once a day |
 | #678 | Every open on bad signal sat on the splash for up to 5 s more, though everything was already on the phone | The boot gate always waited for the first sync cycle and the settings fetch | The splash waits on the network only when the phone has nothing local yet (no sync cursor, no cached settings) |
