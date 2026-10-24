@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/highlight";
 import { GYM_ADDRESS_MAX } from "@/lib/gyms";
 import { PLACE_QUERY_MIN, type Place, cleanPlaceQuery, placeLabel } from "@jim/core";
 import { Check, MapPin } from "lucide-react";
@@ -118,8 +119,14 @@ export function AddressField({
                   aria-hidden="true"
                 />
                 <span className="flex min-w-0 flex-col">
-                  {place.name && <span className="truncate text-sm font-medium">{place.name}</span>}
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">{place.address}</span>
+                  {place.name && (
+                    <span className="truncate text-sm font-medium">
+                      <Highlight text={place.name} query={value.address} />
+                    </span>
+                  )}
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <Highlight text={place.address} query={value.address} />
+                  </span>
                 </span>
               </button>
             </li>

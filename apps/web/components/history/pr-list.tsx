@@ -1,6 +1,7 @@
 "use client";
 
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
+import { Highlight } from "@/components/highlight";
 import {
   NewBadge,
   PR_KIND_LABELS,
@@ -347,7 +348,7 @@ export function PrList() {
                         href={exerciseCardHref(group.exerciseId, pathname)}
                         className="text-base font-semibold underline-offset-4 hover:underline"
                       >
-                        {group.name}
+                        <Highlight text={group.name} query={query} />
                       </Link>
                       {group.plates > 0 && <PlateMedal plates={group.plates} />}
                       {group.standard && (

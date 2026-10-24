@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/highlight";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import type { PortalPlansData, PortalRoutine } from "@/lib/portal/plans-data";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
@@ -253,7 +254,9 @@ export function PortalRoutines({ data }: { data: PortalPlansData }) {
                           >
                             <span className="flex min-w-0 items-center gap-2">
                               <RoutineMark routine={routine} />
-                              <span className="truncate text-sm font-medium">{routine.name}</span>
+                              <span className="truncate text-sm font-medium">
+                                <Highlight text={routine.name} query={query} />
+                              </span>
                             </span>
                             <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
                               {routine.items.length} exercise

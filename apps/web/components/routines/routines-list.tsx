@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/highlight";
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
@@ -37,8 +38,11 @@ function RoutineListRow({
   subtitle,
   meta,
   badge,
+  query = "",
 }: {
   routine: RoutineRow;
+  /** A search's query, whose matches in the name are marked (#709). */
+  query?: string;
   subtitle?: string | null;
   meta?: string | null;
   badge?: string | null;
@@ -61,7 +65,9 @@ function RoutineListRow({
         )}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-base font-medium">{routine.name}</span>
+            <span className="truncate text-base font-medium">
+              <Highlight text={routine.name} query={query} />
+            </span>
             {badge && (
               <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
                 {badge}
@@ -370,6 +376,7 @@ export function RoutinesList({ userId }: { userId: string }) {
                   <RoutineListRow
                     key={routine.id}
                     routine={routine}
+                    query={query}
                     meta={exerciseCountLabel(exerciseCounts.get(routine.id) ?? 0)}
                     subtitle={isWarmupRoutine(routine) ? null : routine.folder}
                   />

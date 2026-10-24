@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/highlight";
 import { formatMinutes } from "@/lib/home/stats";
 import { type PortalWorkoutRow, workoutMatchesSearch } from "@/lib/portal/workouts-data";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
@@ -101,11 +102,11 @@ export function PortalWorkouts({
                         href={`/portal/workouts/${workout.id}`}
                         className="block truncate font-medium underline-offset-4 hover:underline"
                       >
-                        {workout.name}
+                        <Highlight text={workout.name} query={query} />
                       </Link>
                     </td>
                     <td className="hidden truncate py-2 pr-3 text-zinc-600 lg:table-cell dark:text-zinc-400">
-                      {workout.gymName ?? "—"}
+                      {workout.gymName ? <Highlight text={workout.gymName} query={query} /> : "—"}
                     </td>
                     <td className="hidden py-2 pr-3 text-right tabular-nums md:table-cell">
                       {formatMinutes(workout.durationSeconds / 60)}
