@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/highlight";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import type { PortalTrainingData } from "@/lib/portal/analysis-data";
 import { type PortalExerciseIndexRow, exerciseMatchesSearch } from "@/lib/portal/exercises-data";
@@ -88,7 +89,9 @@ function ExerciseIndex({ rows }: { rows: readonly PortalExerciseIndexRow[] }) {
                   className="flex min-w-0 items-center gap-3 py-2"
                 >
                   <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="truncate font-medium">{row.name}</span>
+                    <span className="truncate font-medium">
+                      <Highlight text={row.name} query={query} />
+                    </span>
                     {tag && (
                       <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                         {tag}

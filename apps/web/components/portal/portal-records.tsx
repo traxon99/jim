@@ -1,5 +1,6 @@
 "use client";
 
+import { Highlight } from "@/components/highlight";
 import {
   NewBadge,
   PR_KIND_LABELS,
@@ -279,7 +280,9 @@ export function PortalRecords({ data }: { data: PortalRecordsData }) {
                     >
                       <td className="py-2 pr-3 align-top">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <span className="break-words font-medium">{group.name}</span>
+                          <span className="break-words font-medium">
+                            <Highlight text={group.name} query={query} />
+                          </span>
                           {(group.plates > 0 || group.standard) && (
                             <span className="flex flex-wrap items-center gap-1">
                               {group.plates > 0 && <PlateMedal plates={group.plates} />}

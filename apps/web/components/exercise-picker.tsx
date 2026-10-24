@@ -1,19 +1,16 @@
 "use client";
 
-import { ExerciseForm } from "@/components/exercises/exercise-form";
-import { useIncrementalList } from "@/components/use-incremental-list";
-import { db } from "@/lib/db/schema";
-import { EXERCISE_CATEGORY_TABS, exerciseMetaLine, useGymNames } from "@/lib/exercises/display";
 import {
-  type ExerciseCategory,
-  exerciseDisplayName,
-  filterExercises,
-  preferOwnedExercises,
-  searchExercises,
-} from "@jim/core";
-import { useLiveQuery } from "dexie-react-hooks";
+  CATALOG_SECTION_LABEL,
+  ExerciseCatalogControls,
+  ExerciseCatalogRowContent,
+  useExerciseCatalog,
+} from "@/components/exercises/exercise-catalog";
+import { ExerciseForm } from "@/components/exercises/exercise-form";
+import { useGymNames } from "@/lib/exercises/display";
+import type { ExerciseCategory } from "@jim/core";
 import { Check, Plus } from "lucide-react";
-import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface Props {
@@ -39,8 +36,7 @@ interface Props {
   suggestedExerciseIds?: readonly string[];
 }
 
-const SECTION_LABEL =
-  "pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
+const SECTION_LABEL = `pt-4 pb-1 ${CATALOG_SECTION_LABEL}`;
 
 export function ExercisePicker({
   userId,
@@ -52,7 +48,6 @@ export function ExercisePicker({
   suggestedExerciseIds = [],
 }: Props) {
   const replacing = mode === "replace";
-  const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
   const gymNames = useGymNames();
 
   // Full-screen overlay rules (docs/PWA.md §2, #521): lock the page behind
@@ -71,10 +66,10 @@ export function ExercisePicker({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const portal = (content: ReactNode) => (mounted ? createPortal(content, document.body) : null);
-  const [query, setQuery] = useState("");
-  // Filtering ~870 exercises per keystroke can't hold up typing (#674).
-  const deferredQuery = useDeferredValue(query);
-  const [category, setCategory] = useState<ExerciseCategory | "all">(initialCategory);
+  // The same search, filters and sections as the Exercises tab (#710).
+  const catalog = useExerciseCatalog({ userId, initialCategory, excludeExerciseIds });
+  const { query, deferredQuery, results, usage, yours, rest, restPage } = catalog;
+  const { category } = catalog.filters;
   // Issue #169: create a missing exercise from here with the same form the
   // Exercises page uses, then add it straight away.
   const [creating, setCreating] = useState(false);
@@ -106,15 +101,6 @@ export function ExercisePicker({
     );
   }
 
-  const results = useMemo(() => {
-    const rows = allExercises ?? [];
-    const owned = preferOwnedExercises(rows, userId);
-    const filtered = filterExercises(owned, {
-      category: category === "all" ? undefined : category,
-    }).filter((exercise) => !excludeExerciseIds.has(exercise.id));
-    return searchExercises(filtered, deferredQuery);
-  }, [allExercises, userId, deferredQuery, excludeExerciseIds, category]);
-
   // Suggestions are strength work, so they sit out a search and the
   // Warm-ups and Cardio tabs; while they show, the list below doesn't repeat them.
   const suggestions = useMemo(() => {
@@ -124,13 +110,13 @@ export function ExercisePicker({
       return exercise ? [exercise] : [];
     });
   }, [replacing, query, category, suggestedExerciseIds, results]);
-  const listed = useMemo(() => {
-    if (suggestions.length === 0) return results;
-    const suggestedIds = new Set(suggestions.map((exercise) => exercise.id));
-    return results.filter((exercise) => !suggestedIds.has(exercise.id));
-  }, [results, suggestions]);
-
-  const incremental = useIncrementalList(listed, `${deferredQuery}|${category}`);
+  const suggestedIds = useMemo(
+    () => new Set(suggestions.map((exercise) => exercise.id)),
+    [suggestions],
+  );
+  const yoursListed = yours.filter((exercise) => !suggestedIds.has(exercise.id));
+  const restListed = restPage.visible.filter((exercise) => !suggestedIds.has(exercise.id));
+  const restLeft = rest.some((exercise) => !suggestedIds.has(exercise.id));
 
   function renderRow(exercise: (typeof results)[number]) {
     const order = selectedIds.indexOf(exercise.id);
@@ -143,12 +129,12 @@ export function ExercisePicker({
           onClick={() => toggleSelected(exercise.id)}
           className="flex w-full items-center gap-3 py-3 text-left"
         >
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-base font-medium">{exerciseDisplayName(exercise)}</span>
-            <span className="text-xs text-zinc-500 dark:text-zinc-500">
-              {exerciseMetaLine(exercise, gymNames)}
-            </span>
-          </span>
+          <ExerciseCatalogRowContent
+            exercise={exercise}
+            query={deferredQuery}
+            used={usage.get(exercise.id)}
+            gymNames={gymNames}
+          />
           {!replacing && (
             <span
               aria-hidden="true"
@@ -222,34 +208,7 @@ export function ExercisePicker({
       </div>
 
       <div className="flex touch-none flex-col gap-2 px-4 py-3">
-        <div className="grid grid-cols-4 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
-          {EXERCISE_CATEGORY_TABS.map((tab) => {
-            const selected = category === tab.value;
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => setCategory(tab.value)}
-                className={`min-h-11 rounded-lg px-2 text-sm font-medium ${
-                  selected
-                    ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
-                    : "text-zinc-500 dark:text-zinc-400"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-        <input
-          type="search"
-          inputMode="search"
-          placeholder="Search exercises"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-        />
+        <ExerciseCatalogControls catalog={catalog} />
         {!replacing && (
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
             Pick two or more to add them as a superset.
@@ -266,13 +225,19 @@ export function ExercisePicker({
           <>
             <li className={SECTION_LABEL}>Suggested</li>
             {suggestions.map(renderRow)}
-            {listed.length > 0 && <li className={SECTION_LABEL}>All exercises</li>}
           </>
         )}
-        {incremental.visible.map(renderRow)}
-        {incremental.hasMore && (
-          <li ref={incremental.sentinelRef} aria-hidden="true" className="h-px" />
+        {yoursListed.length > 0 && (
+          <>
+            <li className={SECTION_LABEL}>Your exercises</li>
+            {yoursListed.map(renderRow)}
+          </>
         )}
+        {(suggestions.length > 0 || yoursListed.length > 0) && restLeft && (
+          <li className={SECTION_LABEL}>All exercises</li>
+        )}
+        {restListed.map(renderRow)}
+        {restPage.hasMore && <li ref={restPage.sentinelRef} aria-hidden="true" className="h-px" />}
         {results.length === 0 && (
           <li className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
             No exercises match.

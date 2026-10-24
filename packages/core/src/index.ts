@@ -13,6 +13,7 @@ export * from "./places";
 export * from "./programs";
 export * from "./progression";
 export * from "./routines";
+export * from "./search-highlight";
 export * from "./sessions";
 export * from "./sharing";
 export * from "./social";
