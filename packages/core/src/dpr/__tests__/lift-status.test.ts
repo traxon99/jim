@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { predictOneRepMax } from "../../history/predicted-one-rep-max";
 import type { DprSet } from "../decide";
 import {
   type DprBlockInfo,
@@ -15,7 +16,7 @@ import {
   liftRepRanges,
   nextBlockBaselines,
 } from "../lift-status";
-import type { DprSnapshot } from "../snapshot";
+import { type DprSnapshot, predictionSetsFromHistory } from "../snapshot";
 
 const day = (n: number) => new Date(Date.UTC(2026, 0, 1 + n));
 const settings: DprUserSettings = {
@@ -172,6 +173,11 @@ describe("recap", () => {
     expect(recap.hitGoal).toBe(true);
     // The day-30 set is after the block and doesn't count.
     expect(recap.bestSet).toMatchObject({ weight: 200, reps: 6, rpe: 8 });
+    // Predicted at the block's end (issue #713): the day-30 set is after it.
+    expect(recap.predictedE1rm).toBe(
+      predictOneRepMax(predictionSetsFromHistory(snap.history, "bench"), day(28))?.value,
+    );
+    expect(recap.predictedE1rm).toBeGreaterThan(0);
   });
 
   it("summarizes goals hit and the average change", () => {

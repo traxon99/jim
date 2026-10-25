@@ -190,7 +190,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Exercise history",
       description:
-        "Every set logged for one exercise over time (with rest taken vs target), plus its estimated-1RM series.",
+        "Every set logged for one exercise over time (with rest taken vs target), plus its per-session estimated-1RM series and its predicted 1RM (from RPE, reps, recent PRs, recency, consistency and trend, with trend per week and confidence) and the prediction after each session.",
       inputSchema: {
         exercise: z.string().describe("Exercise name or id"),
         from: z.string().datetime({ offset: true }).optional(),

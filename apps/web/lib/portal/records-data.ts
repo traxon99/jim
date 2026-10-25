@@ -1,5 +1,10 @@
 import type { ExerciseRow } from "@/lib/db/schema";
-import type { PersonalRecordEntry, StrengthProfile, WeightUnit } from "@jim/core";
+import type {
+  PersonalRecordEntry,
+  PredictedOneRepMax,
+  StrengthProfile,
+  WeightUnit,
+} from "@jim/core";
 import type { PortalBodyPoint } from "./body-data";
 
 /** An exercise as the Records section searches, filters and badges it. */
@@ -32,6 +37,8 @@ export interface PortalRecordsData {
   exercises: PortalRecordExercise[];
   strengthProfile: StrengthProfile | null;
   bodyweight: PortalBodyPoint[];
+  /** Each lift's predicted 1RM today, by exercise id (issue #713). */
+  predictions: Record<string, PredictedOneRepMax>;
 }
 
 export function serializeRecordEntries(

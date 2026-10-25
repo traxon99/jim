@@ -18,6 +18,7 @@ function setRow(overrides: Partial<Parameters<typeof buildPortalSets>[3][number]
     kind: "working",
     weight: "225.00",
     reps: 5,
+    rpe: "8.0" as string | null,
     completedAt: COMPLETED_AT,
     supersedesId: null,
     deletedAt: null,
@@ -43,8 +44,11 @@ const exercises = [
 ];
 
 describe("buildPortalSets", () => {
-  it("keeps current working sets, with numeric weight and ISO dates", () => {
-    const result = buildPortalSets(sessions, sessionExercises, exercises, [setRow()]);
+  it("keeps current working sets, with numeric weight, RPE and ISO dates", () => {
+    const result = buildPortalSets(sessions, sessionExercises, exercises, [
+      setRow(),
+      setRow({ id: "set-2", rpe: null }),
+    ]);
     expect(result.sets).toEqual([
       {
         exerciseId: "bench",
@@ -52,6 +56,15 @@ describe("buildPortalSets", () => {
         completedAt: COMPLETED_AT.toISOString(),
         weight: 225,
         reps: 5,
+        rpe: 8,
+      },
+      {
+        exerciseId: "bench",
+        sessionId: "session-1",
+        completedAt: COMPLETED_AT.toISOString(),
+        weight: 225,
+        reps: 5,
+        rpe: null,
       },
     ]);
     expect(result.exercises).toEqual([{ id: "bench", name: "Bench Press" }]);
@@ -210,6 +223,7 @@ describe("buildPortalWorkouts (#468)", () => {
     completedAt: COMPLETED_AT.toISOString(),
     weight: 225,
     reps: 5,
+    rpe: null,
   });
   // A Monday, so the derived name is predictable.
   const startedAt = new Date(2026, 2, 2, 18);

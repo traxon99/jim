@@ -140,10 +140,10 @@ export function PortalStrength({
     highlight: HighlightedSet;
   } | null>(null);
 
-  const trends = useMemo(
-    () => strengthTrends(sets, analysisRangeStart(range, new Date())),
-    [sets, range],
-  );
+  const trends = useMemo(() => {
+    const now = new Date();
+    return strengthTrends(sets, analysisRangeStart(range, now), {}, now);
+  }, [sets, range]);
   const selectedTrend =
     trends.find((trend) => trend.exerciseId === selectedExerciseId) ?? trends[0];
 
@@ -171,6 +171,7 @@ export function PortalStrength({
                     <tr className="border-b border-zinc-200 text-left text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
                       <th className="py-2 pr-3 font-medium">Exercise</th>
                       <th className="py-2 pr-3 text-right font-medium">Current</th>
+                      <th className="py-2 pr-3 text-right font-medium">Predicted</th>
                       <th className="py-2 pr-3 text-right font-medium">Change</th>
                       <th className="py-2 pr-3 text-right font-medium">Best ever</th>
                       <th className="py-2 pr-1 text-right font-medium">Sessions</th>
@@ -197,6 +198,11 @@ export function PortalStrength({
                           </td>
                           <td className="py-2 pr-3 text-right tabular-nums">
                             {Math.round(trend.current).toLocaleString()}
+                          </td>
+                          <td className="py-2 pr-3 text-right font-medium tabular-nums">
+                            {trend.predicted
+                              ? Math.round(trend.predicted.value).toLocaleString()
+                              : "—"}
                           </td>
                           <td className="py-2 pr-3 text-right tabular-nums">
                             <ChangeCell change={trend.change} percent={trend.changePercent} />
@@ -237,6 +243,8 @@ export function PortalStrength({
                   </h3>
                   <OneRepMaxChart
                     points={selectedTrend.points}
+                    predicted={selectedTrend.predictedPoints}
+                    prediction={selectedTrend.predicted}
                     units={data.units}
                     workoutTitle={(sessionId) => workouts.get(sessionId)?.title}
                     onSelectPoint={(point) =>

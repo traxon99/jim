@@ -73,10 +73,13 @@ function StandardCard({
   row,
   units,
   showDates,
+  predicted,
 }: {
   row: StandardLiftRow;
   units: string;
   showDates: boolean;
+  /** The lift's predicted 1RM today (issue #713). */
+  predicted?: number;
 }) {
   const position = ladderPosition(row.oneRepMax, row.thresholds);
   const name = row.name ?? STANDARD_LIFT_LABELS[row.lift];
@@ -117,6 +120,14 @@ function StandardCard({
                 year: "numeric",
               })}`}
           </span>
+          {predicted !== undefined && (
+            <span className="text-sm text-zinc-500 dark:text-zinc-500">
+              · predicted{" "}
+              <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                {formatWeight(predicted)} {units}
+              </span>
+            </span>
+          )}
         </p>
       )}
 
@@ -224,7 +235,13 @@ export function PortalStandards({ data }: { data: PortalStandardsData }) {
           </p>
           <ul className="grid gap-4 lg:grid-cols-2">
             {rows.map((row) => (
-              <StandardCard key={row.lift} row={row} units={data.units} showDates={isClient} />
+              <StandardCard
+                key={row.lift}
+                row={row}
+                units={data.units}
+                showDates={isClient}
+                predicted={row.exerciseId ? data.predictions[row.exerciseId]?.value : undefined}
+              />
             ))}
           </ul>
         </>

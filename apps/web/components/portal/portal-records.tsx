@@ -58,7 +58,16 @@ function StatTile({ label, value }: { label: string; value: number }) {
   );
 }
 
-function RecordCell({ record, now }: { record: PersonalRecordEntry | undefined; now: Date }) {
+function RecordCell({
+  record,
+  now,
+  predicted,
+}: {
+  record: PersonalRecordEntry | undefined;
+  now: Date;
+  /** The lift's predicted 1RM, under its e1RM PR (issue #713). */
+  predicted?: number;
+}) {
   if (!record) return <span className="text-zinc-400 dark:text-zinc-600">—</span>;
   return (
     <span className="flex flex-col items-end">
@@ -75,6 +84,11 @@ function RecordCell({ record, now }: { record: PersonalRecordEntry | undefined; 
       <span className="text-xs text-zinc-500 dark:text-zinc-500">
         {shortDate(record.achievedAt)}
       </span>
+      {predicted !== undefined && (
+        <span className="text-xs font-medium tabular-nums text-zinc-700 dark:text-zinc-300">
+          Predicted {Math.round(predicted).toLocaleString()}
+        </span>
+      )}
     </span>
   );
 }
@@ -317,6 +331,11 @@ export function PortalRecords({ data }: { data: PortalRecordsData }) {
                           <RecordCell
                             record={group.records.find((record) => record.kind === column.kind)}
                             now={now}
+                            predicted={
+                              column.kind === "1rm"
+                                ? data.predictions[group.exerciseId]?.value
+                                : undefined
+                            }
                           />
                         </td>
                       ))}

@@ -225,6 +225,7 @@ export function PortalCompare({ data }: { data: PortalTrainingData }) {
                       <tr className="border-b border-zinc-200 text-left text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
                         <th className="py-2 pr-3 font-medium">Lift</th>
                         <th className="py-2 pr-3 text-right font-medium">Latest</th>
+                        <th className="py-2 pr-3 text-right font-medium">Predicted</th>
                         <th className="py-2 pr-3 text-right font-medium">Change</th>
                         <th className="py-2 pr-3 text-right font-medium">Best</th>
                         <th className="py-2 pr-1 text-right font-medium">Sessions</th>
@@ -245,6 +246,11 @@ export function PortalCompare({ data }: { data: PortalTrainingData }) {
                             </td>
                             <td className="py-2 pr-3 text-right tabular-nums">
                               {latest == null ? "—" : Math.round(latest).toLocaleString()}
+                            </td>
+                            <td className="py-2 pr-3 text-right font-medium tabular-nums">
+                              {entry.predicted == null
+                                ? "—"
+                                : Math.round(entry.predicted).toLocaleString()}
                             </td>
                             <td className="py-2 pr-3 text-right tabular-nums">
                               <Change change={entry.change} percent={entry.changePercent} />

@@ -1,3 +1,4 @@
+import { estimateOneRepMax } from "@jim/core";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { UserContext } from "../../context.js";
@@ -100,6 +101,21 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("volume_report and exercise_hist
       ["working", 110],
     ]);
     expect(history.estimatedOneRepMaxSeries).toHaveLength(2);
+  });
+
+  it("predicts the 1RM from working sets up to `to`, deleted workout left out (issue #713)", async () => {
+    const history = await exerciseHistory(context, {
+      exercise: "bench press",
+      to: "2026-09-20T00:00:00Z",
+    });
+    // Best recent working set: 110 × 5, no RPE; the deleted 300 × 5 doesn't count.
+    expect(history.predictedOneRepMax?.value).toBe(estimateOneRepMax(110, 5));
+    expect(history.predictedOneRepMaxSeries).toHaveLength(2);
+    const later = await exerciseHistory(context, {
+      exercise: "bench press",
+      from: "2026-09-15T00:00:00Z",
+    });
+    expect(later.predictedOneRepMaxSeries).toHaveLength(1);
   });
 
   it("filters history by date", async () => {

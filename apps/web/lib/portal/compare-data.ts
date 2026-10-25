@@ -4,6 +4,7 @@ import {
   type OneRepMaxPoint,
   analysisRangeStart,
   estimatedOneRepMaxSeries,
+  predictOneRepMax,
 } from "@jim/core";
 
 /** How many lifts one Compare chart overlays before it stops being readable. */
@@ -67,6 +68,8 @@ export interface CompareLift {
   exerciseId: string;
   /** Per-session best estimated 1RM, oldest first, in every session ever. */
   points: OneRepMaxPoint[];
+  /** The lift's sets, for its predicted 1RM (issue #713). */
+  sets: AnalysisSet[];
 }
 
 /**
@@ -84,7 +87,7 @@ export function compareLifts(sets: readonly AnalysisSet[]): CompareLift[] {
   const lifts: CompareLift[] = [];
   for (const [exerciseId, exerciseSets] of byExercise) {
     const points = estimatedOneRepMaxSeries(exerciseSets);
-    if (points.length > 0) lifts.push({ exerciseId, points });
+    if (points.length > 0) lifts.push({ exerciseId, points, sets: exerciseSets });
   }
   return lifts.sort(
     (a, b) =>
@@ -120,6 +123,8 @@ export interface CompareSeries {
   /** Null when there is no change or the first estimate is 0. */
   changePercent: number | null;
   best: number | null;
+  /** Predicted 1RM at the window's end (today for an open window), issue #713. */
+  predicted: number | null;
 }
 
 /** Each chosen lift's points within the window, with its change across it. */
@@ -127,10 +132,13 @@ export function compareSeries(
   lifts: readonly CompareLift[],
   exerciseIds: readonly string[],
   window: Pick<CompareWindow, "start" | "end">,
+  now: Date = new Date(),
 ): CompareSeries[] {
+  const asOf = window.end && window.end < now ? window.end : now;
   const byId = new Map(lifts.map((lift) => [lift.exerciseId, lift]));
   return exerciseIds.map((exerciseId) => {
-    const points = (byId.get(exerciseId)?.points ?? []).filter(
+    const lift = byId.get(exerciseId);
+    const points = (lift?.points ?? []).filter(
       (point) =>
         (!window.start || point.date >= window.start) && (!window.end || point.date < window.end),
     );
@@ -149,6 +157,7 @@ export function compareSeries(
           ? (change / first.estimatedOneRepMax) * 100
           : null,
       best: points.length > 0 ? Math.max(...points.map((point) => point.estimatedOneRepMax)) : null,
+      predicted: lift ? (predictOneRepMax(lift.sets, asOf)?.value ?? null) : null,
     };
   });
 }

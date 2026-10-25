@@ -20,6 +20,8 @@ import {
   formatTimedSet,
   isRecentPersonalRecord,
   machineName,
+  predictOneRepMaxNow,
+  predictedOneRepMaxSeries,
   warmupFrequency,
 } from "@jim/core";
 import { ChevronLeft, ExternalLink, MapPin, Sparkles } from "lucide-react";
@@ -104,6 +106,8 @@ export function PortalExerciseDetailView({
     [detail.records],
   );
   const oneRepMaxPoints = useMemo(() => estimatedOneRepMaxSeries(sets), [sets]);
+  const predictedPoints = useMemo(() => predictedOneRepMaxSeries(sets), [sets]);
+  const prediction = useMemo(() => predictOneRepMaxNow(sets, now), [sets, now]);
   const frequency = useMemo(() => warmupFrequency(sets, now), [sets, now]);
   const cardioBests = useMemo(() => computeCardioBests(sets), [sets]);
   const workingSets = sets.filter((set) => set.kind !== "warmup").length;
@@ -260,9 +264,11 @@ export function PortalExerciseDetailView({
 
           {!isWarmup && !isCardio && oneRepMaxPoints.length > 0 && isClient && (
             <section className="flex flex-col gap-2">
-              <SectionHeading>{`Estimated 1RM over time (${units})`}</SectionHeading>
+              <SectionHeading>{`Estimated and predicted 1RM (${units})`}</SectionHeading>
               <OneRepMaxChart
                 points={oneRepMaxPoints}
+                predicted={predictedPoints}
+                prediction={prediction}
                 units={units}
                 onSelectPoint={(point) => router.push(`/portal/workouts/${point.sessionId}`)}
               />

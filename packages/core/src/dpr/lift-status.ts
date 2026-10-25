@@ -1,3 +1,4 @@
+import { predictOneRepMax } from "../history/predicted-one-rep-max";
 import {
   type DprDecision,
   type RepRange,
@@ -16,7 +17,7 @@ import {
 import { type OnTrackStatus, layoffDays, onTrackStatus } from "./goal";
 import { applyIntensity } from "./intensity";
 import { DELOAD_PCT, DPR_PRESETS, type DprPresetName } from "./presets";
-import { type DprSnapshot, e1rmSeries } from "./snapshot";
+import { type DprSnapshot, e1rmSeries, predictionSetsFromHistory } from "./snapshot";
 
 /**
  * Per-lift DPR status shared by the web app and the MCP server (issues
@@ -262,6 +263,8 @@ export interface DprLiftRecap {
   goalE1rm: number | null;
   hitGoal: boolean | null;
   bestSet: DprBestSet | null;
+  /** Predicted 1RM at the block's end, from the lift's whole history (issue #713). */
+  predictedE1rm: number | null;
 }
 
 /** Block-end numbers for one lift (issue #215). */
@@ -300,6 +303,8 @@ export function liftRecap(
     goalE1rm,
     hitGoal: goalE1rm === null || finalE1rm === null ? null : finalE1rm >= goalE1rm,
     bestSet,
+    predictedE1rm:
+      predictOneRepMax(predictionSetsFromHistory(snapshot.history, exerciseId), end)?.value ?? null,
   };
 }
 

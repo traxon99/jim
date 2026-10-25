@@ -27,6 +27,7 @@ interface PortalSetRow {
   kind: string;
   weight: string | null;
   reps: number | null;
+  rpe?: string | null;
   completedAt: Date;
   supersedesId: string | null;
   deletedAt: Date | null;
@@ -50,6 +51,8 @@ export interface PortalSet {
   completedAt: string;
   weight: number | null;
   reps: number | null;
+  /** For the predicted 1RM (issue #713). */
+  rpe: number | null;
 }
 
 export interface PortalExercise {
@@ -235,6 +238,7 @@ export function buildPortalSets(
       completedAt: set.completedAt.toISOString(),
       weight: set.weight == null ? null : Number(set.weight),
       reps: set.reps,
+      rpe: set.rpe == null ? null : Number(set.rpe),
     });
   }
 
