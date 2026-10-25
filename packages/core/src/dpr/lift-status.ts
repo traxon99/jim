@@ -54,6 +54,8 @@ export interface DprLiftCall {
   decision: DprDecision;
   repRange: RepRange;
   increment: number;
+  /** The RPE the lift's working sets should stay at or under to count toward UP (the preset's cap). */
+  rpeCap: number;
 }
 
 /** The block DPR is running now (active or in its deload week); newest started wins. */
@@ -97,10 +99,11 @@ export function callForLift(input: {
     settings.increments,
     settings.plates,
   );
+  const preset = DPR_PRESETS[settings.aggressiveness];
   let decision = decideNextWeight({
     sessions: sessionsForKey(snapshot.history, exerciseId, repRange),
     repRange,
-    preset: DPR_PRESETS[settings.aggressiveness],
+    preset,
     increment,
     now,
     fallbackWeight: input.fallbackWeight ?? null,
@@ -120,7 +123,7 @@ export function callForLift(input: {
   } else {
     decision = applyIntensity(decision, input.intensity, increment);
   }
-  return { exerciseId, decision, repRange, increment };
+  return { exerciseId, decision, repRange, increment, rpeCap: preset.rpeCap };
 }
 
 /**

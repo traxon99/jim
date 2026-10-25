@@ -6,6 +6,7 @@ import {
   type DprContext,
   dprBadge,
   dprCallFor,
+  dprTargetLine,
   dprUserSettings,
   dprWhyLine,
   formatLogEntry,
@@ -99,6 +100,9 @@ export function LiftCard({ context, lift }: { context: DprContext; lift: DprBloc
 
       {call && (
         <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          {dprTargetLine(call, units) && (
+            <span className="block font-medium">{dprTargetLine(call, units)}</span>
+          )}
           {dprWhyLine(call.decision, units)}
         </p>
       )}

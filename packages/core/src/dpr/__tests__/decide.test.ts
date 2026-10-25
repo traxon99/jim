@@ -75,7 +75,9 @@ describe("decideNextWeight — increases", () => {
     const d = decide([s3(28, 185, 6)], "moderate", { high: 10 });
     expect(d.call).toBe("hold");
     expect(d.targetReps).toBe(7);
-    expect(d.reason).toBe("3×6 @ RPE 7 — aim for 7, then 10 on every set");
+    expect(d.reason).toBe(
+      "3×6 @ RPE 7 last time. Get 10 reps on every set at 185 (RPE 8 or less) to go UP",
+    );
   });
 
   it("counts from the worst top set and caps at the top of the range", () => {
@@ -83,7 +85,16 @@ describe("decideNextWeight — increases", () => {
     expect(decide([uneven], "moderate", { high: 10 }).targetReps).toBe(7);
     const d = decide([s3(28, 185, 7)]);
     expect(d.targetReps).toBe(8);
-    expect(d.reason).toBe("3×7 @ RPE 7 — aim for 8 on every set");
+    expect(d.reason).toBe(
+      "3×7 @ RPE 7 last time. Get 8 reps on every set at 185 (RPE 8 or less) to go UP",
+    );
+  });
+
+  it("says how many sessions in a row go UP when the preset needs more than one (issue #712)", () => {
+    const d = decide([s3(28, 185, 7)], "conservative");
+    expect(d.reason).toBe(
+      "3×7 @ RPE 7 last time. Get 8 reps on every set at 185 (RPE 7.5 or less), 2 sessions in a row, to go UP",
+    );
   });
 
   it("repeats the top of the range on an over-cap RPE hold", () => {

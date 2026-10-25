@@ -264,7 +264,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "PRP status",
       description:
-        "Read-only. Whether PR Progression (PRP, formerly DPR) is on, the current training block, and for each focused lift: its rep ranges, PRP's next call (increase / hold / deload / reenter / insufficient) with weight and reason, baseline / current / goal e1RM with on-track status, and the last 5 decisions.",
+        "Read-only. Whether PR Progression (PRP, formerly DPR) is on, the current training block, and for each focused lift: its rep ranges, PRP's next call (increase / hold / deload / reenter / insufficient) with weight, target reps, target RPE (stay at or under) and reason, baseline / current / goal e1RM with on-track status, and the last 5 decisions.",
       inputSchema: {},
     },
     handle(() => dprStatus(context)),

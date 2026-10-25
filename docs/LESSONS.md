@@ -119,6 +119,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       `exercise_id`; name lookups skip archived rows (#497).
 - [ ] Adding a field for a weight, distance or other decimal? `type="text" inputMode="decimal"` with
       `normalizeDecimalInput` on change, never `type="number"`, which drops a decimal comma (#675).
+- [ ] Showing a PRP call on a lift? Lead with what to lift today (`dprTargetLine`: weight × reps @
+      RPE, and how ramped sets build), not only the engine's reason, which describes last time.
+      Boxes PRP fills keep its call's dashed outline until something is typed (#712).
 - [ ] Sets are append-only and sync is foreground-driven (`docs/DECISIONS.md`). Don't edit rows in
       place. A planned row must not reappear over a synced tombstone (#438).
 
