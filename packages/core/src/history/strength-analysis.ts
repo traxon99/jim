@@ -1,5 +1,11 @@
 import type { EstimateOneRepMaxOptions } from "../one-rep-max";
 import { type OneRepMaxPoint, estimatedOneRepMaxSeries } from "./estimated-one-rep-max-series";
+import {
+  type PredictedOneRepMax,
+  type PredictedOneRepMaxPoint,
+  predictOneRepMax,
+  predictedOneRepMaxSeries,
+} from "./predicted-one-rep-max";
 import { startOfWeek } from "./week-grouping";
 
 /**
@@ -42,6 +48,8 @@ export interface AnalysisSet {
   completedAt: Date;
   weight: number | null;
   reps: number | null;
+  /** Read only by the predicted 1RM (issue #713). */
+  rpe?: number | null;
 }
 
 function inRange(date: Date, since: Date | null): boolean {
@@ -112,6 +120,10 @@ export interface StrengthTrend {
   allTimeBest: number;
   /** Sessions in range that trained this exercise with a weight and reps. */
   sessions: number;
+  /** Predicted 1RM as of `now`, from the lift's whole history (issue #713). */
+  predicted: PredictedOneRepMax | null;
+  /** The prediction after each in-range session, oldest first. */
+  predictedPoints: PredictedOneRepMaxPoint[];
 }
 
 /**
@@ -125,6 +137,7 @@ export function strengthTrends(
   sets: readonly AnalysisSet[],
   since: Date | null,
   options: EstimateOneRepMaxOptions = {},
+  now: Date = new Date(),
 ): StrengthTrend[] {
   const setsByExercise = new Map<string, AnalysisSet[]>();
   for (const set of sets) {
@@ -155,6 +168,10 @@ export function strengthTrends(
         first.estimatedOneRepMax > 0 ? (change / first.estimatedOneRepMax) * 100 : null,
       allTimeBest: Math.max(...series.map((point) => point.estimatedOneRepMax)),
       sessions: points.length,
+      predicted: predictOneRepMax(exerciseSets, now),
+      predictedPoints: predictedOneRepMaxSeries(exerciseSets).filter((point) =>
+        inRange(point.date, since),
+      ),
     });
   }
 

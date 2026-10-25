@@ -1,4 +1,4 @@
-import type { AnalysisSet } from "@jim/core";
+import { type AnalysisSet, predictOneRepMax } from "@jim/core";
 import { describe, expect, it } from "vitest";
 import {
   MAX_COMPARE_LIFTS,
@@ -113,13 +113,27 @@ describe("compareSeries", () => {
   });
 
   it("returns an empty series for a lift with nothing in the window", () => {
-    const [bench] = compareSeries(lifts, ["bench"], { start: new Date(2027, 0, 1), end: null });
+    const now = new Date(2027, 1, 1);
+    const [bench] = compareSeries(
+      lifts,
+      ["bench"],
+      { start: new Date(2027, 0, 1), end: null },
+      now,
+    );
     expect(bench).toEqual({
       exerciseId: "bench",
       points: [],
       change: null,
       changePercent: null,
       best: null,
+      predicted: predictOneRepMax(lifts[0]?.sets ?? [], now)?.value,
     });
+  });
+
+  it("predicts each lift's 1RM at the window's end (issue #713)", () => {
+    const end = new Date(2026, 2, 12);
+    const [bench] = compareSeries(lifts, ["bench"], { start: null, end }, new Date(2026, 5, 1));
+    expect(bench?.predicted).toBe(predictOneRepMax(lifts[0]?.sets ?? [], end)?.value);
+    expect(bench?.predicted).toBeGreaterThan(0);
   });
 });

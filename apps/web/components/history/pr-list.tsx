@@ -12,6 +12,7 @@ import {
   tierBadgeLabel,
 } from "@/components/history/pr-badges";
 import { PrSparkline } from "@/components/history/pr-sparkline";
+import { predictionDetail } from "@/components/history/predicted-one-rep-max-stat";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { bodyweightLookup } from "@/lib/bodyweight";
@@ -23,6 +24,7 @@ import {
   filterPrGroups,
   prFilterOptions,
 } from "@/lib/history/pr-groups";
+import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercise";
 import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
@@ -95,6 +97,17 @@ export function PrList() {
   // Captured once per load: "New" means set in the last week as of opening the page.
   const now = useMemo(() => new Date(), []);
   const stats = useMemo(() => personalRecordStats(entries, now), [entries, now]);
+  // Next to each lift's e1RM PR, where its 1RM is likely now (issue #713).
+  const predictions = useMemo(
+    () =>
+      predictedOneRepMaxByExercise(
+        rawSessions ?? [],
+        rawSessionExercises ?? [],
+        rawSets ?? [],
+        now,
+      ),
+    [rawSessions, rawSessionExercises, rawSets, now],
+  );
 
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("");
@@ -331,6 +344,7 @@ export function PrList() {
             )}
             {visibleGroups.slice(0, visibleCount).map((group, index) => {
               const isExpanded = expanded.has(group.exerciseId);
+              const prediction = predictions.get(group.exerciseId);
               const detailsId = `pr-details-${group.exerciseId}`;
               return (
                 <section
@@ -395,6 +409,16 @@ export function PrList() {
                       </span>
                     </span>
                   </button>
+                  {prediction && (
+                    <p className="-mt-1 flex min-w-0 items-baseline justify-between gap-2 text-xs text-zinc-500 dark:text-zinc-500">
+                      <span className="truncate">
+                        Predicted 1RM · {predictionDetail(prediction, settings.units)}
+                      </span>
+                      <span className="shrink-0 font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                        {Math.round(prediction.value).toLocaleString()}
+                      </span>
+                    </p>
+                  )}
                   {isExpanded && (
                     <div id={detailsId} className="flex flex-col gap-1">
                       {group.standard && (

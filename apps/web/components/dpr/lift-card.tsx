@@ -1,5 +1,6 @@
 "use client";
 
+import { predictionDetail } from "@/components/history/predicted-one-rep-max-stat";
 import type { DprBlockLiftRow } from "@/lib/db/schema";
 import {
   type DprContext,
@@ -10,7 +11,13 @@ import {
   formatLogEntry,
   liftGoal,
 } from "@/lib/dpr/calls";
-import { e1rmSeries, exerciseDisplayName, liftDecisionLog, liftProgress } from "@jim/core";
+import {
+  e1rmSeries,
+  exerciseDisplayName,
+  liftDecisionLog,
+  liftProgress,
+  predictedE1rm,
+} from "@jim/core";
 import { CallMark } from "./call-mark";
 import { GoalChart } from "./goal-chart";
 import { formatWeight } from "./labels";
@@ -34,6 +41,7 @@ export function LiftCard({ context, lift }: { context: DprContext; lift: DprBloc
   const series = e1rmSeries(context.snapshot.history, lift.exerciseId).filter(
     (p) => p.date >= new Date(context.block.startedAt.getTime() - 28 * 24 * 60 * 60 * 1000),
   );
+  const prediction = predictedE1rm(context.snapshot.history, lift.exerciseId, context.now);
   const log = liftDecisionLog({
     snapshot: context.snapshot,
     exerciseId: lift.exerciseId,
@@ -78,6 +86,16 @@ export function LiftCard({ context, lift }: { context: DprContext; lift: DprBloc
           </dd>
         </div>
       </dl>
+
+      {prediction && (
+        <p className="-mt-1 flex min-w-0 items-baseline justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
+          <span className="shrink-0">Predicted 1RM</span>
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+            {formatWeight(prediction.value, units)}
+          </span>
+          <span className="truncate">{predictionDetail(prediction, units)}</span>
+        </p>
+      )}
 
       {call && (
         <p className="text-xs text-zinc-600 dark:text-zinc-400">

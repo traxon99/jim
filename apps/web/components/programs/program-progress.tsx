@@ -1,7 +1,9 @@
 "use client";
 
 import { db } from "@/lib/db/schema";
+import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercise";
 import { buildProgramProgressSets } from "@/lib/programs/progress-data";
+import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import {
   type ProgramProgress as Progress,
@@ -34,6 +36,7 @@ export function ProgramProgress({
   // Primitive deps, since callers pass a fresh array and Date each render.
   const routineKey = routineIds.join(",");
   const sinceTime = since?.getTime() ?? null;
+  const todayTime = useToday().getTime();
 
   const data = useLiveQuery(async () => {
     const [sessions, sessionExercises, exercises, sets] = await Promise.all([
@@ -51,11 +54,18 @@ export function ProgramProgress({
     const names = new Map(
       exercises.map((exercise) => [exercise.id, exerciseDisplayName(exercise)]),
     );
-    return { progress, names };
-  }, [routineKey, sinceTime]);
+    // Each lift's predicted 1RM today, from its whole history (issue #713).
+    const predictions = predictedOneRepMaxByExercise(
+      sessions,
+      sessionExercises,
+      sets,
+      new Date(todayTime),
+    );
+    return { progress, names, predictions };
+  }, [routineKey, sinceTime, todayTime]);
 
   if (!data) return null;
-  const { progress, names } = data;
+  const { progress, names, predictions } = data;
 
   if (progress.workoutCount === 0) {
     return (
@@ -107,6 +117,7 @@ export function ProgramProgress({
           <ul className="flex flex-col divide-y divide-zinc-100 dark:divide-zinc-900">
             {exercises.map((exercise) => {
               const change = Math.round(exercise.change);
+              const predicted = predictions.get(exercise.exerciseId);
               return (
                 <li
                   key={exercise.exerciseId}
@@ -116,8 +127,9 @@ export function ProgramProgress({
                     <p className="truncate font-medium">
                       {names.get(exercise.exerciseId) ?? "Exercise"}
                     </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    <p className="truncate text-xs text-zinc-500 dark:text-zinc-500">
                       {exercise.sessionCount} {exercise.sessionCount === 1 ? "workout" : "workouts"}
+                      {predicted && ` · predicted ${Math.round(predicted.value)} ${settings.units}`}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

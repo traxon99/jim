@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estimateOneRepMax } from "../../one-rep-max";
+import { predictOneRepMax } from "../predicted-one-rep-max";
 import {
   type AnalysisSet,
   analysisRangeStart,
@@ -86,6 +87,18 @@ describe("strengthTrends", () => {
     expect(trend?.allTimeBest).toBe(250);
     expect(trend?.sessions).toBe(2);
     expect(trend?.points.map((point) => point.sessionId)).toEqual(["s1", "s2"]);
+  });
+
+  it("adds the predicted 1RM from the lift's whole history (issue #713)", () => {
+    const sets = [
+      set({ sessionId: "old", completedAt: new Date(2025, 11, 1), weight: 250, reps: 1 }),
+      set({ sessionId: "s1", completedAt: new Date(2026, 1, 2), weight: 200, reps: 5 }),
+      set({ sessionId: "s2", completedAt: new Date(2026, 1, 16), weight: 210, reps: 5 }),
+    ];
+    const now = new Date(2026, 1, 20);
+    const [trend] = strengthTrends(sets, new Date(2026, 0, 1), {}, now);
+    expect(trend?.predicted).toEqual(predictOneRepMax(sets, now));
+    expect(trend?.predictedPoints.map((point) => point.sessionId)).toEqual(["s1", "s2"]);
   });
 
   it("leaves out exercises with no weighted set in range", () => {

@@ -2,6 +2,8 @@ import {
   deletedSessionExerciseIds,
   estimatedOneRepMaxSeries,
   isShortRest,
+  predictOneRepMax,
+  predictedOneRepMaxSeries,
   resolveCurrentRows,
   restStats,
   workStats,
@@ -44,6 +46,8 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
         rest: restStats([]),
         setTime: workStats([]),
         estimatedOneRepMaxSeries: [],
+        predictedOneRepMax: null,
+        predictedOneRepMaxSeries: [],
       };
     }
 
@@ -60,6 +64,25 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
       .filter((set) => (input.from ? set.completedAt >= new Date(input.from) : true))
       .filter((set) => (input.to ? set.completedAt <= new Date(input.to) : true))
       .sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
+
+    // The prediction (issue #713) reads every set up to `to`, not just the
+    // window: a lift's level depends on the weeks before `from` too.
+    const asOf = input.to ? new Date(input.to) : new Date();
+    const predictionSets = allSets
+      .filter((set) => !set.deletedAt && set.completedAt <= asOf)
+      .map((set) => ({
+        sessionId: sessionIdBySessionExercise.get(set.sessionExerciseId) ?? "",
+        completedAt: set.completedAt,
+        weight: set.weight == null ? null : Number(set.weight),
+        reps: set.reps,
+        rpe: set.rpe == null ? null : Number(set.rpe),
+        kind: set.kind,
+      }));
+    const prediction = predictOneRepMax(predictionSets, asOf);
+    const fromDate = input.from ? new Date(input.from) : null;
+    const predictedSeries = predictedOneRepMaxSeries(predictionSets).filter(
+      (point) => !fromDate || point.date >= fromDate,
+    );
 
     const series = estimatedOneRepMaxSeries(
       filtered.map((set) => ({
@@ -93,6 +116,14 @@ export async function exerciseHistory(context: UserContext, input: ExerciseHisto
         date: point.date.toISOString(),
         sessionId: point.sessionId,
         estimatedOneRepMax: point.estimatedOneRepMax,
+      })),
+      // Where the lift's 1RM likely is at `to` (or now), from RPE, reps, recent
+      // PRs, recency and trend; the series above stays the per-session estimate.
+      predictedOneRepMax: prediction,
+      predictedOneRepMaxSeries: predictedSeries.map((point) => ({
+        date: point.date.toISOString(),
+        sessionId: point.sessionId,
+        predictedOneRepMax: point.predictedOneRepMax,
       })),
     };
   });

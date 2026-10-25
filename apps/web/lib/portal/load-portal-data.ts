@@ -3,6 +3,7 @@ import { withUserDb } from "@/lib/db/user-scoped";
 import { buildAchievementData } from "@/lib/history/achievement-data";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildPersonalRecordEntries } from "@/lib/history/pr-groups";
+import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercise";
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -349,6 +350,9 @@ async function readRecordsData(tx: DbOrTx, userId: string): Promise<PortalRecord
     })),
     strengthProfile: settings ? strengthProfileFromSettings(settings) : null,
     bodyweight: buildPortalBodyData(measurementRows, units).bodyweight,
+    predictions: Object.fromEntries(
+      predictedOneRepMaxByExercise(sessionRows, sessionExerciseRows, setRows, new Date()),
+    ),
   };
 }
 

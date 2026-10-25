@@ -5,6 +5,7 @@ import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
+import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { showsRestStats } from "@/lib/settings/features";
 import {
@@ -22,6 +23,8 @@ import {
   isCardioExercise,
   isWarmupExercise,
   machineName,
+  predictOneRepMax,
+  predictedOneRepMaxSeries,
   resolveCurrentRows,
   warmupFrequency,
 } from "@jim/core";
@@ -118,18 +121,23 @@ export function ExerciseDetail({
     return groups;
   }, [resolvedSets]);
 
-  const oneRepMaxPoints = useMemo(
+  const oneRepMaxSets = useMemo(
     () =>
-      estimatedOneRepMaxSeries(
-        (resolvedSets ?? []).map((set) => ({
-          sessionId: set.sessionId,
-          completedAt: set.completedAt,
-          weight: set.weight == null ? null : Number(set.weight),
-          reps: set.reps,
-        })),
-      ),
+      (resolvedSets ?? []).map((set) => ({
+        sessionId: set.sessionId,
+        completedAt: set.completedAt,
+        weight: set.weight == null ? null : Number(set.weight),
+        reps: set.reps,
+        rpe: set.rpe == null ? null : Number(set.rpe),
+        kind: set.kind,
+      })),
     [resolvedSets],
   );
+  const oneRepMaxPoints = useMemo(() => estimatedOneRepMaxSeries(oneRepMaxSets), [oneRepMaxSets]);
+  // The daily line stays as it was; the prediction (issue #713) sits beside it.
+  const predictedPoints = useMemo(() => predictedOneRepMaxSeries(oneRepMaxSets), [oneRepMaxSets]);
+  const today = useToday();
+  const prediction = useMemo(() => predictOneRepMax(oneRepMaxSets, today), [oneRepMaxSets, today]);
 
   const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
   const cardioBests = useMemo(() => computeCardioBests(resolvedSets ?? []), [resolvedSets]);
@@ -354,10 +362,12 @@ export function ExerciseDetail({
 
             {!isWarmup && !isCardio && oneRepMaxPoints.length > 0 && (
               <section>
-                <h2 className="text-sm font-semibold">Estimated 1RM over time</h2>
+                <h2 className="text-sm font-semibold">Estimated and predicted 1RM</h2>
                 <div className="mt-2">
                   <OneRepMaxChart
                     points={oneRepMaxPoints}
+                    predicted={predictedPoints}
+                    prediction={prediction}
                     units={settings.units}
                     // Opened over an active workout (onClose set), a tap stays put
                     // rather than navigating away mid-session (issue #468).

@@ -1,4 +1,9 @@
 import { deletedSessionExerciseIds } from "../history/deleted-sessions";
+import {
+  type PredictedOneRepMax,
+  type PredictionSet,
+  predictOneRepMax,
+} from "../history/predicted-one-rep-max";
 import { resolveCurrentRows } from "../sync/supersede";
 import {
   type DprHistoryEntry,
@@ -189,4 +194,31 @@ export function e1rmSeries(history: readonly DprHistoryEntry[], exerciseId: stri
   return [...byDate.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([t, e1rm]) => ({ date: new Date(t), e1rm }));
+}
+
+/**
+ * One exercise's predicted 1RM (issue #713) from PRP's history, so a lift
+ * card can show it next to "e1RM now". Every rep range feeds it, like the
+ * goal; sessions are keyed by date, as `e1rmSeries` keys them.
+ */
+export function predictedE1rm(
+  history: readonly DprHistoryEntry[],
+  exerciseId: string,
+  now: Date,
+): PredictedOneRepMax | null {
+  const sets: PredictionSet[] = [];
+  for (const entry of history) {
+    if (entry.exerciseId !== exerciseId) continue;
+    for (const set of entry.sets) {
+      sets.push({
+        sessionId: String(entry.date.getTime()),
+        completedAt: entry.date,
+        weight: set.weight,
+        reps: set.reps,
+        rpe: set.rpe,
+        kind: set.kind,
+      });
+    }
+  }
+  return predictOneRepMax(sets, now);
 }

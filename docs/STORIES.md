@@ -176,7 +176,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 
 - Calendar view of training history: browse by month, tap a day to see its sessions
 - Session detail: every exercise, every set, PRs achieved
-- Per-exercise history with an estimated-1RM-over-time chart
+- Per-exercise history with an estimated-1RM-over-time chart, plus a predicted 1RM from the lift's whole history beside the daily estimate (#713)
 - PR list across all movements
 - Weekly volume by muscle group
 
@@ -194,7 +194,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 - Streamable HTTP transport, OAuth 2.1 via the SDK's `authProvider`
 - Personal access tokens (Settings → Advanced → Connect Claude) for clients without OAuth, hashed at rest (#246)
 - User-scoped token under RLS — **no service-role key** (ADR-006)
-- Read tools: `list_workouts`, `get_workout` (both with the workout's gym, #454), `exercise_history` (both carry set times from the working set timer, #634), `get_prs`, `volume_report`, `weekly_summary` (#409), `search_exercises`, `list_routines`, `get_routine` (#370), `get_body_measurements` (#249), `list_warmup_templates`, `list_programs`, `list_scheduled_workouts`, `get_settings` (#435), `list_gyms` (#451, with map coordinates #462), `search_places` (#462)
+- Read tools: `list_workouts`, `get_workout` (both with the workout's gym, #454), `exercise_history` (both carry set times from the working set timer, #634) with its predicted 1RM (#713), `get_prs`, `volume_report`, `weekly_summary` (#409), `search_exercises`, `list_routines`, `get_routine` (#370), `get_body_measurements` (#249), `list_warmup_templates`, `list_programs`, `list_scheduled_workouts`, `get_settings` (#435), `list_gyms` (#451, with map coordinates #462), `search_places` (#462)
 - Write tools: `create_routine`, `update_routine`, `schedule_workout`, `log_past_workout` (optional gym, #454), `upsert_exercise` (machine details and gym, #450), `merge_exercises`, plus (#435) `create_warmup`, `delete_routine`, `create_program`, `update_program`, `delete_program`, `cancel_scheduled_workout`, `delete_workout`, `log_body_measurement`, `delete_body_measurement`, `update_settings` (Simple or Advanced mode, #464; per-feature Advanced switches, #640; the working set timer, #634; idle-workout auto-end, #648), plus (#451) `create_gym`, `update_gym` (both can pin the address to a real place, #462), `delete_gym`
 - Parity rule (#435): if a user can do it in the app, it likely belongs in the MCP
 - Every write tool accepts `dry_run` to preview without writing; `merge_exercises`, every delete tool and `cancel_scheduled_workout` preview by default (#245, #539)

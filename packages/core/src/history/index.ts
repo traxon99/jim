@@ -3,6 +3,7 @@ export * from "./month-grouping";
 export * from "./session-list";
 export * from "./session-display-name";
 export * from "./estimated-one-rep-max-series";
+export * from "./predicted-one-rep-max";
 export * from "./volume-by-muscle";
 export * from "./volume-targets";
 export * from "./training-calendar";
