@@ -679,6 +679,7 @@ export function SessionExerciseSection({
         type="text"
         inputMode="decimal"
         placeholder={suggestedWeightFor(index)}
+        aria-describedby={dprSuggestsWeight(index, draft) ? `${fieldId}-prp-target` : undefined}
         value={draft.weight}
         onChange={(event) =>
           updateDraft(index, { weight: normalizeDecimalInput(event.target.value) })
@@ -694,6 +695,7 @@ export function SessionExerciseSection({
         type="number"
         inputMode="numeric"
         placeholder={suggestedRepsFor(index)}
+        aria-describedby={dprSuggestsReps(index, draft) ? `${fieldId}-prp-target` : undefined}
         value={draft.reps}
         onChange={(event) => updateDraft(index, { reps: event.target.value })}
         className={inputClassFor(dprSuggestsReps(index, draft))}
@@ -933,7 +935,7 @@ export function SessionExerciseSection({
       {dpr && (
         <div className="flex flex-col gap-0.5">
           {dprTargetLine(dpr, settings.units, workingTarget) && (
-            <p className={`${sizes.meta} font-medium`}>
+            <p id={`${fieldId}-prp-target`} className={`${sizes.meta} font-medium`}>
               {dprTargetLine(dpr, settings.units, workingTarget)}
             </p>
           )}
