@@ -178,6 +178,11 @@ export interface DprBadge {
   className: string;
   /** Tailwind text color for the word mark on its own. */
   textClassName: string;
+  /**
+   * Tailwind border color for what PRP suggested (issue #712): the dashed
+   * outline on the exercise card and on the weight and reps boxes it prefills.
+   */
+  borderClassName: string;
 }
 
 const BADGES: Record<DprCall, DprBadge> = {
@@ -187,6 +192,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     label: "PRP: increase",
     className: "border-green-600 text-green-700 dark:border-green-500 dark:text-green-400",
     textClassName: "text-green-700 dark:text-green-400",
+    borderClassName: "border-green-600 dark:border-green-500",
   },
   hold: {
     word: "STAY",
@@ -194,6 +200,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     label: "PRP: hold",
     className: "border-zinc-400 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400",
     textClassName: "text-zinc-600 dark:text-zinc-400",
+    borderClassName: "border-zinc-500 dark:border-zinc-400",
   },
   deload: {
     word: "DOWN",
@@ -201,6 +208,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     label: "PRP: deload",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
     textClassName: "text-orange-700 dark:text-orange-400",
+    borderClassName: "border-orange-600 dark:border-orange-500",
   },
   reenter: {
     word: "EASE",
@@ -208,6 +216,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     label: "PRP: easing back in",
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
     textClassName: "text-orange-700 dark:text-orange-400",
+    borderClassName: "border-orange-600 dark:border-orange-500",
   },
   light: {
     word: "LIGHT",
@@ -215,6 +224,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     label: "PRP: light day",
     className: "border-sky-600 text-sky-700 dark:border-sky-500 dark:text-sky-400",
     textClassName: "text-sky-700 dark:text-sky-400",
+    borderClassName: "border-sky-600 dark:border-sky-500",
   },
   insufficient: {
     word: "RPE",
@@ -222,6 +232,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     label: "PRP: needs RPE",
     className: "border-zinc-400 text-zinc-500 dark:border-zinc-600 dark:text-zinc-500",
     textClassName: "text-zinc-500 dark:text-zinc-500",
+    borderClassName: "border-zinc-500 dark:border-zinc-400",
   },
 };
 
@@ -259,6 +270,31 @@ export function dprWhyLine(decision: DprDecision, units: string): string {
         ? "PRP: add RPE to your working sets so PRP can make a call"
         : "PRP: log this lift with RPE to get a call next time";
   }
+}
+
+/**
+ * The tip's first line (issue #712): what to lift today, in one shape for
+ * every call, e.g. "Target: 185 lb × 11 @ RPE 8". Given the lift's working
+ * set count, ramped sets (issue #385) add how they build up to it, e.g.
+ * "· sets build 165 → 175 → 185", so the prefilled weights read as part of
+ * the plan. Null when PRP has no weight to suggest.
+ */
+export function dprTargetLine(
+  info: DprCallInfo,
+  units: string,
+  workingSets?: number,
+): string | null {
+  const { decision } = info;
+  if (decision.weight === null) return null;
+  let text = `Target: ${formatWeight(decision.weight)} ${units}`;
+  if (decision.targetReps !== null) text += ` × ${decision.targetReps}`;
+  // A light day is already backed off; an RPE target would undo it.
+  if (decision.call !== "light" && decision.call !== "insufficient") {
+    text += ` @ RPE ${formatWeight(info.rpeCap)}`;
+  }
+  const steps = [...new Set(workingSetWeights(decision, workingSets ?? 0, info.increment))];
+  if (steps.length > 1) text += ` · sets build ${steps.map(formatWeight).join(" → ")}`;
+  return text;
 }
 
 /**

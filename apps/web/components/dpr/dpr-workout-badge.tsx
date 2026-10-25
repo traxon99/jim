@@ -9,6 +9,7 @@ import {
   dprCallCounts,
   dprCallSummary,
   dprGoalLine,
+  dprTargetLine,
   dprWhyLine,
 } from "@/lib/dpr/calls";
 import { exerciseDisplayName } from "@jim/core";
@@ -95,6 +96,11 @@ export function DprWorkoutBadge({
                           </span>
                         </span>
                       </span>
+                      {dprTargetLine(info, units) && (
+                        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          {dprTargetLine(info, units)}
+                        </span>
+                      )}
                       <span className="text-xs text-zinc-600 dark:text-zinc-400">
                         {dprWhyLine(info.decision, units)}
                       </span>

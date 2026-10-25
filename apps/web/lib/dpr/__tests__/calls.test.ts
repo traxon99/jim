@@ -22,6 +22,7 @@ import {
   dprCallsForRoutine,
   dprGoalLine,
   dprRepsPlaceholder,
+  dprTargetLine,
   dprVolumeLine,
   dprVolumeSets,
   dprWeightPlaceholder,
@@ -264,6 +265,44 @@ describe("in-session PRP (issue #212)", () => {
     expect(dprBadge("deload")).toMatchObject({ word: "DOWN", symbol: "↓" });
     expect(dprBadge("reenter")).toMatchObject({ word: "EASE", symbol: "↘" });
     expect(dprBadge("insufficient")).toMatchObject({ word: "RPE", symbol: "?" });
+  });
+
+  it("states today's target in one shape for every call (issue #712)", () => {
+    const info = (
+      call: DprCallInfo["decision"]["call"],
+      targetReps: number | null,
+    ): DprCallInfo => ({
+      exerciseId: BENCH,
+      decision: { call, weight: 185, previousWeight: 185, targetReps, reason: "", streak: 0 },
+      repRange: { low: 8, high: 12 },
+      increment: 5,
+      rpeCap: 8,
+    });
+    expect(dprTargetLine(info("hold", 11), "lb")).toBe("Target: 185 lb × 11 @ RPE 8");
+    // Ramped working sets say how they build up to the target.
+    expect(dprTargetLine(info("hold", 11), "lb", 4)).toBe(
+      "Target: 185 lb × 11 @ RPE 8 · sets build 165 → 175 → 185",
+    );
+    expect(dprTargetLine(info("increase", 8), "kg", 1)).toBe("Target: 185 kg × 8 @ RPE 8");
+    expect(dprTargetLine(info("light", 8), "lb", 3)).toBe("Target: 185 lb × 8");
+    expect(dprTargetLine(info("insufficient", null), "lb")).toBe("Target: 185 lb");
+    const noWeight = info("insufficient", null);
+    expect(
+      dprTargetLine({ ...noWeight, decision: { ...noWeight.decision, weight: null } }, "lb"),
+    ).toBeNull();
+  });
+
+  it("gives every call a border color for its dashed outline (issue #712)", () => {
+    for (const call of [
+      "increase",
+      "hold",
+      "deload",
+      "reenter",
+      "light",
+      "insufficient",
+    ] as const) {
+      expect(dprBadge(call).borderClassName).toMatch(/^border-\S+ dark:border-\S+$/);
+    }
   });
 
   it("explains a layoff", async () => {

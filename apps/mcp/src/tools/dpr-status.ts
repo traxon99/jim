@@ -112,7 +112,7 @@ export function dprStatusFromRows(input: DprStatusInput) {
         baselineE1rm: numberOrNull(lift.baselineE1rm),
         goalE1rm: numberOrNull(lift.goalE1rm),
       };
-      const { decision, repRange } = callForLift({
+      const { decision, repRange, rpeCap } = callForLift({
         snapshot,
         exerciseId: lift.exerciseId,
         equipment: exercise?.equipment,
@@ -137,6 +137,8 @@ export function dprStatusFromRows(input: DprStatusInput) {
           call: decision.call,
           weight: decision.weight,
           targetReps: decision.targetReps,
+          // The RPE to stay at or under, as the app's "Target: … @ RPE 8" (issue #712).
+          targetRpe: rpeCap,
           reason: decision.reason,
           repRange,
         },
