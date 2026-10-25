@@ -26,6 +26,7 @@ import {
 } from "@/lib/history/pr-groups";
 import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercise";
 import { exerciseCardHref } from "@/lib/navigation/exercise-card";
+import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -98,15 +99,16 @@ export function PrList() {
   const now = useMemo(() => new Date(), []);
   const stats = useMemo(() => personalRecordStats(entries, now), [entries, now]);
   // Next to each lift's e1RM PR, where its 1RM is likely now (issue #713).
+  const today = useToday();
   const predictions = useMemo(
     () =>
       predictedOneRepMaxByExercise(
         rawSessions ?? [],
         rawSessionExercises ?? [],
         rawSets ?? [],
-        now,
+        today,
       ),
-    [rawSessions, rawSessionExercises, rawSets, now],
+    [rawSessions, rawSessionExercises, rawSets, today],
   );
 
   const [query, setQuery] = useState("");

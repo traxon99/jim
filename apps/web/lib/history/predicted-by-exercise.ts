@@ -2,7 +2,7 @@ import {
   type PredictedOneRepMax,
   type PredictionSet,
   deletedSessionExerciseIds,
-  predictOneRepMax,
+  predictOneRepMaxNow,
   resolveCurrentRows,
 } from "@jim/core";
 
@@ -31,7 +31,7 @@ interface SetRowLike {
 }
 
 /**
- * Every exercise's predicted 1RM (issue #713) as of `now`, from the raw
+ * Every exercise's predicted 1RM (issue #713) now (`predictOneRepMaxNow`), from the raw
  * IndexedDB (or Postgres) rows: supersede chains resolved, deleted sets,
  * workouts and removed exercises left out, as the exercise page reads them.
  * Exercises with no weighted working set have no entry.
@@ -64,7 +64,7 @@ export function predictedOneRepMaxByExercise(
   }
   const result = new Map<string, PredictedOneRepMax>();
   for (const [exerciseId, exerciseSets] of setsByExercise) {
-    const prediction = predictOneRepMax(exerciseSets, now);
+    const prediction = predictOneRepMaxNow(exerciseSets, now);
     if (prediction) result.set(exerciseId, prediction);
   }
   return result;

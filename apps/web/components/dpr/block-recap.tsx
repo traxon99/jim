@@ -74,6 +74,14 @@ export function BlockRecap({
                 </span>
               )}
             </span>
+            {recap.predictedE1rm !== null && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                Predicted 1RM at block end:{" "}
+                <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                  {formatWeight(recap.predictedE1rm, units)}
+                </span>
+              </span>
+            )}
             {recap.bestSet && (
               <span className="text-xs text-zinc-500 dark:text-zinc-500">
                 Best set: {recap.bestSet.weight} × {recap.bestSet.reps}

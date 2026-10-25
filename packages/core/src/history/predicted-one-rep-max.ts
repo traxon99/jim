@@ -227,6 +227,20 @@ export function predictOneRepMax(
 }
 
 /**
+ * A lift's predicted 1RM right now. `today` is usually the moment a screen
+ * loaded (`useToday`), so a set logged since then is still counted: the
+ * prediction runs as of whichever is later, `today` or the newest set.
+ */
+export function predictOneRepMaxNow(
+  sets: readonly PredictionSet[],
+  today: Date,
+): PredictedOneRepMax | null {
+  let asOf = today.getTime();
+  for (const set of sets) asOf = Math.max(asOf, set.completedAt.getTime());
+  return predictOneRepMax(sets, new Date(asOf));
+}
+
+/**
  * The prediction as it stood after each session, oldest first, for drawing
  * next to the daily e1RM line. One point per session with a weighted
  * working set, keyed by session like `estimatedOneRepMaxSeries`.

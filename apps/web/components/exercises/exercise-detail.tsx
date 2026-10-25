@@ -23,7 +23,7 @@ import {
   isCardioExercise,
   isWarmupExercise,
   machineName,
-  predictOneRepMax,
+  predictOneRepMaxNow,
   predictedOneRepMaxSeries,
   resolveCurrentRows,
   warmupFrequency,
@@ -137,7 +137,10 @@ export function ExerciseDetail({
   // The daily line stays as it was; the prediction (issue #713) sits beside it.
   const predictedPoints = useMemo(() => predictedOneRepMaxSeries(oneRepMaxSets), [oneRepMaxSets]);
   const today = useToday();
-  const prediction = useMemo(() => predictOneRepMax(oneRepMaxSets, today), [oneRepMaxSets, today]);
+  const prediction = useMemo(
+    () => predictOneRepMaxNow(oneRepMaxSets, today),
+    [oneRepMaxSets, today],
+  );
 
   const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
   const cardioBests = useMemo(() => computeCardioBests(resolvedSets ?? []), [resolvedSets]);

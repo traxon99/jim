@@ -20,7 +20,7 @@ import {
   formatTimedSet,
   isRecentPersonalRecord,
   machineName,
-  predictOneRepMax,
+  predictOneRepMaxNow,
   predictedOneRepMaxSeries,
   warmupFrequency,
 } from "@jim/core";
@@ -107,7 +107,7 @@ export function PortalExerciseDetailView({
   );
   const oneRepMaxPoints = useMemo(() => estimatedOneRepMaxSeries(sets), [sets]);
   const predictedPoints = useMemo(() => predictedOneRepMaxSeries(sets), [sets]);
-  const prediction = useMemo(() => predictOneRepMax(sets, now), [sets, now]);
+  const prediction = useMemo(() => predictOneRepMaxNow(sets, now), [sets, now]);
   const frequency = useMemo(() => warmupFrequency(sets, now), [sets, now]);
   const cardioBests = useMemo(() => computeCardioBests(sets), [sets]);
   const workingSets = sets.filter((set) => set.kind !== "warmup").length;

@@ -3,7 +3,7 @@ import { type OneRepMaxPoint, estimatedOneRepMaxSeries } from "./estimated-one-r
 import {
   type PredictedOneRepMax,
   type PredictedOneRepMaxPoint,
-  predictOneRepMax,
+  predictOneRepMaxNow,
   predictedOneRepMaxSeries,
 } from "./predicted-one-rep-max";
 import { startOfWeek } from "./week-grouping";
@@ -168,7 +168,7 @@ export function strengthTrends(
         first.estimatedOneRepMax > 0 ? (change / first.estimatedOneRepMax) * 100 : null,
       allTimeBest: Math.max(...series.map((point) => point.estimatedOneRepMax)),
       sessions: points.length,
-      predicted: predictOneRepMax(exerciseSets, now),
+      predicted: predictOneRepMaxNow(exerciseSets, now),
       predictedPoints: predictedOneRepMaxSeries(exerciseSets).filter((point) =>
         inRange(point.date, since),
       ),

@@ -3,6 +3,7 @@ import { estimateOneRepMax } from "../../one-rep-max";
 import {
   type PredictionSet,
   predictOneRepMax,
+  predictOneRepMaxNow,
   predictedOneRepMaxSeries,
 } from "../predicted-one-rep-max";
 
@@ -107,6 +108,14 @@ describe("predictOneRepMax", () => {
   it("only reads sets at or before the prediction date", () => {
     const sets = [set(0, 200, 5), set(10, 300, 5)];
     expect(predictOneRepMax(sets, day(5))?.value).toBe(estimateOneRepMax(200, 5));
+  });
+});
+
+describe("predictOneRepMaxNow", () => {
+  it("counts a set logged after `today` was captured", () => {
+    const sets = [set(0, 200, 5), set(3, 240, 5)];
+    expect(predictOneRepMaxNow(sets, day(1))).toEqual(predictOneRepMax(sets, day(3)));
+    expect(predictOneRepMaxNow(sets, day(10))).toEqual(predictOneRepMax(sets, day(10)));
   });
 });
 
