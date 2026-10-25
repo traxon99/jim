@@ -19,6 +19,7 @@ import {
   type DprCallInfo,
   dprBadge,
   dprRepsPlaceholder,
+  dprTargetLine,
   dprVolumeLine,
   dprWeightPlaceholder,
   dprWhyLine,
@@ -166,7 +167,10 @@ function sizesFor(large: boolean) {
     // five-character weight ("315.5") still fits the ~70px column on an
     // iPhone 16.
     input:
-      "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+      "h-11 w-full min-w-0 rounded-md border bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50",
+    // Kept apart from `input` so a box PRP prefilled can swap in its call's
+    // dashed outline (issue #712) without two border colors fighting.
+    inputBorder: "border-zinc-300 dark:border-zinc-700",
     // Only the next set's ✓ is the filled, primary button (issue #319); the
     // sets after it get a quiet outline, so the eye lands on what's next
     // rather than on everything left to do.
@@ -408,6 +412,24 @@ export function SessionExerciseSection({
       dprWeightPlaceholder(dpr, draftFor(index).kind, { ordinal, count: workingTarget }) ??
       prefillWeightForSet(ordinal, previousFor(index), targetWeight)
     );
+  }
+  // PRP's own suggestion, not a custom rule's or last time's: the box gets
+  // the call's dashed outline until something is typed in it (issue #712).
+  function dprSuggestsWeight(index: number, draft: DraftValues): boolean {
+    if (draft.weight !== "" || kindAt(index) === "warmup") return false;
+    if (ruleWeightPlaceholder(rule, draft.kind) !== null) return false;
+    const ordinal = ordinals[index] ?? 0;
+    return dprWeightPlaceholder(dpr, draft.kind, { ordinal, count: workingTarget }) !== null;
+  }
+  function dprSuggestsReps(index: number, draft: DraftValues): boolean {
+    if (draft.reps !== "" || kindAt(index) === "warmup") return false;
+    if (ruleRepsPlaceholder(rule, draft.kind) !== null) return false;
+    return dprRepsPlaceholder(dpr, draft.kind) !== null;
+  }
+  function inputClassFor(dprSuggested: boolean): string {
+    return dpr && dprSuggested
+      ? `${sizes.input} border-dashed ${dprBadge(dpr.decision.call).borderClassName}`
+      : `${sizes.input} ${sizes.inputBorder}`;
   }
   function suggestedRepsFor(index: number): string {
     if (kindAt(index) === "warmup") {
@@ -661,7 +683,7 @@ export function SessionExerciseSection({
         onChange={(event) =>
           updateDraft(index, { weight: normalizeDecimalInput(event.target.value) })
         }
-        className={sizes.input}
+        className={inputClassFor(dprSuggestsWeight(index, draft))}
       />
     );
   }
@@ -674,7 +696,7 @@ export function SessionExerciseSection({
         placeholder={suggestedRepsFor(index)}
         value={draft.reps}
         onChange={(event) => updateDraft(index, { reps: event.target.value })}
-        className={sizes.input}
+        className={inputClassFor(dprSuggestsReps(index, draft))}
       />
     );
   }
@@ -692,7 +714,7 @@ export function SessionExerciseSection({
           // Soft-required on focused lifts: sessions without RPE don't count.
           dpr && draft.kind === "working"
             ? `${sizes.input} border-accent ring-1 ring-accent dark:border-accent`
-            : sizes.input
+            : `${sizes.input} ${sizes.inputBorder}`
         }
       />
     );
@@ -833,11 +855,16 @@ export function SessionExerciseSection({
   return (
     // `relative` is the containing block RpeInfoMenu centers its menu in (#412).
     <section
-      className={
+      className={`${
         large
-          ? "relative flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
-          : "relative flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-      }
+          ? "relative flex flex-col gap-4 rounded-xl border p-4"
+          : "relative flex flex-col gap-3 rounded-lg border p-3"
+      } ${
+        // A lift PRP is calling gets its call's dashed outline (issue #712).
+        dpr
+          ? `border-dashed ${dprBadge(dpr.decision.call).borderClassName}`
+          : "border-zinc-200 dark:border-zinc-800"
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <h2 className={`${sizes.title} flex min-w-0 items-center gap-2`}>
@@ -903,7 +930,16 @@ export function SessionExerciseSection({
         </p>
       )}
 
-      {dpr && <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>}
+      {dpr && (
+        <div className="flex flex-col gap-0.5">
+          {dprTargetLine(dpr, settings.units, workingTarget) && (
+            <p className={`${sizes.meta} font-medium`}>
+              {dprTargetLine(dpr, settings.units, workingTarget)}
+            </p>
+          )}
+          <p className={sizes.meta}>{dprWhyLine(dpr.decision, settings.units)}</p>
+        </div>
+      )}
       {rule && <p className={sizes.meta}>{ruleWhyLine(rule, settings.units)}</p>}
 
       {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (

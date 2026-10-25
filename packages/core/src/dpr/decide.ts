@@ -446,12 +446,13 @@ function decideCore(input: DecideInput, detectOutperformance: boolean): DprDecis
     streak = 0;
     targetReps = repRange.high;
   } else {
-    // Double progression: add a rep each session until every set hits the top.
+    // Double progression: add a rep each session until every set hits the
+    // top. Today's rep target is `targetReps`; the reason says what last time
+    // was and what moves the lift UP, at the weight it's judged at (issue #712).
     targetReps = clampReps(lastReps + 1);
-    reason =
-      targetReps < repRange.high
-        ? `${describe(latestEligible)} — aim for ${targetReps}, then ${repRange.high} on every set`
-        : `${describe(latestEligible)} — aim for ${repRange.high} on every set`;
+    const inARow =
+      preset.qualifyingSessions > 1 ? `, ${preset.qualifyingSessions} sessions in a row,` : "";
+    reason = `${describe(latestEligible)} last time. Get ${repRange.high} reps on every set at ${formatNumber(current)} (RPE ${formatNumber(preset.rpeCap)} or less)${inARow} to go UP`;
     streak = 0;
   }
   return {

@@ -191,6 +191,7 @@ describe("dpr_status", () => {
       call: call.decision.call,
       weight: call.decision.weight,
       targetReps: call.decision.targetReps,
+      targetRpe: call.rpeCap,
       reason: call.decision.reason,
       repRange: call.repRange,
     });
