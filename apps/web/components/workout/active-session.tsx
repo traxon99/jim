@@ -47,6 +47,7 @@ import {
   type PaceExercise,
   type SupersetChange,
   exerciseDisplayName,
+  exerciseInjuryGuidance,
   formSuperset,
   injuryAreaLabel,
   isCardioExercise,
@@ -58,6 +59,7 @@ import {
   isWorkoutComplete,
   nextSupersetGroup,
   normalizeSupersets,
+  parseInjuryRules,
   partitionWarmups,
   resolveCurrentRows,
   resolveFocusedExerciseIndex,
@@ -66,7 +68,6 @@ import {
   supersetLabels,
   todaysPain,
   uuidv7,
-  worstInjuryHit,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Bandage, Focus, LayoutList } from "lucide-react";
@@ -571,12 +572,17 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   function injuryFor(exercise: ExerciseRow | undefined): ExerciseInjury | null {
     if (!exercise || openInjuries.length === 0) return null;
-    const worst = worstInjuryHit(exercise, openInjuries, today);
-    if (!worst) return null;
+    const checkins = injuryData?.checkins ?? [];
+    const guidance = exerciseInjuryGuidance(exercise, openInjuries, today, (injury) =>
+      todaysPain(checkins, injury.id, today),
+    );
+    if (!guidance) return null;
     return {
-      label: injuryAreaLabel(worst.injury.area, worst.injury.side),
-      hit: worst.hit,
-      pain: todaysPain(injuryData?.checkins ?? [], worst.injury.id, today),
+      label: injuryAreaLabel(guidance.injury.area, guidance.injury.side),
+      hit: guidance.hit,
+      rule: guidance.rule,
+      units: settings.units,
+      pain: todaysPain(checkins, guidance.injury.id, today),
     };
   }
 
@@ -585,8 +591,14 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     ? exerciseById.get(sessionExercises.find((se) => se.id === replacingId)?.exerciseId ?? "")
     : undefined;
   const replacingInjuries = replacingExercise
-    ? openInjuries.filter((injury) => worstInjuryHit(replacingExercise, [injury], today))
+    ? openInjuries.filter((injury) => exerciseInjuryGuidance(replacingExercise, [injury], today))
     : [];
+  // Swaps an injury's rule says to avoid stay out of the list too (issue #724).
+  const avoidIds = openInjuries.flatMap((injury) =>
+    parseInjuryRules(injury.exerciseRules)
+      .filter((rule) => rule.effect === "avoid")
+      .map((rule) => rule.exerciseId),
+  );
 
   function renderExercise(item: (typeof sessionExercises)[number], large = false) {
     const exercise = exerciseById.get(item.exerciseId);
@@ -923,6 +935,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
               ? {
                   exercise: replacingExercise,
                   areas: replacingInjuries.map((injury) => injury.area),
+                  avoidIds,
                   label: `your ${replacingInjuries
                     .map((injury) => injuryAreaLabel(injury.area, injury.side).toLowerCase())
                     .join(" and ")}`,

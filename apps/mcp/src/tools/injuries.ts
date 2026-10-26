@@ -1,10 +1,13 @@
 import {
   INJURY_NOTE_MAX,
   INJURY_SIDES,
+  type InjuryRuleEffect,
   type InjurySide,
   PAIN_MAX,
   PAIN_MIN,
+  cleanInjuryRule,
   dayKey,
+  describeInjuryRule,
   injuryAreaLabel,
   isDayKey,
   isInjuryArea,
@@ -14,19 +17,25 @@ import {
   latestPainByDay,
   painLabel,
   painSuggestion,
+  parseInjuryRules,
+  ruleMaxWeight,
   shouldAskHealed,
   uuidv7,
+  withInjuryRule,
+  withoutInjuryRule,
 } from "@jim/core";
 import { type DbOrTx, injuries, painCheckins, users } from "@jim/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser, withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
+import { resolveExercise, visibleExercises } from "./resolve-exercise.js";
 
 /**
  * Injuries (issue #627, CONTEXT.md): the same report, pain check-in, heal
- * and delete the phone's Profile → Injuries offers. Days are the user's
- * local calendar days in their stored time zone (issue #511).
+ * and delete the phone's Profile → Injuries offers, plus exercise rules
+ * (issue #724) that say how one injury treats one exercise. Days are the
+ * user's local calendar days in their stored time zone (issue #511).
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,13 +43,22 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 type InjuryRow = typeof injuries.$inferSelect;
 type CheckinRow = typeof painCheckins.$inferSelect;
 
-async function userToday(tx: DbOrTx, userId: string): Promise<string> {
+interface UserDay {
+  today: string;
+  units: "kg" | "lb";
+}
+
+async function userDay(tx: DbOrTx, userId: string): Promise<UserDay> {
   const [user] = await tx
-    .select({ timeZone: users.timeZone })
+    .select({ timeZone: users.timeZone, units: users.units })
     .from(users)
     .where(eq(users.id, userId));
   const zone = user?.timeZone && isValidTimeZone(user.timeZone) ? user.timeZone : undefined;
-  return dayKey(new Date(), zone ?? "UTC");
+  return { today: dayKey(new Date(), zone ?? "UTC"), units: user?.units ?? "lb" };
+}
+
+async function exerciseNames(tx: DbOrTx): Promise<Map<string, string>> {
+  return new Map((await visibleExercises(tx)).map((row) => [row.id, row.name]));
 }
 
 function checkDay(day: string | undefined, today: string, what: string): string {
@@ -54,7 +72,26 @@ async function liveCheckins(tx: DbOrTx): Promise<CheckinRow[]> {
   return tx.select().from(painCheckins).where(isNull(painCheckins.deletedAt));
 }
 
-function describe(row: InjuryRow, checkins: readonly CheckinRow[], today: string) {
+function describeRules(row: InjuryRow, names: ReadonlyMap<string, string>, units: "kg" | "lb") {
+  return parseInjuryRules(row.exerciseRules).map((rule) => ({
+    exerciseId: rule.exerciseId,
+    exercise: names.get(rule.exerciseId) ?? null,
+    effect: rule.effect,
+    maxWeight: ruleMaxWeight(rule, units),
+    units: rule.maxWeight === null ? null : units,
+    repsLow: rule.repsLow,
+    repsHigh: rule.repsHigh,
+    note: rule.note,
+    summary: describeInjuryRule(rule, units),
+  }));
+}
+
+function describe(
+  row: InjuryRow,
+  checkins: readonly CheckinRow[],
+  { today, units }: UserDay,
+  names: ReadonlyMap<string, string>,
+) {
   const painByDay = latestPainByDay(checkins, row.id);
   const todaysPain = row.healedOn === null ? (painByDay.get(today) ?? null) : null;
   return {
@@ -71,6 +108,8 @@ function describe(row: InjuryRow, checkins: readonly CheckinRow[], today: string
     suggestion: painSuggestion(todaysPain),
     /** Three check-ins in a row at 0: worth asking the user if it's healed. */
     askHealed: row.healedOn === null && shouldAskHealed(checkins, row.id),
+    /** How this injury treats specific exercises, in place of the area-wide suggestion. */
+    exerciseRules: describeRules(row, names, units),
     painLog: [...painByDay.entries()].map(([day, painLevel]) => ({
       day,
       painLevel,
@@ -103,18 +142,21 @@ async function findInjury(tx: DbOrTx, ref: string): Promise<InjuryRow> {
 
 export async function listInjuries(context: UserContext, input: { includeHealed?: boolean }) {
   return withUser(context, async (tx) => {
-    const today = await userToday(tx, context.userId);
+    const day = await userDay(tx, context.userId);
     const rows = await tx.select().from(injuries).where(isNull(injuries.deletedAt));
     const checkins = await liveCheckins(tx);
+    const names = await exerciseNames(tx);
     const sorted = rows.sort((a, b) => b.startedOn.localeCompare(a.startedOn));
     const open = sorted.filter((row) => row.healedOn === null);
     const healed = sorted.filter((row) => row.healedOn !== null);
     return {
-      today,
+      today: day.today,
       painScale: `${PAIN_MIN} (no pain) to ${PAIN_MAX} (worst)`,
-      open: open.map((row) => describe(row, checkins, today)),
+      open: open.map((row) => describe(row, checkins, day, names)),
       healedCount: healed.length,
-      healed: input.includeHealed ? healed.map((row) => describe(row, checkins, today)) : undefined,
+      healed: input.includeHealed
+        ? healed.map((row) => describe(row, checkins, day, names))
+        : undefined,
     };
   });
 }
@@ -145,7 +187,8 @@ export async function reportInjury(context: UserContext, input: ReportInjuryInpu
     if (!isPainLevel(input.painLevel)) {
       throw new Error(`painLevel is a whole number from ${PAIN_MIN} to ${PAIN_MAX}.`);
     }
-    const today = await userToday(tx, context.userId);
+    const day = await userDay(tx, context.userId);
+    const today = day.today;
     const startedOn = checkDay(input.startedOn, today, "startedOn");
     const note = input.note?.trim() ? input.note.trim().slice(0, INJURY_NOTE_MAX) : null;
     const now = new Date();
@@ -173,7 +216,7 @@ export async function reportInjury(context: UserContext, input: ReportInjuryInpu
     });
     const [row] = await tx.select().from(injuries).where(eq(injuries.id, id));
     if (!row) throw new Error("The injury wasn't saved.");
-    return describe(row, await liveCheckins(tx), today);
+    return describe(row, await liveCheckins(tx), day, new Map());
   });
 }
 
@@ -189,7 +232,8 @@ export async function logPain(
     if (injury.healedOn !== null) {
       throw new Error("That injury is healed. A new flare-up is a new injury: use report_injury.");
     }
-    const today = await userToday(tx, context.userId);
+    const userDayInfo = await userDay(tx, context.userId);
+    const today = userDayInfo.today;
     const day = checkDay(input.day, today, "day");
     if (day < injury.startedOn) throw new Error("That day is before the injury started.");
     const now = new Date();
@@ -226,7 +270,7 @@ export async function logPain(
       });
     }
     return {
-      ...describe(injury, await liveCheckins(tx), today),
+      ...describe(injury, await liveCheckins(tx), userDayInfo, await exerciseNames(tx)),
       replacedSameDay: Boolean(sameDay),
     };
   });
@@ -239,8 +283,8 @@ export async function healInjury(
   return withUserWrite(context, input.dryRun ?? false, async (tx) => {
     const injury = await findInjury(tx, input.injury);
     if (injury.healedOn !== null) throw new Error("That injury is already healed.");
-    const today = await userToday(tx, context.userId);
-    const healedOn = checkDay(input.day, today, "day");
+    const day = await userDay(tx, context.userId);
+    const healedOn = checkDay(input.day, day.today, "day");
     if (healedOn < injury.startedOn) throw new Error("An injury can't heal before it started.");
     await tx
       .update(injuries)
@@ -251,7 +295,7 @@ export async function healInjury(
         serverSeq: sql`nextval('sync_seq')`,
       })
       .where(eq(injuries.id, injury.id));
-    return describe({ ...injury, healedOn }, await liveCheckins(tx), today);
+    return describe({ ...injury, healedOn }, await liveCheckins(tx), day, await exerciseNames(tx));
   });
 }
 
@@ -277,6 +321,112 @@ export async function deleteInjury(
       label: injuryAreaLabel(injury.area, injury.side),
       deleted: true,
       checkinsDeleted: removed.length,
+    };
+  });
+}
+
+export interface SetInjuryExerciseRuleInput {
+  injury: string;
+  exercise: string;
+  effect: InjuryRuleEffect;
+  /** In the user's units. */
+  maxWeight?: number | null;
+  repsLow?: number | null;
+  repsHigh?: number | null;
+  note?: string | null;
+  dryRun?: boolean;
+}
+
+async function saveRules(tx: DbOrTx, injury: InjuryRow, rules: InjuryRow["exerciseRules"]) {
+  await tx
+    .update(injuries)
+    .set({
+      exerciseRules: rules,
+      updatedAt: new Date(),
+      deviceId: MCP_DEVICE_ID,
+      serverSeq: sql`nextval('sync_seq')`,
+    })
+    .where(eq(injuries.id, injury.id));
+}
+
+/**
+ * Sets how an injury treats one exercise (issue #724), replacing any rule it
+ * had for that exercise. The rule applies while the injury is open, even to
+ * an exercise that doesn't work the injured area.
+ */
+export async function setInjuryExerciseRule(
+  context: UserContext,
+  input: SetInjuryExerciseRuleInput,
+) {
+  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
+    const injury = await findInjury(tx, input.injury);
+    if (injury.healedOn !== null) {
+      throw new Error("That injury is healed, so its rules no longer apply.");
+    }
+    const exercise = await resolveExercise(tx, context.userId, input.exercise);
+    const takesWeight =
+      exercise.trackingType === "weight_reps" || exercise.trackingType === "weighted_bodyweight";
+    if (input.maxWeight != null && !takesWeight) {
+      throw new Error(`${exercise.name} isn't logged with a weight, so it can't take maxWeight.`);
+    }
+    const takesReps = takesWeight || exercise.trackingType === "bodyweight";
+    if ((input.repsLow != null || input.repsHigh != null) && !takesReps) {
+      throw new Error(`${exercise.name} isn't logged in reps, so it can't take a rep range.`);
+    }
+    const day = await userDay(tx, context.userId);
+    const cleaned = cleanInjuryRule({
+      exerciseId: exercise.id,
+      effect: input.effect,
+      maxWeight: input.maxWeight ?? null,
+      units: day.units,
+      repsLow: input.repsLow ?? null,
+      repsHigh: input.repsHigh ?? null,
+      note: input.note ?? null,
+    });
+    if (!cleaned.ok) throw new Error(`${cleaned.error}.`);
+    const before = parseInjuryRules(injury.exerciseRules);
+    const rules = withInjuryRule(before, cleaned.rule);
+    await saveRules(tx, injury, rules);
+    const names = new Map([[exercise.id, exercise.name]]);
+    return {
+      injury: injuryAreaLabel(injury.area, injury.side),
+      replaced: before.some((rule) => rule.exerciseId === exercise.id),
+      rule: describeRules({ ...injury, exerciseRules: [cleaned.rule] }, names, day.units)[0],
+      ruleCount: rules.length,
+    };
+  });
+}
+
+/** Drops an injury's rule for one exercise, so the area-wide treatment applies again. */
+export async function clearInjuryExerciseRule(
+  context: UserContext,
+  input: { injury: string; exercise: string; dryRun?: boolean },
+) {
+  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
+    const injury = await findInjury(tx, input.injury);
+    const before = parseInjuryRules(injury.exerciseRules);
+    const names = await exerciseNames(tx);
+    // Match a rule by the exercise it names, even one no longer resolvable by name.
+    const trimmed = input.exercise.trim();
+    let exerciseId = before.find(
+      (rule) =>
+        rule.exerciseId === trimmed ||
+        names.get(rule.exerciseId)?.toLowerCase() === trimmed.toLowerCase(),
+    )?.exerciseId;
+    exerciseId ??= (await resolveExercise(tx, context.userId, trimmed)).id;
+    if (!before.some((rule) => rule.exerciseId === exerciseId)) {
+      throw new Error(
+        `${injuryAreaLabel(injury.area, injury.side)} has no rule for "${input.exercise}".`,
+      );
+    }
+    const rules = withoutInjuryRule(before, exerciseId);
+    await saveRules(tx, injury, rules);
+    return {
+      injury: injuryAreaLabel(injury.area, injury.side),
+      exerciseId,
+      exercise: names.get(exerciseId) ?? null,
+      cleared: true,
+      ruleCount: rules.length,
     };
   });
 }

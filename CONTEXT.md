@@ -36,5 +36,12 @@ _Avoid_: Resolved, recovered, closed
 
 **Affected exercise**:
 An exercise whose primary or secondary muscles include the injury area's muscles while the injury
-is open.
+is open, or one the injury has an exercise rule for.
 _Avoid_: Injured exercise, blocked exercise
+
+**Exercise rule**:
+How one injury treats one exercise, in place of the area-wide treatment: fine (no hint, PRP as
+normal), limit (a weight cap and/or rep range), light (PRP's light day) or avoid (skip or swap),
+plus an optional note. It applies while the injury is open, even to an exercise that doesn't work
+the area's muscles. Set from the MCP or, with the Advanced switch on, Profile → Injuries.
+_Avoid_: Injury override, exercise restriction

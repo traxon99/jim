@@ -24,6 +24,7 @@ function toSettings(row: UserRow) {
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
+    showInjuryRules: row.showInjuryRules,
     autoEndWorkoutMinutes: row.autoEndWorkoutMinutes,
     pushRestTimer: row.pushRestTimer,
     pushWorkoutReminders: row.pushWorkoutReminders,

@@ -29,6 +29,8 @@ interface Props {
    * a tap picks it straight away, with no selection or superset.
    */
   mode?: "add" | "replace";
+  /** The header, when neither "Add exercise" nor "Replace exercise" fits. */
+  title?: string;
   /**
    * Shown at the top of the list, before any search, in an ad hoc workout's
    * Add exercise menu (issue #226). Only strength exercises are suggested.
@@ -39,7 +41,13 @@ interface Props {
    * swaps that work its other muscles and spare these areas, until the user
    * asks to see everything. `label` names them, e.g. "your left knee".
    */
-  spare?: { exercise: ExerciseMuscles; areas: readonly string[]; label: string } | null;
+  spare?: {
+    exercise: ExerciseMuscles;
+    areas: readonly string[];
+    label: string;
+    /** Exercises an open injury's rule says to avoid (issue #724). */
+    avoidIds?: readonly string[];
+  } | null;
 }
 
 const SECTION_LABEL = `pt-4 pb-1 ${CATALOG_SECTION_LABEL}`;
@@ -51,6 +59,7 @@ export function ExercisePicker({
   onClose,
   initialCategory = "all",
   mode = "add",
+  title,
   suggestedExerciseIds = [],
   spare = null,
 }: Props) {
@@ -60,12 +69,17 @@ export function ExercisePicker({
   // doesn't re-filter the whole catalog.
   const spareExercise = spare?.exercise ?? null;
   const spareAreas = spare?.areas.join("|") ?? "";
+  const spareAvoid = spare?.avoidIds?.join("|") ?? "";
   const include = useMemo(
     () =>
       spareExercise && spareAreas && !showAll
-        ? sparingSwapFilter(spareExercise, spareAreas.split("|"))
+        ? sparingSwapFilter(
+            spareExercise,
+            spareAreas.split("|"),
+            spareAvoid ? spareAvoid.split("|") : [],
+          )
         : null,
-    [spareExercise, spareAreas, showAll],
+    [spareExercise, spareAreas, spareAvoid, showAll],
   );
   const gymNames = useGymNames();
 
@@ -216,7 +230,9 @@ export function ExercisePicker({
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="flex touch-none items-center justify-between gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
-        <h2 className="text-lg font-semibold">{replacing ? "Replace exercise" : "Add exercise"}</h2>
+        <h2 className="text-lg font-semibold">
+          {title ?? (replacing ? "Replace exercise" : "Add exercise")}
+        </h2>
         <button
           type="button"
           onClick={onClose}

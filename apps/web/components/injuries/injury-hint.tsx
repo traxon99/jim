@@ -2,8 +2,11 @@
 
 import {
   INJURY_SUGGESTION_LABELS,
+  type InjuryExerciseRule,
   type InjuryHit,
   type InjurySuggestion,
+  type WeightUnits,
+  describeInjuryRule,
   painSuggestion,
 } from "@jim/core";
 import { Bandage, X } from "lucide-react";
@@ -13,7 +16,11 @@ import { useState } from "react";
 export interface ExerciseInjury {
   /** e.g. "Left knee". */
   label: string;
-  hit: InjuryHit;
+  /** Null when only the injury's exercise rule ties it to this exercise. */
+  hit: InjuryHit | null;
+  /** The injury's rule for this exercise (issue #724), which replaces the pain-band suggestion. */
+  rule?: InjuryExerciseRule | null;
+  units?: WeightUnits;
   /** Today's pain for that injury, null without a check-in. */
   pain: number | null;
 }
@@ -42,7 +49,9 @@ function writeDismissed(sessionId: string, ids: readonly string[]): void {
 
 /** The small injury icon on an affected exercise's title. */
 export function InjuryIcon({ injury }: { injury: ExerciseInjury }) {
-  const text = `Works your ${injury.label.toLowerCase()}`;
+  const text = injury.hit
+    ? `Works your ${injury.label.toLowerCase()}`
+    : `Has a rule for your ${injury.label.toLowerCase()}`;
   return (
     <span
       role="img"
@@ -57,8 +66,10 @@ export function InjuryIcon({ injury }: { injury: ExerciseInjury }) {
 
 /**
  * What Jim suggests for an affected exercise at today's pain (issue #627):
- * go light at 1–3, swap at 4–6, skip at 7+. It only suggests; the workout
- * stays as it is. Each hint can be dismissed for this workout.
+ * go light at 1–3, swap at 4–6, skip at 7+. An exercise rule the user set
+ * for it (issue #724) says what to do instead, whatever the pain. It only
+ * suggests; the workout stays as it is. Each hint can be dismissed for this
+ * workout.
  */
 export function InjuryHint({
   injury,
@@ -75,8 +86,16 @@ export function InjuryHint({
   className?: string;
 }) {
   const [dismissed, setDismissed] = useState(() => readDismissed(sessionId).includes(exerciseId));
-  const suggestion: InjurySuggestion | null = painSuggestion(injury.pain);
-  if (dismissed || !suggestion) return null;
+  const rule = injury.rule ?? null;
+  const suggestion: InjurySuggestion | null = rule
+    ? rule.effect === "avoid"
+      ? "swap"
+      : null
+    : painSuggestion(injury.pain);
+  if (dismissed || (!suggestion && !rule)) return null;
+  const message = rule
+    ? `${injury.label}: ${describeInjuryRule(rule, injury.units ?? "lb").toLowerCase()}`
+    : `${injury.label}, pain ${injury.pain}: ${INJURY_SUGGESTION_LABELS[suggestion ?? "light"].toLowerCase()}`;
 
   function dismiss() {
     writeDismissed(sessionId, [...readDismissed(sessionId), exerciseId]);
@@ -89,9 +108,8 @@ export function InjuryHint({
     >
       <Bandage className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="min-w-0">
-          {injury.label}, pain {injury.pain}: {INJURY_SUGGESTION_LABELS[suggestion].toLowerCase()}
-        </p>
+        <p className="min-w-0">{message}</p>
+        {rule?.note && <p className="allow-pwa-select min-w-0 whitespace-pre-wrap">{rule.note}</p>}
         {suggestion === "swap" && onSwap && (
           <button
             type="button"

@@ -1,4 +1,5 @@
 import {
+  type InjuryExerciseRule,
   MUSCLES,
   POST_KINDS,
   PULLEY_TYPES,
@@ -218,6 +219,9 @@ export const users = pgTable(
     // Working set timer (issue #634): a Start set / End set timer that times
     // each set. Unlike the switches above it's off until turned on.
     showSetTimer: boolean("show_set_timer").notNull().default(false),
+    // Exercise rules on Profile → Injuries (issue #724). Rules already set
+    // still apply with it off; it only hides the editor.
+    showInjuryRules: boolean("show_injury_rules").notNull().default(true),
     // Ends a workout left open with no activity for this many minutes
     // (issue #648); null turns auto-end off. The phone ends it; the server
     // only pushes the "Workout ended" alert (workout_idle_pushes below).
@@ -826,6 +830,8 @@ export const gyms = pgTable(
 // @jim/core's INJURY_AREAS (a muscle or a joint); `side` is left, right or
 // both for paired areas and null otherwise. Days are the user's local
 // calendar days. Private: never read by social, the feed or share links.
+// `exerciseRules` (issue #724) holds @jim/core InjuryExerciseRule entries,
+// one per exercise; read it with `parseInjuryRules`.
 // ---------------------------------------------------------------------------
 
 export const injuries = pgTable(
@@ -840,6 +846,7 @@ export const injuries = pgTable(
     startedOn: date("started_on").notNull(),
     healedOn: date("healed_on"),
     note: text("note"),
+    exerciseRules: jsonb("exercise_rules").$type<InjuryExerciseRule[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),

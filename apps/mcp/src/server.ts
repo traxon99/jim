@@ -1,4 +1,7 @@
 import {
+  INJURY_RULE_EFFECTS,
+  INJURY_RULE_NOTE_MAX,
+  INJURY_RULE_REPS_MAX,
   MAX_AUTO_END_MINUTES,
   MEASUREMENT_KINDS,
   MIN_AUTO_END_MINUTES,
@@ -41,7 +44,15 @@ import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
 import { createGym, deleteGym, findPlaces, listGyms, updateGym } from "./tools/gyms.js";
-import { deleteInjury, healInjury, listInjuries, logPain, reportInjury } from "./tools/injuries.js";
+import {
+  clearInjuryExerciseRule,
+  deleteInjury,
+  healInjury,
+  listInjuries,
+  logPain,
+  reportInjury,
+  setInjuryExerciseRule,
+} from "./tools/injuries.js";
 import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
@@ -820,7 +831,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "List injuries",
       description:
-        "Read-only. The user's open injuries with today's pain, what the app suggests for exercises that work the area (light at pain 1–3, swap at 4–6, skip at 7+), whether to ask if it's healed, and the daily pain log. Days without a check-in have no pain level. Pass includeHealed for past injuries too. Exercises whose primary or secondary muscles include the area are affected; knee means quadriceps, hamstrings and calves, elbow biceps, triceps and forearms, wrist forearms, hip glutes, adductors and abductors, ankle calves. While an injury hits a lift's primary muscle, PRP treats it as a light day, then eases it back in on its first session after healing.",
+        "Read-only. The user's open injuries with today's pain, what the app suggests for exercises that work the area (light at pain 1–3, swap at 4–6, skip at 7+), whether to ask if it's healed, and the daily pain log. Days without a check-in have no pain level. Pass includeHealed for past injuries too. Exercises whose primary or secondary muscles include the area are affected; knee means quadriceps, hamstrings and calves, elbow biceps, triceps and forearms, wrist forearms, hip glutes, adductors and abductors, ankle calves. While an injury hits a lift's primary muscle, PRP treats it as a light day, then eases it back in on its first session after healing. Each injury's exerciseRules (set_injury_exercise_rule) override that for specific exercises.",
       inputSchema: {
         includeHealed: z.boolean().optional().describe("Also list healed injuries"),
       },
@@ -881,6 +892,60 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => healInjury(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "set_injury_exercise_rule",
+    {
+      title: "Set injury exercise rule",
+      description: `Say how an open injury treats one exercise, instead of the area-wide treatment (pain-band suggestion, and PRP's light day on a primary hit). Applies while the injury is open, even to an exercise that doesn't work the area's muscles (e.g. bench bothering a wrist). effect: fine = this exercise doesn't bother it (no hint, PRP as normal); limit = train it within maxWeight and/or a rep range (PRP holds the weight at the cap and aims inside the range; a session under the rule still doesn't count toward progression); light = go light (PRP light day), optionally within a cap or range; avoid = skip or swap it (PRP light day if done anyway, and Replace leaves it out). note is shown on the exercise during workouts, e.g. "pause at the bottom". Setting a rule for an exercise that already has one replaces it. Use when the user describes what a specific exercise does to an injury.${PREVIEW_HINT}`,
+      inputSchema: {
+        injury: injuryRef,
+        exercise: z.string().describe("Exercise name or id"),
+        effect: z.enum(INJURY_RULE_EFFECTS),
+        maxWeight: z
+          .number()
+          .positive()
+          .optional()
+          .describe("Heaviest weight to use, in the user's units; limit and light only"),
+        repsLow: z
+          .number()
+          .int()
+          .min(1)
+          .max(INJURY_RULE_REPS_MAX)
+          .optional()
+          .describe("Bottom of the rep range"),
+        repsHigh: z
+          .number()
+          .int()
+          .min(1)
+          .max(INJURY_RULE_REPS_MAX)
+          .optional()
+          .describe("Top of the rep range"),
+        note: z.string().max(INJURY_RULE_NOTE_MAX).optional().describe("Shown on the exercise"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) =>
+      setInjuryExerciseRule(context, { ...input, dryRun: dry_run }),
+    ),
+  );
+
+  server.registerTool(
+    "clear_injury_exercise_rule",
+    {
+      title: "Clear injury exercise rule",
+      description:
+        "Remove an injury's rule for one exercise, so the area-wide treatment applies to it again. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        injury: injuryRef,
+        exercise: z.string().describe("Exercise name or id"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) =>
+      clearInjuryExerciseRule(context, { ...input, dryRun: dry_run }),
+    ),
   );
 
   server.registerTool(
@@ -948,6 +1013,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional()
           .describe(
             "Working set timer (off by default): Start set / End set during a workout times each set, shown in summaries and history",
+          ),
+        showInjuryRules: z
+          .boolean()
+          .optional()
+          .describe(
+            "Exercise rules editor on Profile → Injuries; rules already set (set_injury_exercise_rule) apply either way",
           ),
         autoEndWorkoutMinutes: z
           .number()

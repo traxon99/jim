@@ -3,7 +3,15 @@ import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { UserContext } from "../../context.js";
 import { USER_A, USER_B, resetTestDb, testContext } from "../../test/test-db.js";
-import { deleteInjury, healInjury, listInjuries, logPain, reportInjury } from "../injuries.js";
+import {
+  clearInjuryExerciseRule,
+  deleteInjury,
+  healInjury,
+  listInjuries,
+  logPain,
+  reportInjury,
+  setInjuryExerciseRule,
+} from "../injuries.js";
 
 describe.skipIf(!process.env.TEST_DATABASE_URL)("injury tools (#627)", () => {
   let admin: postgres.Sql;
@@ -73,5 +81,86 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("injury tools (#627)", () => {
     const deleted = await deleteInjury(context, { injury: id });
     expect(deleted).toMatchObject({ deleted: true, checkinsDeleted: 1 });
     expect((await listInjuries(context, { includeHealed: true })).healed).toEqual([]);
+  });
+
+  it("sets, replaces and clears exercise rules (#724)", async () => {
+    await admin`
+      INSERT INTO exercises (slug, name, tracking_type, primary_muscles)
+      VALUES ('bench-press', 'Bench Press', 'weight_reps', '{chest}')
+    `;
+    await admin`UPDATE users SET units = 'kg' WHERE id = ${USER_A}`;
+    await reportInjury(context, { area: "wrist", side: "right", painLevel: 3 });
+
+    const preview = await setInjuryExerciseRule(context, {
+      injury: "right wrist",
+      exercise: "bench press",
+      effect: "limit",
+      maxWeight: 60,
+      repsLow: 10,
+      repsHigh: 12,
+      note: "pause on the chest",
+      dryRun: true,
+    });
+    expect(preview).toMatchObject({ replaced: false, dryRun: true });
+    expect((await listInjuries(context, {})).open[0]?.exerciseRules).toEqual([]);
+
+    const set = await setInjuryExerciseRule(context, {
+      injury: "right wrist",
+      exercise: "bench press",
+      effect: "limit",
+      maxWeight: 60,
+      repsLow: 10,
+      repsHigh: 12,
+      note: "pause on the chest",
+    });
+    expect(set).toMatchObject({
+      injury: "Right wrist",
+      replaced: false,
+      rule: {
+        exercise: "Bench Press",
+        effect: "limit",
+        maxWeight: 60,
+        units: "kg",
+        summary: "Up to 60 kg · 10–12 reps",
+        note: "pause on the chest",
+      },
+      ruleCount: 1,
+    });
+    // Stored in the units it was written in, so a later switch converts it.
+    const [stored] =
+      await admin`SELECT exercise_rules FROM injuries WHERE deleted_at IS NULL AND healed_on IS NULL`;
+    expect(stored?.exercise_rules).toMatchObject([{ maxWeight: 60, units: "kg" }]);
+
+    const replaced = await setInjuryExerciseRule(context, {
+      injury: "right wrist",
+      exercise: "bench press",
+      effect: "avoid",
+      maxWeight: 60,
+    });
+    expect(replaced).toMatchObject({
+      replaced: true,
+      rule: { effect: "avoid", maxWeight: null, summary: "Avoid it" },
+    });
+    await expect(
+      setInjuryExerciseRule(context, {
+        injury: "right wrist",
+        exercise: "bench press",
+        effect: "limit",
+      }),
+    ).rejects.toThrow("Give a max weight, a rep range or a note");
+
+    const listed = await listInjuries(context, {});
+    expect(listed.open[0]?.exerciseRules).toMatchObject([
+      { exercise: "Bench Press", effect: "avoid" },
+    ]);
+
+    const cleared = await clearInjuryExerciseRule(context, {
+      injury: "right wrist",
+      exercise: "Bench Press",
+    });
+    expect(cleared).toMatchObject({ cleared: true, ruleCount: 0 });
+    await expect(
+      clearInjuryExerciseRule(context, { injury: "right wrist", exercise: "bench press" }),
+    ).rejects.toThrow("has no rule");
   });
 });

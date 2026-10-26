@@ -19,6 +19,7 @@ import {
   type SessionIntensity,
   callForLift,
   dayKey,
+  injuryLimit,
   injuryPrpEffect,
   liftProgress,
   markInjuredHistory,
@@ -170,6 +171,12 @@ export function dprCallFor(
       history: ctx.snapshot.history,
       today: dayKey(ctx.now),
       dayKeyOf: (date) => dayKey(date),
+    }),
+    injuryLimit: injuryLimit({
+      exerciseId,
+      injuries: ctx.injuries,
+      today: dayKey(ctx.now),
+      units: ctx.settings.units,
     }),
     now: ctx.now,
   });

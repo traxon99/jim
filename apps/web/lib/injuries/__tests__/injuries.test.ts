@@ -5,7 +5,9 @@ import {
   injuryHistoryByArea,
   logPain,
   markHealed,
+  removeExerciseRule,
   reportInjury,
+  setExerciseRule,
   sortOpenInjuries,
 } from "..";
 import { type JimDatabase, createTestDb } from "../../db/schema";
@@ -167,5 +169,52 @@ describe("healing and history", () => {
     expect((await testDb.injuries.get(injury.id))?.deletedAt).toBeInstanceOf(Date);
     const checkins = await testDb.painCheckins.toArray();
     expect(checkins.every((row) => row.deletedAt instanceof Date)).toBe(true);
+  });
+});
+
+describe("exercise rules", () => {
+  it("sets, replaces and removes a rule through the outbox", async () => {
+    const injury = await reportInjury(
+      {
+        userId: USER_ID,
+        area: "wrist",
+        side: "right",
+        startedOn: "2026-10-20",
+        painLevel: 3,
+        today: "2026-10-21",
+      },
+      testDb,
+    );
+    expect(injury.exerciseRules).toEqual([]);
+    const limited = await setExerciseRule(
+      injury,
+      { exerciseId: "bench", effect: "limit", maxWeight: 60, units: "kg", note: " slow " },
+      testDb,
+    );
+    expect(limited.exerciseRules).toEqual([
+      {
+        exerciseId: "bench",
+        effect: "limit",
+        maxWeight: 60,
+        units: "kg",
+        repsLow: null,
+        repsHigh: null,
+        note: "slow",
+      },
+    ]);
+    const avoided = await setExerciseRule(
+      limited,
+      { exerciseId: "bench", effect: "avoid" },
+      testDb,
+    );
+    expect(avoided.exerciseRules).toMatchObject([{ exerciseId: "bench", effect: "avoid" }]);
+    await expect(
+      setExerciseRule(avoided, { exerciseId: "bench", effect: "limit" }, testDb),
+    ).rejects.toThrow("Give a max weight, a rep range or a note");
+    const cleared = await removeExerciseRule(avoided, "bench", testDb);
+    expect(cleared.exerciseRules).toEqual([]);
+    expect((await testDb.injuries.get(injury.id))?.exerciseRules).toEqual([]);
+    const outbox = await testDb.outbox.toArray();
+    expect(outbox.filter((entry) => entry.table === "injuries")).toHaveLength(4);
   });
 });

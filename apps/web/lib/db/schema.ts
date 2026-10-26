@@ -124,6 +124,7 @@ export type SettingsRow = Pick<
   | "showSetTypes"
   | "showRestStats"
   | "showSetTimer"
+  | "showInjuryRules"
   | "autoEndWorkoutMinutes"
   | "pushRestTimer"
   | "pushWorkoutReminders"

@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   showSetTypes: true,
   showRestStats: true,
   showSetTimer: false,
+  showInjuryRules: true,
   autoEndWorkoutMinutes: DEFAULT_AUTO_END_MINUTES,
   pushRestTimer: true,
   pushWorkoutReminders: true,
