@@ -169,23 +169,52 @@ body {
   background: linear-gradient(to bottom, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.45));
 }
 
-/* The bottom tab bar (components/bottom-tab-bar.tsx), Liquid Glass style:
-   it floats over the shell's scroller, so content blurs through it. A dark
-   fade deepens toward the screen edge, echoing the status-bar scrim, but
-   unlike the header it keeps a hard hairline on top, with a faint sheen
-   just under it. */
+/* The bottom tab bar (components/bottom-tab-bar.tsx), Liquid Glass style: a
+   pill floating over the shell's scroller, so content blurs through it. The
+   fill is a faint diagonal wash; a transparent border shows a second,
+   border-box gradient through it, so the rim catches light at the top-left
+   and bottom-right like the edge of a lens. backdrop-filter (not `filter`)
+   is clipped to the radius on iOS, unlike the blurred layers in #374. */
 .tab-bar-glass {
-  border-top: 1px solid rgb(0 0 0 / 0.1);
-  background: linear-gradient(to bottom, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.85));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.55)) padding-box,
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.95),
+      rgb(0 0 0 / 0.08) 45%,
+      rgb(0 0 0 / 0.08) 55%,
+      rgb(255 255 255 / 0.8)
+    )
+    border-box;
+  box-shadow: 0 10px 30px -6px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.06), inset 0 1px 0
+    rgb(255 255 255 / 0.6);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 
 :root.dark .tab-bar-glass {
-  border-top-color: rgb(255 255 255 / 0.12);
-  background: linear-gradient(to bottom, rgb(0 0 0 / 0.45), rgb(0 0 0 / 0.75));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.03)),
+    linear-gradient(rgb(24 24 27 / 0.55), rgb(24 24 27 / 0.55)) padding-box,
+    linear-gradient(
+      135deg,
+      rgb(255 255 255 / 0.35),
+      rgb(255 255 255 / 0.06) 45%,
+      rgb(255 255 255 / 0.06) 55%,
+      rgb(255 255 255 / 0.25)
+    )
+    border-box;
+  background-clip: padding-box, padding-box, border-box;
+  box-shadow: 0 12px 32px -6px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.3), inset 0 1px 0
+    rgb(255 255 255 / 0.08);
+}
+
+/* The current tab sits in a soft lens of its own inside the pill. */
+.tab-bar-glass-active {
+  background: rgb(0 0 0 / 0.06);
+}
+
+:root.dark .tab-bar-glass-active {
+  background: rgb(255 255 255 / 0.1);
 }
 
 /* Frosted glass cards (Settings > Card style, components/profile/card-style-section.tsx,

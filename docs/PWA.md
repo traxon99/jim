@@ -192,9 +192,11 @@ appear on, including during an active workout while the rest timer is running.
 - `viewport-fit=cover` is set, so content goes under the notch and home indicator unless padded.
 - **Top:** body pads `env(safe-area-inset-top)` globally. `fixed` elements skip this and pad
   themselves (§2).
-- **Bottom:** each screen pads its own bottom. The tab bar uses
-  `max(6px, min(env(safe-area-inset-bottom), 34px))`. The inset came back larger than the real
-  home-indicator inset and left a big empty gap, so it's capped at 34px (63c0e5e).
+- **Bottom:** each screen pads its own bottom. The tab bar is a floating pill, so the strip under
+  it is `max(10px, min(env(safe-area-inset-bottom), 22px))`: the pill sits just above the home
+  indicator, as iOS's own floating tab bars do. The inset came back larger than the real
+  home-indicator inset and left a big empty gap, so it's capped (63c0e5e). The strip is
+  `pointer-events-none`, so taps around the pill reach the page.
 - The status bar is `black-translucent`, so content under it has to be padded, not just colored.
 
 ---
