@@ -364,6 +364,15 @@ export async function setInjuryExerciseRule(
       throw new Error("That injury is healed, so its rules no longer apply.");
     }
     const exercise = await resolveExercise(tx, context.userId, input.exercise);
+    const takesWeight =
+      exercise.trackingType === "weight_reps" || exercise.trackingType === "weighted_bodyweight";
+    if (input.maxWeight != null && !takesWeight) {
+      throw new Error(`${exercise.name} isn't logged with a weight, so it can't take maxWeight.`);
+    }
+    const takesReps = takesWeight || exercise.trackingType === "bodyweight";
+    if ((input.repsLow != null || input.repsHigh != null) && !takesReps) {
+      throw new Error(`${exercise.name} isn't logged in reps, so it can't take a rep range.`);
+    }
     const day = await userDay(tx, context.userId);
     const cleaned = cleanInjuryRule({
       exerciseId: exercise.id,

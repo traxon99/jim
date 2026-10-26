@@ -1,6 +1,8 @@
+import { parseInjuryRules, repointInjuryRules } from "@jim/core";
 import {
   dprBlockLifts,
   exercises,
+  injuries,
   personalRecords,
   routineExercises,
   sessionExercises,
@@ -21,7 +23,8 @@ export interface MergeExercisesInput {
 
 /**
  * Repoints every reference from `mergeId` to `keepId` (session_exercises,
- * routine_exercises, personal_records, PRP block lifts) and archives `mergeId` rather than
+ * routine_exercises, personal_records, PRP block lifts, injury exercise
+ * rules) and archives `mergeId` rather than
  * deleting it — historical sets keep their referent either way, since
  * `sets` never references `exercises` directly, only through
  * `session_exercises` (S4's "archive rather than delete" pattern).
@@ -149,6 +152,28 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
       }
     }
 
+    // Injury exercise rules (issue #724) name exercises inside JSON.
+    let repointedInjuryRules = 0;
+    const injuryRows = await tx.select().from(injuries).where(isNull(injuries.deletedAt));
+    for (const injury of injuryRows) {
+      const rules = repointInjuryRules(
+        parseInjuryRules(injury.exerciseRules),
+        input.mergeId,
+        input.keepId,
+      );
+      if (!rules) continue;
+      await tx
+        .update(injuries)
+        .set({
+          exerciseRules: rules,
+          updatedAt: now,
+          deviceId: MCP_DEVICE_ID,
+          serverSeq: sql`nextval('sync_seq')`,
+        })
+        .where(eq(injuries.id, injury.id));
+      repointedInjuryRules += 1;
+    }
+
     await tx
       .update(exercises)
       .set({
@@ -166,6 +191,7 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
       repointedRoutineExercises: repointedRoutineExercises.length,
       repointedPersonalRecords: repointedPersonalRecords.length,
       repointedBlockLifts,
+      repointedInjuryRules,
       archived: { id: merge.id, name: merge.name },
     };
   });

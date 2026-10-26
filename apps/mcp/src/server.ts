@@ -1,6 +1,7 @@
 import {
   INJURY_RULE_EFFECTS,
   INJURY_RULE_NOTE_MAX,
+  INJURY_RULE_REPS_MAX,
   MAX_AUTO_END_MINUTES,
   MEASUREMENT_KINDS,
   MIN_AUTO_END_MINUTES,
@@ -907,8 +908,20 @@ export function createMcpServer(context: UserContext): McpServer {
           .positive()
           .optional()
           .describe("Heaviest weight to use, in the user's units; limit and light only"),
-        repsLow: z.number().int().min(1).max(100).optional().describe("Bottom of the rep range"),
-        repsHigh: z.number().int().min(1).max(100).optional().describe("Top of the rep range"),
+        repsLow: z
+          .number()
+          .int()
+          .min(1)
+          .max(INJURY_RULE_REPS_MAX)
+          .optional()
+          .describe("Bottom of the rep range"),
+        repsHigh: z
+          .number()
+          .int()
+          .min(1)
+          .max(INJURY_RULE_REPS_MAX)
+          .optional()
+          .describe("Top of the rep range"),
         note: z.string().max(INJURY_RULE_NOTE_MAX).optional().describe("Shown on the exercise"),
         dry_run: dryRunParam(false),
       },
@@ -922,11 +935,12 @@ export function createMcpServer(context: UserContext): McpServer {
     "clear_injury_exercise_rule",
     {
       title: "Clear injury exercise rule",
-      description: `Remove an injury's rule for one exercise, so the area-wide treatment applies to it again.${PREVIEW_HINT}`,
+      description:
+        "Remove an injury's rule for one exercise, so the area-wide treatment applies to it again. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
       inputSchema: {
         injury: injuryRef,
         exercise: z.string().describe("Exercise name or id"),
-        dry_run: dryRunParam(false),
+        dry_run: dryRunParam(true),
       },
     },
     handle(({ dry_run, ...input }) =>

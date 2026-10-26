@@ -10,6 +10,8 @@ import {
   injuryPrpEffect,
   markInjuredHistory,
   parseInjuryRules,
+  repointInjuryRules,
+  ruleMaxWeight,
   withInjuryRule,
   withoutInjuryRule,
 } from "../index";
@@ -97,9 +99,9 @@ describe("cleaning rules", () => {
   it("describes a rule in the user's units", () => {
     expect(
       describeInjuryRule(rule({ maxWeight: 60, units: "kg", repsLow: 12, repsHigh: 15 }), "kg"),
-    ).toBe("up to 60 kg · 12–15 reps");
+    ).toBe("Up to 60 kg · 12–15 reps");
     expect(describeInjuryRule(rule({ effect: "light", maxWeight: 100, units: "lb" }), "kg")).toBe(
-      "Go light · up to 45.36 kg",
+      "Go light · up to 45 kg",
     );
     expect(describeInjuryRule(rule({ effect: "avoid" }), "lb")).toBe("Avoid it");
   });
@@ -197,7 +199,7 @@ describe("PRP with rules", () => {
       today: "2026-10-20",
       units: "kg",
     });
-    expect(limit).toEqual({ maxWeight: 90.72, reps: { low: 12, high: 15 } });
+    expect(limit).toEqual({ maxWeight: 90.5, reps: { low: 12, high: 15 } });
     expect(applyInjuryLimit(decision, limit, 2.5)).toMatchObject({
       call: "hold",
       weight: 90,
@@ -208,5 +210,44 @@ describe("PRP with rules", () => {
     expect(
       injuryLimit({ exerciseId: "squat", injuries: [KNEE], today: "2026-10-20", units: "kg" }),
     ).toBeNull();
+  });
+
+  it("holds a cap smaller than one step instead of dropping it", () => {
+    expect(applyInjuryLimit(decision, { maxWeight: 4, reps: null }, 5)).toMatchObject({
+      weight: 4,
+      reason: "Injury rule — capped at 4",
+    });
+  });
+});
+
+describe("rules across injuries and exercises", () => {
+  it("lets another injury's pain band outrank a limit rule", () => {
+    const wrist = { ...WRIST, exerciseRules: [rule({ maxWeight: 60, units: "kg" })] };
+    const pain = (injury: { id: string }) => (injury.id === "knee" ? 8 : null);
+    expect(exerciseInjuryGuidance(squat, [wrist, KNEE], "2026-10-20", pain)?.injury.id).toBe(
+      "knee",
+    );
+    expect(exerciseInjuryGuidance(squat, [wrist, KNEE], "2026-10-20")?.injury.id).toBe("wrist");
+  });
+
+  it("rounds a converted cap down to a loadable number", () => {
+    expect(ruleMaxWeight(rule({ maxWeight: 60, units: "kg" }), "lb")).toBe(132);
+    expect(ruleMaxWeight(rule({ maxWeight: 135, units: "lb" }), "kg")).toBe(61);
+    expect(ruleMaxWeight(rule({ maxWeight: 60, units: "kg" }), "kg")).toBe(60);
+  });
+
+  it("repoints rules from a merged exercise, keeping the kept one's own rule", () => {
+    const rules = [
+      rule({ exerciseId: "a", effect: "avoid" }),
+      rule({ exerciseId: "b", note: "x" }),
+    ];
+    expect(repointInjuryRules(rules, "c", "a")).toBeNull();
+    expect(repointInjuryRules(rules, "b", "c")).toEqual([
+      rule({ exerciseId: "a", effect: "avoid" }),
+      rule({ exerciseId: "c", note: "x" }),
+    ]);
+    expect(repointInjuryRules(rules, "b", "a")).toEqual([
+      rule({ exerciseId: "a", effect: "avoid" }),
+    ]);
   });
 });

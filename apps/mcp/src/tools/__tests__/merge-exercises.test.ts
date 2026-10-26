@@ -94,4 +94,23 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("merge_exercises (#497)", () => 
       /can't be merged/,
     );
   });
+
+  it("moves injury exercise rules to the kept exercise (#724)", async () => {
+    const { id: mergeId } = await upsertExercise(context, {
+      name: "Wide Grip Bench",
+      trackingType: "weight_reps",
+      primaryMuscles: ["chest"],
+    });
+    const rule = { effect: "avoid", maxWeight: null, units: null, repsLow: null, repsHigh: null };
+    await admin`
+      INSERT INTO injuries (user_id, area, side, started_on, exercise_rules)
+      VALUES (${USER_A}, 'wrist', 'left', '2026-10-01', ${JSON.stringify([{ ...rule, exerciseId: mergeId, note: "ow" }])}::jsonb)
+    `;
+    const result = await mergeExercises(context, { keepId: benchId, mergeId });
+    expect(result.repointedInjuryRules).toBe(1);
+    const [row] = await admin`SELECT exercise_rules FROM injuries WHERE area = 'wrist'`;
+    expect(row?.exercise_rules).toMatchObject([
+      { exerciseId: benchId, effect: "avoid", note: "ow" },
+    ]);
+  });
 });

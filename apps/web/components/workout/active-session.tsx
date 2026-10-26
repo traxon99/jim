@@ -572,14 +572,17 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
   function injuryFor(exercise: ExerciseRow | undefined): ExerciseInjury | null {
     if (!exercise || openInjuries.length === 0) return null;
-    const guidance = exerciseInjuryGuidance(exercise, openInjuries, today);
+    const checkins = injuryData?.checkins ?? [];
+    const guidance = exerciseInjuryGuidance(exercise, openInjuries, today, (injury) =>
+      todaysPain(checkins, injury.id, today),
+    );
     if (!guidance) return null;
     return {
       label: injuryAreaLabel(guidance.injury.area, guidance.injury.side),
       hit: guidance.hit,
       rule: guidance.rule,
       units: settings.units,
-      pain: todaysPain(injuryData?.checkins ?? [], guidance.injury.id, today),
+      pain: todaysPain(checkins, guidance.injury.id, today),
     };
   }
 

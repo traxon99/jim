@@ -28,6 +28,7 @@ describe("dry_run defaults on destructive MCP tools (#539)", () => {
       "cancel_scheduled_workout",
       "delete_body_measurement",
       "delete_injury",
+      "clear_injury_exercise_rule",
     ]) {
       expect(defaults(name), name).toBe(true);
     }

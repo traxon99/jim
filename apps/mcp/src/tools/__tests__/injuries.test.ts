@@ -121,7 +121,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("injury tools (#627)", () => {
         effect: "limit",
         maxWeight: 60,
         units: "kg",
-        summary: "up to 60 kg · 10–12 reps",
+        summary: "Up to 60 kg · 10–12 reps",
         note: "pause on the chest",
       },
       ruleCount: 1,

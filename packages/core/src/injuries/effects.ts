@@ -4,6 +4,7 @@ import { applyIntensity } from "../dpr/intensity";
 import { type ExerciseCategory, isStrengthExercise } from "../warmups/category";
 import { areaMuscles } from "./areas";
 import { type InjuryExerciseRule, parseInjuryRules, ruleMaxWeight } from "./exercise-rules";
+import { painSuggestion } from "./pain";
 
 /**
  * How an injury bears on training (issue #627). Jim suggests and never
@@ -94,30 +95,40 @@ function guidanceOf<T extends InjuryLike>(
   return rule || hit ? { injury, hit, rule } : null;
 }
 
+// How restrictive each kind of guidance is: a rule replaces only its own
+// injury's treatment, so another injury's pain band can still outrank it.
 const RULE_RANK = { avoid: 5, light: 4, limit: 3, fine: 0 } as const;
+const PAIN_RANK = { skip: 6, swap: 4.5, light: 2.5 } as const;
 
-function guidanceRank(guidance: ExerciseInjuryGuidance): number {
+function guidanceRank(guidance: ExerciseInjuryGuidance, pain: number | null): number {
   if (guidance.rule) return RULE_RANK[guidance.rule.effect];
+  const suggestion = painSuggestion(pain);
+  if (suggestion) return PAIN_RANK[suggestion];
   return guidance.hit === "primary" ? 2 : 1;
 }
 
 /**
- * The open injury that matters most for an exercise on `day`: a rule the
- * user wrote for it first (avoid, then light, then limit), then a primary
- * muscle hit, then a secondary one. Null when nothing applies.
+ * The open injury that matters most for an exercise on `day`, by what the
+ * user is told to do: skip (pain 7+), an avoid rule, swap (pain 4–6), a
+ * light rule, a limit rule, light (pain 1–3), then a plain primary or
+ * secondary hit. `painOf` gives an injury's pain today. Null when nothing
+ * applies.
  */
 export function exerciseInjuryGuidance<T extends InjuryLike>(
   exercise: ExerciseMuscles & { id: string },
   injuries: readonly T[],
   day: string,
+  painOf: (injury: T) => number | null = () => null,
 ): ExerciseInjuryGuidance<T> | null {
-  let best: ExerciseInjuryGuidance<T> | null = null;
+  let best: { guidance: ExerciseInjuryGuidance<T>; rank: number } | null = null;
   for (const injury of injuries) {
     if (!isInjuryOpenOn(injury, day)) continue;
     const guidance = guidanceOf(exercise.id, exercise, injury);
-    if (guidance && (!best || guidanceRank(guidance) > guidanceRank(best))) best = guidance;
+    if (!guidance) continue;
+    const rank = guidanceRank(guidance, painOf(injury));
+    if (!best || rank > best.rank) best = { guidance, rank };
   }
-  return best;
+  return best?.guidance ?? null;
 }
 
 /**
@@ -301,9 +312,11 @@ export function applyInjuryLimit(
 ): DprDecision {
   if (!limit) return decision;
   let next = decision;
-  const cap =
+  // A cap under one step can't round down to anything loadable: hold the cap itself.
+  const rounded =
     limit.maxWeight === null ? null : roundToIncrement(limit.maxWeight, increment, "down");
-  if (cap !== null && cap > 0 && next.weight !== null && next.weight > cap) {
+  const cap = rounded !== null && rounded <= 0 ? limit.maxWeight : rounded;
+  if (cap !== null && next.weight !== null && next.weight > cap) {
     next = {
       ...next,
       call: next.call === "light" || next.call === "deload" ? next.call : "hold",

@@ -26,7 +26,8 @@ export const INJURY_RULE_EFFECT_LABELS: Readonly<Record<InjuryRuleEffect, string
 export const INJURY_RULE_NOTE_MAX = 200;
 /** Rules per injury; far more than anyone needs, but keeps one row's JSON small. */
 export const INJURY_RULES_MAX = 50;
-const REPS_MAX = 100;
+/** Most reps a rule's range may name. */
+export const INJURY_RULE_REPS_MAX = 100;
 
 export interface InjuryExerciseRule {
   exerciseId: string;
@@ -80,8 +81,8 @@ export function cleanInjuryRule(
   let repsLow = limits ? (input.repsLow ?? null) : null;
   let repsHigh = limits ? (input.repsHigh ?? null) : null;
   for (const reps of [repsLow, repsHigh]) {
-    if (reps !== null && !(Number.isInteger(reps) && reps >= 1 && reps <= REPS_MAX)) {
-      return { ok: false, error: `Reps are whole numbers from 1 to ${REPS_MAX}` };
+    if (reps !== null && !(Number.isInteger(reps) && reps >= 1 && reps <= INJURY_RULE_REPS_MAX)) {
+      return { ok: false, error: `Reps are whole numbers from 1 to ${INJURY_RULE_REPS_MAX}` };
     }
   }
   // One end given: a single rep target.
@@ -155,19 +156,44 @@ export function withoutInjuryRule(
   return rules.filter((rule) => rule.exerciseId !== exerciseId);
 }
 
-/** A rule's cap in `units`, or null without one. */
+/** Converted caps round down to this step, so 60 kg reads 132 lb, not 132.28. */
+const CONVERTED_CAP_STEP: Readonly<Record<WeightUnits, number>> = { lb: 1, kg: 0.5 };
+
+/**
+ * A rule's cap in `units`, or null without one. A cap written in the other
+ * units converts and rounds down, so it stays a cap.
+ */
 export function ruleMaxWeight(rule: InjuryExerciseRule, units: WeightUnits): number | null {
   if (rule.maxWeight === null) return null;
-  return rule.units && rule.units !== units
-    ? convertWeight(rule.maxWeight, rule.units, units)
-    : rule.maxWeight;
+  if (!rule.units || rule.units === units) return rule.maxWeight;
+  const converted = convertWeight(rule.maxWeight, rule.units, units);
+  const step = CONVERTED_CAP_STEP[units];
+  const rounded = Math.floor(converted / step + 1e-9) * step;
+  return rounded > 0 ? rounded : converted;
+}
+
+/**
+ * Rules moved from a merged-away exercise to the one kept (issue #497's
+ * merge). A rule the kept exercise already has wins. Null when nothing
+ * names `fromId`.
+ */
+export function repointInjuryRules(
+  rules: readonly InjuryExerciseRule[],
+  fromId: string,
+  toId: string,
+): InjuryExerciseRule[] | null {
+  if (!rules.some((rule) => rule.exerciseId === fromId)) return null;
+  const keepHasRule = rules.some((rule) => rule.exerciseId === toId);
+  return rules.flatMap((rule) =>
+    rule.exerciseId !== fromId ? [rule] : keepHasRule ? [] : [{ ...rule, exerciseId: toId }],
+  );
 }
 
 function formatWeight(n: number): string {
   return String(Math.round(n * 100) / 100);
 }
 
-/** "Go light · up to 60 kg · 12–15 reps", without the note. */
+/** "Go light · up to 60 kg · 12–15 reps" or "Up to 60 kg", without the note. */
 export function describeInjuryRule(rule: InjuryExerciseRule, units: WeightUnits): string {
   const parts: string[] = [INJURY_RULE_EFFECT_LABELS[rule.effect]];
   const cap = ruleMaxWeight(rule, units);
@@ -181,5 +207,6 @@ export function describeInjuryRule(rule: InjuryExerciseRule, units: WeightUnits)
   }
   // "Limit it" says nothing once the limits are listed.
   if (rule.effect === "limit" && parts.length > 1) parts.shift();
-  return parts.join(" · ");
+  const text = parts.join(" · ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
