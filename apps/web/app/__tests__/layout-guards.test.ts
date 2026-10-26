@@ -52,4 +52,12 @@ describe("layout guards", () => {
       .map((file) => path.relative(webRoot, file));
     expect(offenders).toEqual([]);
   });
+
+  it("keeps glass see-through: no border-box background layer under a translucent fill (#717)", () => {
+    const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    // The gradient-border trick (a border-box layer behind a padding-box
+    // fill) paints under the whole shape, so a translucent fill turns solid.
+    // Draw rims with inset box-shadow or a plain border.
+    expect(css).not.toMatch(/background(-clip)?:[^;]*\bborder-box\b/);
+  });
 });
