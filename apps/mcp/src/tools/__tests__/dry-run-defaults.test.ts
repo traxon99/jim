@@ -27,10 +27,12 @@ describe("dry_run defaults on destructive MCP tools (#539)", () => {
       "delete_gym",
       "cancel_scheduled_workout",
       "delete_body_measurement",
+      "delete_injury",
     ]) {
       expect(defaults(name), name).toBe(true);
     }
     expect(defaults("create_routine")).toBe(false);
+    expect(defaults("report_injury")).toBe(false);
 
     await client.close();
     await server.close();

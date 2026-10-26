@@ -8,6 +8,7 @@ export * from "./epley";
 export * from "./exercises";
 export * from "./explore";
 export * from "./history";
+export * from "./injuries";
 export * from "./one-rep-max";
 export * from "./places";
 export * from "./programs";

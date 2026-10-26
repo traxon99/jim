@@ -1,4 +1,11 @@
-import { type Achievement, startOfWeek } from "@jim/core";
+import {
+  type Achievement,
+  type InjuryLike,
+  type PainCheckinLike,
+  injuryAreaLabel,
+  painCalendar,
+  startOfWeek,
+} from "@jim/core";
 import type { PortalWorkoutRow } from "./workouts-data";
 
 /** An achievement as it crosses to the browser: the date as an ISO string. */
@@ -12,6 +19,31 @@ export interface PortalCalendarData {
   weeklyTarget: number;
   workouts: PortalWorkoutRow[];
   achievements: PortalAchievement[];
+  /**
+   * Pain by day for the "Show injuries" overlay (issue #627): each day's
+   * worst pain and every injury checked in, keyed YYYY-MM-DD. Days without
+   * a check-in are absent.
+   */
+  painDays: Record<string, { pain: number; injuries: string[] }>;
+}
+
+/** Each check-in day's worst pain and the injuries behind it, e.g. "Left knee 4". */
+export function buildPainDays(
+  injuries: readonly InjuryLike[],
+  checkins: readonly PainCheckinLike[],
+): PortalCalendarData["painDays"] {
+  const live = injuries.filter((injury) => !injury.deletedAt);
+  const labels = new Map(
+    live.map((injury) => [injury.id, injuryAreaLabel(injury.area, injury.side)]),
+  );
+  const result: PortalCalendarData["painDays"] = {};
+  for (const [day, entry] of painCalendar([...labels.keys()], checkins)) {
+    result[day] = {
+      pain: entry.pain,
+      injuries: entry.entries.map((item) => `${labels.get(item.injuryId)} ${item.painLevel}`),
+    };
+  }
+  return result;
 }
 
 export function serializeAchievements(achievements: readonly Achievement[]): PortalAchievement[] {

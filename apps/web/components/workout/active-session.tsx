@@ -1,6 +1,9 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import type { ExerciseInjury } from "@/components/injuries/injury-hint";
+import { PainCheckin } from "@/components/injuries/pain-checkin";
+import { ReportInjuryCard } from "@/components/injuries/report-injury-card";
 import { LoadingText } from "@/components/loading-text";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import {
@@ -24,6 +27,7 @@ import {
 } from "@/lib/db/schema";
 import { dprCallFor, dprVolumeSets } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
 import { ruleCallFor, ruleOf } from "@/lib/progression/calls";
 import { useRuleSnapshot } from "@/lib/progression/use-rule-snapshot";
 import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session";
@@ -44,8 +48,10 @@ import {
   type SupersetChange,
   exerciseDisplayName,
   formSuperset,
+  injuryAreaLabel,
   isCardioExercise,
   isFocusExerciseComplete,
+  isInjuryOpenOn,
   isLastRemainingSet,
   isWarmupComplete,
   isWarmupExercise,
@@ -58,10 +64,12 @@ import {
   supersetBlocks,
   supersetFollowUp,
   supersetLabels,
+  todaysPain,
   uuidv7,
+  worstInjuryHit,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Focus, LayoutList } from "lucide-react";
+import { Bandage, Focus, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FocusView, type FocusViewExercise } from "./focus-view";
@@ -138,6 +146,22 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   }, [session?.routineId, warmupRoutineId]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const dprContext = useDprContext();
+  // Open injuries (issue #627): affected exercises get the icon and today's
+  // suggestion, and a workout without today's check-in asks for one.
+  const injuryData = useInjuries();
+  const today = useTodayKey();
+  const [reportingInjury, setReportingInjury] = useState(false);
+  const openInjuries = useMemo(
+    () => (injuryData?.injuries ?? []).filter((injury) => isInjuryOpenOn(injury, today)),
+    [injuryData, today],
+  );
+  const uncheckedInjuries = useMemo(
+    () =>
+      openInjuries.filter(
+        (injury) => todaysPain(injuryData?.checkins ?? [], injury.id, today) === null,
+      ),
+    [openInjuries, injuryData, today],
+  );
 
   const restTimer = useRestTimer(id);
   const setTimer = useSetTimer(id);
@@ -545,6 +569,25 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     return (setCompletedAtBySessionExerciseId.get(itemId)?.length ?? 0) > 0;
   }
 
+  function injuryFor(exercise: ExerciseRow | undefined): ExerciseInjury | null {
+    if (!exercise || openInjuries.length === 0) return null;
+    const worst = worstInjuryHit(exercise, openInjuries, today);
+    if (!worst) return null;
+    return {
+      label: injuryAreaLabel(worst.injury.area, worst.injury.side),
+      hit: worst.hit,
+      pain: todaysPain(injuryData?.checkins ?? [], worst.injury.id, today),
+    };
+  }
+
+  // Replacing an affected exercise lists swaps that spare the injury first.
+  const replacingExercise = replacingId
+    ? exerciseById.get(sessionExercises.find((se) => se.id === replacingId)?.exerciseId ?? "")
+    : undefined;
+  const replacingInjuries = replacingExercise
+    ? openInjuries.filter((injury) => worstInjuryHit(replacingExercise, [injury], today))
+    : [];
+
   function renderExercise(item: (typeof sessionExercises)[number], large = false) {
     const exercise = exerciseById.get(item.exerciseId);
     const target = targetByExerciseId.get(item.exerciseId);
@@ -634,6 +677,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
         onNameLongPress={onNameLongPress}
+        injury={injuryFor(exercise)}
+        onInjurySwap={hasLogged(item.id) ? undefined : () => setReplacingId(item.id)}
         actions={[
           ...(hasLogged(item.id) ? [] : [replaceExerciseAction(() => setReplacingId(item.id))]),
           // Supersets are among the main exercises only (warm-ups return above).
@@ -671,6 +716,14 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         {/* Issue #321: Finish is the header's only action; discarding the
             workout lives at the bottom of the page, away from it. */}
         <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => setReportingInjury(true)}
+            aria-label="Report an injury"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-zinc-300 dark:border-zinc-700"
+          >
+            <Bandage className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          </button>
           {hasLoggedSets && (
             <button
               type="button"
@@ -683,6 +736,18 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           )}
         </div>
       </div>
+
+      {uncheckedInjuries.length > 0 && injuryData && (
+        <section
+          aria-label="Pain check-in"
+          className="flex flex-col gap-2 rounded-xl border border-orange-300 p-3 dark:border-orange-800"
+        >
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            How's it feeling today? Jim uses this to suggest going light, swapping or skipping.
+          </p>
+          <PainCheckin injuries={uncheckedInjuries} checkins={injuryData.checkins} today={today} />
+        </section>
+      )}
 
       {showsPaceTracker(settings) && (
         <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
@@ -852,6 +917,17 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           userId={userId}
           mode="replace"
           excludeExerciseIds={excludeExerciseIds}
+          spare={
+            replacingExercise && replacingInjuries.length > 0
+              ? {
+                  exercise: replacingExercise,
+                  areas: replacingInjuries.map((injury) => injury.area),
+                  label: `your ${replacingInjuries
+                    .map((injury) => injuryAreaLabel(injury.area, injury.side).toLowerCase())
+                    .join(" and ")}`,
+                }
+              : null
+          }
           onPick={([exerciseId]) => {
             if (exerciseId) void handleReplaceExercise(replacingId, exerciseId);
           }}
@@ -894,6 +970,10 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           onReorder={(orderedIds) => void handleReorder(reordering.itemId, orderedIds)}
           onClose={() => setReordering(null)}
         />
+      )}
+
+      {reportingInjury && (
+        <ReportInjuryCard userId={userId} onClose={() => setReportingInjury(false)} />
       )}
 
       {!(focusMode && focusedItem) && timerBar(true)}

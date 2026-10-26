@@ -8,6 +8,8 @@ import {
   dprBlocks,
   exercises,
   gyms,
+  injuries,
+  painCheckins,
   personalRecords,
   programRoutines,
   programs,
@@ -40,6 +42,8 @@ const PULL_TABLES: Record<SyncTable | "scheduledWorkouts", PgTable & { serverSeq
   dprBlocks: dprBlocks,
   dprBlockLifts: dprBlockLifts,
   gyms: gyms,
+  injuries: injuries,
+  painCheckins: painCheckins,
   scheduledWorkouts: scheduledWorkouts,
 };
 

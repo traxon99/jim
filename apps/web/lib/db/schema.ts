@@ -5,6 +5,8 @@ import type {
   dprBlocks,
   exercises,
   gyms,
+  injuries,
+  painCheckins,
   personalRecords,
   programRoutines,
   programs,
@@ -54,6 +56,9 @@ type GymSelect = typeof gyms.$inferSelect;
 export type GymRow = Omit<GymSelect, "latitude" | "longitude"> &
   Partial<Pick<GymSelect, "latitude" | "longitude">>;
 
+export type InjuryRow = typeof injuries.$inferSelect;
+export type PainCheckinRow = typeof painCheckins.$inferSelect;
+
 export interface SyncTableRowMap {
   routines: RoutineRow;
   routineExercises: RoutineExerciseRow;
@@ -68,6 +73,8 @@ export interface SyncTableRowMap {
   dprBlocks: DprBlockRow;
   dprBlockLifts: DprBlockLiftRow;
   gyms: GymRow;
+  injuries: InjuryRow;
+  painCheckins: PainCheckinRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -150,6 +157,8 @@ export class JimDatabase extends Dexie {
   dprBlocks!: EntityTable<DprBlockRow, "id">;
   dprBlockLifts!: EntityTable<DprBlockLiftRow, "id">;
   gyms!: EntityTable<GymRow, "id">;
+  injuries!: EntityTable<InjuryRow, "id">;
+  painCheckins!: EntityTable<PainCheckinRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -179,6 +188,11 @@ export class JimDatabase extends Dexie {
     });
     this.version(4).stores({
       gyms: "id, updatedAt, deletedAt",
+    });
+    // Injuries and their daily pain check-ins (issue #627).
+    this.version(5).stores({
+      injuries: "id, updatedAt, deletedAt",
+      painCheckins: "id, injuryId, day",
     });
   }
 }

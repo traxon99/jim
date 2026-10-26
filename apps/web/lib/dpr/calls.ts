@@ -2,6 +2,7 @@ import type {
   DprBlockLiftRow,
   DprBlockRow,
   ExerciseRow,
+  InjuryRow,
   RoutineExerciseRow,
   SettingsRow,
 } from "@/lib/db/schema";
@@ -17,7 +18,10 @@ import {
   type OnTrackStatus,
   type SessionIntensity,
   callForLift,
+  dayKey,
+  injuryPrpEffect,
   liftProgress,
+  markInjuredHistory,
   mesocycleVolumePlan,
   progressionSystemFor,
   volumeAdjustedSets,
@@ -40,6 +44,8 @@ export interface DprContext {
   exercises: ReadonlyMap<string, ExerciseRow>;
   /** Mesocycle mode's weekly set plan by muscle (issue #250); null with the mode off. */
   volume: ReadonlyMap<string, MuscleVolumePlan> | null;
+  /** Live injuries (issue #627): a primary hit makes a lift's call a light day, then EASE. */
+  injuries: readonly InjuryRow[];
   now: Date;
 }
 
@@ -50,17 +56,31 @@ export function buildDprContext(input: {
   lifts: readonly DprBlockLiftRow[];
   exercises: readonly ExerciseRow[];
   snapshot: DprSnapshot;
+  injuries?: readonly InjuryRow[];
   now: Date;
 }): DprContext | null {
   if (!input.settings.dprEnabled) return null;
   const block = currentBlock(input.blocks);
   if (!block) return null;
   const exercises = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
+  const injuries = (input.injuries ?? []).filter((injury) => !injury.deletedAt);
+  // Sessions logged while an injury hit the lift's primary muscle count as
+  // light days, so they never drag progression down (issue #627).
+  const history = markInjuredHistory(
+    input.snapshot.history,
+    injuries,
+    (id) => exercises.get(id),
+    (date) => dayKey(date),
+  );
+  const snapshot =
+    history === input.snapshot.history
+      ? input.snapshot
+      : { ...input.snapshot, history: [...history] };
   // Rows synced before the column existed have no volumeMode: off.
   const volume = block.volumeMode
     ? new Map(
         mesocycleVolumePlan({
-          history: input.snapshot.history,
+          history: snapshot.history,
           exercises,
           block,
           now: input.now,
@@ -68,12 +88,13 @@ export function buildDprContext(input: {
       )
     : null;
   return {
-    snapshot: input.snapshot,
+    snapshot,
     settings: input.settings,
     block,
     lifts: new Map(liveBlockLifts(input.lifts, block.id).map((lift) => [lift.exerciseId, lift])),
     exercises,
     volume,
+    injuries,
     now: input.now,
   };
 }
@@ -142,6 +163,14 @@ export function dprCallFor(
     fallbackWeight: Number.isFinite(fallback) ? fallback : null,
     block: ctx.block,
     intensity,
+    injuryEffect: injuryPrpEffect({
+      exerciseId,
+      exercise: ctx.exercises.get(exerciseId),
+      injuries: ctx.injuries,
+      history: ctx.snapshot.history,
+      today: dayKey(ctx.now),
+      dayKeyOf: (date) => dayKey(date),
+    }),
     now: ctx.now,
   });
 }

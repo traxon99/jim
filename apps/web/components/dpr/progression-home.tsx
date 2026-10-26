@@ -46,6 +46,7 @@ export function ProgressionHome({ userId }: { userId: string }) {
   const lifts = useLiveQuery(() => db.dprBlockLifts.toArray(), []);
   const exercises = useLiveQuery(() => db.exercises.toArray(), []);
   const programs = useLiveQuery(() => db.programs.toArray(), []);
+  const injuries = useLiveQuery(() => db.injuries.toArray(), []);
   const snapshot = useLiveQuery(
     () => loadDprSnapshot(db, defaultRepRange(settings)),
     [settings.dprDefaultRepLow, settings.dprDefaultRepHigh],
@@ -70,10 +71,11 @@ export function ProgressionHome({ userId }: { userId: string }) {
             lifts,
             exercises,
             snapshot,
+            injuries,
             now,
           })
         : null,
-    [settings, blocks, lifts, exercises, snapshot, now],
+    [settings, blocks, lifts, exercises, snapshot, injuries, now],
   );
   const blockLifts = block && lifts ? liveBlockLifts(lifts, block.id) : [];
   const liftIds = blockLifts.map((lift) => lift.exerciseId);

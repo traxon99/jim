@@ -64,14 +64,23 @@ const SILHOUETTE = [
   "M62,186 L57,186 L56,194 C59,196 63,196 64,193 Z",
 ];
 
+/** Which side of the body a tap landed on, for a picker (issue #627). */
+export type BodySide = "left" | "right" | null;
+
 function Figure({
   regions,
   shading,
   label,
+  onPick,
 }: {
   regions: readonly Region[];
   shading: MuscleShading;
   label: string;
+  /**
+   * `mirrorSide` is the body's side drawn on the viewer's right: the
+   * person's left on the front view, their right on the back.
+   */
+  onPick?: { mirrorSide: "left" | "right"; pick: (muscle: Muscle, side: BodySide) => void };
 }) {
   return (
     <figure className="flex min-w-0 flex-1 flex-col items-center gap-1">
@@ -83,16 +92,24 @@ function Figure({
           const strength = shading[region.muscle] ?? 0;
           // The neutral fill stays underneath, so a faint tint always reads
           // as "a little" rather than darker than an untrained muscle.
-          const layers = (
-            <>
+          const layers = (side: BodySide) => (
+            // A tap here is a shortcut: the picker's buttons are the
+            // accessible way to choose, so the drawing stays aria-hidden.
+            // biome-ignore lint/a11y/useKeyWithClickEvents: the picker's buttons carry the keyboard path
+            <g
+              onClick={onPick ? () => onPick.pick(region.muscle, side) : undefined}
+              className={onPick ? "cursor-pointer" : undefined}
+            >
               <path d={region.d} className="fill-zinc-200 dark:fill-zinc-700" />
               {strength > 0 && <path d={region.d} className="fill-accent" fillOpacity={strength} />}
-            </>
+            </g>
           );
+          const mirrorSide = onPick?.mirrorSide ?? "left";
+          const otherSide = mirrorSide === "left" ? "right" : "left";
           return (
             <g key={region.muscle}>
-              {layers}
-              {!region.center && <g transform="matrix(-1 0 0 1 100 0)">{layers}</g>}
+              {layers(region.center ? null : otherSide)}
+              {!region.center && <g transform="matrix(-1 0 0 1 100 0)">{layers(mirrorSide)}</g>}
             </g>
           );
         })}
@@ -106,16 +123,29 @@ export function BodyMap({
   shading,
   label,
   className = "",
+  onPick,
 }: {
   shading: MuscleShading;
   /** Read out in place of the drawing, e.g. "Chest and triceps worked". */
   label: string;
   className?: string;
+  /** Makes each muscle tappable, with the side of the body it was tapped on (issue #627). */
+  onPick?: (muscle: Muscle, side: BodySide) => void;
 }) {
   return (
     <div role="img" aria-label={label} className={`flex gap-4 ${className}`}>
-      <Figure regions={FRONT} shading={shading} label="Front" />
-      <Figure regions={BACK} shading={shading} label="Back" />
+      <Figure
+        regions={FRONT}
+        shading={shading}
+        label="Front"
+        onPick={onPick && { mirrorSide: "left", pick: onPick }}
+      />
+      <Figure
+        regions={BACK}
+        shading={shading}
+        label="Back"
+        onPick={onPick && { mirrorSide: "right", pick: onPick }}
+      />
     </div>
   );
 }

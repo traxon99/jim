@@ -6,6 +6,8 @@ import {
   dprBlocks,
   exercises,
   gyms,
+  injuries,
+  painCheckins,
   personalRecords,
   programRoutines,
   programs,
@@ -215,6 +217,14 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
   gyms: {
     table: gyms,
     updatable: ["name", "address", "latitude", "longitude", "notes", "isDefault", "position"],
+  },
+  injuries: {
+    table: injuries,
+    updatable: ["area", "side", "startedOn", "healedOn", "note"],
+  },
+  painCheckins: {
+    table: painCheckins,
+    updatable: ["painLevel"],
   },
 };
 

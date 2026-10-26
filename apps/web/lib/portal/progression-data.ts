@@ -2,6 +2,7 @@ import type {
   DprBlockLiftRow,
   DprBlockRow,
   ExerciseRow,
+  InjuryRow,
   RoutineExerciseRow,
   RoutineRow,
   SessionExerciseRow,
@@ -38,6 +39,8 @@ export interface PortalProgressionData {
   sets: SetRow[];
   routines: RoutineRow[];
   routineExercises: RoutineExerciseRow[];
+  /** Injuries bend PRP's calls as on the phone (issue #627). */
+  injuries?: InjuryRow[];
 }
 
 export interface PortalBlockRecap {
@@ -98,6 +101,7 @@ export function buildProgressionView(
         lifts: data.lifts,
         exercises: data.exercises,
         snapshot,
+        injuries: data.injuries,
         now,
       })
     : null;

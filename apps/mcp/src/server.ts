@@ -39,6 +39,7 @@ import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
 import { createGym, deleteGym, findPlaces, listGyms, updateGym } from "./tools/gyms.js";
+import { deleteInjury, healInjury, listInjuries, logPain, reportInjury } from "./tools/injuries.js";
 import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
@@ -799,6 +800,96 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => deleteGym(context, { ...input, dryRun: dry_run })),
+  );
+
+  // Injuries (issue #627): private to the user, like everything here.
+  const injuryRef = z
+    .string()
+    .describe('Injury id from list_injuries, or an open injury\'s label such as "left knee"');
+  const painLevel = z
+    .number()
+    .int()
+    .min(0)
+    .max(10)
+    .describe("Pain level: 0 is no pain, 10 the worst possible");
+
+  server.registerTool(
+    "list_injuries",
+    {
+      title: "List injuries",
+      description:
+        "Read-only. The user's open injuries with today's pain, what the app suggests for exercises that work the area (light at pain 1–3, swap at 4–6, skip at 7+), whether to ask if it's healed, and the daily pain log. Days without a check-in have no pain level. Pass includeHealed for past injuries too. Exercises whose primary or secondary muscles include the area are affected; knee means quadriceps, hamstrings and calves, elbow biceps, triceps and forearms, wrist forearms, hip glutes, adductors and abductors, ankle calves. While an injury hits a lift's primary muscle, PRP treats it as a light day, then eases it back in on its first session after healing.",
+      inputSchema: {
+        includeHealed: z.boolean().optional().describe("Also list healed injuries"),
+      },
+    },
+    handle((input) => listInjuries(context, input)),
+  );
+
+  server.registerTool(
+    "report_injury",
+    {
+      title: "Report injury",
+      description: `Report an injury like the app does: where it hurts, the side for paired areas, when it started and today's pain, plus an optional note. A flare-up in an area that healed is a new injury.${PREVIEW_HINT}`,
+      inputSchema: {
+        area: z
+          .string()
+          .describe(
+            "A muscle (e.g. chest, lower back, hamstrings) or a joint: knee, elbow, wrist, hip, ankle",
+          ),
+        side: z
+          .enum(["left", "right", "both"])
+          .optional()
+          .describe(
+            "Required for paired areas; ignored for abdominals, lower back, middle back and neck",
+          ),
+        startedOn: z.string().optional().describe("YYYY-MM-DD; defaults to today"),
+        painLevel,
+        note: z.string().optional(),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => reportInjury(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "log_pain",
+    {
+      title: "Log pain",
+      description: `Log a day's pain check-in for an open injury. Logging the same day again replaces that day's level.${PREVIEW_HINT}`,
+      inputSchema: {
+        injury: injuryRef,
+        painLevel,
+        day: z.string().optional().describe("YYYY-MM-DD; defaults to today"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => logPain(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "heal_injury",
+    {
+      title: "Mark injury healed",
+      description: `Mark an injury healed, closing it. Only do this when the user says it has healed; list_injuries' askHealed means it's worth asking.${PREVIEW_HINT}`,
+      inputSchema: {
+        injury: injuryRef,
+        day: z.string().optional().describe("YYYY-MM-DD it healed; defaults to today"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => healInjury(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "delete_injury",
+    {
+      title: "Delete injury",
+      description:
+        "Delete an injury and its pain check-ins, e.g. one reported by mistake. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: { injury: injuryRef, dry_run: dryRunParam(true) },
+    },
+    handle(({ dry_run, ...input }) => deleteInjury(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(
