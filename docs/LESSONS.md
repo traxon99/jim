@@ -55,7 +55,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] Blur, filters and glass: iOS Safari doesn't clip a CSS-`filter`ed layer to its parent's
       rounded corners. Use gradients inside the shape instead (#374, #376). Every layer of a
       see-through surface stays translucent: no `border-box` gradient "border trick" under a
-      translucent fill, it paints under the whole shape (#717).
+      translucent fill, it paints under the whole shape (#717). Keep `backdrop-filter` out from behind
+      text and buttons: the page header's blur sits over the status bar only (#720).
 - [ ] Themed color? `bg-accent`/`text-accent-foreground`, never a fixed palette color (#445).
 - [ ] A view that swaps its content in place resets its scroller when the item changes, and a
       strip of tap targets keeps `min-w-11` and scrolls sideways instead of shrinking (#677, #683).

@@ -149,24 +149,24 @@ body {
 }
 
 /* The backdrop behind the floating page header (components/page-header.tsx).
-   There's no solid bar: the title and buttons float, and whatever scrolls
-   under them is blurred and softened, reaching up over the status-bar
-   inset and fading out below the header so there's no hard edge
-   (issue #311). */
+   There's no solid bar: the title and buttons float over a soft wash that
+   reaches up over the status-bar inset and fades out below the header, so
+   there's no hard edge (issue #311). The blur itself stays up over the
+   status bar (.status-bar-scrim): a backdrop-filter behind the header made
+   the title and buttons look blurred on the phone (#720), so this layer is
+   a plain translucent fill, a little denser to keep the title readable. */
 .floating-header-backdrop {
   position: absolute;
   inset: calc(-1 * env(safe-area-inset-top)) 0 -1.25rem 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.55));
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.96), rgb(255 255 255 / 0.88));
   -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
   mask-image: linear-gradient(to bottom, #000 65%, transparent);
 }
 
 :root.dark .floating-header-backdrop {
-  background: linear-gradient(to bottom, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.45));
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.92), rgb(0 0 0 / 0.8));
 }
 
 /* The bottom tab bar (components/bottom-tab-bar.tsx), Liquid Glass style: a

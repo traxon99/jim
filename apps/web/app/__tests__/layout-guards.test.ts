@@ -60,4 +60,15 @@ describe("layout guards", () => {
     // Draw rims with inset box-shadow or a plain border.
     expect(css).not.toMatch(/background(-clip)?:[^;]*\bborder-box\b/);
   });
+
+  it("keeps the page header's title and buttons sharp: no backdrop-filter behind them (#720)", () => {
+    const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    // The blur belongs over the status bar (.status-bar-scrim); behind the
+    // header it made the title and buttons look blurred on the phone.
+    const rules = [...css.matchAll(/\.floating-header-backdrop\s*\{([^}]*)\}/g)];
+    expect(rules.length).toBeGreaterThan(0);
+    for (const [, body] of rules) expect(body).not.toMatch(/backdrop-filter/);
+    const header = readFileSync(path.join(webRoot, "components/page-header.tsx"), "utf8");
+    expect(header).not.toMatch(/backdrop-blur/);
+  });
 });
