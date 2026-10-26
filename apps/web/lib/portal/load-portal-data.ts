@@ -14,6 +14,8 @@ import {
   dprBlocks,
   exercises,
   gyms,
+  injuries,
+  painCheckins,
   personalRecords,
   programRoutines,
   programs,
@@ -35,7 +37,7 @@ import {
   serializePeriodSessions,
 } from "./analysis-data";
 import { type PortalBodyData, buildPortalBodyData } from "./body-data";
-import { type PortalCalendarData, serializeAchievements } from "./calendar-data";
+import { type PortalCalendarData, buildPainDays, serializeAchievements } from "./calendar-data";
 import { type PortalCardioData, buildPortalCardioData } from "./cardio-data";
 import {
   type PortalExerciseDetail,
@@ -469,6 +471,8 @@ export async function loadCalendarData(): Promise<PortalCalendarData> {
     const gymRows = await tx
       .select({ id: gyms.id, name: gyms.name, deletedAt: gyms.deletedAt })
       .from(gyms);
+    const injuryRows = await tx.select().from(injuries);
+    const checkinRows = await tx.select().from(painCheckins);
     const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
     const exerciseRows =
       exerciseIds.length === 0
@@ -509,6 +513,7 @@ export async function loadCalendarData(): Promise<PortalCalendarData> {
         gymRows,
       ),
       achievements: serializeAchievements(achievements),
+      painDays: buildPainDays(injuryRows, checkinRows),
     };
   });
 }
@@ -583,6 +588,7 @@ export async function loadProgressionData(): Promise<PortalProgressionData> {
     const { sessionRows, sessionExerciseRows, setRows } = await readHistoryRows(tx);
     const routineRows = await tx.select().from(routines);
     const routineExerciseRows = await tx.select().from(routineExercises);
+    const injuryRows = await tx.select().from(injuries);
     const exerciseIds = [
       ...new Set([
         ...sessionExerciseRows.map((row) => row.exerciseId),
@@ -603,6 +609,7 @@ export async function loadProgressionData(): Promise<PortalProgressionData> {
       sets: setRows,
       routines: routineRows,
       routineExercises: routineExerciseRows,
+      injuries: injuryRows,
     };
   });
 }

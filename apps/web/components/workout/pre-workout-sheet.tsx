@@ -2,10 +2,12 @@
 
 import { CallMark } from "@/components/dpr/call-mark";
 import { FloatingCard } from "@/components/floating-card";
+import { PainCheckin } from "@/components/injuries/pain-checkin";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { type DprContext, dprBadge } from "@/lib/dpr/calls";
 import { useGyms } from "@/lib/gyms/use-gyms";
+import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
 import { buildPreWorkoutRows } from "@/lib/workout/pre-workout-preview";
 import {
   DEFAULT_SESSION_INTENSITY,
@@ -13,6 +15,7 @@ import {
   SESSION_INTENSITY_DESCRIPTIONS,
   SESSION_INTENSITY_LABELS,
   type SessionIntensity,
+  isInjuryOpenOn,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
@@ -41,6 +44,7 @@ function formatWeight(n: number): string {
  * today?" — Go light / Maintain / Push — with the targets following the pick
  * before the workout starts. Without DPR it's a plain preview (issue #282).
  * Users with gyms pick where they're training, home gym first (issue #454).
+ * With an injury open, it hosts today's pain check-in (issue #627).
  */
 export function PreWorkoutSheet({
   context,
@@ -52,6 +56,11 @@ export function PreWorkoutSheet({
 }: Props) {
   const [intensity, setIntensity] = useState<SessionIntensity>(DEFAULT_SESSION_INTENSITY);
   const gyms = useGyms();
+  const injuryData = useInjuries();
+  const today = useTodayKey();
+  const openInjuries = (injuryData?.injuries ?? []).filter((injury) =>
+    isInjuryOpenOn(injury, today),
+  );
   // Undefined until the user picks: follows the home gym as gyms load.
   const [pickedGymId, setPickedGymId] = useState<string | null | undefined>(undefined);
   const gymId =
@@ -128,6 +137,12 @@ export function PreWorkoutSheet({
               );
             })}
           </ul>
+
+          {injuryData && openInjuries.length > 0 && (
+            <div className="max-h-[40lvh] shrink-0 overflow-y-auto overscroll-contain border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+              <PainCheckin injuries={openInjuries} checkins={injuryData.checkins} today={today} />
+            </div>
+          )}
 
           <div className="flex touch-none flex-col gap-3 border-t border-zinc-200 px-4 pt-3 pb-4 dark:border-zinc-800">
             {gyms && gyms.length > 0 && (

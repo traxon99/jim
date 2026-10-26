@@ -17,6 +17,8 @@ export const SYNC_TABLES = [
   "dprBlocks",
   "dprBlockLifts",
   "gyms",
+  "injuries",
+  "painCheckins",
 ] as const;
 
 export type SyncTable = (typeof SYNC_TABLES)[number];

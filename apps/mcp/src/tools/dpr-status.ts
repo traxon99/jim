@@ -4,19 +4,25 @@ import {
   type DprSourceRows,
   type ExperienceLevel,
   type IncrementOverrides,
+  type InjuryLike,
   blockEffectiveEnd,
   blockHasEnded,
   buildDprSnapshot,
   callForLift,
   currentBlockOf,
+  dayKey,
+  injuryPrpEffect,
+  isValidTimeZone,
   liftDecisionLog,
   liftProgress,
   liftRepRanges,
+  markInjuredHistory,
 } from "@jim/core";
 import {
   dprBlockLifts,
   dprBlocks,
   exercises,
+  injuries,
   routineExercises,
   routines,
   sessionExercises,
@@ -56,8 +62,18 @@ export interface DprStatusInput {
     goalE1rm: string | null;
     deletedAt: Date | null;
   }[];
-  exercises: readonly { id: string; name: string; equipment: string | null }[];
+  exercises: readonly {
+    id: string;
+    name: string;
+    equipment: string | null;
+    primaryMuscles?: readonly string[];
+    secondaryMuscles?: readonly string[];
+  }[];
   rows: DprSourceRows;
+  /** Live injuries (issue #627): a primary hit makes a lift's call a light day, then EASE. */
+  injuries?: readonly InjuryLike[];
+  /** The user's IANA zone, for which day a session and an injury fall on. */
+  timeZone?: string | null;
   now: Date;
 }
 
@@ -81,9 +97,26 @@ export function dprStatusFromRows(input: DprStatusInput) {
     defaultRange,
     plates: user.availablePlates,
   };
-  const snapshot = buildDprSnapshot(input.rows, defaultRange);
   const block = currentBlockOf(input.blocks);
   const exerciseById = new Map(input.exercises.map((e) => [e.id, e]));
+  const zone = input.timeZone && isValidTimeZone(input.timeZone) ? input.timeZone : "UTC";
+  const dayKeyOf = (date: Date) => dayKey(date, zone);
+  const injuryRows = (input.injuries ?? []).filter((injury) => !injury.deletedAt);
+  const musclesOf = (id: string) => {
+    const exercise = exerciseById.get(id);
+    return exercise
+      ? {
+          primaryMuscles: exercise.primaryMuscles ?? [],
+          secondaryMuscles: exercise.secondaryMuscles ?? [],
+        }
+      : undefined;
+  };
+  // As on the phone: sessions logged while injured count as light days.
+  const built = buildDprSnapshot(input.rows, defaultRange);
+  const snapshot = {
+    ...built,
+    history: [...markInjuredHistory(built.history, injuryRows, musclesOf, dayKeyOf)],
+  };
 
   const lifts = block
     ? input.lifts
@@ -118,6 +151,14 @@ export function dprStatusFromRows(input: DprStatusInput) {
         equipment: exercise?.equipment,
         settings,
         block,
+        injuryEffect: injuryPrpEffect({
+          exerciseId: lift.exerciseId,
+          exercise: musclesOf(lift.exerciseId),
+          injuries: injuryRows,
+          history: snapshot.history,
+          today: dayKeyOf(now),
+          dayKeyOf,
+        }),
         now,
       });
       const progress = block
@@ -175,10 +216,17 @@ export async function dprStatus(context: UserContext) {
     const setRows = await tx.select().from(sets);
     const routineRows = await tx.select().from(routines);
     const itemRows = await tx.select().from(routineExercises);
+    const injuryRows = await tx.select().from(injuries);
     const exerciseIds = [...new Set(liftRows.map((lift) => lift.exerciseId))];
     const exerciseRows = exerciseIds.length
       ? await tx
-          .select({ id: exercises.id, name: exercises.name, equipment: exercises.equipment })
+          .select({
+            id: exercises.id,
+            name: exercises.name,
+            equipment: exercises.equipment,
+            primaryMuscles: exercises.primaryMuscles,
+            secondaryMuscles: exercises.secondaryMuscles,
+          })
           .from(exercises)
           .where(inArray(exercises.id, exerciseIds))
       : [];
@@ -195,6 +243,8 @@ export async function dprStatus(context: UserContext) {
         routines: routineRows,
         routineExercises: itemRows,
       },
+      injuries: injuryRows,
+      timeZone: user.timeZone,
       now: new Date(),
     });
   });

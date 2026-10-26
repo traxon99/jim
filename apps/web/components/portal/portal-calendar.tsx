@@ -15,6 +15,7 @@ import {
   type AchievementCategory,
   buildTrainingCalendar,
   dateKey,
+  painSuggestion,
   trainingStreak,
 } from "@jim/core";
 import { Flame } from "lucide-react";
@@ -26,6 +27,18 @@ const HEADING = "text-xs font-semibold uppercase tracking-wide text-zinc-500 dar
 
 const SELECT_CLASS =
   "min-h-11 min-w-0 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-950 md:text-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50";
+
+/** The overlay's tint for a day's worst pain (issue #627), by the same bands as the suggestions. */
+const PAIN_CLASSES = {
+  light: "bg-amber-300 dark:bg-amber-600",
+  swap: "bg-orange-500",
+  skip: "bg-red-600",
+} as const;
+
+function painClass(pain: number): string {
+  const band = painSuggestion(pain);
+  return band ? PAIN_CLASSES[band] : "";
+}
 
 function weeks(count: number): string {
   return `${count} ${count === 1 ? "week" : "weeks"}`;
@@ -50,6 +63,10 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
   const isClient = useIsClient();
   const [period, setPeriod] = useState<CalendarPeriod>("12m");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  // Off by default (issue #627): injuries stay out of view until asked for.
+  const [showInjuries, setShowInjuries] = useState(false);
+  const hasPainDays = Object.keys(data.painDays).length > 0;
+  const painDays = showInjuries ? data.painDays : null;
 
   const workouts = useMemo(
     () =>
@@ -107,25 +124,41 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
     <div className="route-fade flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-2xl font-semibold">Calendar</h1>
-        {view && (
-          <label className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-500">
-            Show
-            <select
-              value={period}
-              onChange={(event) => {
-                setPeriod(event.target.value as CalendarPeriod);
-                setSelectedKey(null);
-              }}
-              className={SELECT_CLASS}
+        <div className="flex flex-wrap items-center gap-3">
+          {view && hasPainDays && (
+            <button
+              type="button"
+              aria-pressed={showInjuries}
+              onClick={() => setShowInjuries((current) => !current)}
+              className={`min-h-11 rounded-lg border px-3 text-sm font-medium ${
+                showInjuries
+                  ? "border-accent bg-accent text-accent-foreground"
+                  : "border-zinc-200 dark:border-zinc-800"
+              }`}
             >
-              {view.periods.map((option) => (
-                <option key={option} value={option}>
-                  {option === "12m" ? "Last 12 months" : option}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+              Show injuries
+            </button>
+          )}
+          {view && (
+            <label className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-500">
+              Show
+              <select
+                value={period}
+                onChange={(event) => {
+                  setPeriod(event.target.value as CalendarPeriod);
+                  setSelectedKey(null);
+                }}
+                className={SELECT_CLASS}
+              >
+                {view.periods.map((option) => (
+                  <option key={option} value={option}>
+                    {option === "12m" ? "Last 12 months" : option}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
       </header>
 
       {data.workouts.length === 0 ? (
@@ -147,7 +180,8 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
 
           <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
             <h2 className={HEADING}>
-              {period === "12m" ? "The last 12 months" : period}, shaded by volume
+              {period === "12m" ? "The last 12 months" : period}, shaded by{" "}
+              {painDays ? "pain on check-in days, volume otherwise" : "volume"}
             </h2>
             <YearHeatmap
               columns={view.columns}
@@ -157,6 +191,7 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
               selectedKey={selectedKey}
               onSelect={(key) => setSelectedKey((current) => (current === key ? null : key))}
               units={data.units}
+              painDays={painDays}
             />
             {selectedKey ? (
               <div className="flex flex-col gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-900">
@@ -168,6 +203,11 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
                     year: "numeric",
                   })}
                 </h3>
+                {painDays?.[selectedKey] && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                    Pain: {painDays[selectedKey].injuries.join(", ")}
+                  </p>
+                )}
                 <ul className="flex flex-col gap-1">
                   {selectedWorkouts.map((workout) => (
                     <li key={workout.id}>
@@ -216,6 +256,7 @@ function YearHeatmap({
   selectedKey,
   onSelect,
   units,
+  painDays,
 }: {
   columns: ReturnType<typeof heatmapColumns>;
   days: ReturnType<typeof buildTrainingCalendar>;
@@ -224,6 +265,8 @@ function YearHeatmap({
   selectedKey: string | null;
   onSelect: (key: string) => void;
   units: string;
+  /** With "Show injuries" on: check-in days tint by their worst pain instead of volume. */
+  painDays: PortalCalendarData["painDays"] | null;
 }) {
   const maxVolume = Math.max(0, ...[...days.values()].map((day) => day.totalVolume));
   const weekdayLabels = useMemo(() => {
@@ -274,6 +317,9 @@ function YearHeatmap({
                   return <span key={key} className={CELL} aria-hidden="true" />;
                 }
                 const day = days.get(key);
+                const pain = painDays?.[key];
+                const painTint = pain ? painClass(pain.pain) : "";
+                const painText = pain ? `; pain: ${pain.injuries.join(", ")}` : "";
                 const ring =
                   key === selectedKey
                     ? "ring-2 ring-accent"
@@ -284,8 +330,8 @@ function YearHeatmap({
                   return (
                     <span
                       key={key}
-                      title={date.toLocaleDateString()}
-                      className={`${CELL} bg-zinc-100 dark:bg-zinc-900 ${ring}`}
+                      title={`${date.toLocaleDateString()}${painText}`}
+                      className={`${CELL} ${painTint || "bg-zinc-100 dark:bg-zinc-900"} ${ring}`}
                     />
                   );
                 }
@@ -295,7 +341,7 @@ function YearHeatmap({
                   day: "numeric",
                 })}: ${day.sessionCount} workout${day.sessionCount === 1 ? "" : "s"}, ${Math.round(
                   day.totalVolume,
-                ).toLocaleString()} ${units}`;
+                ).toLocaleString()} ${units}${painText}`;
                 return (
                   <button
                     key={key}
@@ -305,7 +351,7 @@ function YearHeatmap({
                     aria-pressed={key === selectedKey}
                     onClick={() => onSelect(key)}
                     className={`${CELL} ${
-                      intensityClass(day.totalVolume, maxVolume) || INTENSITY_LEVELS[0]
+                      painTint || intensityClass(day.totalVolume, maxVolume) || INTENSITY_LEVELS[0]
                     } ${ring}`}
                   />
                 );
@@ -314,6 +360,16 @@ function YearHeatmap({
           ))}
         </div>
       </div>
+      {painDays && (
+        <div className="flex items-center justify-end gap-1 text-[11px] text-zinc-500 dark:text-zinc-500">
+          <span className="mr-0.5">Pain 1–3</span>
+          <span aria-hidden="true" className={`h-3 w-3 rounded-sm ${PAIN_CLASSES.light}`} />
+          <span className="mx-0.5">4–6</span>
+          <span aria-hidden="true" className={`h-3 w-3 rounded-sm ${PAIN_CLASSES.swap}`} />
+          <span className="mx-0.5">7+</span>
+          <span aria-hidden="true" className={`h-3 w-3 rounded-sm ${PAIN_CLASSES.skip}`} />
+        </div>
+      )}
       <div className="flex items-center justify-end gap-1 text-[11px] text-zinc-500 dark:text-zinc-500">
         <span className="mr-0.5">Less volume</span>
         {INTENSITY_LEVELS.map((level) => (

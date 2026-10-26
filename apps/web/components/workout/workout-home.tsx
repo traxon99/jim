@@ -10,6 +10,7 @@ import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { useGyms } from "@/lib/gyms/use-gyms";
+import { useHasOpenInjury } from "@/lib/injuries/use-injuries";
 import { formatLastDone, lastDoneByRoutine } from "@/lib/routines/last-done";
 import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/start-session";
@@ -34,6 +35,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const dprContext = useDprContext();
   const gyms = useGyms();
+  const hasOpenInjury = useHasOpenInjury();
   const itemsByRoutine = useLiveQuery(async () => {
     const map = new Map<string, RoutineExerciseRow[]>();
     if (!dprContext) return map;
@@ -107,11 +109,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const closePreview = useCallback(() => setPreview(null), []);
 
   // DPR users see today's targets and pick an intensity first (issue #235),
-  // and users with gyms pick one (issue #454); everyone else starts straight
-  // away.
+  // users with gyms pick one (issue #454), and anyone with an open injury
+  // checks in (issue #627); everyone else starts straight away.
   function handleChooseRoutine(routineId: string, routineName: string) {
-    if (dprContext || (gyms && gyms.length > 0)) setPreview({ id: routineId, name: routineName });
-    else void handleStartFromRoutine(routineId, null, null);
+    if (dprContext || (gyms && gyms.length > 0) || hasOpenInjury) {
+      setPreview({ id: routineId, name: routineName });
+    } else void handleStartFromRoutine(routineId, null, null);
   }
 
   // Tapping a routine previews it in the sheet, DPR or not (issue #282).

@@ -138,6 +138,12 @@ gyms               id, user_id, name, address?, notes?, is_default, position
                    -- places the user trains; one live row is the home gym (#451).
                    -- equipment details (#450) will attach here
 
+injuries           id, user_id, area, side?, started_on, healed_on?, note?
+                   -- area: a muscle or a joint (knee|elbow|wrist|hip|ankle); side:
+                   -- left|right|both for paired areas. Open until healed_on (#627).
+pain_checkins      id, user_id, injury_id, day, pain_level (0–10)
+                   -- one per injury per local day; a day without one has no pain level
+
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 
 friendships        id, requester_id, addressee_id, status(pending|accepted),

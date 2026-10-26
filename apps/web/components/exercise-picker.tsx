@@ -8,7 +8,7 @@ import {
 } from "@/components/exercises/exercise-catalog";
 import { ExerciseForm } from "@/components/exercises/exercise-form";
 import { useGymNames } from "@/lib/exercises/display";
-import type { ExerciseCategory } from "@jim/core";
+import { type ExerciseCategory, type ExerciseMuscles, sparingSwapFilter } from "@jim/core";
 import { Check, Plus } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -34,6 +34,12 @@ interface Props {
    * Add exercise menu (issue #226). Only strength exercises are suggested.
    */
   suggestedExerciseIds?: readonly string[];
+  /**
+   * Replacing an exercise an open injury affects (issue #627): list only
+   * swaps that work its other muscles and spare these areas, until the user
+   * asks to see everything. `label` names them, e.g. "your left knee".
+   */
+  spare?: { exercise: ExerciseMuscles; areas: readonly string[]; label: string } | null;
 }
 
 const SECTION_LABEL = `pt-4 pb-1 ${CATALOG_SECTION_LABEL}`;
@@ -46,8 +52,21 @@ export function ExercisePicker({
   initialCategory = "all",
   mode = "add",
   suggestedExerciseIds = [],
+  spare = null,
 }: Props) {
   const replacing = mode === "replace";
+  const [showAll, setShowAll] = useState(false);
+  // Keyed on the exercise and areas, so a fresh `spare` object each render
+  // doesn't re-filter the whole catalog.
+  const spareExercise = spare?.exercise ?? null;
+  const spareAreas = spare?.areas.join("|") ?? "";
+  const include = useMemo(
+    () =>
+      spareExercise && spareAreas && !showAll
+        ? sparingSwapFilter(spareExercise, spareAreas.split("|"))
+        : null,
+    [spareExercise, spareAreas, showAll],
+  );
   const gymNames = useGymNames();
 
   // Full-screen overlay rules (docs/PWA.md §2, #521): lock the page behind
@@ -67,7 +86,7 @@ export function ExercisePicker({
   useEffect(() => setMounted(true), []);
   const portal = (content: ReactNode) => (mounted ? createPortal(content, document.body) : null);
   // The same search, filters and sections as the Exercises tab (#710).
-  const catalog = useExerciseCatalog({ userId, initialCategory, excludeExerciseIds });
+  const catalog = useExerciseCatalog({ userId, initialCategory, excludeExerciseIds, include });
   const { query, deferredQuery, results, usage, yours, rest, restPage } = catalog;
   const { category } = catalog.filters;
   // Issue #169: create a missing exercise from here with the same form the
@@ -212,6 +231,18 @@ export function ExercisePicker({
         {!replacing && (
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
             Pick two or more to add them as a superset.
+          </p>
+        )}
+        {spare && (
+          <p className="flex flex-wrap items-center gap-x-2 text-xs text-zinc-500 dark:text-zinc-500">
+            {showAll ? "Showing every exercise." : `Swaps that spare ${spare.label}.`}
+            <button
+              type="button"
+              onClick={() => setShowAll((current) => !current)}
+              className="min-h-11 font-medium text-accent underline underline-offset-4"
+            >
+              {showAll ? `Only ones that spare ${spare.label}` : "Show all"}
+            </button>
           </p>
         )}
       </div>

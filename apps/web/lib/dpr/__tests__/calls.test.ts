@@ -523,3 +523,70 @@ describe("mesocycle mode (issue #250)", () => {
     ).toBeNull();
   });
 });
+
+describe("injuries and PRP (issue #627)", () => {
+  const chest = {
+    ...exercise(BENCH, "Bench", "barbell"),
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["triceps"],
+  } as ExerciseRow;
+  const dayKeyAgo = (n: number) => {
+    const date = daysAgo(n);
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${date.getFullYear()}-${m}-${d}`;
+  };
+  function injury(area: string, startedDaysAgo: number, healedDaysAgo: number | null) {
+    return {
+      id: `injury-${area}`,
+      userId: USER_ID,
+      area,
+      side: "left",
+      startedOn: dayKeyAgo(startedDaysAgo),
+      healedOn: healedDaysAgo === null ? null : dayKeyAgo(healedDaysAgo),
+      note: null,
+      createdAt: daysAgo(startedDaysAgo),
+      updatedAt: daysAgo(startedDaysAgo),
+      deviceId: "d",
+      deletedAt: null,
+      serverSeq: 0,
+    };
+  }
+  async function injuredContext(injuries: ReturnType<typeof injury>[]) {
+    const ctx = buildDprContext({
+      settings: { ...DEFAULT_SETTINGS, dprEnabled: true },
+      blocks: [block],
+      lifts: [lift(BENCH, 0, "220")],
+      exercises: [chest],
+      snapshot: await loadDprSnapshot(testDb, { low: 6, high: 8 }),
+      injuries,
+      now: new Date(),
+    });
+    if (!ctx) throw new Error("expected a PRP context");
+    return ctx;
+  }
+
+  it("makes a lift a light day while an open injury hits its primary muscle", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const ctx = await injuredContext([injury("chest", 1, null)]);
+    expect(dprCallFor(ctx, BENCH, target(BENCH, 0))?.decision).toMatchObject({
+      call: "light",
+      weight: 165,
+    });
+    // A secondary hit only shows the hint.
+    const elbow = await injuredContext([injury("elbow", 1, null)]);
+    expect(dprCallFor(elbow, BENCH, target(BENCH, 0))?.decision.call).toBe("increase");
+  });
+
+  it("keeps sessions logged while injured out of progression, then eases back in", async () => {
+    await logSession(BENCH, 10, 185, 8, 7);
+    // A grindy session while the chest was hurt would otherwise count as a miss.
+    await logSession(BENCH, 4, 185, 4, 10);
+    const ctx = await injuredContext([injury("chest", 5, 2)]);
+    expect(dprCallFor(ctx, BENCH, target(BENCH, 0))?.decision).toMatchObject({
+      call: "reenter",
+      weight: 175,
+      reason: "Back from injury — easing back in 5%",
+    });
+  });
+});

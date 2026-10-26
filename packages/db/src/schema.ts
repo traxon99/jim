@@ -821,6 +821,73 @@ export const gyms = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// injuries — a hurt area the user trains around (issue #627, CONTEXT.md),
+// open from `startedOn` until the user marks it healed. `area` is one of
+// @jim/core's INJURY_AREAS (a muscle or a joint); `side` is left, right or
+// both for paired areas and null otherwise. Days are the user's local
+// calendar days. Private: never read by social, the feed or share links.
+// ---------------------------------------------------------------------------
+
+export const injuries = pgTable(
+  "injuries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    area: text("area").notNull(),
+    side: text("side"),
+    startedOn: date("started_on").notNull(),
+    healedOn: date("healed_on"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("injuries", table.userId),
+    index("injuries_server_seq").on(table.serverSeq),
+    index("injuries_user_seq").on(table.userId, table.serverSeq),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// pain_checkins — one injury's pain level (0–10) on one local day. Logging
+// again the same day updates that day's row; a day with no row has no pain
+// level. Readers keep the newest row per (injury, day) in case two devices
+// each wrote one offline.
+// ---------------------------------------------------------------------------
+
+export const painCheckins = pgTable(
+  "pain_checkins",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    injuryId: uuid("injury_id")
+      .notNull()
+      .references(() => injuries.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    painLevel: smallint("pain_level").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("pain_checkins", table.userId),
+    index("pain_checkins_server_seq").on(table.serverSeq),
+    index("pain_checkins_user_seq").on(table.userId, table.serverSeq),
+    index("pain_checkins_injury_id").on(table.injuryId),
+    check("pain_checkins_pain_level_range", sql`${table.painLevel} BETWEEN 0 AND 10`),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // scheduled_workouts — planned sessions written by the MCP server (S8's
 // `schedule_workout`). Deliberately its own table rather than a `sessions`
 // row with a future `startedAt`: the phone treats any `sessions` row with

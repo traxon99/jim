@@ -1,4 +1,5 @@
 import { predictOneRepMax } from "../history/predicted-one-rep-max";
+import { type InjuryPrpEffect, applyInjuryEffect } from "../injuries/effects";
 import {
   type DprDecision,
   type RepRange,
@@ -84,6 +85,8 @@ export function callForLift(input: {
   block?: DprBlockInfo | null;
   /** The session's "how hard today?" pick (issue #235); ignored in a deload week. */
   intensity?: SessionIntensity | null;
+  /** An injury's pull on the lift (issue #627); ignored in a deload week, which is lighter already. */
+  injuryEffect?: InjuryPrpEffect | null;
   now: Date;
 }): DprLiftCall {
   const { snapshot, exerciseId, settings, now } = input;
@@ -122,6 +125,7 @@ export function callForLift(input: {
     };
   } else {
     decision = applyIntensity(decision, input.intensity, increment);
+    decision = applyInjuryEffect(decision, input.injuryEffect, increment);
   }
   return { exerciseId, decision, repRange, increment, rpeCap: preset.rpeCap };
 }

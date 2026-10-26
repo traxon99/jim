@@ -30,6 +30,14 @@ export function ProfileHome() {
           Measurements
           <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
         </Link>
+        <Link
+          href="/profile/injuries"
+          data-ripple
+          className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+        >
+          Injuries
+          <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+        </Link>
         <AchievementsSection />
         <YourPostsSection />
       </div>

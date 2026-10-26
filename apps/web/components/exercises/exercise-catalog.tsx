@@ -2,7 +2,7 @@
 
 import { Highlight } from "@/components/highlight";
 import { useIncrementalList } from "@/components/use-incremental-list";
-import { db } from "@/lib/db/schema";
+import { type ExerciseRow, db } from "@/lib/db/schema";
 import { EXERCISE_CATEGORY_TABS, exerciseMetaLine } from "@/lib/exercises/display";
 import { formatLastDone } from "@/lib/routines/last-done";
 import {
@@ -42,12 +42,15 @@ interface CatalogOptions {
   initialCategory?: ExerciseCategory | "all";
   /** Left out of the results, e.g. the exercises already in the workout. */
   excludeExerciseIds?: ReadonlySet<string>;
+  /** Only exercises this keeps, e.g. swaps that spare an injury (issue #627). Keep it stable. */
+  include?: ((exercise: ExerciseRow) => boolean) | null;
 }
 
 export function useExerciseCatalog({
   userId,
   initialCategory = "all",
   excludeExerciseIds,
+  include = null,
 }: CatalogOptions) {
   // Dexie live query: re-renders whenever the local catalog changes (a pull
   // landing, a new custom exercise), with no network on the read path.
@@ -90,7 +93,9 @@ export function useExerciseCatalog({
       muscle: muscle || undefined,
       equipment: equipment || undefined,
       category: category === "all" ? undefined : category,
-    }).filter((exercise) => !excludeExerciseIds?.has(exercise.id));
+    }).filter(
+      (exercise) => !excludeExerciseIds?.has(exercise.id) && (!include || include(exercise)),
+    );
     const sorted = sortExercisesByUsage(filtered, usageByExerciseId, sortKey);
     const ranked = searchExercises(sorted, deferredQuery);
 
@@ -118,6 +123,7 @@ export function useExerciseCatalog({
     category,
     sortKey,
     excludeExerciseIds,
+    include,
   ]);
 
   // Issue #330: exercises you've logged come first, most recent first, above

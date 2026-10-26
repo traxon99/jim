@@ -20,13 +20,14 @@ export function useDprContext(): DprContext | null {
   const enabled = settings.dprEnabled;
   const data = useLiveQuery(async () => {
     if (!enabled) return null;
-    const [blocks, lifts, exercises, snapshot] = await Promise.all([
+    const [blocks, lifts, exercises, snapshot, injuries] = await Promise.all([
       db.dprBlocks.toArray(),
       db.dprBlockLifts.toArray(),
       db.exercises.toArray(),
       loadDprSnapshot(db, defaultRepRange(settings)),
+      db.injuries.toArray(),
     ]);
-    return { blocks, lifts, exercises, snapshot };
+    return { blocks, lifts, exercises, snapshot, injuries };
   }, [enabled, settings.dprDefaultRepLow, settings.dprDefaultRepHigh]);
 
   return useMemo(() => {

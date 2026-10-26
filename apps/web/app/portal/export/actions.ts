@@ -9,6 +9,8 @@ import {
   dprBlocks,
   exercises,
   gyms,
+  injuries,
+  painCheckins,
   personalRecords,
   programRoutines,
   programs,
@@ -43,6 +45,8 @@ export async function loadExportTables(): Promise<ExportTables> {
     const blockRows = await tx.select().from(dprBlocks);
     const liftRows = await tx.select().from(dprBlockLifts);
     const gymRows = await tx.select().from(gyms);
+    const injuryRows = await tx.select().from(injuries);
+    const checkinRows = await tx.select().from(painCheckins);
     // The exercises the history names, plus every custom one the user owns.
     const exerciseIds = [
       ...new Set([
@@ -73,6 +77,8 @@ export async function loadExportTables(): Promise<ExportTables> {
       dprBlocks: blockRows,
       dprBlockLifts: liftRows,
       gyms: gymRows,
+      injuries: injuryRows,
+      painCheckins: checkinRows,
     };
   });
 }

@@ -3,6 +3,7 @@
 import { CallMark } from "@/components/dpr/call-mark";
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
+import { type ExerciseInjury, InjuryHint, InjuryIcon } from "@/components/injuries/injury-hint";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
 import { type LongPressStart, useLongPress } from "@/components/workout/use-long-press";
@@ -116,6 +117,10 @@ interface Props {
    * the finger is still down when it's called.
    */
   onNameLongPress?: (start: LongPressStart) => void;
+  /** An open injury this exercise works (issue #627): its icon, and today's suggestion. */
+  injury?: ExerciseInjury | null;
+  /** Opens Replace exercise filtered to spare the injured area; absent once sets are logged. */
+  onInjurySwap?: () => void;
 }
 
 function toNumberOrNull(value: string): number | null {
@@ -206,6 +211,8 @@ export function SessionExerciseSection({
   workSeconds,
   actions,
   onNameLongPress,
+  injury = null,
+  onInjurySwap,
 }: Props) {
   const nameLongPress = useLongPress(onNameLongPress);
   const sizes = sizesFor(large);
@@ -883,6 +890,7 @@ export function SessionExerciseSection({
           ) : (
             <span className="min-w-0">Exercise</span>
           )}
+          {injury && <InjuryIcon injury={injury} />}
           {dpr && (
             <span
               title={dprBadge(dpr.decision.call).label}
@@ -915,6 +923,15 @@ export function SessionExerciseSection({
           <Pin className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} aria-hidden="true" />
           <span className="allow-pwa-select min-w-0 whitespace-pre-wrap">{stickyNote}</span>
         </button>
+      )}
+
+      {injury && (
+        <InjuryHint
+          injury={injury}
+          sessionId={sessionId}
+          exerciseId={item.exerciseId}
+          onSwap={onInjurySwap}
+        />
       )}
 
       {item.restSeconds != null && (

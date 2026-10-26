@@ -18,6 +18,7 @@ import { mutate } from "@/lib/db/mutate";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { useGyms } from "@/lib/gyms/use-gyms";
+import { useHasOpenInjury } from "@/lib/injuries/use-injuries";
 import { routineItemSummary } from "@/lib/routines/summary";
 import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -79,6 +80,7 @@ export function RoutineDetail({
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   const dprContext = useDprContext();
   const gyms = useGyms();
+  const hasOpenInjury = useHasOpenInjury();
 
   const routine = useLiveQuery(async () => (await db.routines.get(id)) ?? null, [id]);
   const rawItems = useLiveQuery(
@@ -223,11 +225,11 @@ export function RoutineDetail({
     }
   }
 
-  // DPR users pick today's intensity, and users with gyms a gym (issue #454),
-  // in the pre-workout sheet first, as on the Workout tab; everyone else
-  // starts straight away.
+  // DPR users pick today's intensity, users with gyms a gym (issue #454) and
+  // anyone with an open injury checks in (issue #627), in the pre-workout
+  // sheet first, as on the Workout tab; everyone else starts straight away.
   function handleStart() {
-    if (dprContext || (gyms && gyms.length > 0)) setSheetOpen(true);
+    if (dprContext || (gyms && gyms.length > 0) || hasOpenInjury) setSheetOpen(true);
     else void startRoutine(null, null);
   }
 
