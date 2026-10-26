@@ -2,11 +2,12 @@ import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 
 /**
- * Classes for a button or link floating in a PageHeader: a translucent,
- * blurred pill so it reads over whatever is scrolling underneath.
+ * Classes for a button or link floating in a PageHeader: a translucent pill
+ * that reads over whatever is scrolling underneath. No backdrop blur, so the
+ * button stays sharp on the phone (#720).
  */
 export const FLOATING_BUTTON =
-  "flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-zinc-900/10 bg-white/60 text-zinc-800 backdrop-blur-md dark:border-white/15 dark:bg-zinc-900/60 dark:text-zinc-100";
+  "flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-zinc-900/10 bg-white/80 text-zinc-800 dark:border-white/15 dark:bg-zinc-900/80 dark:text-zinc-100";
 
 /**
  * Classes for the content below a PageHeader, so every page shares the same
@@ -30,8 +31,10 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 
 /**
  * The header every top-level page shares. There's no solid bar: the title and
- * any buttons float, pinned below the status bar, and content scrolling under
- * them is blurred and softened by the backdrop (issues #311, #313).
+ * any buttons float, pinned below the status bar, over a translucent wash that
+ * softens content scrolling under them. The blur stays up over the status
+ * bar (.status-bar-scrim), so the title and buttons stay sharp (#311, #313,
+ * #720).
  */
 export function PageHeader({
   title,

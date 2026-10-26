@@ -68,5 +68,7 @@ describe("layout guards", () => {
     const rules = [...css.matchAll(/\.floating-header-backdrop\s*\{([^}]*)\}/g)];
     expect(rules.length).toBeGreaterThan(0);
     for (const [, body] of rules) expect(body).not.toMatch(/backdrop-filter/);
+    const header = readFileSync(path.join(webRoot, "components/page-header.tsx"), "utf8");
+    expect(header).not.toMatch(/backdrop-blur/);
   });
 });
