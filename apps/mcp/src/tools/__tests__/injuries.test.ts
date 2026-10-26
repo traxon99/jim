@@ -67,6 +67,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("injury tools (#627)", () => {
     expect(listed.healed?.map((row) => row.label)).toEqual(["Left knee"]);
 
     const id = listed.healed?.[0]?.id ?? "";
+    await expect(logPain(context, { injury: id, painLevel: 3 })).rejects.toThrow("healed");
     const preview = await deleteInjury(context, { injury: id, dryRun: true });
     expect(preview).toMatchObject({ deleted: true, dryRun: true });
     const deleted = await deleteInjury(context, { injury: id });

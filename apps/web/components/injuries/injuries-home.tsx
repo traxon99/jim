@@ -7,7 +7,6 @@ import {
   injuryHistoryByArea,
   logPain,
   markHealed,
-  reopenInjury,
   sortOpenInjuries,
 } from "@/lib/injuries";
 import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
@@ -19,6 +18,26 @@ import { PainPicker } from "./pain-picker";
 import { ReportInjuryCard } from "./report-injury-card";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Runs a save, showing its failure next to the buttons (docs/LESSONS.md, Taps). */
+function useSaveError() {
+  const [error, setError] = useState<string | null>(null);
+  const run = (save: Promise<unknown>) => {
+    setError(null);
+    save.catch((caught: unknown) =>
+      setError(caught instanceof Error ? caught.message : "Couldn't save. Try again."),
+    );
+  };
+  return { error, run };
+}
+
+function SaveError({ error }: { error: string | null }) {
+  return error ? (
+    <p role="alert" className="text-sm text-red-600 dark:text-red-500">
+      {error}
+    </p>
+  ) : null;
+}
 const RECENT_DAYS = 7;
 
 function daysBetween(from: string, to: string): number {
@@ -90,7 +109,7 @@ function OpenInjuryCard({
   today: string;
 }) {
   const label = injuryAreaLabel(injury.area, injury.side);
-  const [error, setError] = useState<string | null>(null);
+  const { error, run } = useSaveError();
   return (
     <li className="flex min-w-0 flex-col gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
       <div className="flex min-w-0 flex-col">
@@ -111,24 +130,15 @@ function OpenInjuryCard({
         <PainPicker
           value={todaysPain(checkins, injury.id, today)}
           label={`${label} pain today`}
-          onChange={(level) => {
-            setError(null);
-            logPain(injury, level, today).catch(() =>
-              setError("Couldn't save your check-in. Try again."),
-            );
-          }}
+          onChange={(level) => run(logPain(injury, level, today))}
         />
       </div>
       <HealedPrompt injury={injury} checkins={checkins} today={today} />
-      {error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-500">
-          {error}
-        </p>
-      )}
+      <SaveError error={error} />
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => void markHealed(injury, today)}
+          onClick={() => run(markHealed(injury, today))}
           className="min-h-11 flex-1 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
         >
           Mark healed
@@ -137,7 +147,7 @@ function OpenInjuryCard({
           type="button"
           onClick={() => {
             if (window.confirm(`Delete ${label.toLowerCase()} and its check-ins?`)) {
-              void deleteInjury(injury);
+              run(deleteInjury(injury));
             }
           }}
           className="min-h-11 px-3 text-sm font-medium text-red-600 dark:text-red-500"
@@ -163,40 +173,36 @@ function HistoryRow({
   const levels = [...latestPainByDay(checkins, injury.id).values()];
   const peak = levels.length > 0 ? Math.max(...levels) : null;
   const label = injuryAreaLabel(injury.area, injury.side);
+  const { error, run } = useSaveError();
   return (
-    <li className="flex min-w-0 items-center justify-between gap-2 py-2">
-      <span className="flex min-w-0 flex-col">
-        <span className="text-sm font-medium">
-          {formatDayKey(injury.startedOn, today)} – {formatDayKey(healedOn, today)}
+    <li className="flex min-w-0 flex-col gap-1 py-2">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="flex min-w-0 flex-col">
+          <span className="text-sm font-medium">
+            {formatDayKey(injury.startedOn, today)} – {formatDayKey(healedOn, today)}
+          </span>
+          <span className="text-xs text-zinc-500 dark:text-zinc-500">
+            {days} day{days === 1 ? "" : "s"}
+            {peak !== null ? ` · peak pain ${peak}` : ""}
+            {injury.note ? ` · ${injury.note}` : ""}
+          </span>
         </span>
-        <span className="text-xs text-zinc-500 dark:text-zinc-500">
-          {days} day{days === 1 ? "" : "s"}
-          {peak !== null ? ` · peak pain ${peak}` : ""}
-          {injury.note ? ` · ${injury.note}` : ""}
+        <span className="flex shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Delete this ${label.toLowerCase()} injury and its check-ins?`)) {
+                run(deleteInjury(injury));
+              }
+            }}
+            aria-label={`Delete ${label.toLowerCase()} from ${formatDayKey(injury.startedOn, today)}`}
+            className="min-h-11 px-2 text-sm font-medium text-red-600 dark:text-red-500"
+          >
+            Delete
+          </button>
         </span>
-      </span>
-      <span className="flex shrink-0">
-        <button
-          type="button"
-          onClick={() => void reopenInjury(injury)}
-          aria-label={`Reopen ${label.toLowerCase()} from ${formatDayKey(injury.startedOn, today)}`}
-          className="min-h-11 px-2 text-sm font-medium text-accent"
-        >
-          Reopen
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (window.confirm(`Delete this ${label.toLowerCase()} injury and its check-ins?`)) {
-              void deleteInjury(injury);
-            }
-          }}
-          aria-label={`Delete ${label.toLowerCase()} from ${formatDayKey(injury.startedOn, today)}`}
-          className="min-h-11 px-2 text-sm font-medium text-red-600 dark:text-red-500"
-        >
-          Delete
-        </button>
-      </span>
+      </div>
+      <SaveError error={error} />
     </li>
   );
 }

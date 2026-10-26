@@ -2,6 +2,8 @@ import {
   MAX_AUTO_END_MINUTES,
   MEASUREMENT_KINDS,
   MIN_AUTO_END_MINUTES,
+  PAIN_MAX,
+  PAIN_MIN,
   PROGRESSION_TYPES,
   RPE_MAX,
   RPE_MIN,
@@ -809,8 +811,8 @@ export function createMcpServer(context: UserContext): McpServer {
   const painLevel = z
     .number()
     .int()
-    .min(0)
-    .max(10)
+    .min(PAIN_MIN)
+    .max(PAIN_MAX)
     .describe("Pain level: 0 is no pain, 10 the worst possible");
 
   server.registerTool(

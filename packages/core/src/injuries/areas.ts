@@ -44,12 +44,16 @@ export function isPairedArea(area: string): boolean {
   return !UNPAIRED.has(area);
 }
 
-function capitalize(text: string): string {
+/** The longest note a report keeps, in the app and the MCP. */
+export const INJURY_NOTE_MAX = 500;
+
+/** "lower back" → "Lower back", for area names in lists. */
+export function capitalizeArea(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** e.g. "Left knee", "Both shoulders", "Lower back". */
 export function injuryAreaLabel(area: string, side: InjurySide | string | null): string {
-  if (!side || !isPairedArea(area)) return capitalize(area);
-  return `${capitalize(side)} ${area}`;
+  if (!side || !isPairedArea(area)) return capitalizeArea(area);
+  return `${capitalizeArea(side)} ${area}`;
 }

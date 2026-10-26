@@ -42,6 +42,7 @@ export function HealedPrompt({
 }) {
   const lastDay = [...latestPainByDay(checkins, injury.id).keys()].at(-1) ?? null;
   const [notYet, setNotYet] = useState(() => readNotYet(injury.id));
+  const [error, setError] = useState<string | null>(null);
   if (!shouldAskHealed(checkins, injury.id) || (lastDay !== null && notYet === lastDay)) {
     return null;
   }
@@ -51,7 +52,10 @@ export function HealedPrompt({
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={() => void markHealed(injury, today)}
+          onClick={() => {
+            setError(null);
+            markHealed(injury, today).catch(() => setError("Couldn't save. Try again."));
+          }}
           className="min-h-11 flex-1 rounded-lg bg-accent px-3 text-sm font-medium text-accent-foreground"
         >
           Mark healed
@@ -68,6 +72,11 @@ export function HealedPrompt({
           Not yet
         </button>
       </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-500">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

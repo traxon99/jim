@@ -139,7 +139,7 @@ export function PreWorkoutSheet({
           </ul>
 
           {injuryData && openInjuries.length > 0 && (
-            <div className="max-h-[40dvh] shrink-0 overflow-y-auto overscroll-contain border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <div className="max-h-[40lvh] shrink-0 overflow-y-auto overscroll-contain border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
               <PainCheckin injuries={openInjuries} checkins={injuryData.checkins} today={today} />
             </div>
           )}

@@ -703,7 +703,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       onPointerDownCapture={primeRestAlertAudio}
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-xl font-semibold">
             <RoutineIconById routineId={session.routineId} className="h-5 w-5" />
             {session.name ?? "Workout"}
@@ -713,8 +713,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
             {session.startedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
           </p>
         </div>
-        {/* Issue #321: Finish is the header's only action; discarding the
-            workout lives at the bottom of the page, away from it. */}
+        {/* Issue #321: Finish is the header's only workout action (beside the
+            injury report button, #627); discarding the workout lives at the
+            bottom of the page, away from it. */}
         <div className="flex shrink-0 gap-2">
           <button
             type="button"

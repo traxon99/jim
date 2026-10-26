@@ -1,4 +1,5 @@
 import {
+  INJURY_NOTE_MAX,
   INJURY_SIDES,
   type InjurySide,
   PAIN_MAX,
@@ -29,9 +30,6 @@ import { MCP_DEVICE_ID } from "./create-routine.js";
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// Same cap as the phone (apps/web/lib/injuries).
-const NOTE_MAX = 500;
 
 type InjuryRow = typeof injuries.$inferSelect;
 type CheckinRow = typeof painCheckins.$inferSelect;
@@ -149,7 +147,7 @@ export async function reportInjury(context: UserContext, input: ReportInjuryInpu
     }
     const today = await userToday(tx, context.userId);
     const startedOn = checkDay(input.startedOn, today, "startedOn");
-    const note = input.note?.trim() ? input.note.trim().slice(0, NOTE_MAX) : null;
+    const note = input.note?.trim() ? input.note.trim().slice(0, INJURY_NOTE_MAX) : null;
     const now = new Date();
     const id = uuidv7();
     await tx.insert(injuries).values({
@@ -188,6 +186,9 @@ export async function logPain(
       throw new Error(`painLevel is a whole number from ${PAIN_MIN} to ${PAIN_MAX}.`);
     }
     const injury = await findInjury(tx, input.injury);
+    if (injury.healedOn !== null) {
+      throw new Error("That injury is healed. A new flare-up is a new injury: use report_injury.");
+    }
     const today = await userToday(tx, context.userId);
     const day = checkDay(input.day, today, "day");
     if (day < injury.startedOn) throw new Error("That day is before the injury started.");

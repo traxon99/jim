@@ -11,6 +11,7 @@ import {
   MUSCLES,
   type MuscleShading,
   areaMuscles,
+  capitalizeArea,
   injuryAreaLabel,
   isPairedArea,
 } from "@jim/core";
@@ -18,10 +19,6 @@ import { useRef, useState } from "react";
 import { PainPicker } from "./pain-picker";
 
 const SIDE_LABELS: Record<InjurySide, string> = { left: "Left", right: "Right", both: "Both" };
-
-function capitalize(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
 
 /**
  * Report an injury (issue #627): where it hurts, picked on the body map or
@@ -64,11 +61,10 @@ export function ReportInjuryCard({
       note,
       today,
     };
-    const cleaned = cleanInjuryInput(input);
-    if (!cleaned.ok) {
-      setError(
-        painLevel === null && area && (!paired || side) ? "Pick today's pain" : cleaned.error,
-      );
+    // Every other field's error first, then the missing pain.
+    const cleaned = cleanInjuryInput({ ...input, painLevel: painLevel ?? 0 });
+    if (!cleaned.ok || painLevel === null) {
+      setError(cleaned.ok ? "Pick today's pain" : cleaned.error);
       return;
     }
     busy.current = true;
@@ -118,14 +114,14 @@ export function ReportInjuryCard({
                 <optgroup label="Joints">
                   {JOINTS.map((joint) => (
                     <option key={joint} value={joint}>
-                      {capitalize(joint)}
+                      {capitalizeArea(joint)}
                     </option>
                   ))}
                 </optgroup>
                 <optgroup label="Muscles">
                   {MUSCLES.map((muscle) => (
                     <option key={muscle} value={muscle}>
-                      {capitalize(muscle)}
+                      {capitalizeArea(muscle)}
                     </option>
                   ))}
                 </optgroup>

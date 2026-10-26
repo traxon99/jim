@@ -4,6 +4,8 @@ import type {
   DprBlockRow,
   ExerciseRow,
   GymRow,
+  InjuryRow,
+  PainCheckinRow,
   PersonalRecordRow,
   ProgramRoutineRow,
   ProgramRow,
@@ -51,6 +53,9 @@ export interface ExportTables extends HistoryTables {
   dprBlocks: readonly DprBlockRow[];
   dprBlockLifts: readonly DprBlockLiftRow[];
   gyms: readonly GymRow[];
+  /** Injuries and their pain check-ins (issue #627); private, but the user's own. */
+  injuries?: readonly InjuryRow[];
+  painCheckins?: readonly PainCheckinRow[];
   settings: SettingsRow | undefined;
 }
 
@@ -178,7 +183,7 @@ const JSON_EXPORT_VERSION = 1;
 /**
  * Everything the user owns: workouts (with each exercise's name alongside
  * its id, since catalog exercises aren't included), routines, programs,
- * custom exercises, PRs, bodyweight, DPR blocks, gyms and settings (DPR
+ * custom exercises, PRs, bodyweight, DPR blocks, gyms, injuries and settings (DPR
  * config included).
  */
 export function jsonExportFromTables(tables: ExportTables, now: Date = new Date()): string {
@@ -193,6 +198,8 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     dprBlocks,
     dprBlockLifts,
     gyms,
+    injuries = [],
+    painCheckins = [],
     settings,
   } = tables;
   const exerciseName = new Map(history.exercises.map((exercise) => [exercise.id, exercise.name]));
@@ -228,6 +235,8 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     dprBlocks: live(dprBlocks),
     dprBlockLifts: live(dprBlockLifts.filter((lift) => liveBlockIds.has(lift.blockId))),
     gyms: live(gyms),
+    injuries: live(injuries),
+    painCheckins: live(painCheckins),
   };
   return JSON.stringify(data, null, 2);
 }

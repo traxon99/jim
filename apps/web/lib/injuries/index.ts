@@ -2,6 +2,7 @@ import { mutate } from "@/lib/db/mutate";
 import { type InjuryRow, type JimDatabase, type PainCheckinRow, db } from "@/lib/db/schema";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
+  INJURY_NOTE_MAX,
   INJURY_SIDES,
   type InjurySide,
   PAIN_MAX,
@@ -22,7 +23,7 @@ import {
  * a later flare-up in the same area is a new injury.
  */
 
-export const INJURY_NOTE_MAX = 500;
+export { INJURY_NOTE_MAX } from "@jim/core";
 
 export interface ReportInjuryInput {
   userId: string;
@@ -133,21 +134,6 @@ export async function markHealed(
   const entity: InjuryRow = {
     ...injury,
     healedOn: day,
-    updatedAt: new Date(),
-    deviceId: await getDeviceId(database),
-  };
-  await mutate("injuries", entity, database);
-  return entity;
-}
-
-/** Reopens an injury marked healed by mistake. */
-export async function reopenInjury(
-  injury: InjuryRow,
-  database: JimDatabase = db,
-): Promise<InjuryRow> {
-  const entity: InjuryRow = {
-    ...injury,
-    healedOn: null,
     updatedAt: new Date(),
     deviceId: await getDeviceId(database),
   };
