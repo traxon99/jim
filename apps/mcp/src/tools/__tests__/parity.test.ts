@@ -312,6 +312,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       showRestStats: true,
       // The working set timer (issue #634) starts off.
       showSetTimer: false,
+      showInjuryRules: true,
     });
     const toggles = await updateSettings(context, { showSetTypes: false, showRestStats: false });
     expect(toggles.changed.sort()).toEqual(["showRestStats", "showSetTypes"]);

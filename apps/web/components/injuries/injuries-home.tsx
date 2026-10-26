@@ -1,7 +1,7 @@
 "use client";
 
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
-import type { InjuryRow, PainCheckinRow } from "@/lib/db/schema";
+import { type InjuryRow, type PainCheckinRow, db } from "@/lib/db/schema";
 import {
   deleteInjury,
   injuryHistoryByArea,
@@ -10,9 +10,12 @@ import {
   sortOpenInjuries,
 } from "@/lib/injuries";
 import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
+import { DEFAULT_SETTINGS, showsInjuryRules } from "@/lib/settings";
 import { formatDayKey, injuryAreaLabel, latestPainByDay, todaysPain } from "@jim/core";
+import { useLiveQuery } from "dexie-react-hooks";
 import { Bandage } from "lucide-react";
 import { useState } from "react";
+import { InjuryExerciseRules } from "./exercise-rules";
 import { HealedPrompt } from "./pain-checkin";
 import { PainPicker } from "./pain-picker";
 import { ReportInjuryCard } from "./report-injury-card";
@@ -103,10 +106,17 @@ function OpenInjuryCard({
   injury,
   checkins,
   today,
+  userId,
+  units,
+  editRules,
 }: {
   injury: InjuryRow;
   checkins: readonly PainCheckinRow[];
   today: string;
+  userId: string;
+  units: "kg" | "lb";
+  /** Settings → Advanced's injury exercise rules switch (issue #724). */
+  editRules: boolean;
 }) {
   const label = injuryAreaLabel(injury.area, injury.side);
   const { error, run } = useSaveError();
@@ -133,6 +143,7 @@ function OpenInjuryCard({
           onChange={(level) => run(logPain(injury, level, today))}
         />
       </div>
+      <InjuryExerciseRules injury={injury} userId={userId} units={units} editable={editRules} />
       <HealedPrompt injury={injury} checkins={checkins} today={today} />
       <SaveError error={error} />
       <div className="flex gap-2">
@@ -220,6 +231,7 @@ export function InjuriesHome({ userId }: { userId: string }) {
   const open = sortOpenInjuries(data?.injuries ?? []);
   const history = injuryHistoryByArea(data?.injuries ?? []);
   const checkins = data?.checkins ?? [];
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -248,7 +260,15 @@ export function InjuriesHome({ userId }: { userId: string }) {
             </h2>
             <ul className="flex flex-col gap-3">
               {open.map((injury) => (
-                <OpenInjuryCard key={injury.id} injury={injury} checkins={checkins} today={today} />
+                <OpenInjuryCard
+                  key={injury.id}
+                  injury={injury}
+                  checkins={checkins}
+                  today={today}
+                  userId={userId}
+                  units={settings.units}
+                  editRules={showsInjuryRules(settings)}
+                />
               ))}
             </ul>
           </section>

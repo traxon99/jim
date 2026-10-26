@@ -48,6 +48,13 @@ export function showsRestStats(
   return settings.advancedFeatures !== false && settings.showRestStats !== false;
 }
 
+/** Whether Profile → Injuries shows the exercise rules editor (issue #724); rules apply either way. */
+export function showsInjuryRules(
+  settings: Pick<SettingsRow, "advancedFeatures" | "showInjuryRules">,
+): boolean {
+  return settings.advancedFeatures !== false && settings.showInjuryRules !== false;
+}
+
 /**
  * Whether the working set timer (issue #634) shows during a workout: Start
  * set / End set, timing each set, and the set times in summaries and

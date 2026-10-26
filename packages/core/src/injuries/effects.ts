@@ -1,14 +1,16 @@
-import type { DprDecision, SessionIntensity } from "../dpr/decide";
-import { roundToIncrement } from "../dpr/equipment-increments";
+import type { DprDecision, RepRange, SessionIntensity } from "../dpr/decide";
+import { type WeightUnits, roundToIncrement } from "../dpr/equipment-increments";
 import { applyIntensity } from "../dpr/intensity";
 import { type ExerciseCategory, isStrengthExercise } from "../warmups/category";
 import { areaMuscles } from "./areas";
+import { type InjuryExerciseRule, parseInjuryRules, ruleMaxWeight } from "./exercise-rules";
 
 /**
  * How an injury bears on training (issue #627). Jim suggests and never
  * changes the workout itself; PRP treats a lift whose primary muscle is
  * hurt like a light day while the injury is open, and eases it back in on
- * its first session after the injury healed.
+ * its first session after the injury healed. An exercise rule (issue #724)
+ * replaces that treatment for its one exercise.
  */
 
 /** The fields of an injury row these helpers read; Dexie and Drizzle rows both fit. */
@@ -20,6 +22,8 @@ export interface InjuryLike {
   startedOn: string;
   healedOn: string | null;
   deletedAt: Date | null;
+  /** Exercise rules (issue #724), read with `parseInjuryRules`; absent on old rows. */
+  exerciseRules?: unknown;
 }
 
 export interface ExerciseMuscles {
@@ -64,16 +68,83 @@ export function worstInjuryHit<T extends InjuryLike>(
   return worst;
 }
 
-function hitsPrimaryOn(exercise: ExerciseMuscles, injuries: readonly InjuryLike[], day: string) {
+/** An injury's rule for one exercise, or null. */
+export function injuryRuleFor(injury: InjuryLike, exerciseId: string): InjuryExerciseRule | null {
+  return (
+    parseInjuryRules(injury.exerciseRules).find((rule) => rule.exerciseId === exerciseId) ?? null
+  );
+}
+
+/** How one open injury bears on one exercise: its muscle hit, its rule, or both. */
+export interface ExerciseInjuryGuidance<T extends InjuryLike = InjuryLike> {
+  injury: T;
+  hit: InjuryHit | null;
+  rule: InjuryExerciseRule | null;
+}
+
+function guidanceOf<T extends InjuryLike>(
+  exerciseId: string,
+  exercise: ExerciseMuscles,
+  injury: T,
+): ExerciseInjuryGuidance<T> | null {
+  const rule = injuryRuleFor(injury, exerciseId);
+  // "Fine as is" clears this injury for this exercise.
+  if (rule?.effect === "fine") return null;
+  const hit = injuryHit(exercise, injury.area);
+  return rule || hit ? { injury, hit, rule } : null;
+}
+
+const RULE_RANK = { avoid: 5, light: 4, limit: 3, fine: 0 } as const;
+
+function guidanceRank(guidance: ExerciseInjuryGuidance): number {
+  if (guidance.rule) return RULE_RANK[guidance.rule.effect];
+  return guidance.hit === "primary" ? 2 : 1;
+}
+
+/**
+ * The open injury that matters most for an exercise on `day`: a rule the
+ * user wrote for it first (avoid, then light, then limit), then a primary
+ * muscle hit, then a secondary one. Null when nothing applies.
+ */
+export function exerciseInjuryGuidance<T extends InjuryLike>(
+  exercise: ExerciseMuscles & { id: string },
+  injuries: readonly T[],
+  day: string,
+): ExerciseInjuryGuidance<T> | null {
+  let best: ExerciseInjuryGuidance<T> | null = null;
+  for (const injury of injuries) {
+    if (!isInjuryOpenOn(injury, day)) continue;
+    const guidance = guidanceOf(exercise.id, exercise, injury);
+    if (guidance && (!best || guidanceRank(guidance) > guidanceRank(best))) best = guidance;
+  }
+  return best;
+}
+
+/**
+ * Whether an injury shapes a lift's progression: its rule says so (anything
+ * but fine), or with no rule it hits the lift's primary muscle.
+ */
+function shapesLift(injury: InjuryLike, exerciseId: string, exercise: ExerciseMuscles): boolean {
+  const rule = injuryRuleFor(injury, exerciseId);
+  if (rule) return rule.effect !== "fine";
+  return injuryHit(exercise, injury.area) === "primary";
+}
+
+function shapesLiftOn(
+  exerciseId: string,
+  exercise: ExerciseMuscles,
+  injuries: readonly InjuryLike[],
+  day: string,
+): boolean {
   return injuries.some(
-    (injury) => isInjuryOpenOn(injury, day) && injuryHit(exercise, injury.area) === "primary",
+    (injury) => isInjuryOpenOn(injury, day) && shapesLift(injury, exerciseId, exercise),
   );
 }
 
 /**
- * PRP's history with every session logged while an open injury hit the
- * lift's primary muscle marked light, so it's left out of progression the
- * way a light day is. Returns the same array when nothing changes.
+ * PRP's history with every session logged while an open injury shaped the
+ * lift (hit its primary muscle, or had a rule for it other than fine)
+ * marked light, so it's left out of progression the way a light day is. Returns the same array when nothing changes.
  */
 export function markInjuredHistory<
   T extends { exerciseId: string; date: Date; intensity?: SessionIntensity | null },
@@ -89,14 +160,17 @@ export function markInjuredHistory<
   const marked = history.map((entry) => {
     const exercise = musclesOf(entry.exerciseId);
     if (!exercise || entry.intensity === "light") return entry;
-    if (!hitsPrimaryOn(exercise, live, dayKeyOf(entry.date))) return entry;
+    if (!shapesLiftOn(entry.exerciseId, exercise, live, dayKeyOf(entry.date))) return entry;
     changed = true;
     return { ...entry, intensity: "light" as const };
   });
   return changed ? marked : history;
 }
 
-/** "light" while an injury hits the lift's primary muscle; "ease" on its first session after. */
+/**
+ * "light" while an injury hits the lift's primary muscle or has a light or
+ * avoid rule for it; "ease" on its first session after the injury healed.
+ */
 export type InjuryPrpEffect = "light" | "ease";
 
 export function injuryPrpEffect(input: {
@@ -111,13 +185,20 @@ export function injuryPrpEffect(input: {
   const { exercise, today } = input;
   if (!exercise) return null;
   const live = input.injuries.filter((injury) => !injury.deletedAt);
-  if (hitsPrimaryOn(exercise, live, today)) return "light";
+  const open = live.filter(
+    (injury) => isInjuryOpenOn(injury, today) && shapesLift(injury, input.exerciseId, exercise),
+  );
+  // A limit rule caps the lift (see injuryLimit) without making it a light day.
+  if (open.some((injury) => injuryRuleFor(injury, input.exerciseId)?.effect !== "limit")) {
+    return "light";
+  }
+  if (open.length > 0) return null;
   const lastHealed = live
     .filter(
       (injury) =>
         injury.healedOn !== null &&
         injury.healedOn <= today &&
-        injuryHit(exercise, injury.area) === "primary",
+        shapesLift(injury, input.exerciseId, exercise),
     )
     .map((injury) => injury.healedOn as string)
     .sort()
@@ -169,15 +250,86 @@ export function applyInjuryEffect(
   };
 }
 
+/** The weight cap and rep range open injuries' rules put on one lift (issue #724). */
+export interface InjuryLimit {
+  /** In the user's units. */
+  maxWeight: number | null;
+  reps: RepRange | null;
+}
+
+/**
+ * The tightest cap and rep range among the limit and light rules of the
+ * injuries open `today` for this exercise, or null without any. Rep ranges
+ * that don't overlap keep the first injury's.
+ */
+export function injuryLimit(input: {
+  exerciseId: string;
+  injuries: readonly InjuryLike[];
+  today: string;
+  units: WeightUnits;
+}): InjuryLimit | null {
+  let maxWeight: number | null = null;
+  let reps: RepRange | null = null;
+  for (const injury of input.injuries) {
+    if (!isInjuryOpenOn(injury, input.today)) continue;
+    const rule = injuryRuleFor(injury, input.exerciseId);
+    if (!rule || (rule.effect !== "limit" && rule.effect !== "light")) continue;
+    const cap = ruleMaxWeight(rule, input.units);
+    if (cap !== null) maxWeight = maxWeight === null ? cap : Math.min(maxWeight, cap);
+    if (rule.repsLow !== null && rule.repsHigh !== null) {
+      const next = { low: rule.repsLow, high: rule.repsHigh };
+      if (!reps) reps = next;
+      else {
+        const low = Math.max(reps.low, next.low);
+        const high = Math.min(reps.high, next.high);
+        if (low <= high) reps = { low, high };
+      }
+    }
+  }
+  return maxWeight === null && reps === null ? null : { maxWeight, reps };
+}
+
+/**
+ * PRP's call with an injury limit applied: the weight held under the cap,
+ * and the target reps moved into the range. A deload or light call under
+ * the cap already stays as it is.
+ */
+export function applyInjuryLimit(
+  decision: DprDecision,
+  limit: InjuryLimit | null | undefined,
+  increment: number,
+): DprDecision {
+  if (!limit) return decision;
+  let next = decision;
+  const cap =
+    limit.maxWeight === null ? null : roundToIncrement(limit.maxWeight, increment, "down");
+  if (cap !== null && cap > 0 && next.weight !== null && next.weight > cap) {
+    next = {
+      ...next,
+      call: next.call === "light" || next.call === "deload" ? next.call : "hold",
+      weight: cap,
+      reason: `Injury rule — capped at ${formatWeight(cap)}`,
+      streak: next.call === "light" || next.call === "deload" ? next.streak : 0,
+    };
+  }
+  if (limit.reps && next.targetReps !== null) {
+    const targetReps = Math.min(limit.reps.high, Math.max(limit.reps.low, next.targetReps));
+    if (targetReps !== next.targetReps) next = { ...next, targetReps };
+  }
+  return next;
+}
+
 /**
  * The Replace exercise filter for swapping an affected exercise (issue
  * #627): strength exercises that work one of the original's muscles the
- * injury leaves alone, as a primary muscle, and don't touch any of `areas`.
+ * injury leaves alone, as a primary muscle, and don't touch any of `areas`
+ * or have an avoid rule (issue #724), listed in `avoidIds`.
  */
 export function sparingSwapFilter(
   original: ExerciseMuscles,
   areas: readonly string[],
-): (candidate: ExerciseMuscles & { category?: ExerciseCategory | null }) => boolean {
+  avoidIds: readonly string[] = [],
+): (candidate: ExerciseMuscles & { id?: string; category?: ExerciseCategory | null }) => boolean {
   const hurt = new Set(areas.flatMap((area) => areaMuscles(area)));
   const wanted = new Set(
     [...original.primaryMuscles, ...original.secondaryMuscles].filter(
@@ -186,6 +338,7 @@ export function sparingSwapFilter(
   );
   return (candidate) =>
     isStrengthExercise(candidate) &&
+    !(candidate.id !== undefined && avoidIds.includes(candidate.id)) &&
     areas.every((area) => injuryHit(candidate, area) === null) &&
     candidate.primaryMuscles.some((muscle) => wanted.has(muscle));
 }

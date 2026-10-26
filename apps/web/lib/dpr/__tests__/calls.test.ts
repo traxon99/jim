@@ -1,4 +1,4 @@
-import { uuidv7 } from "@jim/core";
+import { type InjuryExerciseRule, uuidv7 } from "@jim/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   type DprBlockLiftRow,
@@ -536,7 +536,12 @@ describe("injuries and PRP (issue #627)", () => {
     const d = String(date.getDate()).padStart(2, "0");
     return `${date.getFullYear()}-${m}-${d}`;
   };
-  function injury(area: string, startedDaysAgo: number, healedDaysAgo: number | null) {
+  function injury(
+    area: string,
+    startedDaysAgo: number,
+    healedDaysAgo: number | null,
+    exerciseRules: InjuryExerciseRule[] = [],
+  ) {
     return {
       id: `injury-${area}`,
       userId: USER_ID,
@@ -545,6 +550,7 @@ describe("injuries and PRP (issue #627)", () => {
       startedOn: dayKeyAgo(startedDaysAgo),
       healedOn: healedDaysAgo === null ? null : dayKeyAgo(healedDaysAgo),
       note: null,
+      exerciseRules,
       createdAt: daysAgo(startedDaysAgo),
       updatedAt: daysAgo(startedDaysAgo),
       deviceId: "d",
@@ -576,6 +582,31 @@ describe("injuries and PRP (issue #627)", () => {
     // A secondary hit only shows the hint.
     const elbow = await injuredContext([injury("elbow", 1, null)]);
     expect(dprCallFor(elbow, BENCH, target(BENCH, 0))?.decision.call).toBe("increase");
+  });
+
+  it("follows an exercise rule instead of the area: fine, or a weight cap", async () => {
+    await logSession(BENCH, 3, 185, 8, 7);
+    const rule = (overrides: Partial<InjuryExerciseRule>): InjuryExerciseRule => ({
+      exerciseId: BENCH,
+      effect: "limit",
+      maxWeight: null,
+      units: null,
+      repsLow: null,
+      repsHigh: null,
+      note: null,
+      ...overrides,
+    });
+    const fine = await injuredContext([injury("chest", 1, null, [rule({ effect: "fine" })])]);
+    expect(dprCallFor(fine, BENCH, target(BENCH, 0))?.decision.call).toBe("increase");
+    // A wrist doesn't list the chest, but the rule ties bench to it.
+    const capped = await injuredContext([
+      injury("wrist", 1, null, [rule({ maxWeight: 175, units: "lb" })]),
+    ]);
+    expect(dprCallFor(capped, BENCH, target(BENCH, 0))?.decision).toMatchObject({
+      call: "hold",
+      weight: 175,
+      reason: "Injury rule — capped at 175",
+    });
   });
 
   it("keeps sessions logged while injured out of progression, then eases back in", async () => {

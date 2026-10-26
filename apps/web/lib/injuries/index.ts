@@ -4,15 +4,20 @@ import { getDeviceId } from "@/lib/sync/engine";
 import {
   INJURY_NOTE_MAX,
   INJURY_SIDES,
+  type InjuryRuleInput,
   type InjurySide,
   PAIN_MAX,
   PAIN_MIN,
+  cleanInjuryRule,
   injuryAreaLabel,
   isDayKey,
   isInjuryArea,
   isPainLevel,
   isPairedArea,
+  parseInjuryRules,
   uuidv7,
+  withInjuryRule,
+  withoutInjuryRule,
 } from "@jim/core";
 
 /**
@@ -79,6 +84,7 @@ export async function reportInjury(
     startedOn: cleaned.startedOn,
     healedOn: null,
     note: cleaned.note,
+    exerciseRules: [],
     createdAt: now,
     updatedAt: now,
     deviceId: await getDeviceId(database),
@@ -134,6 +140,43 @@ export async function markHealed(
   const entity: InjuryRow = {
     ...injury,
     healedOn: day,
+    updatedAt: new Date(),
+    deviceId: await getDeviceId(database),
+  };
+  await mutate("injuries", entity, database);
+  return entity;
+}
+
+/**
+ * Sets how an injury treats one exercise (issue #724), replacing any rule
+ * it already had for that exercise.
+ */
+export async function setExerciseRule(
+  injury: InjuryRow,
+  input: InjuryRuleInput,
+  database: JimDatabase = db,
+): Promise<InjuryRow> {
+  const cleaned = cleanInjuryRule(input);
+  if (!cleaned.ok) throw new Error(cleaned.error);
+  const entity: InjuryRow = {
+    ...injury,
+    exerciseRules: withInjuryRule(parseInjuryRules(injury.exerciseRules), cleaned.rule),
+    updatedAt: new Date(),
+    deviceId: await getDeviceId(database),
+  };
+  await mutate("injuries", entity, database);
+  return entity;
+}
+
+/** Drops an injury's rule for one exercise, so the area-wide treatment applies again. */
+export async function removeExerciseRule(
+  injury: InjuryRow,
+  exerciseId: string,
+  database: JimDatabase = db,
+): Promise<InjuryRow> {
+  const entity: InjuryRow = {
+    ...injury,
+    exerciseRules: withoutInjuryRule(parseInjuryRules(injury.exerciseRules), exerciseId),
     updatedAt: new Date(),
     deviceId: await getDeviceId(database),
   };

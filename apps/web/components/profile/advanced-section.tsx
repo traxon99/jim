@@ -16,7 +16,8 @@ type FeatureKey =
   | "showStrengthHints"
   | "showSetTypes"
   | "showRestStats"
-  | "showSetTimer";
+  | "showSetTimer"
+  | "showInjuryRules";
 
 /** `defaultOn: false` for a switch that starts off, so a missing value reads as off. */
 const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: false }[] = [
@@ -42,6 +43,11 @@ const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: fa
     label: "Working set timer",
     detail: "Start set and End set buttons that time each set",
     defaultOn: false,
+  },
+  {
+    key: "showInjuryRules",
+    label: "Injury exercise rules",
+    detail: "Set how each injury treats specific exercises: a weight cap, rep range or note",
   },
 ];
 

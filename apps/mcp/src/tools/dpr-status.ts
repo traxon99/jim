@@ -11,6 +11,7 @@ import {
   callForLift,
   currentBlockOf,
   dayKey,
+  injuryLimit,
   injuryPrpEffect,
   isValidTimeZone,
   liftDecisionLog,
@@ -158,6 +159,12 @@ export function dprStatusFromRows(input: DprStatusInput) {
           history: snapshot.history,
           today: dayKeyOf(now),
           dayKeyOf,
+        }),
+        injuryLimit: injuryLimit({
+          exerciseId: lift.exerciseId,
+          injuries: injuryRows,
+          today: dayKeyOf(now),
+          units: user.units,
         }),
         now,
       });

@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS } from "../defaults";
 import {
   autoEndWorkoutMinutes,
   needsSetup,
+  showsInjuryRules,
   showsPaceTracker,
   showsRestStats,
   showsRpe,
@@ -53,6 +54,7 @@ describe.each([
   ["showsStrengthHints", showsStrengthHints, "showStrengthHints"],
   ["showsSetTypes", showsSetTypes, "showSetTypes"],
   ["showsRestStats", showsRestStats, "showRestStats"],
+  ["showsInjuryRules", showsInjuryRules, "showInjuryRules"],
 ] as const)("%s", (_name, shows, key) => {
   it("follows its own switch in Advanced mode", () => {
     expect(shows({ ...DEFAULT_SETTINGS, advancedFeatures: true, [key]: true })).toBe(true);

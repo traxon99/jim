@@ -60,6 +60,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showSetTypes: true,
       showRestStats: true,
       showSetTimer: false,
+      showInjuryRules: true,
       autoEndWorkoutMinutes: 60,
       pushRestTimer: true,
       pushWorkoutReminders: true,
@@ -136,6 +137,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ showSetTypes: "yes" })).status).toBe(400);
     expect((await patch({ showRestStats: 1 })).status).toBe(400);
     expect((await patch({ showSetTimer: "on" })).status).toBe(400);
+    expect((await patch({ showInjuryRules: "on" })).status).toBe(400);
     expect((await patch({ pushRestTimer: "off" })).status).toBe(400);
     expect((await patch({ pushWhatsNew: null })).status).toBe(400);
     expect((await patch({ pushWhatsNewEveryDeploy: "yes" })).status).toBe(400);

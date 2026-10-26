@@ -220,7 +220,7 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
   },
   injuries: {
     table: injuries,
-    updatable: ["area", "side", "startedOn", "healedOn", "note"],
+    updatable: ["area", "side", "startedOn", "healedOn", "note", "exerciseRules"],
   },
   painCheckins: {
     table: painCheckins,
