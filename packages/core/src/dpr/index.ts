@@ -8,4 +8,5 @@ export * from "./presets";
 export * from "./snapshot";
 export * from "./intensity";
 export * from "./ramp";
+export * from "./set-kinds";
 export * from "./volume";

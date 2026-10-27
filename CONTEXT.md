@@ -3,6 +3,18 @@
 A local-first strength training log with PRP, its progression engine. This glossary fixes the words
 the app, the docs and the MCP use for training concepts.
 
+## PRP
+
+**Miss**:
+A session whose top sets fall short of the bottom of the rep range on full rest. Misses in a row
+hold the weight, then deload it. A high RPE alone is not a miss.
+_Avoid_: Failed session, fail
+
+**Set to failure**:
+A set the lifter could not get another rep on: marked as a failure set, or logged at RPE 10. PRP
+tracks it like a working set and reads it as where the lifter's limit is; it is never a miss.
+_Avoid_: Failed set, miss
+
 ## Injuries
 
 **Injury**:

@@ -59,8 +59,14 @@ export const DPR_PRESET_NAMES: readonly DprPresetName[] = [
   "aggressive",
 ];
 
-/** A session whose average RPE reaches this is a miss, whatever the reps. */
+/**
+ * A week whose average RPE reaches this drops volume (sets taken to failure
+ * aside, issue #726). For single sessions a high RPE is never a miss.
+ */
 export const MISS_RPE = 9.5;
+
+/** A set logged at this RPE was taken to failure (issue #726). */
+export const FAILURE_RPE = 10;
 
 /**
  * Rest compliance (issue #233): a session with a set started on a short rest
