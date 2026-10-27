@@ -23,6 +23,7 @@ import {
 import { type OnTrackStatus, layoffDays, onTrackStatus } from "./goal";
 import { applyIntensity } from "./intensity";
 import { DELOAD_PCT, DPR_PRESETS, type DprPresetName } from "./presets";
+import { countsForDpr, dprSetRpe } from "./set-kinds";
 import { type DprSnapshot, e1rmSeries, predictionSetsFromHistory } from "./snapshot";
 
 /**
@@ -295,10 +296,11 @@ export function liftRecap(
   for (const entry of snapshot.history) {
     if (entry.exerciseId !== exerciseId || !inBlock(entry.date)) continue;
     for (const set of entry.sets) {
-      if (set.kind !== "working" || !set.weight || !set.reps) continue;
-      const e1rm = rpeAdjustedE1rm(set.weight, set.reps, set.rpe);
+      if (!countsForDpr(set.kind) || !set.weight || !set.reps) continue;
+      const rpe = dprSetRpe(set);
+      const e1rm = rpeAdjustedE1rm(set.weight, set.reps, rpe);
       if (!bestSet || e1rm > bestSet.e1rm) {
-        bestSet = { date: entry.date, weight: set.weight, reps: set.reps, rpe: set.rpe, e1rm };
+        bestSet = { date: entry.date, weight: set.weight, reps: set.reps, rpe, e1rm };
       }
     }
   }

@@ -7,6 +7,7 @@ import { type ExerciseCategory, isStrengthExercise } from "../warmups/category";
 import type { DprHistoryEntry } from "./decide";
 import { DPR_DELOAD_WEEK_DAYS, type DprBlockInfo } from "./lift-status";
 import { MISS_RPE } from "./presets";
+import { isFailureSet } from "./set-kinds";
 
 /**
  * Mesocycle mode (issue #250): on top of load, DPR grows each muscle's
@@ -139,7 +140,11 @@ function weeklyStats(
           stats.rpeSum += set.rpe;
           stats.rpeCount += 1;
         }
-        if (set.kind === "working" && (set.reps ?? 0) < entry.repRange.low) stats.missed = true;
+        // A set taken to failure shows where the limit is; it isn't a missed
+        // rep target (issue #726).
+        if (set.kind === "working" && !isFailureSet(set) && (set.reps ?? 0) < entry.repRange.low) {
+          stats.missed = true;
+        }
       }
     }
   }

@@ -205,11 +205,11 @@ describe("dpr_status", () => {
 
   it("makes the expected calls from the fixture history", () => {
     const [bench, squat] = status.lifts;
-    // Last bench session: 200×6 @ 9.5 — a miss, so hold.
+    // Last bench session: 200×6 @ 9.5 — reps in range, not a miss (issue #726): add a rep.
     expect(bench?.nextCall).toMatchObject({
       call: "hold",
       weight: 200,
-      targetReps: 6,
+      targetReps: 7,
       repRange: { low: 6, high: 8 },
     });
     expect(bench?.repRanges).toEqual([{ low: 6, high: 8 }]);

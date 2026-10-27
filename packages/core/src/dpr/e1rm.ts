@@ -1,5 +1,6 @@
 import { estimateOneRepMax } from "../one-rep-max";
 import type { DprSet } from "./decide";
+import { countsForDpr, dprSetRpe } from "./set-kinds";
 
 /**
  * RPE-adjusted estimated 1RM (issue #209): a set at RPE r left (10 − r) reps
@@ -13,12 +14,12 @@ export function rpeAdjustedE1rm(weight: number, reps: number, rpe: number | null
   return estimateOneRepMax(weight, reps + reserve, { maxReps: Number.POSITIVE_INFINITY });
 }
 
-/** The best RPE-adjusted e1RM among a session's working sets, or 0. */
+/** The best RPE-adjusted e1RM among a session's working and failure sets, or 0. */
 export function sessionE1rm(sets: readonly DprSet[]): number {
   let best = 0;
   for (const set of sets) {
-    if (set.kind !== "working" || set.weight === null || set.reps === null) continue;
-    best = Math.max(best, rpeAdjustedE1rm(set.weight, set.reps, set.rpe));
+    if (!countsForDpr(set.kind) || set.weight === null || set.reps === null) continue;
+    best = Math.max(best, rpeAdjustedE1rm(set.weight, set.reps, dprSetRpe(set)));
   }
   return best;
 }

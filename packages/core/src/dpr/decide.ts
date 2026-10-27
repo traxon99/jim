@@ -6,14 +6,15 @@ import {
   DELOAD_PCT,
   DPR_DEFAULT_REP_RANGE,
   type DprPreset,
+  FAILURE_RPE,
   LAYOFF_REENTRY,
-  MISS_RPE,
   OUTPERFORM_MAX_JUMP_PCT,
   OUTPERFORM_RPE_MARGIN,
   RPE_ABNORMAL_POINTS,
   RPE_BASELINE_SESSIONS,
   SHORT_REST_RPE_CREDIT,
 } from "./presets";
+import { countsForDpr, dprSetRpe, isFailureSet } from "./set-kinds";
 
 /**
  * The DPR decision engine (issue #208): a pure function of one
@@ -87,6 +88,8 @@ interface WorkingSet {
   reps: number;
   rpe: number | null;
   shortRest: boolean;
+  /** Taken to failure (see `isFailureSet`). */
+  failure: boolean;
 }
 
 /** How a session's RPE compares with what its history expects (issue #385). */
@@ -116,13 +119,14 @@ interface Summary {
 function summarize(session: DprSession): Summary | null {
   const sets: WorkingSet[] = [];
   for (const set of session.sets) {
-    if (set.kind !== "working" || set.weight === null || set.reps === null) continue;
+    if (!countsForDpr(set.kind) || set.weight === null || set.reps === null) continue;
     if (set.weight <= 0 || set.reps <= 0) continue;
     sets.push({
       weight: set.weight,
       reps: set.reps,
-      rpe: set.rpe,
+      rpe: dprSetRpe(set),
       shortRest: isShortRest(set.restSeconds, set.restTargetSeconds),
+      failure: isFailureSet(set),
     });
   }
   if (sets.length === 0) return null;
@@ -152,27 +156,43 @@ function rpeCapFor(s: Summary, preset: DprPreset): number {
   return preset.rpeCap + (s.shortRest ? SHORT_REST_RPE_CREDIT : 0);
 }
 
+/**
+ * The top sets' RPE as judged for going UP. A set taken to failure past the
+ * top of the range (issue #726) says how hard the top of the range was:
+ * failing at 11 on a 6–8 range puts 8 reps at RPE 7.
+ */
+function qualifyingRpe(s: Summary, range: RepRange): number | null {
+  if (s.avgRpe === null) return null;
+  if (s.rpeCheck === "low" || !s.topSets.some((set) => set.failure)) return s.avgRpe;
+  const total = s.topSets.reduce(
+    (sum, set) =>
+      sum + (set.failure ? FAILURE_RPE - Math.max(0, set.reps - range.high) : (set.rpe ?? 0)),
+    0,
+  );
+  return total / s.topSets.length;
+}
+
 function qualifies(s: Summary, range: RepRange, preset: DprPreset): boolean {
+  const rpe = qualifyingRpe(s, range);
   return (
     s.rpeCheck !== "high" &&
-    s.avgRpe !== null &&
-    s.avgRpe <= rpeCapFor(s, preset) &&
+    rpe !== null &&
+    rpe <= rpeCapFor(s, preset) &&
     s.topSets.every((set) => set.reps >= range.high)
   );
 }
 
 /**
- * A missed rep target only counts when the set had its full rest — coming
- * up short after a skipped rest says more about the rest than the weight.
+ * A miss is a top set short of the rep range on its full rest — coming up
+ * short after a skipped rest says more about the rest than the weight. A
+ * set taken to failure is never a miss (issue #726): it shows where the
+ * limit is, and a high RPE alone just means the set doesn't qualify.
  */
 function isMiss(s: Summary, range: RepRange): boolean {
   // An RPE well over what history expects reads as a one-off (or a
   // mislog), not a sign the weight is too heavy (issue #385).
   if (s.rpeCheck === "high") return false;
-  return (
-    (s.avgRpe !== null && s.avgRpe >= MISS_RPE) ||
-    s.topSets.some((set) => set.reps < range.low && !set.shortRest)
-  );
+  return s.topSets.some((set) => set.reps < range.low && !set.shortRest && !set.failure);
 }
 
 /** The best RPE-adjusted e1RM among a session's top sets, at its judged RPE. */
@@ -247,7 +267,8 @@ function describe(s: Summary): string {
   if (ramped) repsText += ` @ ${formatNumber(s.topWeight)}`;
   const rpeText = s.loggedRpe === null ? "" : `RPE ${formatNumber(s.loggedRpe)}`;
   const text = rpeText === "" ? repsText : `${repsText}${ramped ? ", " : " @ "}${rpeText}`;
-  return s.shortRest ? `${text} on short rest` : text;
+  const failed = s.topSets.some((set) => set.failure) ? `${text} to failure` : text;
+  return s.shortRest ? `${failed} on short rest` : failed;
 }
 
 function daysBetween(a: Date, b: Date): number {

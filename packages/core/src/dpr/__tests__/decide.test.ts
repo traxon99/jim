@@ -129,9 +129,22 @@ describe("decideNextWeight — misses and deloads", () => {
     expect(d.weight).toBe(call === "deload" ? 180 : 200);
   });
 
-  it("counts an RPE of 9.5+ as a miss even with the reps", () => {
-    const sessions = [s3(28, 200, 8, 9.5), s3(25, 200, 8, 9.5), s3(22, 200, 8, 10)];
-    expect(decide(sessions).call).toBe("deload");
+  it("doesn't count a high RPE or failure as a miss when the reps are there (issue #726)", () => {
+    const sessions = [s3(28, 200, 7, 10), s3(25, 200, 7, 9.5), s3(22, 200, 7, 10)];
+    const d = decide(sessions);
+    expect(d).toMatchObject({ call: "hold", weight: 200, streak: 0, targetReps: 8 });
+    expect(d.reason).not.toContain("Missed");
+    expect(d.reason).toContain("3×7 @ RPE 10 to failure last time");
+  });
+
+  it("never counts a set taken to failure as a miss, even under the range (issue #726)", () => {
+    const failed = (n: number) =>
+      session(n, [working(200, 6, 9), { kind: "failure", weight: 200, reps: 4, rpe: null }]);
+    const d = decide([failed(28), failed(25), failed(22)]);
+    expect(d).toMatchObject({ call: "hold", weight: 200, streak: 0 });
+    // The same reps without failure are a real miss streak.
+    const short = [s3(28, 200, 4, 9), s3(25, 200, 4, 9), s3(22, 200, 4, 9)];
+    expect(decide(short).call).toBe("deload");
   });
 
   it("rounds the deload down to the increment", () => {
@@ -196,15 +209,33 @@ describe("decideNextWeight — RPE and set kinds", () => {
     expect(decide([partial]).call).toBe("insufficient");
   });
 
-  it("ignores warm-up, drop and failure sets", () => {
+  it("ignores warm-up and drop sets", () => {
     const mixed = session(28, [
       { kind: "warmup", weight: 95, reps: 3, rpe: null },
       working(185, 8, 7),
       working(185, 8, 7.5),
       { kind: "drop", weight: 135, reps: 4, rpe: 10 },
-      { kind: "failure", weight: 185, reps: 2, rpe: 10 },
     ]);
     expect(decide([mixed])).toMatchObject({ call: "increase", weight: 190 });
+  });
+
+  it("tracks failure sets like working sets, without needing an RPE (issue #726)", () => {
+    // Failing at 11 on a 6–8 range puts 8 reps at RPE 7: under the cap.
+    const past = session(28, [
+      working(185, 8, 7),
+      working(185, 8, 7.5),
+      { kind: "failure", weight: 185, reps: 11, rpe: null },
+    ]);
+    expect(decide([past])).toMatchObject({ call: "increase", weight: 190 });
+    // Failing right at the top of the range is RPE 10 there: hold.
+    const atTop = session(28, [
+      working(185, 8, 7),
+      { kind: "failure", weight: 185, reps: 8, rpe: null },
+    ]);
+    expect(decide([atTop])).toMatchObject({ call: "hold", streak: 0 });
+    // A session of only failure sets still counts as history.
+    const only = session(28, [{ kind: "failure", weight: 185, reps: 7, rpe: null }]);
+    expect(decide([only])).toMatchObject({ call: "hold", weight: 185, targetReps: 8 });
   });
 
   it("learns from an overridden weight", () => {
@@ -267,7 +298,7 @@ describe("decideNextWeight — RPE sanity check (issue #385)", () => {
   });
 
   it("accepts a new normal once it repeats", () => {
-    const bad = [s3(31, 185, 5, 10), s3(28, 185, 5, 10), s3(25, 185, 5, 10)];
+    const bad = [s3(31, 185, 5, 9.5), s3(28, 185, 5, 9.5), s3(25, 185, 5, 9.5)];
     // Two off sessions in a row move the baseline, so the third is a real miss…
     expect(decide([...bad, ...history], "conservative", { now: day(32) })).toMatchObject({
       call: "hold",
@@ -275,7 +306,7 @@ describe("decideNextWeight — RPE sanity check (issue #385)", () => {
     });
     // …and the fourth makes it two in a row.
     expect(
-      decide([s3(34, 185, 5, 10), ...bad, ...history], "conservative", { now: day(35) }).call,
+      decide([s3(34, 185, 5, 9.5), ...bad, ...history], "conservative", { now: day(35) }).call,
     ).toBe("deload");
   });
 

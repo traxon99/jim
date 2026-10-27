@@ -16,6 +16,7 @@ import {
 } from "./decide";
 import { sessionE1rm } from "./e1rm";
 import type { E1rmPoint } from "./goal";
+import { countsForDpr, dprSetRpe } from "./set-kinds";
 
 /**
  * Everything DPR derives from, read out of Dexie in one pass. DPR stores no
@@ -185,8 +186,8 @@ export function e1rmSeries(history: readonly DprHistoryEntry[], exerciseId: stri
   const byDate = new Map<number, number>();
   for (const entry of history) {
     if (entry.exerciseId !== exerciseId) continue;
-    const working = entry.sets.filter((set) => set.kind === "working" && set.weight && set.reps);
-    if (working.length === 0 || working.some((set) => set.rpe === null)) continue;
+    const working = entry.sets.filter((set) => countsForDpr(set.kind) && set.weight && set.reps);
+    if (working.length === 0 || working.some((set) => dprSetRpe(set) === null)) continue;
     const e1rm = sessionE1rm(entry.sets);
     const t = entry.date.getTime();
     byDate.set(t, Math.max(byDate.get(t) ?? 0, e1rm));
