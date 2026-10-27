@@ -22,8 +22,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE =
-  "Injuries can now set rules for specific exercises, like a weight cap, a rep range or a note, so Jim (and Claude) treat each lift the way your injury needs.";
+export const LATEST_RELEASE_NOTE = "Sync updates no longer move your tabs, workout or rest timer.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

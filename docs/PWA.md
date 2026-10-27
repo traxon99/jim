@@ -199,6 +199,10 @@ appear on, including during an active workout while the rest timer is running.
   `pointer-events-none`, so taps around the pill reach the page.
 - The status bar is `black-translucent`, so content under it has to be padded, not just colored.
 
+The tab bar strip reserves a fixed-height sync slot above its pill, sized for its tallest action
+(52px, including the 44px retry target and padding). Pending, offline and error states must not
+change `--tab-bar-height`, move the rest timer or cover workout controls (#679).
+
 ---
 
 ## 6. Inputs and zoom

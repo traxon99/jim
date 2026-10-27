@@ -24,7 +24,6 @@ import {
   dprVolumeLine,
   dprWeightPlaceholder,
   dprWhyLine,
-  needsRpeNudge,
 } from "@/lib/dpr/calls";
 import {
   type RuleCallInfo,
@@ -74,10 +73,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { RestDialog, StickyNoteDialog, formatRest } from "./exercise-settings-dialogs";
-import { RpeInfoMenu } from "./rpe-info-menu";
-import { SetKindMenu } from "./set-kind-menu";
-import { SetRow } from "./set-row";
-import { SwipeToDeleteRow } from "./use-swipe-to-delete";
+
+import { SessionSetTable } from "./session-set-table";
 
 interface Props {
   sessionId: string;
@@ -767,100 +764,6 @@ export function SessionExerciseSection({
     </button>
   );
 
-  const tableHead = (
-    <thead>
-      <tr className={sizes.headerRow}>
-        <th className={`w-8 pl-2 ${sizes.headerCell}`}>Set</th>
-        <th className={`text-center ${sizes.headerCell}`}>Prev</th>
-        <th className={`text-center ${sizes.headerCell}`}>Weight</th>
-        {/* Reps and RPE are pinned narrow (issue #323) so, beside the Prev
-            column, Weight still fits "315.5" at text-xl on a ~325px table. */}
-        <th className={`w-11 text-center ${sizes.headerCell}`}>Reps</th>
-        {showRpe && (
-          <th className={`w-12 text-center ${sizes.headerCell}`}>
-            <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
-          </th>
-        )}
-        <th className={sizes.headerCell} />
-      </tr>
-    </thead>
-  );
-  function previousValues(index: number) {
-    const prior = previousFor(index);
-    if (!prior || (prior.weight == null && prior.reps == null)) return <span>—</span>;
-    return (
-      <span className="flex flex-col items-center">
-        <span>{prior.weight ?? "—"}</span>
-        <span>×{prior.reps ?? "—"}</span>
-      </span>
-    );
-  }
-  function loggedRow(set: SetRowEntity, label: string) {
-    return (
-      <SetRow
-        key={set.id}
-        set={set}
-        label={label}
-        previous={<td className={sizes.prevCell}>{previousValues(set.setIndex)}</td>}
-        isPr={set.kind !== "warmup" && prsBySetId.has(set.id)}
-        rpeNudge={needsRpeNudge(dpr !== null, set)}
-        showRpe={showRpe}
-        showSetTypes={showSetTypes}
-        justLogged={set.id === justLoggedId}
-        onEdit={(patch) => void handleEdit(set, patch)}
-        onChangeKind={(kind) => void handleChangeKind(set, kind)}
-        onDelete={() => void handleDelete(set)}
-      />
-    );
-  }
-  // In the list, a planned row swipes away like a logged one (issue #350);
-  // the focus view's single next row always stays.
-  function plannedRow(index: number, label: string, removable: boolean) {
-    const draft = draftFor(index);
-    const remove = removable ? () => skipPlannedRow(index) : undefined;
-    return (
-      <SwipeToDeleteRow key={index} onDelete={remove}>
-        {(reveal) => (
-          <>
-            <td className={sizes.indexCell}>
-              <SetKindMenu
-                label={label}
-                kind={draft.kind}
-                onChange={(kind) => updateDraft(index, { kind })}
-                onDelete={remove}
-                showKinds={showSetTypes}
-              />
-            </td>
-            <td className={sizes.prevCell}>
-              {previousFor(index) ? (
-                <button
-                  type="button"
-                  onClick={() => fillFromPrevious(index)}
-                  aria-label={`Use last time's ${setDescription(label)}`}
-                  className="min-h-11 w-full"
-                >
-                  {previousValues(index)}
-                </button>
-              ) : (
-                previousValues(index)
-              )}
-            </td>
-            <td className={sizes.cell}>{weightInputFor(index, draft)}</td>
-            <td className={sizes.cell}>{repsInputFor(index, draft)}</td>
-            {showRpe && <td className={sizes.cell}>{rpeInputFor(index, draft)}</td>}
-            <td className={sizes.actionCell}>
-              <div className="flex min-w-22 items-center justify-end">
-                {index === nextIndex && repeatButton}
-                {logButtonFor(index, label)}
-              </div>
-              {reveal}
-            </td>
-          </>
-        )}
-      </SwipeToDeleteRow>
-    );
-  }
-
   return (
     // `relative` is the containing block RpeInfoMenu centers its menu in (#412).
     <section
@@ -992,37 +895,41 @@ export function SessionExerciseSection({
         </div>
       )}
 
-      {!large && (
-        // Clips a row sliding left to delete (issue #350) so it can't widen the page.
-        <div className="overflow-x-clip">
-          <table className="w-full border-separate border-spacing-y-1 text-left">
-            {tableHead}
-            <tbody>
-              {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
-              {visiblePlannedIndices.map((index, i) =>
-                plannedRow(index, rowLabels[sets.length + i] ?? String(index + 1), true),
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {!large && addSetButton}
-
-      {/* Focus view shows the set just logged (issue #257) above the one to
-          log next, as list-view rows with the Log button beside the inputs. */}
-      {large && (
-        // Clips a row sliding left to delete (issue #350) so it can't widen the page.
-        <div className="overflow-x-clip">
-          <table className="w-full border-separate border-spacing-y-1 text-left">
-            {tableHead}
-            <tbody>
-              {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
-              {visiblePlannedIndices.length > 0 && plannedRow(nextIndex, nextLabel, false)}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {large && visiblePlannedIndices.length === 0 && addSetButton}
+      <SessionSetTable
+        fieldId={fieldId}
+        large={large}
+        showRpe={showRpe}
+        showSetTypes={showSetTypes}
+        hasDpr={dpr !== null}
+        sets={sets}
+        lastSet={lastSet}
+        rowLabels={rowLabels}
+        visiblePlannedIndices={visiblePlannedIndices}
+        nextIndex={nextIndex}
+        nextLabel={nextLabel}
+        justLoggedId={justLoggedId}
+        prSetIds={new Set(prsBySetId.keys())}
+        sizes={sizes}
+        previousFor={previousFor}
+        kindFor={(index) => draftFor(index).kind}
+        onChangeKind={(index, kind) => updateDraft(index, { kind })}
+        onEdit={(set, patch) => void handleEdit(set, patch)}
+        onChangeLoggedKind={(set, kind) => void handleChangeKind(set, kind)}
+        onDelete={(set) => void handleDelete(set)}
+        onSkip={skipPlannedRow}
+        onFillPrevious={fillFromPrevious}
+        renderInputs={(index) => {
+          const draft = draftFor(index);
+          return {
+            weight: weightInputFor(index, draft),
+            reps: repsInputFor(index, draft),
+            rpe: rpeInputFor(index, draft),
+          };
+        }}
+        renderLogButton={logButtonFor}
+        repeatButton={repeatButton}
+      />
+      {(!large || visiblePlannedIndices.length === 0) && addSetButton}
 
       {undoableDelete.label && (
         <UndoBar label={undoableDelete.label} onUndo={() => void handleUndoDelete()} />

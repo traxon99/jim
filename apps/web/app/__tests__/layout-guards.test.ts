@@ -9,6 +9,11 @@ import { describe, expect, it } from "vitest";
 const webRoot = path.resolve(__dirname, "../..");
 
 describe("layout guards", () => {
+  it("reserves the tallest sync row so status changes cannot move the tabs (#679)", () => {
+    const bar = readFileSync(path.join(webRoot, "components/bottom-tab-bar.tsx"), "utf8");
+    expect(bar).toMatch(/<div className="[^"]*\bh-13\b[^"]*">\s*\{syncStatus\}\s*<\/div>/);
+  });
+
   it("resets fieldset min-width so forms can't grow wider than the screen (#458)", () => {
     const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
     expect(css).toMatch(/fieldset\s*\{[^}]*min-width:\s*0/);

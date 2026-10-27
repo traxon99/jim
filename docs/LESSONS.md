@@ -38,6 +38,7 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       and cap it to the viewport (#167, #412).
 
 **Layout at 393 px**
+- [ ] Transient sync status has a fixed-height slot sized for its tallest action, so pending, offline and error states never move the tabs or rest timer (#679).
 - [ ] No `max-w-*` cap or extra gutters on a page body. Every pushed screen uses `PageHeader` +
       `PAGE_BODY` (full width, `px-4`) instead of a one-off header (#299, #309, #547).
 - [ ] Rows that can grow have `min-w-0` and either truncate, wrap or scroll. Check at 393 px with
