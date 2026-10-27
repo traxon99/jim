@@ -57,8 +57,12 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
         paddingBottom: "max(10px, min(env(safe-area-inset-bottom), 22px))",
       }}
     >
-      <div className="tab-bar-glass pointer-events-auto mx-auto max-w-md rounded-[2rem] p-1.5">
+      {/* Reserve the tallest sync row, including its 44px retry target.
+          Keep it above the glass pill, clear of the rest timer and workout (#679). */}
+      <div className="pointer-events-auto flex h-13 shrink-0 items-center justify-center [&>output]:rounded-full [&>output]:bg-white dark:[&>output]:bg-zinc-950">
         {syncStatus}
+      </div>
+      <div className="tab-bar-glass pointer-events-auto mx-auto max-w-md rounded-[2rem] p-1.5">
         <nav className="flex gap-1">
           {TABS.map(({ href, label, Icon }) => {
             const active = isTabActive(href, pathname);
