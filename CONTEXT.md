@@ -57,3 +57,10 @@ normal), limit (a weight cap and/or rep range), light (PRP's light day) or avoid
 plus an optional note. It applies while the injury is open, even to an exercise that doesn't work
 the area's muscles. Set from the MCP or, with the Advanced switch on, Profile → Injuries.
 _Avoid_: Injury override, exercise restriction
+
+**Tracking only**:
+Both injury switches on Settings → Advanced off (issue #731): "Injuries adjust PRP" and "Injury
+suggestions". Injuries are still reported, checked in and healed, and affected exercises keep
+their icon, but PRP ignores them and workouts show no go light / swap / skip hint. Each switch also
+works alone, and both hold in Simple mode.
+_Avoid_: Passive injuries, silent mode

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SETTINGS } from "../defaults";
 import {
   autoEndWorkoutMinutes,
+  injuriesAffectPrp,
   needsSetup,
+  showsInjuryHints,
   showsInjuryRules,
   showsPaceTracker,
   showsRestStats,
@@ -68,6 +70,26 @@ describe.each([
   it("treats a row cached before the setting existed as on", () => {
     const { [key]: _, ...old } = DEFAULT_SETTINGS;
     expect(shows(old as typeof DEFAULT_SETTINGS)).toBe(true);
+  });
+});
+
+describe.each([
+  ["injuriesAffectPrp", injuriesAffectPrp, "injuriesAffectPrp"],
+  ["showsInjuryHints", showsInjuryHints, "showInjuryHints"],
+] as const)("%s", (_name, check, key) => {
+  it("follows its own switch", () => {
+    expect(check({ ...DEFAULT_SETTINGS, [key]: true })).toBe(true);
+    expect(check({ ...DEFAULT_SETTINGS, [key]: false })).toBe(false);
+  });
+
+  it("holds in Simple mode, since injuries are a core feature", () => {
+    const simple: typeof DEFAULT_SETTINGS = { ...DEFAULT_SETTINGS, advancedFeatures: false };
+    expect(check(simple)).toBe(true);
+  });
+
+  it("treats a row cached before the setting existed as on", () => {
+    const { [key]: _, ...old } = DEFAULT_SETTINGS;
+    expect(check(old as typeof DEFAULT_SETTINGS)).toBe(true);
   });
 });
 

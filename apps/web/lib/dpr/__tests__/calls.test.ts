@@ -558,9 +558,12 @@ describe("injuries and PRP (issue #627)", () => {
       serverSeq: 0,
     };
   }
-  async function injuredContext(injuries: ReturnType<typeof injury>[]) {
+  async function injuredContext(
+    injuries: ReturnType<typeof injury>[],
+    settings: Partial<typeof DEFAULT_SETTINGS> = {},
+  ) {
     const ctx = buildDprContext({
-      settings: { ...DEFAULT_SETTINGS, dprEnabled: true },
+      settings: { ...DEFAULT_SETTINGS, dprEnabled: true, ...settings },
       blocks: [block],
       lifts: [lift(BENCH, 0, "220")],
       exercises: [chest],
@@ -619,5 +622,15 @@ describe("injuries and PRP (issue #627)", () => {
       weight: 175,
       reason: "Back from injury — easing back in 5%",
     });
+  });
+
+  it("ignores injuries when they're set to tracking only (issue #731)", async () => {
+    await logSession(BENCH, 10, 185, 8, 7);
+    await logSession(BENCH, 4, 185, 8, 7);
+    const off = { injuriesAffectPrp: false };
+    const open = await injuredContext([injury("chest", 1, null)], off);
+    expect(dprCallFor(open, BENCH, target(BENCH, 0))?.decision.call).toBe("increase");
+    const healed = await injuredContext([injury("chest", 5, 2)], off);
+    expect(dprCallFor(healed, BENCH, target(BENCH, 0))?.decision.call).toBe("increase");
   });
 });

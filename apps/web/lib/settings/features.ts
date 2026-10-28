@@ -56,6 +56,25 @@ export function showsInjuryRules(
 }
 
 /**
+ * Whether open injuries bend PRP (issue #731): a light day while an injury
+ * hits a lift, EASE after it heals, and a rule's weight cap or rep range.
+ * Off, PRP runs as if no injury were open. Not tied to Simple mode, since
+ * injuries are a core feature; a row cached before it existed counts as on.
+ */
+export function injuriesAffectPrp(settings: Pick<SettingsRow, "injuriesAffectPrp">): boolean {
+  return settings.injuriesAffectPrp !== false;
+}
+
+/**
+ * Whether workouts show an injury's go light / swap / skip suggestion and
+ * rule note, and Replace sorts swaps for it (issue #731). The injury icon and
+ * the pain check-in stay either way. Holds in Simple mode too.
+ */
+export function showsInjuryHints(settings: Pick<SettingsRow, "showInjuryHints">): boolean {
+  return settings.showInjuryHints !== false;
+}
+
+/**
  * Whether the working set timer (issue #634) shows during a workout: Start
  * set / End set, timing each set, and the set times in summaries and
  * history. Off by default, so unlike the other switches a settings row

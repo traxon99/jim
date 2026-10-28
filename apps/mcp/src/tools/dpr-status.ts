@@ -48,6 +48,8 @@ export interface DprStatusInput {
     dprDefaultRepHigh: number;
     /** Plate sizes, so barbell steps stay loadable (issue #496). */
     availablePlates?: readonly (number | string)[];
+    /** Off, injuries are tracking only and PRP ignores them (issue #731). */
+    injuriesAffectPrp?: boolean;
   };
   blocks: readonly (DprBlockInfo & {
     id: string;
@@ -102,7 +104,10 @@ export function dprStatusFromRows(input: DprStatusInput) {
   const exerciseById = new Map(input.exercises.map((e) => [e.id, e]));
   const zone = input.timeZone && isValidTimeZone(input.timeZone) ? input.timeZone : "UTC";
   const dayKeyOf = (date: Date) => dayKey(date, zone);
-  const injuryRows = (input.injuries ?? []).filter((injury) => !injury.deletedAt);
+  const injuryRows =
+    user.injuriesAffectPrp === false
+      ? []
+      : (input.injuries ?? []).filter((injury) => !injury.deletedAt);
   const musclesOf = (id: string) => {
     const exercise = exerciseById.get(id);
     return exercise

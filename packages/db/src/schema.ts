@@ -222,6 +222,14 @@ export const users = pgTable(
     // Exercise rules on Profile → Injuries (issue #724). Rules already set
     // still apply with it off; it only hides the editor.
     showInjuryRules: boolean("show_injury_rules").notNull().default(true),
+    // Injury switches on Settings → Advanced (issue #731). Unlike the
+    // switches above they hold in Simple mode too, since injuries are a core
+    // feature. Both off is "tracking only": injuries are logged and checked
+    // in, and change nothing else.
+    // Whether open injuries bend PRP: light days, EASE after healing, rule caps.
+    injuriesAffectPrp: boolean("injuries_affect_prp").notNull().default(true),
+    // Whether workouts show the go light / swap / skip suggestion for an injury.
+    showInjuryHints: boolean("show_injury_hints").notNull().default(true),
     // Ends a workout left open with no activity for this many minutes
     // (issue #648); null turns auto-end off. The phone ends it; the server
     // only pushes the "Workout ended" alert (workout_idle_pushes below).
