@@ -34,7 +34,12 @@ import { cancelSession, finalizeSession } from "@/lib/sessions/finalize-session"
 import { suggestExercisesFromDb } from "@/lib/sessions/smart-workout";
 import { useRestTimer } from "@/lib/sessions/use-rest-timer";
 import { useSetTimer } from "@/lib/sessions/use-set-timer";
-import { DEFAULT_SETTINGS, showsPaceTracker, showsSetTimer } from "@/lib/settings";
+import {
+  DEFAULT_SETTINGS,
+  showsInjuryHints,
+  showsPaceTracker,
+  showsSetTimer,
+} from "@/lib/settings";
 import {
   addExerciseItems,
   applySupersetChanges as applyItemSupersetChanges,
@@ -586,7 +591,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     };
   }
 
-  // Replacing an affected exercise lists swaps that spare the injury first.
+  // Replacing an affected exercise lists swaps that spare the injury first,
+  // unless injury suggestions are off (issue #731).
+  const injuryHints = showsInjuryHints(settings);
   const replacingExercise = replacingId
     ? exerciseById.get(sessionExercises.find((se) => se.id === replacingId)?.exerciseId ?? "")
     : undefined;
@@ -931,7 +938,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
           mode="replace"
           excludeExerciseIds={excludeExerciseIds}
           spare={
-            replacingExercise && replacingInjuries.length > 0
+            injuryHints && replacingExercise && replacingInjuries.length > 0
               ? {
                   exercise: replacingExercise,
                   areas: replacingInjuries.map((injury) => injury.area),

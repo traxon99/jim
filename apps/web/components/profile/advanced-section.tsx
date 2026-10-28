@@ -19,6 +19,8 @@ type FeatureKey =
   | "showSetTimer"
   | "showInjuryRules";
 
+type InjuryKey = "injuriesAffectPrp" | "showInjuryHints";
+
 /** `defaultOn: false` for a switch that starts off, so a missing value reads as off. */
 const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: false }[] = [
   { key: "showRpe", label: "RPE column", detail: "How hard each set felt, logged next to reps" },
@@ -44,21 +46,43 @@ const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: fa
     detail: "Start set and End set buttons that time each set",
     defaultOn: false,
   },
+];
+
+/**
+ * Injury switches (issue #731). Not under the master switch: injuries are a
+ * core feature, so these hold in Simple mode too. Both off is tracking only.
+ */
+const INJURY_SWITCHES: { key: InjuryKey; label: string; detail: string }[] = [
   {
-    key: "showInjuryRules",
-    label: "Injury exercise rules",
-    detail: "Set how each injury treats specific exercises: a weight cap, rep range or note",
+    key: "injuriesAffectPrp",
+    label: "Injuries adjust PRP",
+    detail: "Light days while injured and easing back in after. Off, PRP ignores injuries",
+  },
+  {
+    key: "showInjuryHints",
+    label: "Injury suggestions",
+    detail: "Go light, swap or skip hints on affected exercises during a workout",
   },
 ];
 
+const INJURY_RULES = {
+  key: "showInjuryRules",
+  label: "Injury exercise rules",
+  detail: "Set how each injury treats specific exercises: a weight cap, rep range or note",
+} as const;
+
 type AdvancedPatch = Partial<
-  Pick<SettingsRow, "advancedFeatures" | FeatureKey | "dprEnabled" | "dprEquipmentIncrements">
+  Pick<
+    SettingsRow,
+    "advancedFeatures" | FeatureKey | InjuryKey | "dprEnabled" | "dprEquipmentIncrements"
+  >
 >;
 
 /**
  * Settings → Advanced (issue #640): the Advanced features master switch
  * (off is the walkthrough's Simple mode), one switch per advanced feature,
- * and PRP. Saved the moment they change, like every other settings section.
+ * the injury switches (issue #731) and PRP. Saved the moment they change,
+ * like every other settings section.
  */
 export function AdvancedSection() {
   const cached = useLiveQuery(() => db.settings.get("me"), []);
@@ -130,6 +154,37 @@ export function AdvancedSection() {
       ) : (
         <p className="text-xs text-zinc-500 dark:text-zinc-500">
           Turn on Advanced features to pick which extras show.
+        </p>
+      )}
+
+      <h2 className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+        Injuries
+      </h2>
+      {[...INJURY_SWITCHES, ...(advancedFeatures ? [INJURY_RULES] : [])].map((feature) => {
+        const checked = settings[feature.key] !== false;
+        return (
+          <label
+            key={feature.key}
+            className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium"
+          >
+            <span className="flex min-w-0 flex-col gap-0.5">
+              {feature.label}
+              <span className="font-normal text-zinc-500 dark:text-zinc-500">{feature.detail}</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-checked={checked}
+              checked={checked}
+              onChange={(event) => void save({ [feature.key]: event.target.checked })}
+              className={SWITCH_CLASS}
+            />
+          </label>
+        );
+      })}
+      {settings.injuriesAffectPrp === false && settings.showInjuryHints === false && (
+        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+          Injuries are tracking only: you still log them and check in, and nothing else changes.
         </p>
       )}
 

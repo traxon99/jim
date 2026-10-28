@@ -43,7 +43,12 @@ import {
 } from "@/lib/sessions/set-actions";
 import { type SetKind, deletedWarmupIndices, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
-import { showsRpe, showsSetTypes, showsStrengthHints } from "@/lib/settings/features";
+import {
+  showsInjuryHints,
+  showsRpe,
+  showsSetTypes,
+  showsStrengthHints,
+} from "@/lib/settings/features";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import { getDeviceId } from "@/lib/sync/engine";
@@ -828,7 +833,8 @@ export function SessionExerciseSection({
         </button>
       )}
 
-      {injury && (
+      {/* Off, the injury is tracking only here: the icon stays, the suggestion goes (#731). */}
+      {injury && showsInjuryHints(settings) && (
         <InjuryHint
           injury={injury}
           sessionId={sessionId}

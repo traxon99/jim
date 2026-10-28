@@ -313,7 +313,16 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       // The working set timer (issue #634) starts off.
       showSetTimer: false,
       showInjuryRules: true,
+      // Injury switches (issue #731) start on.
+      injuriesAffectPrp: true,
+      showInjuryHints: true,
     });
+    const tracking = await updateSettings(context, {
+      injuriesAffectPrp: false,
+      showInjuryHints: false,
+    });
+    expect(tracking.changed.sort()).toEqual(["injuriesAffectPrp", "showInjuryHints"]);
+    expect(tracking.settings).toMatchObject({ injuriesAffectPrp: false, showInjuryHints: false });
     const toggles = await updateSettings(context, { showSetTypes: false, showRestStats: false });
     expect(toggles.changed.sort()).toEqual(["showRestStats", "showSetTypes"]);
     expect(await getSettings(context)).toMatchObject({

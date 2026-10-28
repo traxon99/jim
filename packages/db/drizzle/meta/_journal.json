@@ -414,6 +414,13 @@
       "when": 1793053532479,
       "tag": "0058_injury_exercise_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793157245672,
+      "tag": "0059_injury_settings",
+      "breakpoints": true
     }
   ]
 }

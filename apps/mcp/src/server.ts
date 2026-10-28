@@ -831,7 +831,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "List injuries",
       description:
-        "Read-only. The user's open injuries with today's pain, what the app suggests for exercises that work the area (light at pain 1–3, swap at 4–6, skip at 7+), whether to ask if it's healed, and the daily pain log. Days without a check-in have no pain level. Pass includeHealed for past injuries too. Exercises whose primary or secondary muscles include the area are affected; knee means quadriceps, hamstrings and calves, elbow biceps, triceps and forearms, wrist forearms, hip glutes, adductors and abductors, ankle calves. While an injury hits a lift's primary muscle, PRP treats it as a light day, then eases it back in on its first session after healing. Each injury's exerciseRules (set_injury_exercise_rule) override that for specific exercises.",
+        "Read-only. The user's open injuries with today's pain, what the app suggests for exercises that work the area (light at pain 1–3, swap at 4–6, skip at 7+), whether to ask if it's healed, and the daily pain log. Days without a check-in have no pain level. Pass includeHealed for past injuries too. Exercises whose primary or secondary muscles include the area are affected; knee means quadriceps, hamstrings and calves, elbow biceps, triceps and forearms, wrist forearms, hip glutes, adductors and abductors, ankle calves. While an injury hits a lift's primary muscle, PRP treats it as a light day, then eases it back in on its first session after healing, unless the user's injuriesAffectPrp setting is false (tracking only). Each injury's exerciseRules (set_injury_exercise_rule) override that for specific exercises.",
       inputSchema: {
         includeHealed: z.boolean().optional().describe("Also list healed injuries"),
       },
@@ -1019,6 +1019,18 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional()
           .describe(
             "Exercise rules editor on Profile → Injuries; rules already set (set_injury_exercise_rule) apply either way",
+          ),
+        injuriesAffectPrp: z
+          .boolean()
+          .optional()
+          .describe(
+            "Whether open injuries bend PRP (light days, EASE after healing, rule caps and rep ranges); false makes PRP ignore injuries. Holds in Simple mode too",
+          ),
+        showInjuryHints: z
+          .boolean()
+          .optional()
+          .describe(
+            "Go light / swap / skip suggestions and rule notes on affected exercises during a workout, and Replace sparing the injury; the injury icon and pain check-in stay either way. Both injury switches false = tracking only",
           ),
         autoEndWorkoutMinutes: z
           .number()

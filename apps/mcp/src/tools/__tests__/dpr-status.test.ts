@@ -229,3 +229,38 @@ describe("dpr_status", () => {
     expect(none.lifts).toEqual([]);
   });
 });
+
+describe("dpr_status with injuries (issue #731)", () => {
+  const injured: DprStatusInput = {
+    ...input,
+    exercises: [
+      { id: "bench", name: "Bench Press", equipment: "barbell", primaryMuscles: ["chest"] },
+      { id: "squat", name: "Squat", equipment: "barbell" },
+    ],
+    injuries: [
+      {
+        id: "chest",
+        area: "chest",
+        side: "left",
+        startedOn: "2026-09-25",
+        healedOn: null,
+        deletedAt: null,
+      },
+    ],
+  };
+  const benchCall = (status: ReturnType<typeof dprStatusFromRows>) =>
+    status.lifts.find((lift) => lift.exercise.name === "Bench Press")?.nextCall?.call;
+
+  it("makes an injured lift a light day", () => {
+    expect(benchCall(dprStatusFromRows(injured))).toBe("light");
+  });
+
+  it("ignores injuries when they're set to tracking only", () => {
+    const tracking = dprStatusFromRows({
+      ...injured,
+      user: { ...injured.user, injuriesAffectPrp: false },
+    });
+    expect(benchCall(tracking)).toBe(benchCall(dprStatusFromRows(input)));
+    expect(benchCall(tracking)).not.toBe("light");
+  });
+});

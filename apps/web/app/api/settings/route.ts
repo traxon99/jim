@@ -43,6 +43,8 @@ interface SettingsPayload {
   showRestStats: boolean;
   showSetTimer: boolean;
   showInjuryRules: boolean;
+  injuriesAffectPrp: boolean;
+  showInjuryHints: boolean;
   autoEndWorkoutMinutes: number | null;
   pushRestTimer: boolean;
   pushWorkoutReminders: boolean;
@@ -83,6 +85,8 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
     showInjuryRules: row.showInjuryRules,
+    injuriesAffectPrp: row.injuriesAffectPrp,
+    showInjuryHints: row.showInjuryHints,
     autoEndWorkoutMinutes: row.autoEndWorkoutMinutes,
     pushRestTimer: row.pushRestTimer,
     pushWorkoutReminders: row.pushWorkoutReminders,
@@ -185,6 +189,12 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
     return false;
   }
   if ("showInjuryRules" in candidate && typeof candidate.showInjuryRules !== "boolean") {
+    return false;
+  }
+  if ("injuriesAffectPrp" in candidate && typeof candidate.injuriesAffectPrp !== "boolean") {
+    return false;
+  }
+  if ("showInjuryHints" in candidate && typeof candidate.showInjuryHints !== "boolean") {
     return false;
   }
   for (const key of [
@@ -322,6 +332,8 @@ export async function PATCH(request: Request) {
       if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
       if (body.showSetTimer !== undefined) patch.showSetTimer = body.showSetTimer;
       if (body.showInjuryRules !== undefined) patch.showInjuryRules = body.showInjuryRules;
+      if (body.injuriesAffectPrp !== undefined) patch.injuriesAffectPrp = body.injuriesAffectPrp;
+      if (body.showInjuryHints !== undefined) patch.showInjuryHints = body.showInjuryHints;
       if (body.pushRestTimer !== undefined) patch.pushRestTimer = body.pushRestTimer;
       if (body.pushWorkoutReminders !== undefined)
         patch.pushWorkoutReminders = body.pushWorkoutReminders;

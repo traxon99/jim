@@ -7,6 +7,7 @@ import type {
   SettingsRow,
 } from "@/lib/db/schema";
 import { ruleOf } from "@/lib/progression/calls";
+import { injuriesAffectPrp } from "@/lib/settings/features";
 import {
   type DprCall,
   type DprDecision,
@@ -64,7 +65,10 @@ export function buildDprContext(input: {
   const block = currentBlock(input.blocks);
   if (!block) return null;
   const exercises = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
-  const injuries = (input.injuries ?? []).filter((injury) => !injury.deletedAt);
+  // With injuries set to tracking only (issue #731), PRP ignores them.
+  const injuries = injuriesAffectPrp(input.settings)
+    ? (input.injuries ?? []).filter((injury) => !injury.deletedAt)
+    : [];
   // Sessions logged while an injury hit the lift's primary muscle count as
   // light days, so they never drag progression down (issue #627).
   const history = markInjuredHistory(
