@@ -199,6 +199,14 @@ body {
     inset -1px -1px 0 rgb(255 255 255 / 0.06);
 }
 
+/* A floating workout timer sits over the sync slot, just above the pill, and
+   publishes its height; the sync status lifts above it rather than hiding
+   behind it (components/workout/timer-bar-chrome.ts, #729). A transform, so the
+   tab bar's measured height doesn't change (#679). */
+.tab-bar-sync-slot {
+  transform: translateY(calc(-1 * var(--floating-timer-height, 0px)));
+}
+
 /* The current tab sits in a soft lens of its own inside the pill. */
 .tab-bar-glass-active {
   background: rgb(0 0 0 / 0.06);

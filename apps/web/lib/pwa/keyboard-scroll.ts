@@ -36,3 +36,17 @@ export function shouldResetDocumentScroll({
   if (!standalone || keyboardTargetFocused) return false;
   return scrollX !== 0 || scrollY !== 0;
 }
+
+/**
+ * Whether the floating tab bar should get out of the way. iOS lifts the whole
+ * document to keep the caret in view, so a bottom-pinned bar ends up floating
+ * over the content just above the keyboard (#729). Native iOS apps leave the
+ * tab bar behind the keyboard; hiding it while an input holds the keyboard
+ * matches that. In a browser tab there's no lift to undo, so it stays.
+ */
+export function shouldHideTabBar({
+  standalone,
+  keyboardTargetFocused,
+}: Pick<DocumentScrollContext, "standalone" | "keyboardTargetFocused">): boolean {
+  return standalone && keyboardTargetFocused;
+}

@@ -81,6 +81,11 @@ fixes this globally: when nothing that raises the keyboard is focused, it resets
 document scroll to `0,0`. It checks on `focusout` (one frame later, so hopping between inputs
 isn't mistaken for a close), on `window` scroll, and on `visualViewport` resize.
 
+- While the keyboard is up, the document stays lifted, and it carries the floating tab bar up
+  with it over the content just above the keyboard (#729). The tab bar fades out while an input
+  holds the keyboard (`useHideTabBarForKeyboard` in `lib/pwa/use-keyboard-open.ts`), as native
+  iOS tab bars stay behind the keyboard. It keeps its measured height while hidden, so content
+  padding doesn't jump. Any new bottom-pinned bar does the same.
 - Don't add a per-screen fix for this. The global one covers every input.
 - If you add a new kind of keyboard-raising element, make sure `KEYBOARD_TARGET_SELECTOR` in
   `lib/pwa/keyboard-scroll.ts` matches it.
@@ -198,6 +203,11 @@ appear on, including during an active workout while the rest timer is running.
   home-indicator inset and left a big empty gap, so it's capped (63c0e5e). The strip is
   `pointer-events-none`, so taps around the pill reach the page.
 - The status bar is `black-translucent`, so content under it has to be padded, not just colored.
+
+During a workout the rest and set timers float as their own glass pill 8px above the tab pill
+(`--tab-pill-height`, `components/workout/timer-bar-chrome.ts`), over the sync slot. They publish
+`--floating-timer-height`, and the sync slot lifts above them by a transform, so the strip's
+measured height never changes (#729).
 
 The tab bar strip reserves a fixed-height sync slot above its pill, sized for its tallest action
 (52px, including the 44px retry target and padding). Pending, offline and error states must not
