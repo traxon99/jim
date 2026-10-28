@@ -9,10 +9,11 @@ const DOCKED_CLASS =
  * Over the tab bar the timer floats as a glass pill of its own, just above the
  * tab pill. As a full-width opaque band it sat on top of the tab bar's sync
  * slot, so the workout showed through the gap under it and it looked like it
- * cut through the exercise cards (#729).
+ * cut through the exercise cards (#729). No backdrop blur behind its clock
+ * and buttons (#720), so `.timer-pill` is a solid fill, not glass.
  */
 const FLOATING_CLASS =
-  "tab-bar-glass sticky z-10 mx-3 flex min-w-0 items-center justify-between gap-3 rounded-[1.75rem] py-2 pl-5 pr-2";
+  "timer-pill sticky z-10 mx-3 flex min-w-0 items-center justify-between gap-3 rounded-[1.75rem] py-2 pl-5 pr-2";
 
 /** Gap between the floating timer and the tab pill under it. */
 const FLOATING_GAP = "8px";

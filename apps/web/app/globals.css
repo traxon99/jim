@@ -207,6 +207,21 @@ body {
   transform: translateY(calc(-1 * var(--floating-timer-height, 0px)));
 }
 
+/* The floating workout timer pill (components/workout/timer-bar-chrome.ts).
+   Shaped like the tab pill but with no backdrop-filter, since it sits behind
+   the clock and buttons (#720): a solid fill keeps them sharp. */
+.timer-pill {
+  border: 1px solid rgb(0 0 0 / 0.08);
+  background: rgb(255 255 255);
+  box-shadow: 0 10px 30px -6px rgb(0 0 0 / 0.18), 0 2px 6px rgb(0 0 0 / 0.06);
+}
+
+:root.dark .timer-pill {
+  border-color: rgb(255 255 255 / 0.12);
+  background: rgb(24 24 27);
+  box-shadow: 0 12px 32px -6px rgb(0 0 0 / 0.7), 0 2px 6px rgb(0 0 0 / 0.3);
+}
+
 /* The current tab sits in a soft lens of its own inside the pill. */
 .tab-bar-glass-active {
   background: rgb(0 0 0 / 0.06);

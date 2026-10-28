@@ -33,7 +33,8 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
 
   // The bar floats over the shell's scroller rather than sitting below it, so
   // publish its height for the scroller to clear. The floating workout timers
-  // sit just above the pill itself, over the sync slot (#729).
+  // sit just above the pill itself, over the sync slot, and drop to the bottom
+  // edge while the pill is hidden for the keyboard (#729).
   useEffect(() => {
     const bar = barRef.current;
     const pill = pillRef.current;
@@ -42,10 +43,8 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
     const publish = () => {
       const barRect = bar.getBoundingClientRect();
       root.style.setProperty("--tab-bar-height", `${barRect.height}px`);
-      root.style.setProperty(
-        "--tab-pill-height",
-        `${barRect.bottom - pill.getBoundingClientRect().top}px`,
-      );
+      const pillHeight = hiddenForKeyboard ? 0 : barRect.bottom - pill.getBoundingClientRect().top;
+      root.style.setProperty("--tab-pill-height", `${pillHeight}px`);
     };
     publish();
     const observer = new ResizeObserver(publish);
@@ -55,7 +54,7 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
       root.style.removeProperty("--tab-bar-height");
       root.style.removeProperty("--tab-pill-height");
     };
-  }, []);
+  }, [hiddenForKeyboard]);
 
   return (
     // A floating Liquid Glass pill: the outer strip only positions it, and

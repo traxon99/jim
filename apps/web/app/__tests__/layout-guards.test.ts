@@ -27,7 +27,15 @@ describe("layout guards", () => {
       expect(bar).toContain("timerBarStyle(aboveTabBar)");
       expect(bar).toContain("usePublishFloatingTimerHeight(");
     }
+    const chrome = readFileSync(
+      path.join(webRoot, "components/workout/timer-bar-chrome.ts"),
+      "utf8",
+    );
+    expect(chrome).not.toContain("tab-bar-glass");
+    const bar = readFileSync(path.join(webRoot, "components/bottom-tab-bar.tsx"), "utf8");
+    expect(bar).toContain("hiddenForKeyboard ? 0 :");
     const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    expect(css).not.toMatch(/\.timer-pill\s*\{[^}]*backdrop-filter/);
     expect(css).toMatch(/\.tab-bar-sync-slot\s*\{[^}]*var\(--floating-timer-height/);
   });
 
