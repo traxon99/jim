@@ -14,6 +14,31 @@ describe("layout guards", () => {
     expect(bar).toMatch(/<div className="[^"]*\bh-13\b[^"]*">\s*\{syncStatus\}\s*<\/div>/);
   });
 
+  it("hides the tab bar while an input holds the keyboard (#729)", () => {
+    const bar = readFileSync(path.join(webRoot, "components/bottom-tab-bar.tsx"), "utf8");
+    expect(bar).toContain("const hiddenForKeyboard = useHideTabBarForKeyboard()");
+    expect(bar).toContain('hiddenForKeyboard ? "invisible opacity-0"');
+  });
+
+  it("floats the workout timers just above the tab pill, not over its sync slot (#729)", () => {
+    for (const file of ["rest-timer-bar.tsx", "set-timer-bar.tsx"]) {
+      const bar = readFileSync(path.join(webRoot, "components/workout", file), "utf8");
+      expect(bar).not.toContain("var(--tab-bar-height");
+      expect(bar).toContain("timerBarStyle(aboveTabBar)");
+      expect(bar).toContain("usePublishFloatingTimerHeight(");
+    }
+    const chrome = readFileSync(
+      path.join(webRoot, "components/workout/timer-bar-chrome.ts"),
+      "utf8",
+    );
+    expect(chrome).not.toContain("tab-bar-glass");
+    const bar = readFileSync(path.join(webRoot, "components/bottom-tab-bar.tsx"), "utf8");
+    expect(bar).toContain("hiddenForKeyboard ? 0 :");
+    const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    expect(css).not.toMatch(/\.timer-pill\s*\{[^}]*backdrop-filter/);
+    expect(css).toMatch(/\.tab-bar-sync-slot\s*\{[^}]*var\(--floating-timer-height/);
+  });
+
   it("resets fieldset min-width so forms can't grow wider than the screen (#458)", () => {
     const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
     expect(css).toMatch(/fieldset\s*\{[^}]*min-width:\s*0/);

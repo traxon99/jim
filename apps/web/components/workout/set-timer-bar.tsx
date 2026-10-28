@@ -1,10 +1,10 @@
 "use client";
 
 import type { SetTimer } from "@/lib/sessions/use-set-timer";
+import { useRef } from "react";
 import { formatClock } from "./rest-timer-bar";
+import { timerBarClass, timerBarStyle, usePublishFloatingTimerHeight } from "./timer-bar-chrome";
 
-const BAR_CLASS =
-  "sticky bottom-0 z-10 flex min-w-0 items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950";
 const LABEL_CLASS = "text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
 
 /**
@@ -21,11 +21,14 @@ export function SetTimerBar({
   /** Stick above the translucent tab bar, which overlays the shell's scroller. */
   aboveTabBar?: boolean;
 }) {
-  const style = aboveTabBar ? { bottom: "var(--tab-bar-height, 0px)" } : undefined;
+  const ref = useRef<HTMLDivElement>(null);
+  usePublishFloatingTimerHeight(ref, aboveTabBar);
+  const style = timerBarStyle(aboveTabBar);
+  const barClass = timerBarClass(aboveTabBar);
 
   if (timer.phase === "idle") {
     return (
-      <div style={style} className={BAR_CLASS}>
+      <div ref={ref} style={style} className={barClass}>
         <span className={LABEL_CLASS}>Set timer</span>
         <button
           type="button"
@@ -40,7 +43,7 @@ export function SetTimerBar({
 
   if (timer.phase === "running") {
     return (
-      <div style={style} className={BAR_CLASS}>
+      <div ref={ref} style={style} className={barClass}>
         <div className="flex min-w-0 items-baseline gap-2">
           <span className={LABEL_CLASS}>Working</span>
           <span className="text-2xl font-semibold tabular-nums">{formatClock(timer.elapsed)}</span>
@@ -68,7 +71,7 @@ export function SetTimerBar({
   }
 
   return (
-    <div style={style} className={BAR_CLASS}>
+    <div ref={ref} style={style} className={barClass}>
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"

@@ -38,6 +38,11 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       and cap it to the viewport (#167, #412).
 
 **Layout at 393 px**
+- [ ] A new bar pinned to the bottom of the screen? It steps aside while an input holds the
+      keyboard, as the tab bar does with `useHideTabBarForKeyboard`, or iOS lifts it over the
+      content above the keyboard (#729; guard test).
+- [ ] Something that clears the tab bar? Floating chrome sits on the pill (`--tab-pill-height`);
+      `--tab-bar-height` includes the sync slot and is only for padding the scroller (#729).
 - [ ] Transient sync status has a fixed-height slot sized for its tallest action, so pending, offline and error states never move the tabs or rest timer (#679).
 - [ ] No `max-w-*` cap or extra gutters on a page body. Every pushed screen uses `PageHeader` +
       `PAGE_BODY` (full width, `px-4`) instead of a one-off header (#299, #309, #547).

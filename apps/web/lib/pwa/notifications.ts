@@ -22,7 +22,8 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE = "Sync updates no longer move your tabs, workout or rest timer.";
+export const LATEST_RELEASE_NOTE =
+  "The rest timer now floats neatly above the tabs, and the tab bar hides while you type.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
