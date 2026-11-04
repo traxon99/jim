@@ -132,7 +132,7 @@ export function WorkoutSection() {
           ))}
         </select>
         <span className="font-normal text-zinc-500 dark:text-zinc-400">
-          Home&apos;s week rings and your streak dots count toward this target.
+          Home&apos;s week rings count toward this target.
         </span>
       </label>
 

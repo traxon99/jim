@@ -15,7 +15,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { WeekRingAvatar } from "./week-ring-avatar";
+import { GoalMetBadge, WeekRingAvatar } from "./week-ring-avatar";
 
 function profileHref(person: WeekRingDisplay): string {
   return person.isSelf ? "/profile" : `/friends/${encodeURIComponent(person.username)}`;
@@ -68,7 +68,14 @@ export function WeekRingsStrip() {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const [remote, setRemote] = useState<WeekRingPerson[] | null>(null);
 
-  const hasFriends = load.status === "ready" && load.friends.some((f) => f.status === "accepted");
+  const acceptedFriendKey =
+    load.status === "ready"
+      ? load.friends
+          .filter((f) => f.status === "accepted")
+          .map((f) => f.userId)
+          .join(",")
+      : "";
+  const hasFriends = acceptedFriendKey.length > 0;
   const selfFallback =
     load.status === "ready" && load.username
       ? {
@@ -88,7 +95,7 @@ export function WeekRingsStrip() {
     return () => {
       cancelled = true;
     };
-  }, [load.status]);
+  }, [load]);
 
   const localGoal = clampWeeklyWorkoutGoal(settings.weeklyWorkoutGoal);
   const localDone = achievements?.streak.thisWeek;
@@ -111,10 +118,16 @@ export function WeekRingsStrip() {
         <Link
           key={person.userId}
           href={profileHref(person)}
-          data-ripple
           className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5"
         >
-          <WeekRingAvatar person={person} />
+          <span className="relative">
+            <span data-ripple className="block rounded-full">
+              <WeekRingAvatar person={person} showGoalBadge={false} />
+            </span>
+            {person.shareWorkouts && person.goalMet && (
+              <GoalMetBadge className="pointer-events-none absolute -bottom-0.5 -right-0.5" />
+            )}
+          </span>
           <span className="flex w-full flex-col items-center gap-0.5 text-center">
             <span
               className={`max-w-full truncate text-xs ${
