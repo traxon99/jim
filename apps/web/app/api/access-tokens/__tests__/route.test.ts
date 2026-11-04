@@ -49,7 +49,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/access-tokens", () => {
     const { token, entry } = await response.json();
 
     expect(token).toMatch(/^jim_pat_/);
-    expect(entry).toMatchObject({ name: "Nightly script", prefix: token.slice(0, 12) });
+    expect(entry).toMatchObject({
+      name: "Nightly script",
+      prefix: token.slice(0, 12),
+      scope: "read_write",
+    });
     expect(new Date(entry.expiresAt).getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000);
 
     const [row] = await admin`SELECT * FROM personal_access_tokens WHERE id = ${entry.id}`;
@@ -70,10 +74,30 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/access-tokens", () => {
     expect((await never.json()).entry.expiresAt).toBeNull();
   });
 
+  it("creates read only tokens and rejects unknown scopes (#736)", async () => {
+    signInAs(USER_A, "alice@example.com");
+    const read = await route.POST(
+      jsonRequest("POST", { name: "Jackson OS", expiresInDays: null, scope: "read" }),
+    );
+    const { entry } = await read.json();
+    expect(entry.scope).toBe("read");
+    const [row] = await admin`SELECT scope FROM personal_access_tokens WHERE id = ${entry.id}`;
+    expect(row?.scope).toBe("read");
+    const listed = (await (await route.GET()).json()).tokens.find(
+      (t: { id: string }) => t.id === entry.id,
+    );
+    expect(listed.scope).toBe("read");
+
+    const bad = await route.POST(
+      jsonRequest("POST", { name: "x", expiresInDays: 30, scope: "admin" }),
+    );
+    expect(bad.status).toBe(400);
+  });
+
   it("only lists and revokes the signed-in user's own tokens", async () => {
     signInAs(USER_A, "alice@example.com");
     const { tokens: aTokens } = await (await route.GET()).json();
-    const target = aTokens[0].id;
+    const target = aTokens[aTokens.length - 1].id;
 
     signInAs(USER_B, "bob@example.com");
     expect((await (await route.GET()).json()).tokens).toEqual([]);

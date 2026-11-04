@@ -1,5 +1,5 @@
 import { type Result, apiRequest } from "@/lib/api/client";
-import type { AccessTokenExpiryDays } from "@jim/core";
+import type { AccessTokenExpiryDays, AccessTokenScope } from "@jim/core";
 import type { AccessTokenEntry, CreatedAccessToken } from "./types";
 
 // Access tokens are server data (issue #246), like friends: nothing is kept
@@ -20,11 +20,12 @@ export async function fetchAccessTokens(
 export function createAccessToken(
   name: string,
   expiresInDays: AccessTokenExpiryDays,
+  scope: AccessTokenScope,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<CreatedAccessToken>> {
   return apiRequest<CreatedAccessToken>(
     "/api/access-tokens",
-    { method: "POST", body: JSON.stringify({ name, expiresInDays }) },
+    { method: "POST", body: JSON.stringify({ name, expiresInDays, scope }) },
     "Couldn't create the token",
     fetchImpl,
   );

@@ -15,6 +15,19 @@ export type AccessTokenExpiryDays = (typeof ACCESS_TOKEN_EXPIRY_DAYS)[number];
 
 export const ACCESS_TOKEN_NAME_MAX_LENGTH = 60;
 
+/**
+ * What a token may do (issue #736). `read` tokens can call only read MCP
+ * tools and the /v1 read API (ADR-022), for a dashboard secret that
+ * shouldn't be able to delete anything. `read_write` can call every tool,
+ * and is what every token created before scopes existed resolves as.
+ */
+export const ACCESS_TOKEN_SCOPES = ["read", "read_write"] as const;
+export type AccessTokenScope = (typeof ACCESS_TOKEN_SCOPES)[number];
+
+export function isAccessTokenScope(value: unknown): value is AccessTokenScope {
+  return (ACCESS_TOKEN_SCOPES as readonly unknown[]).includes(value);
+}
+
 /** How many characters of the plaintext are kept to tell tokens apart in a list. */
 const DISPLAY_PREFIX_LENGTH = ACCESS_TOKEN_PREFIX.length + 4;
 

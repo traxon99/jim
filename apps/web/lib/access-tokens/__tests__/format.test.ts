@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { describeExpiry, describeLastUsed, expiryLabel, isExpired } from "../format";
+import { describeExpiry, describeLastUsed, expiryLabel, isExpired, scopeLabel } from "../format";
 import type { AccessTokenEntry } from "../types";
 
 const base: AccessTokenEntry = {
   id: "t",
   name: "Script",
+  scope: "read_write",
   prefix: "jim_pat_Ab3x",
   createdAt: "2026-09-01T12:00:00.000Z",
   expiresAt: null,
@@ -36,5 +37,10 @@ describe("access token formatting", () => {
     expect(describeLastUsed({ ...base, lastUsedAt: "2026-09-29T12:00:00.000Z" })).toMatch(
       /^Last used /,
     );
+  });
+
+  it("labels scopes for the picker and the list (#736)", () => {
+    expect(scopeLabel("read")).toBe("Read only");
+    expect(scopeLabel("read_write")).toBe("Read and write");
   });
 });

@@ -22,10 +22,11 @@ Everything else is subordinate to that.
 │  SyncEngine — foreground-driven flush/pull      │
 └────────┼────────────────────────────────────────┘
          │ HTTPS, batched
-┌────────▼──────────────┐       ┌──────────────────┐
-│ Next.js Route Handlers│       │ MCP server       │
-│  POST /api/sync/push  │       │ streamable HTTP  │
-│  GET  /api/sync/pull  │       │ OAuth 2.1        │
+┌────────▼──────────────┐       ┌──────────────────┐   ┌─────────────┐
+│ Next.js Route Handlers│       │ MCP server       │◄──┤ Jackson OS  │
+│  POST /api/sync/push  │       │ streamable HTTP  │   │ (dashboard) │
+│  GET  /api/sync/pull  │       │ OAuth 2.1        │   └─────────────┘
+│                       │       │ + /v1 read API   │   read-only PAT
 └────────┬──────────────┘       └────────┬─────────┘
          │                               │
          └──────────► Supabase Postgres ◄─┘
@@ -187,7 +188,17 @@ Clients that can't do OAuth (scripts, cron jobs) can instead send a personal acc
 `Authorization: Bearer jim_pat_…`, created and revoked in Settings → Advanced → Connect Claude. Only a SHA-256
 hash is stored (`personal_access_tokens`). The server resolves a presented token to its owner through
 one SECURITY DEFINER function (migration 0027), run as `anon`, and then runs every tool as that user
-under RLS, the same as an OAuth session.
+under RLS, the same as an OAuth session. A token has a scope (#736): `read_write` (the default,
+for Claude connectors) or `read`, which every write tool refuses with "This token is read-only."
+The write tools are listed once in `apps/mcp/src/tool-scopes.ts`, and a test fails if a registered
+tool isn't classified.
+
+**`/v1` read API (ADR-022).** The same process serves a small versioned JSON API at `/v1/*` for
+[Jackson OS](https://github.com/traxon99/jackson-os), a personal dashboard that polls Jim from its
+own server. It accepts personal access tokens only (either scope), runs each handler as the token's
+owner under RLS, and calls the same functions as the matching read tool, so the dashboard and
+Claude report the same numbers. It never writes. Response schemas live in `@jim/core`
+(`packages/core/src/api/`); endpoints, errors and the rate limit are documented in `docs/API.md`.
 
 **Read tools**
 

@@ -9,6 +9,7 @@ import {
   generateAccessToken,
   hashAccessToken,
   isAccessTokenExpiryDays,
+  isAccessTokenScope,
   uuidv7,
 } from "@jim/core";
 import { personalAccessTokens } from "@jim/db";
@@ -23,6 +24,7 @@ function toEntry(row: typeof personalAccessTokens.$inferSelect): AccessTokenEntr
   return {
     id: row.id,
     name: row.name,
+    scope: isAccessTokenScope(row.scope) ? row.scope : "read",
     prefix: row.tokenPrefix,
     createdAt: row.createdAt.toISOString(),
     expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,
@@ -49,7 +51,11 @@ export async function GET() {
   }
 }
 
-/** Creates a token: `{ name, expiresInDays }` (30, 90, 365 or null for never). */
+/**
+ * Creates a token: `{ name, expiresInDays, scope? }`. `expiresInDays` is 30,
+ * 90, 365 or null for never; `scope` is "read" or "read_write" (the default,
+ * issue #736).
+ */
 export async function POST(request: Request) {
   const body = await readJsonObject(request);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
@@ -58,6 +64,10 @@ export async function POST(request: Request) {
   const expiresInDays = body?.expiresInDays;
   if (!isAccessTokenExpiryDays(expiresInDays)) {
     return NextResponse.json({ error: "Pick an expiry" }, { status: 400 });
+  }
+  const scope = body?.scope ?? "read_write";
+  if (!isAccessTokenScope(scope)) {
+    return NextResponse.json({ error: "Pick what the token can do" }, { status: 400 });
   }
 
   try {
@@ -75,6 +85,7 @@ export async function POST(request: Request) {
           tokenPrefix: accessTokenDisplayPrefix(token),
           createdAt: now,
           expiresAt: accessTokenExpiresAt(expiresInDays, now),
+          scope,
         })
         .returning();
       if (!row) throw new Error("token insert returned no row");

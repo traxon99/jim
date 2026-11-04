@@ -1237,10 +1237,14 @@ export const personalAccessTokens = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    // "read" tokens can only read (issue #736): every MCP write tool refuses
+    // them, and the /v1 API is all reads. "read_write" can call every tool.
+    scope: text("scope").notNull().default("read_write"),
   },
   (table) => [
     uniqueIndex("personal_access_tokens_hash").on(table.tokenHash),
     index("personal_access_tokens_user").on(table.userId),
+    check("personal_access_tokens_scope", sql`${table.scope} IN ('read', 'read_write')`),
     ...ownRowPolicies("personal_access_tokens", table.userId),
   ],
 ).enableRLS();

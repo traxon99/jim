@@ -579,3 +579,44 @@ a push saying the workout ended.
 live session phone-owned, and a server write would race sets the phone hasn't synced yet. The cost
 is that the portal and MCP show the workout as in progress until the phone next opens Jim; the push
 still arrives on time, and the workout's recorded end is the same either way.
+
+---
+
+## ADR-022 — Jackson OS reads Jim through a versioned read-only REST API
+
+**Status:** Accepted · 2026-11-04
+
+**Context.** [Jackson OS](https://github.com/traxon99/jackson-os), Jackson's personal dashboard,
+wants to show Jim training data: this week against last, the streak, recent workouts, PRs, lift
+trends, bodyweight and what's planned next (issue #734). It polls from its own server on a
+schedule and keeps a token in its `JIM_PAT` secret.
+
+**Decision.** Jackson OS's server calls a small **versioned JSON REST API (`/v1/*`) served by
+`apps/mcp`**, authenticated with a **read-only personal access token**.
+
+- **Host.** `apps/mcp` is already a persistent Express process on Fly (`jim-mcp.fly.dev`), already
+  verifies `jim_pat_` bearer tokens and already holds the read queries (`weekly-summary.ts`,
+  `list-workouts.ts`, `get-prs.ts`…). Each `/v1` handler calls the same function its MCP tool
+  does, so the dashboard and Claude can't disagree on a number (the same idea as "Shared
+  computation" in ARCHITECTURE §4).
+- **Auth.** A new `read` token scope (#736). The token runs every query as its owner under RLS,
+  exactly like the MCP PAT path (ADR-006). No service-role key. A `read` token can also call the
+  MCP read tools; every MCP write tool refuses it.
+- **Read only.** Jackson OS can't start, edit or end a workout. The phone owns the live session
+  (ADR-007), and `/v1/status` shows an in-progress workout for display only. Writes from Jackson
+  OS (say, logging a body measurement) would be a separate decision with a separate scope.
+- **Server-to-server only.** No CORS headers; no browser ever holds the token.
+- **Versioning.** Responses have zod schemas in `@jim/core` (`packages/core/src/api/`), which
+  Jackson OS mirrors. Within `/v1` changes are additive only; a breaking change means `/v2`.
+  `docs/API.md` documents every endpoint.
+
+**Rejected: Jackson OS as an MCP client.** It works today, but MCP tools return pretty-printed JSON
+inside a text block with no stable schema, need a session handshake per call, and take
+prompt-oriented arguments. A dashboard polling on a schedule wants typed, cacheable, versioned
+responses.
+
+**Rejected: Next.js route handlers in `apps/web`.** These run as Vercel functions, and the web
+app's auth is Supabase sessions, not personal access tokens.
+
+**Rejected: direct Postgres or Supabase reads from Jackson OS.** That puts a standing database
+credential outside Jim and duplicates the core logic that computes volume, streaks and e1RM.

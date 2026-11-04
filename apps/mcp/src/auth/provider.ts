@@ -104,7 +104,7 @@ export class SupabaseOAuthProvider implements OAuthServerProvider {
         clientId: "personal-access-token",
         scopes: [],
         expiresAt: resolved.expiresAt,
-        extra: { userId: resolved.userId, email: "" },
+        extra: { userId: resolved.userId, email: "", scope: resolved.scope },
       };
     }
 
@@ -119,7 +119,7 @@ export class SupabaseOAuthProvider implements OAuthServerProvider {
       clientId: "supabase", // not meaningful here: every client shares the same Supabase-backed grant
       scopes: [],
       expiresAt: exp,
-      extra: { userId: sub, email: email ?? "" },
+      extra: { userId: sub, email: email ?? "", scope: "read_write" },
     };
   }
 

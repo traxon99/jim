@@ -32,6 +32,12 @@ claude mcp add --transport http jim https://jim-mcp.fly.dev/mcp \
 Tokens start with `jim_pat_`, so `verifyAccessToken` can tell them apart from
 Supabase access tokens without a lookup (`src/auth/access-token.ts`).
 
+A token is either **Read and write** (the default) or **Read only** (#736). A
+read-only token can call the read tools, and every write tool answers "This
+token is read-only." without touching the database, `dry_run` included. Each
+tool is listed as a read or a write in `src/tool-scopes.ts`; a new tool must be
+added there, or `tool-scopes.test.ts` fails.
+
 ## Tests
 
 `pnpm --filter @jim/mcp test` runs the unit suites. The write-tool integration

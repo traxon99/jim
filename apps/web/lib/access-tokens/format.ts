@@ -1,4 +1,4 @@
-import type { AccessTokenExpiryDays } from "@jim/core";
+import type { AccessTokenExpiryDays, AccessTokenScope } from "@jim/core";
 import type { AccessTokenEntry } from "./types";
 
 function shortDate(date: Date): string {
@@ -8,6 +8,11 @@ function shortDate(date: Date): string {
 /** The expiry picker's label for each choice. */
 export function expiryLabel(days: AccessTokenExpiryDays): string {
   return days === null ? "No expiry" : `${days} days`;
+}
+
+/** The scope picker's label, also shown in the token list (issue #736). */
+export function scopeLabel(scope: AccessTokenScope): string {
+  return scope === "read" ? "Read only" : "Read and write";
 }
 
 /** "Expires Oct 30, 2026", "Expired Sep 1, 2026" or "Never expires". */

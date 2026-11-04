@@ -1,3 +1,4 @@
+import { isAccessTokenScope } from "@jim/core";
 // Streamable HTTP + OAuth 2.1 MCP server (S8; see docs/STORIES.md and
 // docs/ARCHITECTURE.md §5). Holds a user's own Supabase session token and is
 // subject to the same RLS as the web app — never a service-role key (ADR-006).
@@ -51,7 +52,9 @@ app.post(
   express.json(),
   requireBearerAuth({ verifier: provider, resourceMetadataUrl }),
   async (req, res) => {
-    const extra = req.auth?.extra as { userId?: unknown; email?: unknown } | undefined;
+    const extra = req.auth?.extra as
+      | { userId?: unknown; email?: unknown; scope?: unknown }
+      | undefined;
     const userId = typeof extra?.userId === "string" ? extra.userId : undefined;
     if (!userId) {
       res
@@ -64,6 +67,8 @@ app.post(
       db: getDb(),
       userId,
       email: typeof extra?.email === "string" ? extra.email : "",
+      // Fails closed: a token whose scope didn't come through can only read.
+      scope: isAccessTokenScope(extra?.scope) ? extra.scope : "read",
     };
 
     // A fresh server + transport per request (see server.ts) — simplest
