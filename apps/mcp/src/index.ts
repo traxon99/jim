@@ -10,6 +10,7 @@ import {
 } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
+import { v1Router } from "./api/router.js";
 import { loginRoutes } from "./auth/login-routes.js";
 import { SupabaseOAuthProvider } from "./auth/provider.js";
 import type { UserContext } from "./context.js";
@@ -45,6 +46,9 @@ app.use(
   }),
 );
 app.use(loginRoutes());
+
+// Versioned read API for Jackson OS (ADR-022): personal access tokens only.
+app.use("/v1", v1Router(getDb));
 
 const resourceMetadataUrl = getOAuthProtectedResourceMetadataUrl(resourceUrl);
 

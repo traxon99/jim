@@ -38,6 +38,17 @@ token is read-only." without touching the database, `dry_run` included. Each
 tool is listed as a read or a write in `src/tool-scopes.ts`; a new tool must be
 added there, or `tool-scopes.test.ts` fails.
 
+## `/v1` read API
+
+The same server serves a versioned, read-only JSON API at `/v1` for Jackson OS
+(ADR-022), authenticated with a personal access token. Handlers live in
+`src/api/`, call the same code as the matching read tools, and are documented
+in [`docs/API.md`](../../docs/API.md).
+
+```
+curl -H "Authorization: Bearer jim_pat_…" https://jim-mcp.fly.dev/v1/status
+```
+
 ## Tests
 
 `pnpm --filter @jim/mcp test` runs the unit suites. The write-tool integration

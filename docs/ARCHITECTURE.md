@@ -26,7 +26,7 @@ Everything else is subordinate to that.
 │ Next.js Route Handlers│       │ MCP server       │◄──┤ Jackson OS  │
 │  POST /api/sync/push  │       │ streamable HTTP  │   │ (dashboard) │
 │  GET  /api/sync/pull  │       │ OAuth 2.1        │   └─────────────┘
-│                       │       │ + /v1 (planned)  │   read-only PAT
+│                       │       │ + /v1 read API   │   read-only PAT
 └────────┬──────────────┘       └────────┬─────────┘
          │                               │
          └──────────► Supabase Postgres ◄─┘
@@ -193,11 +193,12 @@ for Claude connectors) or `read`, which every write tool refuses with "This toke
 The write tools are listed once in `apps/mcp/src/tool-scopes.ts`, and a test fails if a registered
 tool isn't classified.
 
-**`/v1` read API (ADR-022, planned in #734).** The same process will serve a small versioned JSON
-API at `/v1/*` for [Jackson OS](https://github.com/traxon99/jackson-os), a personal dashboard that
-polls Jim from its own server. It will accept personal access tokens only (either scope), run each
-handler as the token's owner under RLS, and call the same functions as the matching read tool, so
-the dashboard and Claude report the same numbers. It never writes.
+**`/v1` read API (ADR-022).** The same process serves a small versioned JSON API at `/v1/*` for
+[Jackson OS](https://github.com/traxon99/jackson-os), a personal dashboard that polls Jim from its
+own server (`apps/mcp/src/api/`). It accepts personal access tokens only (either scope), runs each
+handler as the token's owner under RLS, and calls the same functions as the matching read tool, so
+the dashboard and Claude report the same numbers. It never writes. Response schemas live in
+`@jim/core` (`packages/core/src/api/`); endpoints, errors and the rate limit are in `docs/API.md`.
 
 **Read tools**
 
