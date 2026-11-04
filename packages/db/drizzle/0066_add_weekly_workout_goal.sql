@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "weekly_workout_goal" smallint DEFAULT 3 NOT NULL;

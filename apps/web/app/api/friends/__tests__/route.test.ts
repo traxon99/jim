@@ -5,6 +5,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
 
+/** Fixed workout window (matches main) so feed + week rings stay stable across CI dates. */
+const LEG_DAY_START = "2026-09-28T10:00:00Z";
+const LEG_DAY_END = "2026-09-28T11:00:00Z";
+const LEG_DAY_STARTED_AT = "2026-09-28T10:00:00.000Z";
+const WEEK_RINGS_NOW = "2026-09-28T12:00:00.000Z";
+
 const claims = { sub: USER_A, email: "alice@example.com" };
 function signInAs(userId: string, email: string) {
   claims.sub = userId;
@@ -18,6 +24,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const friends = await import("../route");
+const weekRings = await import("../week-rings/route");
 const workouts = await import("../workouts/route");
 const username = await import("../../username/route");
 const reactions = await import("../reactions/route");
@@ -73,7 +80,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
     expect(accepted.status).toBe(200);
 
     await admin`INSERT INTO sessions (user_id, name, device_id, started_at, ended_at)
-      VALUES (${USER_B}, 'Leg Day', 'b', '2026-09-28T10:00:00Z', '2026-09-28T11:00:00Z')`;
+      VALUES (${USER_B}, 'Leg Day', 'b', ${LEG_DAY_START}, ${LEG_DAY_END})`;
 
     signInAs(USER_A, "alice@example.com");
     const feed = await (await workouts.GET()).json();
@@ -82,16 +89,40 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
         userId: USER_B,
         username: "bob",
         name: "Leg Day",
-        startedAt: "2026-09-28T10:00:00.000Z",
+        startedAt: LEG_DAY_STARTED_AT,
         exercises: [],
         reactions: [],
       }),
     ]);
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(WEEK_RINGS_NOW));
+    const rings = await (await weekRings.GET()).json();
+    vi.useRealTimers();
+
+    const self = rings.people.find((person: { userId: string }) => person.userId === USER_A);
+    const bob = rings.people.find((person: { userId: string }) => person.userId === USER_B);
+    expect(self).toMatchObject({
+      username: "ally",
+      isSelf: true,
+      shareWorkouts: true,
+      weeklyGoal: 3,
+      workoutsThisWeek: 0,
+    });
+    expect(bob).toMatchObject({
+      username: "bob",
+      shareWorkouts: true,
+      workoutsThisWeek: 1,
+      weeklyGoal: 3,
+    });
   });
 
   it("reacts to a friend's workout and shows it to its owner", async () => {
     signInAs(USER_A, "alice@example.com");
-    const [workout] = (await (await workouts.GET()).json()).workouts;
+    const workoutsList = (await (await workouts.GET()).json()).workouts;
+    const workout = workoutsList.find(
+      (row: { name: string | null }) => row.name === "Leg Day",
+    ) as (typeof workoutsList)[0];
     const path = "/api/friends/reactions";
 
     const bad = await reactions.POST(

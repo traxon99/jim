@@ -1,5 +1,6 @@
 import { type Result, apiRequest } from "@/lib/api/client";
 import type { PostDraft, ReactionKind } from "@jim/core";
+import type { WeekRingPerson } from "@jim/core";
 import type {
   CommentTarget,
   FeedComment,
@@ -17,6 +18,18 @@ import type {
 
 export function fetchFriends(fetchImpl: typeof fetch = fetch) {
   return apiRequest<FriendsPayload>("/api/friends", undefined, "Couldn't load friends", fetchImpl);
+}
+
+export async function fetchWeekRings(
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<WeekRingPerson[]>> {
+  const result = await apiRequest<{ people: WeekRingPerson[] }>(
+    "/api/friends/week-rings",
+    undefined,
+    "Couldn't load week rings",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.people } : result;
 }
 
 export async function fetchFriendWorkouts(

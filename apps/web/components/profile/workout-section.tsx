@@ -3,7 +3,13 @@
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, autoEndWorkoutMinutes, patchSettings } from "@/lib/settings";
-import { AUTO_END_OPTIONS, IDLE_REMINDER_MINUTES, formatIdleMinutes } from "@jim/core";
+import {
+  AUTO_END_OPTIONS,
+  IDLE_REMINDER_MINUTES,
+  clampWeeklyWorkoutGoal,
+  formatIdleMinutes,
+  isValidWeeklyWorkoutGoal,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 
@@ -13,6 +19,7 @@ const UNIT_OPTIONS: { value: SettingsRow["units"]; label: string }[] = [
 ];
 
 const REST_OPTIONS = [30, 60, 90, 120, 180, 240, 300];
+const WEEKLY_GOAL_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
 function formatRest(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -30,6 +37,9 @@ export function WorkoutSection() {
   const units = cached?.units ?? DEFAULT_SETTINGS.units;
   const restSeconds = cached?.defaultRestSeconds ?? DEFAULT_SETTINGS.defaultRestSeconds;
   const autoEnd = autoEndWorkoutMinutes(cached ?? DEFAULT_SETTINGS);
+  const weeklyGoal = clampWeeklyWorkoutGoal(
+    cached?.weeklyWorkoutGoal ?? DEFAULT_SETTINGS.weeklyWorkoutGoal,
+  );
   const [error, setError] = useState<string | null>(null);
 
   // A rest value set before this picker existed may not be one of the
@@ -43,7 +53,12 @@ export function WorkoutSection() {
     : [...REST_OPTIONS, restSeconds].sort((a, b) => a - b);
 
   async function save(
-    patch: Partial<Pick<SettingsRow, "units" | "defaultRestSeconds" | "autoEndWorkoutMinutes">>,
+    patch: Partial<
+      Pick<
+        SettingsRow,
+        "units" | "defaultRestSeconds" | "autoEndWorkoutMinutes" | "weeklyWorkoutGoal"
+      >
+    >,
   ) {
     setError(null);
     const result = await patchSettings(patch);
@@ -92,6 +107,33 @@ export function WorkoutSection() {
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="flex flex-col gap-1 text-xs font-medium">
+        Weekly workout goal
+        <select
+          value={weeklyGoal}
+          aria-label="Weekly workout goal"
+          onChange={(event) => {
+            const next = Number(event.target.value);
+            if (isValidWeeklyWorkoutGoal(next) && next !== weeklyGoal) {
+              void save({ weeklyWorkoutGoal: next });
+            }
+          }}
+          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        >
+          {(WEEKLY_GOAL_OPTIONS.includes(weeklyGoal)
+            ? WEEKLY_GOAL_OPTIONS
+            : [...WEEKLY_GOAL_OPTIONS, weeklyGoal].sort((a, b) => a - b)
+          ).map((count) => (
+            <option key={count} value={count}>
+              {count} {count === 1 ? "workout" : "workouts"} per week
+            </option>
+          ))}
+        </select>
+        <span className="font-normal text-zinc-500 dark:text-zinc-400">
+          Home&apos;s week rings count toward this target.
+        </span>
       </label>
 
       <label className="flex flex-col gap-1 text-xs font-medium">

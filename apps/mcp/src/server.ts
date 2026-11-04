@@ -1092,6 +1092,13 @@ export function createMcpServer(context: UserContext): McpServer {
         availablePlates: z.array(z.number().positive()).min(1).optional(),
         defaultRestSeconds: z.number().int().nonnegative().optional(),
         weekStart: z.number().int().min(0).max(6).optional().describe("0 = Sunday .. 6 = Saturday"),
+        weeklyWorkoutGoal: z
+          .number()
+          .int()
+          .min(1)
+          .max(7)
+          .optional()
+          .describe("Workouts per week Home's week rings count toward"),
         colorScheme: z.enum(colorSchemeEnum.enumValues).optional(),
         accentColor: z.enum(accentColorEnum.enumValues).optional(),
         fontFamily: z.enum(fontFamilyEnum.enumValues).optional(),

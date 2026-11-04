@@ -113,6 +113,7 @@ export type SettingsRow = Pick<
   | "availablePlates"
   | "defaultRestSeconds"
   | "weekStart"
+  | "weeklyWorkoutGoal"
   | "colorScheme"
   | "accentColor"
   | "fontFamily"

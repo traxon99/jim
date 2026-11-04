@@ -1,7 +1,7 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
-import { isValidAutoEndMinutes, isValidTimeZone } from "@jim/core";
+import { isValidAutoEndMinutes, isValidTimeZone, isValidWeeklyWorkoutGoal } from "@jim/core";
 import { users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -31,6 +31,7 @@ interface SettingsPayload {
   availablePlates: string[];
   defaultRestSeconds: number;
   weekStart: number;
+  weeklyWorkoutGoal: number;
   colorScheme: "system" | "light" | "dark";
   accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose" | "pink";
   fontFamily: "sans" | "serif" | "mono";
@@ -73,6 +74,7 @@ function toPayload(row: typeof users.$inferSelect): SettingsPayload {
     availablePlates: row.availablePlates,
     defaultRestSeconds: row.defaultRestSeconds,
     weekStart: row.weekStart,
+    weeklyWorkoutGoal: row.weeklyWorkoutGoal,
     colorScheme: row.colorScheme,
     accentColor: row.accentColor,
     fontFamily: row.fontFamily,
@@ -154,6 +156,9 @@ function isValidPatch(body: unknown): body is Partial<SettingsPayload> {
   if ("weekStart" in candidate) {
     const n = candidate.weekStart;
     if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > 6) return false;
+  }
+  if ("weeklyWorkoutGoal" in candidate && !isValidWeeklyWorkoutGoal(candidate.weeklyWorkoutGoal)) {
+    return false;
   }
   if ("colorScheme" in candidate && !COLOR_SCHEMES.has(candidate.colorScheme as string)) {
     return false;
@@ -319,6 +324,7 @@ export async function PATCH(request: Request) {
       }
       if (body.defaultRestSeconds !== undefined) patch.defaultRestSeconds = body.defaultRestSeconds;
       if (body.weekStart !== undefined) patch.weekStart = body.weekStart;
+      if (body.weeklyWorkoutGoal !== undefined) patch.weeklyWorkoutGoal = body.weeklyWorkoutGoal;
       if (body.timeZone !== undefined) patch.timeZone = body.timeZone;
       if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
       if (body.accentColor !== undefined) patch.accentColor = body.accentColor;

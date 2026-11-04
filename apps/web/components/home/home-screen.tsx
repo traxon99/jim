@@ -7,6 +7,7 @@ import Link from "next/link";
 import { FriendsFeed } from "./friends-feed";
 import { HomeShortcuts, HomeSummary } from "./home-summary";
 import { NewPostButton } from "./new-post-button";
+import { WeekRingsStrip } from "./week-rings-strip";
 
 /**
  * The Home tab. It opens like a mini profile — your streak, this week and
@@ -55,6 +56,7 @@ export function HomeScreen() {
           </>
         }
       />
+      <WeekRingsStrip />
       <HomeSummary username={username} avatar={avatar} />
       <div className="flex flex-1 flex-col gap-6 bg-zinc-100 pt-5 pb-6 dark:bg-zinc-900/50">
         <HomeShortcuts />

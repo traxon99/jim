@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { saveSetupGym } from "@/lib/setup/save-gym";
 import { SETUP_STEPS, type SetupStep, setupExitHref } from "@/lib/setup/steps";
 import { runSyncCycle } from "@/lib/sync/engine";
-import { type ExploreProgramTemplate, PROGRAM_TEMPLATES } from "@jim/core";
+import { type ExploreProgramTemplate, PROGRAM_TEMPLATES, weeklyStreakTarget } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -180,6 +180,15 @@ export function SetupWalkthrough({ userId, from }: { userId: string; from: strin
         programId = added.programId;
       }
       setChosen({ programId, template });
+      const weeklyWorkoutGoal = weeklyStreakTarget({
+        mode: template.mode,
+        items: template.days.map((day) => ({
+          routineId: day.routine.key,
+          weekday: day.weekday,
+          deletedAt: null,
+        })),
+      });
+      await patchSettings({ weeklyWorkoutGoal });
       void runSyncCycle();
       goNext();
     });
