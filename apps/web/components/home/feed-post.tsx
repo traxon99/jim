@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
+import { CommentsSheet } from "@/components/friends/comments-sheet";
 import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
 import type { FeedItem } from "@/lib/friends/feed";
 import { describeExercise, reactionButtons, workoutMinutes } from "@/lib/friends/format";
@@ -14,20 +15,38 @@ import {
   timeAgo,
   workoutHeaderLine,
 } from "@/lib/friends/post-media";
-import type { FriendPost, FriendWorkout, WorkoutReaction } from "@/lib/friends/types";
+import type {
+  CommentSummary,
+  CommentTarget,
+  FeedComment,
+  FriendPost,
+  FriendWorkout,
+  WorkoutReaction,
+} from "@/lib/friends/types";
 import { REACTION_EMOJI, REACTION_LABELS, type ReactionKind } from "@jim/core";
-import { Activity, Dumbbell, Trophy } from "lucide-react";
-import type { ReactNode } from "react";
+import { Activity, Dumbbell, MessageCircle, Trophy } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { PostCarousel } from "./post-carousel";
 
 export type OnReact = (sessionId: string, current: WorkoutReaction[], kind: ReactionKind) => void;
+
+/** A thread's comments after the sheet loaded or changed them (issue #749). */
+export type OnComments = (target: CommentTarget, comments: FeedComment[]) => void;
 
 /**
  * One full-width post in Home's feed (issue #747): a header with who and
  * when, an edge-to-edge square tinted by the routine's color with swipeable
  * slides, the reactions, then the caption.
  */
-export function FeedPost({ item, onReact }: { item: FeedItem; onReact: OnReact }) {
+export function FeedPost({
+  item,
+  onReact,
+  onComments,
+}: {
+  item: FeedItem;
+  onReact: OnReact;
+  onComments: OnComments;
+}) {
   if (item.type === "workout") {
     const { workout } = item;
     return (
@@ -45,6 +64,9 @@ export function FeedPost({ item, onReact }: { item: FeedItem; onReact: OnReact }
         reactions={workout.reactions}
         onReact={(kind) => onReact(workout.sessionId, workout.reactions, kind)}
         caption={item.post?.caption ?? null}
+        commentTarget={{ sessionId: workout.sessionId }}
+        comments={workout.comments}
+        onComments={onComments}
       />
     );
   }
@@ -66,6 +88,10 @@ export function FeedPost({ item, onReact }: { item: FeedItem; onReact: OnReact }
       reactions={post.reactions}
       onReact={sessionId ? (kind) => onReact(sessionId, post.reactions, kind) : null}
       caption={post.caption}
+      // A workout post's comments are its workout's (issue #749).
+      commentTarget={sessionId ? { sessionId } : { postId: post.postId }}
+      comments={post.comments}
+      onComments={onComments}
     />
   );
 }
@@ -84,6 +110,9 @@ function PostFrame({
   reactions,
   onReact,
   caption,
+  commentTarget,
+  comments,
+  onComments,
 }: {
   username: string;
   avatar: string | null;
@@ -92,7 +121,11 @@ function PostFrame({
   reactions: WorkoutReaction[];
   onReact: ((kind: ReactionKind) => void) | null;
   caption: string | null;
+  commentTarget: CommentTarget;
+  comments: CommentSummary;
+  onComments: OnComments;
 }) {
+  const [commentsOpen, setCommentsOpen] = useState(false);
   return (
     <article className="flex flex-col bg-white pb-4 dark:bg-zinc-950">
       <header className="flex items-center gap-3 px-4 py-3">
@@ -106,14 +139,54 @@ function PostFrame({
       </header>
       {media}
       <div className="flex flex-col gap-2 px-4 pt-2">
-        {onReact && <ReactionButtons reactions={reactions} onReact={onReact} />}
+        <div className="flex flex-wrap items-center gap-2">
+          {onReact && <ReactionButtons reactions={reactions} onReact={onReact} />}
+          <button
+            type="button"
+            onClick={() => setCommentsOpen(true)}
+            aria-label={comments.count > 0 ? `Comments, ${comments.count}` : "Comment"}
+            className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2 text-sm text-zinc-700 dark:text-zinc-300"
+          >
+            <MessageCircle className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+            {comments.count > 0 && <span className="tabular-nums">{comments.count}</span>}
+          </button>
+        </div>
         {caption && (
           <p className="allow-pwa-select whitespace-pre-line break-words text-sm text-zinc-800 dark:text-zinc-200">
             <span className="font-semibold text-zinc-950 dark:text-zinc-50">{username}</span>{" "}
             {caption}
           </p>
         )}
+        {comments.count > 1 && (
+          <button
+            type="button"
+            onClick={() => setCommentsOpen(true)}
+            className="self-start text-sm text-zinc-500 dark:text-zinc-400"
+          >
+            View all {comments.count} comments
+          </button>
+        )}
+        {comments.latest && (
+          <button
+            type="button"
+            onClick={() => setCommentsOpen(true)}
+            className="allow-pwa-select min-w-0 self-stretch truncate text-left text-sm text-zinc-800 dark:text-zinc-200"
+          >
+            <span className="font-semibold text-zinc-950 dark:text-zinc-50">
+              {comments.latest.username}
+            </span>{" "}
+            {comments.latest.body}
+          </button>
+        )}
       </div>
+      {commentsOpen && (
+        <CommentsSheet
+          target={commentTarget}
+          ownerUsername={username}
+          onClose={() => setCommentsOpen(false)}
+          onChange={(list) => onComments(commentTarget, list)}
+        />
+      )}
     </article>
   );
 }

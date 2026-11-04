@@ -1169,6 +1169,67 @@ export const posts = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// comments — what friends write under a workout or a post (issue #749). One
+// of `session_id` (a workout, including one shared as a workout post) or
+// `post_id` (a record or achievement post) is set. Like posts, readable only
+// by the author and never written directly: migration 0063's SECURITY
+// DEFINER functions check the friendship on write and hand the owner and
+// their friends the thread (ADR-017). Deleted comments keep a tombstone so
+// counts and the bell (issue #753) can tell them apart. Not synced.
+// ---------------------------------------------------------------------------
+
+export const comments = pgTable(
+  "comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "cascade" }),
+    postId: uuid("post_id").references(() => posts.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("comments_session").on(table.sessionId, table.createdAt),
+    index("comments_post").on(table.postId, table.createdAt),
+    index("comments_user").on(table.userId),
+    check("comments_one_target", sql`num_nonnulls(${table.sessionId}, ${table.postId}) = 1`),
+    pgPolicy("comments_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// One reaction per person per comment (issue #749); picking another emoji
+// replaces it. Written only through migration 0063's functions.
+export const commentReactions = pgTable(
+  "comment_reactions",
+  {
+    commentId: uuid("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: reactionKindEnum("kind").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("comment_reactions_unique").on(table.commentId, table.userId),
+    index("comment_reactions_user").on(table.userId),
+    pgPolicy("comment_reactions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // share_links — a routine or program frozen into a read-only snapshot that
 // anyone signed in can open by its link (issue #254). The id is the link: a
 // random v4 uuid, so links can't be guessed or listed. The sharer reads and

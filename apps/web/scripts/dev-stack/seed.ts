@@ -1,5 +1,14 @@
 import { readFileSync } from "node:fs";
-import { type Db, createDb, friendships, posts, routines, users, workoutReactions } from "@jim/db";
+import {
+  type Db,
+  comments,
+  createDb,
+  friendships,
+  posts,
+  routines,
+  users,
+  workoutReactions,
+} from "@jim/db";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -162,7 +171,27 @@ async function seedFriends(db: Db) {
     });
   }
 
-  // Friends reacting to the dev user's latest workout, and the dev user to maya's.
+  // A short thread on maya's latest workout (issue #749).
+  const [maya, theo] = FRIENDS;
+  const [mayas] = await db.execute<{ id: string }>(
+    sql`select id from sessions where user_id = ${maya.id} order by started_at desc limit 1`,
+  );
+  if (mayas) {
+    for (const [userId, body, minutesAgo] of [
+      [theo.id, "bar speed on that last rep 👀", 50],
+      [DEV_USER.id, "@maya UP ↑ next week for sure", 20],
+      [theo.id, "🔥🔥", 5],
+    ] as const) {
+      await db.insert(comments).values({
+        userId,
+        sessionId: mayas.id,
+        body,
+        createdAt: new Date(Date.now() - minutesAgo * 60_000),
+      });
+    }
+  }
+
+  // Friends reacting to the dev user's latest workout.
   const [latest] = await db.execute<{ id: string }>(
     sql`select id from sessions where user_id = ${DEV_USER.id} order by started_at desc limit 1`,
   );

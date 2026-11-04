@@ -1,5 +1,6 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { NO_COMMENTS, loadCommentSummaries } from "@/lib/friends/comment-summaries";
 import type {
   FriendWorkout,
   FriendWorkoutExercise,
@@ -37,6 +38,11 @@ export async function GET() {
   try {
     const workouts = await withUserDb(async (tx): Promise<FriendWorkout[]> => {
       const rows = await tx.execute<WorkoutRow>(sql`SELECT * FROM friend_workouts(30)`);
+      const { bySession } = await loadCommentSummaries(
+        tx,
+        rows.map((row) => row.session_id),
+        [],
+      );
       return rows.map((row) => ({
         sessionId: row.session_id,
         userId: row.user_id,
@@ -68,6 +74,7 @@ export async function GET() {
           count: Number(reaction.count),
           mine: reaction.mine,
         })),
+        comments: bySession.get(row.session_id) ?? NO_COMMENTS,
       }));
     });
     return NextResponse.json({ workouts });
