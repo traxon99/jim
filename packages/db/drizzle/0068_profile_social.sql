@@ -43,15 +43,20 @@ AS $$
     p.created_at,
     coalesce((
       SELECT jsonb_agg(
-        jsonb_build_object('kind', wr.kind, 'count', wr.n, 'mine', wr.mine)
-        ORDER BY wr.kind
+        jsonb_build_object('kind', agg.kind, 'count', agg.n, 'mine', agg.mine)
+        ORDER BY agg.kind
       )
       FROM (
         SELECT kind, count(*) AS n, bool_or(user_id = auth.uid()) AS mine
         FROM workout_reactions
-        WHERE session_id = p.session_id
+        WHERE session_id = p.session_id AND p.session_id IS NOT NULL
         GROUP BY kind
-      ) wr
+        UNION ALL
+        SELECT kind, count(*) AS n, bool_or(user_id = auth.uid()) AS mine
+        FROM post_reactions
+        WHERE post_id = p.id AND p.session_id IS NULL
+        GROUP BY kind
+      ) agg
     ), '[]'::jsonb)
   FROM posts p
   JOIN friend_ids fi ON fi.id = p.user_id
