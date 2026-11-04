@@ -92,9 +92,20 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
     await toggle(USER_C, finishedId, "party");
 
     expect(await reactionsSeenBy(USER_A)).toEqual([
-      { kind: "strong", count: 2, mine: true },
+      { kind: "strong", count: 1, mine: true },
       { kind: "party", count: 1, mine: false },
     ]);
+  });
+
+  it("lets one person replace their reaction kind", async () => {
+    await toggle(USER_A, finishedId, "fire");
+    await toggle(USER_A, finishedId, "clap");
+    expect(await reactionsSeenBy(USER_A)).toEqual([{ kind: "clap", count: 1, mine: true }]);
+  });
+
+  it("accepts the grind reaction kind", async () => {
+    expect(await toggle(USER_A, finishedId, "grind")).toBe(true);
+    expect(await reactionsSeenBy(USER_A)).toEqual([{ kind: "grind", count: 1, mine: true }]);
   });
 
   it("refuses reactions to a workout that isn't a friend's finished one", async () => {
@@ -116,11 +127,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
       USER_B,
       (tx) => tx<ReceivedRow[]>`SELECT * FROM workout_reactions_received()`,
     );
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(2);
     expect(rows.map((r) => `${r.username}:${r.kind}`).sort()).toEqual([
       "alice:strong",
       "carol:party",
-      "carol:strong",
     ]);
     expect(first(rows)).toMatchObject({ session_id: finishedId, session_name: "Push Day" });
 

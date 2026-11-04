@@ -8,7 +8,7 @@ import {
   toggleReaction,
 } from "@/lib/friends/client";
 import { type FeedItem, buildFeed } from "@/lib/friends/feed";
-import { summarizeComments, withReaction } from "@/lib/friends/format";
+import { pickReaction, settleReaction, summarizeComments } from "@/lib/friends/format";
 import type {
   CommentTarget,
   FeedComment,
@@ -79,24 +79,30 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refresh]);
 
-  function setReactions(sessionId: string, update: (r: WorkoutReaction[]) => WorkoutReaction[]) {
+  function setReactions(
+    target: CommentTarget,
+    update: (reactions: WorkoutReaction[]) => WorkoutReaction[],
+  ) {
     setLoad((current) =>
       current.status === "ready"
         ? {
             ...current,
             workouts: current.workouts.map((w) =>
-              w.sessionId === sessionId ? { ...w, reactions: update(w.reactions) } : w,
+              "sessionId" in target && w.sessionId === target.sessionId
+                ? { ...w, reactions: update(w.reactions) }
+                : w,
             ),
-            // A workout post carries the same workout's reactions.
             posts: current.posts.map((p) =>
-              p.sessionId === sessionId ? { ...p, reactions: update(p.reactions) } : p,
+              ("sessionId" in target && p.sessionId === target.sessionId) ||
+              ("postId" in target && p.postId === target.postId)
+                ? { ...p, reactions: update(p.reactions) }
+                : p,
             ),
           }
         : current,
     );
   }
 
-  // The comments sheet's latest thread becomes the post's count and preview.
   function setComments(target: CommentTarget, comments: FeedComment[]) {
     const summary = summarizeComments(comments);
     setLoad((current) =>
@@ -119,16 +125,15 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
     );
   }
 
-  // Shown straight away, then reconciled with what the server says happened.
-  async function react(sessionId: string, current: WorkoutReaction[], kind: ReactionKind) {
-    const wasMine = current.some((r) => r.kind === kind && r.mine);
+  async function react(target: CommentTarget, current: WorkoutReaction[], kind: ReactionKind) {
+    const before = current;
     setActionError(null);
-    setReactions(sessionId, (reactions) => withReaction(reactions, kind, !wasMine));
-    const result = await toggleReaction(sessionId, kind);
+    setReactions(target, () => pickReaction(before, kind));
+    const result = await toggleReaction(target, kind);
     if (result.ok) {
-      setReactions(sessionId, (reactions) => withReaction(reactions, kind, result.value));
+      setReactions(target, () => settleReaction(before, kind, result.value));
     } else {
-      setReactions(sessionId, (reactions) => withReaction(reactions, kind, wasMine));
+      setReactions(target, () => before);
       setActionError(result.error);
     }
   }
@@ -206,7 +211,6 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
             )}
           </div>
         ) : (
-          // Edge to edge, one after another, like a photo feed (issue #747).
           <div className="flex flex-col gap-2">
             {feed.map((item) => (
               <FeedPost key={feedKey(item)} item={item} onReact={react} onComments={setComments} />

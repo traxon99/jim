@@ -3,8 +3,9 @@
 import { Avatar } from "@/components/friends/avatar";
 import { CommentsSheet } from "@/components/friends/comments-sheet";
 import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
+import { ReactButton, ReactionPicker } from "@/components/friends/reaction-picker";
 import type { FeedItem } from "@/lib/friends/feed";
-import { describeExercise, reactionButtons, workoutMinutes } from "@/lib/friends/format";
+import { describeExercise, reactionSummary, workoutMinutes } from "@/lib/friends/format";
 import {
   RECORD_TINT,
   formatVolume,
@@ -15,6 +16,7 @@ import {
   timeAgo,
   workoutHeaderLine,
 } from "@/lib/friends/post-media";
+import { postShareText, shareText } from "@/lib/friends/share-post";
 import type {
   CommentSummary,
   CommentTarget,
@@ -23,12 +25,16 @@ import type {
   FriendWorkout,
   WorkoutReaction,
 } from "@/lib/friends/types";
-import { REACTION_EMOJI, REACTION_LABELS, type ReactionKind } from "@jim/core";
-import { Activity, Dumbbell, MessageCircle, Trophy } from "lucide-react";
+import type { ReactionKind } from "@jim/core";
+import { Activity, Dumbbell, MessageCircle, Send, Trophy } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { PostCarousel } from "./post-carousel";
 
-export type OnReact = (sessionId: string, current: WorkoutReaction[], kind: ReactionKind) => void;
+export type OnReact = (
+  target: CommentTarget,
+  current: WorkoutReaction[],
+  kind: ReactionKind,
+) => void;
 
 /** A thread's comments after the sheet loaded or changed them (issue #749). */
 export type OnComments = (target: CommentTarget, comments: FeedComment[]) => void;
@@ -62,7 +68,9 @@ export function FeedPost({
           />
         }
         reactions={workout.reactions}
-        onReact={(kind) => onReact(workout.sessionId, workout.reactions, kind)}
+        reactedBy={workout.reactedBy}
+        shareItem={item}
+        onReact={(kind) => onReact({ sessionId: workout.sessionId }, workout.reactions, kind)}
         caption={item.post?.caption ?? null}
         commentTarget={{ sessionId: workout.sessionId }}
         comments={workout.comments}
@@ -73,6 +81,7 @@ export function FeedPost({
 
   const { post } = item;
   const sessionId = post.sessionId;
+  const reactTarget: CommentTarget = sessionId ? { sessionId } : { postId: post.postId };
   return (
     <PostFrame
       username={post.username}
@@ -86,10 +95,12 @@ export function FeedPost({
         />
       }
       reactions={post.reactions}
-      onReact={sessionId ? (kind) => onReact(sessionId, post.reactions, kind) : null}
+      reactedBy={post.reactedBy}
+      shareItem={item}
+      onReact={(kind) => onReact(reactTarget, post.reactions, kind)}
       caption={post.caption}
       // A workout post's comments are its workout's (issue #749).
-      commentTarget={sessionId ? { sessionId } : { postId: post.postId }}
+      commentTarget={reactTarget}
       comments={post.comments}
       onComments={onComments}
     />
@@ -108,6 +119,8 @@ function PostFrame({
   subtitle,
   media,
   reactions,
+  reactedBy,
+  shareItem,
   onReact,
   caption,
   commentTarget,
@@ -119,13 +132,32 @@ function PostFrame({
   subtitle: string;
   media: ReactNode;
   reactions: WorkoutReaction[];
-  onReact: ((kind: ReactionKind) => void) | null;
+  reactedBy: string[];
+  shareItem: FeedItem;
+  onReact: (kind: ReactionKind) => void;
   caption: string | null;
   commentTarget: CommentTarget;
   comments: CommentSummary;
   onComments: OnComments;
 }) {
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const summary = reactionSummary(reactions, reactedBy);
+
+  async function handleShare() {
+    const { title, text } = postShareText(shareItem);
+    if ((await shareText(title, text)) === "copied") {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
+
+  function pick(kind: ReactionKind) {
+    setPickerOpen(false);
+    onReact(kind);
+  }
+
   return (
     <article className="flex flex-col bg-white pb-4 dark:bg-zinc-950">
       <header className="flex items-center gap-3 px-4 py-3">
@@ -139,8 +171,15 @@ function PostFrame({
       </header>
       {media}
       <div className="flex flex-col gap-2 px-4 pt-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {onReact && <ReactionButtons reactions={reactions} onReact={onReact} />}
+        {pickerOpen && (
+          <ReactionPicker reactions={reactions} onPick={pick} className="self-start" />
+        )}
+        <div className="flex items-center gap-1">
+          <ReactButton
+            reactions={reactions}
+            pickerOpen={pickerOpen}
+            onOpenPicker={() => setPickerOpen((open) => !open)}
+          />
           <button
             type="button"
             onClick={() => setCommentsOpen(true)}
@@ -150,7 +189,22 @@ function PostFrame({
             <MessageCircle className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
             {comments.count > 0 && <span className="tabular-nums">{comments.count}</span>}
           </button>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            aria-label={shareCopied ? "Copied" : "Share"}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm text-zinc-700 dark:text-zinc-300"
+          >
+            <Send className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+          </button>
         </div>
+        {pickerOpen && (
+          <ReactionPicker reactions={reactions} onPick={pick} className="self-start" />
+        )}
+        {shareCopied && <p className="text-xs text-zinc-500 dark:text-zinc-400">Copied</p>}
+        {summary && (
+          <p className="allow-pwa-select text-sm text-zinc-800 dark:text-zinc-200">{summary}</p>
+        )}
         {caption && (
           <p className="allow-pwa-select whitespace-pre-line break-words text-sm text-zinc-800 dark:text-zinc-200">
             <span className="font-semibold text-zinc-950 dark:text-zinc-50">{username}</span>{" "}
@@ -335,40 +389,6 @@ function PostSlide({ post }: { post: FriendPost }) {
           label && <span className="break-words text-lg text-white/85">{label}</span>
         )}
       </div>
-    </div>
-  );
-}
-
-function ReactionButtons({
-  reactions,
-  onReact,
-}: {
-  reactions: WorkoutReaction[];
-  onReact: (kind: ReactionKind) => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      {reactionButtons(reactions).map((reaction) => (
-        <button
-          key={reaction.kind}
-          type="button"
-          aria-pressed={reaction.mine}
-          aria-label={`${REACTION_LABELS[reaction.kind]}${
-            reaction.count > 0 ? `, ${reaction.count}` : ""
-          }`}
-          onClick={() => onReact(reaction.kind)}
-          className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border px-3 text-sm ${
-            reaction.mine
-              ? "border-accent text-accent"
-              : "border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
-          }`}
-        >
-          <span className="text-base leading-none" aria-hidden="true">
-            {REACTION_EMOJI[reaction.kind]}
-          </span>
-          {reaction.count > 0 && <span className="tabular-nums">{reaction.count}</span>}
-        </button>
-      ))}
     </div>
   );
 }

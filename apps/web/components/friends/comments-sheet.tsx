@@ -2,23 +2,20 @@
 
 import { CallMark } from "@/components/dpr/call-mark";
 import { Avatar } from "@/components/friends/avatar";
+import { ReactButton, ReactionPicker } from "@/components/friends/reaction-picker";
 import { addComment, deleteComment, fetchComments, reactToComment } from "@/lib/friends/client";
-import { withReaction } from "@/lib/friends/format";
+import { pickReaction, settleReaction } from "@/lib/friends/format";
 import { timeAgo } from "@/lib/friends/post-media";
 import type { CommentTarget, FeedComment } from "@/lib/friends/types";
 import { useFriends } from "@/lib/friends/use-friends";
 import { type LogGuard, createLogGuard } from "@/lib/workout/log-guard";
 import {
   COMMENT_MAX_LENGTH,
-  REACTION_EMOJI,
-  REACTION_KINDS,
-  REACTION_LABELS,
   type ReactionKind,
   commentError,
   commentSegments,
   normalizeComment,
 } from "@jim/core";
-import { SmilePlus } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -165,24 +162,26 @@ export function CommentsSheet({
     setPickerFor(null);
     if (load.status !== "ready") return;
     const before = load.comments;
-    const wasMine = comment.reactions.some((r) => r.kind === kind && r.mine);
-    // One reaction per person: picking another kind replaces theirs.
-    const optimistic = (reactions: FeedComment["reactions"]) => {
-      const cleared = reactions.reduce(
-        (acc, r) => (r.mine ? withReaction(acc, r.kind, false) : acc),
-        reactions,
-      );
-      return wasMine ? cleared : withReaction(cleared, kind, true);
-    };
+    const snapshot = comment.reactions;
     show(
       before.map((c) =>
-        c.commentId === comment.commentId ? { ...c, reactions: optimistic(c.reactions) } : c,
+        c.commentId === comment.commentId
+          ? { ...c, reactions: pickReaction(c.reactions, kind) }
+          : c,
       ),
     );
     const result = await reactToComment(comment.commentId, kind);
     if (!result.ok) {
       setError(result.error);
       show(before);
+    } else {
+      show(
+        before.map((c) =>
+          c.commentId === comment.commentId
+            ? { ...c, reactions: settleReaction(snapshot, kind, result.value) }
+            : c,
+        ),
+      );
     }
   }
 
@@ -336,8 +335,6 @@ function CommentRow({
   onReply: () => void;
   onDelete: () => void;
 }) {
-  const mine = comment.reactions.find((r) => r.mine);
-  const total = comment.reactions.reduce((sum, r) => sum + r.count, 0);
   return (
     <li className="flex flex-col gap-2">
       <div className="flex items-start gap-3">
@@ -372,42 +369,19 @@ function CommentRow({
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onTogglePicker}
-          aria-expanded={pickerOpen}
-          aria-label={`React to ${comment.username}'s comment${
-            mine ? `, you reacted ${REACTION_LABELS[mine.kind]}` : ""
-          }${total > 0 ? `, ${total} ${total === 1 ? "reaction" : "reactions"}` : ""}`}
-          className="flex min-h-11 min-w-11 shrink-0 flex-col items-center justify-center text-zinc-500 dark:text-zinc-400"
-        >
-          {mine ? (
-            <span className="text-lg leading-none" aria-hidden="true">
-              {REACTION_EMOJI[mine.kind]}
-            </span>
-          ) : (
-            <SmilePlus className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
-          )}
-          {total > 0 && <span className="text-xs tabular-nums">{total}</span>}
-        </button>
+        <ReactButton
+          reactions={comment.reactions}
+          pickerOpen={pickerOpen}
+          onOpenPicker={onTogglePicker}
+          ariaLabel={`React to ${comment.username}'s comment`}
+        />
       </div>
       {pickerOpen && (
-        <div className="ml-12 flex gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-900">
-          {REACTION_KINDS.map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              aria-pressed={mine?.kind === kind}
-              aria-label={REACTION_LABELS[kind]}
-              onClick={() => onReact(kind)}
-              className={`flex min-h-11 min-w-11 items-center justify-center rounded-full text-xl ${
-                mine?.kind === kind ? "bg-white dark:bg-zinc-800" : ""
-              }`}
-            >
-              {REACTION_EMOJI[kind]}
-            </button>
-          ))}
-        </div>
+        <ReactionPicker
+          reactions={comment.reactions}
+          onPick={onReact}
+          className="ml-12 self-start"
+        />
       )}
     </li>
   );

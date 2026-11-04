@@ -59,6 +59,7 @@ export const WRITE_TOOLS = new Set([
   "update_settings",
   "add_comment",
   "react_to_comment",
+  "react_to_workout",
   "delete_comment",
 ]);
 

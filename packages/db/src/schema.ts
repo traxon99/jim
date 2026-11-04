@@ -1105,7 +1105,8 @@ export const friendships = pgTable(
 
 // ---------------------------------------------------------------------------
 // workout_reactions — a friend's reaction to someone's finished session
-// (issue #303). One row per (session, reactor, kind), so each kind toggles.
+// (issue #303). One row per (session, reactor); the picker replaces kind
+// (issue #748).
 // Like friendships, readable only by the reactor and never written directly:
 // migration 0025's SECURITY DEFINER functions check the friendship on write
 // and hand the session's owner counts and names rather than rows (ADR-017).
@@ -1124,7 +1125,7 @@ export const workoutReactions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("workout_reactions_unique").on(table.sessionId, table.userId, table.kind),
+    uniqueIndex("workout_reactions_unique").on(table.sessionId, table.userId),
     index("workout_reactions_user").on(table.userId),
     pgPolicy("workout_reactions_select_own", {
       for: "select",
@@ -1222,6 +1223,32 @@ export const commentReactions = pgTable(
     uniqueIndex("comment_reactions_unique").on(table.commentId, table.userId),
     index("comment_reactions_user").on(table.userId),
     pgPolicy("comment_reactions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// One reaction per person on a friend's record or achievement post (issue
+// #748). Workout posts react through their session. Written only through
+// migration 0065's functions.
+export const postReactions = pgTable(
+  "post_reactions",
+  {
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: reactionKindEnum("kind").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("post_reactions_unique").on(table.postId, table.userId),
+    index("post_reactions_user").on(table.userId),
+    pgPolicy("post_reactions_select_own", {
       for: "select",
       to: authenticatedRole,
       using: sql`${table.userId} = ${authUid}`,

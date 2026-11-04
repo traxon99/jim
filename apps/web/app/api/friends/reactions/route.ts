@@ -5,8 +5,8 @@ import { isReactionKind } from "@jim/core";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-// Reactions to friends' workouts (issue #303). Like friendships, they're only
-// read and written through migration 0025's SECURITY DEFINER functions.
+// Reactions to friends' workouts and posts (issue #303, #748). Like
+// friendships, they're only read and written through SECURITY DEFINER functions.
 
 interface ReceivedRow extends Record<string, unknown> {
   session_id: string;
@@ -41,27 +41,36 @@ export async function GET() {
 }
 
 /**
- * Adds or takes back a reaction to a friend's workout: `{ sessionId, kind }`.
- * Answers `{ reacted }` — whether the reaction is now there.
+ * Adds or takes back a reaction: `{ sessionId, kind }` for a workout, or
+ * `{ postId, kind }` for a record or achievement post. Answers `{ reacted }`.
  */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const sessionId = body?.sessionId;
+  const postId = body?.postId;
   const kind = body?.kind;
-  if (typeof sessionId !== "string" || !isUuid(sessionId) || !isReactionKind(kind)) {
+  const hasSession = typeof sessionId === "string" && isUuid(sessionId);
+  const hasPost = typeof postId === "string" && isUuid(postId);
+  if ((hasSession && hasPost) || (!hasSession && !hasPost) || !isReactionKind(kind)) {
     return NextResponse.json({ error: "Invalid reaction" }, { status: 400 });
   }
 
   try {
     const reacted = await withUserDb(async (tx) => {
+      if (hasSession) {
+        const [row] = await tx.execute<{ reacted: boolean | null }>(
+          sql`SELECT toggle_workout_reaction(${sessionId}::uuid, ${kind}::reaction_kind) AS reacted`,
+        );
+        return row?.reacted ?? null;
+      }
       const [row] = await tx.execute<{ reacted: boolean | null }>(
-        sql`SELECT toggle_workout_reaction(${sessionId}::uuid, ${kind}::reaction_kind) AS reacted`,
+        sql`SELECT toggle_post_reaction(${postId}::uuid, ${kind}::reaction_kind) AS reacted`,
       );
       return row?.reacted ?? null;
     });
     if (reacted === null) {
       return NextResponse.json(
-        { error: "That workout isn't one of your friends'" },
+        { error: "That workout or post isn't one of your friends'" },
         { status: 404 },
       );
     }

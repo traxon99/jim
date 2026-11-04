@@ -76,6 +76,8 @@ export interface FriendWorkout {
   exercises: FriendWorkoutExercise[];
   /** Kinds anyone has reacted with (issue #303); kinds with no reactions are left out. */
   reactions: WorkoutReaction[];
+  /** Up to two other reactors' usernames, newest first (issue #748). */
+  reactedBy: string[];
   /** Its comments (issue #749). */
   comments: CommentSummary;
 }
@@ -124,8 +126,10 @@ export interface FriendPost extends OwnPost {
   userId: string;
   username: string;
   avatar: string | null;
-  /** The shared workout's reactions, for a "workout" post; empty otherwise. */
+  /** Workout posts carry their session's reactions; record/achievement carry their own. */
   reactions: WorkoutReaction[];
+  /** Up to two other reactors' usernames, newest first (issue #748). */
+  reactedBy: string[];
   /** Comments on the post itself, for a record or achievement post (issue #749). */
   comments: CommentSummary;
 }

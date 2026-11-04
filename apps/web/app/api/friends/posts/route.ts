@@ -1,6 +1,7 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import { NO_COMMENTS, loadCommentSummaries } from "@/lib/friends/comment-summaries";
+import { loadReactionNames } from "@/lib/friends/reaction-names";
 import type { FriendPost, WorkoutReaction } from "@/lib/friends/types";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -29,10 +30,13 @@ export async function GET() {
     const posts = await withUserDb(async (tx): Promise<FriendPost[]> => {
       const rows = await tx.execute<PostRow>(sql`SELECT * FROM friend_posts(30)`);
       // A workout post's comments are its workout's; the other kinds have their own.
-      const { bySession, byPost } = await loadCommentSummaries(
+      const sessionIds = rows.flatMap((row) => (row.session_id ? [row.session_id] : []));
+      const postIds = rows.flatMap((row) => (row.session_id ? [] : [row.post_id]));
+      const { bySession, byPost } = await loadCommentSummaries(tx, sessionIds, postIds);
+      const { bySession: namesBySession, byPost: namesByPost } = await loadReactionNames(
         tx,
-        rows.flatMap((row) => (row.session_id ? [row.session_id] : [])),
-        rows.flatMap((row) => (row.session_id ? [] : [row.post_id])),
+        sessionIds,
+        postIds,
       );
       return rows.map((row) => ({
         postId: row.post_id,
@@ -50,6 +54,9 @@ export async function GET() {
           count: Number(reaction.count),
           mine: reaction.mine,
         })),
+        reactedBy: row.session_id
+          ? (namesBySession.get(row.session_id) ?? [])
+          : (namesByPost.get(row.post_id) ?? []),
         comments:
           (row.session_id ? bySession.get(row.session_id) : byPost.get(row.post_id)) ?? NO_COMMENTS,
       }));

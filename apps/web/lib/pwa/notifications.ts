@@ -23,7 +23,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "You can now comment on friends' workouts and posts: tap the speech bubble under a post, and react to comments too.";
+  "React to friends' workouts and posts with the new emoji picker under each post, and share a post as text.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

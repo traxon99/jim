@@ -26,7 +26,10 @@ describe("friends client", () => {
 
   it("toggles a reaction", async () => {
     const fetchImpl = respond(200, { reacted: true });
-    expect(await toggleReaction("s1", "fire", fetchImpl)).toEqual({ ok: true, value: true });
+    expect(await toggleReaction({ sessionId: "s1" }, "fire", fetchImpl)).toEqual({
+      ok: true,
+      value: true,
+    });
     expect(fetchImpl).toHaveBeenCalledWith(
       "/api/friends/reactions",
       expect.objectContaining({
