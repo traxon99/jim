@@ -9,6 +9,12 @@ import { describe, expect, it } from "vitest";
 const webRoot = path.resolve(__dirname, "../..");
 
 describe("layout guards", () => {
+  it("clips horizontal overflow on the shell scroller so base pages never scroll sideways (#762)", () => {
+    const scroller = readFileSync(path.join(webRoot, "components/shell-scroller.tsx"), "utf8");
+    expect(scroller).toMatch(/overflow-x-clip/);
+    expect(scroller).toMatch(/\bmin-w-0\b/);
+  });
+
   it("reserves the tallest sync row so status changes cannot move the tabs (#679)", () => {
     const bar = readFileSync(path.join(webRoot, "components/bottom-tab-bar.tsx"), "utf8");
     expect(bar).toMatch(/<div className="[^"]*\bh-13\b[^"]*">\s*\{syncStatus\}\s*<\/div>/);

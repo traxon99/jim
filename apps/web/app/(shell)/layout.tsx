@@ -23,7 +23,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
     return (
       <div
         data-edge-to-edge
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip overflow-y-auto"
         style={{
           paddingTop: "env(safe-area-inset-top)",
           paddingBottom: "env(safe-area-inset-bottom)",
@@ -55,7 +55,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             under it), so pad by its measured height to keep the last row
             reachable. */}
         <div
-          className="flex flex-1 flex-col"
+          className="flex min-w-0 flex-1 flex-col"
           style={{
             paddingTop: "env(safe-area-inset-top)",
             paddingBottom: "var(--tab-bar-height, 0px)",

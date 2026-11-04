@@ -85,7 +85,7 @@ export function PeopleYouMayKnowRow({ compact = false }: { compact?: boolean }) 
         </p>
       )}
       <ul
-        className={`flex gap-3 ${compact ? "px-4" : "snap-x snap-mandatory overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}`}
+        className={`flex w-full min-w-0 gap-3 ${compact ? "px-4" : "snap-x snap-mandatory overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}`}
       >
         {suggestions.map((person) => (
           <li

@@ -48,14 +48,16 @@ export function TabbedShell({
     <>
       {BASE_TABS.map((href) => (
         <Activity key={href} mode={activeTab === href ? "visible" : "hidden"}>
-          <div className="page-fade flex min-h-0 flex-1 flex-col">{content[href]}</div>
+          <div className="page-fade flex min-h-0 min-w-0 w-full flex-1 flex-col">
+            {content[href]}
+          </div>
         </Activity>
       ))}
       {isExerciseCard && children}
       {!isBaseTab && !isExerciseCard && (
         // Keyed by pathname: sub-routes (e.g. /workout/[id]) still fully
         // remount on navigation, same as before this component existed.
-        <div key={pathname} className="route-fade flex min-h-0 flex-1 flex-col">
+        <div key={pathname} className="route-fade flex min-h-0 min-w-0 w-full flex-1 flex-col">
           {children}
         </div>
       )}

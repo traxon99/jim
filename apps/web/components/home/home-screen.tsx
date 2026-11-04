@@ -46,7 +46,7 @@ export function HomeScreen() {
   }
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex min-w-0 w-full flex-1 flex-col">
       <PageHeader
         title="Home"
         actions={
