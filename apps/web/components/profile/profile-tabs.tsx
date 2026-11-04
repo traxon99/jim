@@ -24,7 +24,7 @@ export function ProfileTabs({
     <div
       role="tablist"
       aria-label="Profile"
-      className="flex border-b border-zinc-200 dark:border-zinc-800"
+      className="flex w-full min-w-0 border-b border-zinc-200 dark:border-zinc-800"
     >
       {tabs.map(({ id, label, Icon }) => (
         <button
