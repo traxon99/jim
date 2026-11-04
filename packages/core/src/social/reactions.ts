@@ -3,11 +3,12 @@
  * Stored as these keys (the `reaction_kind` Postgres enum), shown as the
  * emoji. Order here is the order the buttons appear in.
  */
-export const REACTION_KINDS = ["strong", "fire", "clap", "party", "grind"] as const;
+export const REACTION_KINDS = ["heart", "strong", "fire", "clap", "party", "grind"] as const;
 
 export type ReactionKind = (typeof REACTION_KINDS)[number];
 
 export const REACTION_EMOJI: Record<ReactionKind, string> = {
+  heart: "❤️",
   strong: "💪",
   fire: "🔥",
   clap: "👏",
@@ -16,6 +17,7 @@ export const REACTION_EMOJI: Record<ReactionKind, string> = {
 };
 
 export const REACTION_LABELS: Record<ReactionKind, string> = {
+  heart: "Love",
   strong: "Strong",
   fire: "On fire",
   clap: "Applause",

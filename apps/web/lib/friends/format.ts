@@ -1,4 +1,4 @@
-import { REACTION_EMOJI, REACTION_KINDS, type ReactionKind } from "@jim/core";
+import { REACTION_KINDS, type ReactionKind } from "@jim/core";
 import type {
   CommentSummary,
   FeedComment,
@@ -66,41 +66,39 @@ export function settleReaction(
 }
 
 /**
- * "💪🔥👏 You, theo and 10 others" for under the action row (issue #748).
+ * The line under the action row (issue #748): the three most used emoji,
+ * then who reacted, as "You, theo" + " and 10 others" (the names bold).
  * `reactedBy` is up to two other usernames, newest first, from the server.
+ * Null when no one has reacted.
  */
 export function reactionSummary(
   reactions: WorkoutReaction[],
   reactedBy: readonly string[],
-): string | null {
+): { kinds: ReactionKind[]; names: string; others: string | null } | null {
   const total = reactionTotal(reactions);
   if (total === 0) return null;
 
-  const emoji = [...reactions]
+  const kinds = [...reactions]
+    .filter((reaction) => reaction.count > 0)
     .sort(
       (a, b) =>
         b.count - a.count || REACTION_KINDS.indexOf(a.kind) - REACTION_KINDS.indexOf(b.kind),
     )
     .slice(0, 3)
-    .map((reaction) => REACTION_EMOJI[reaction.kind])
-    .join("");
+    .map((reaction) => reaction.kind);
 
   const mine = myReaction(reactions) !== null;
-  const names: string[] = [];
-  if (mine) names.push("You");
-  names.push(...reactedBy.slice(0, mine ? 1 : 2));
-
-  const others = total - names.length;
-  const nameText = joinNames(names);
-  const suffix = others > 0 ? ` and ${others} ${others === 1 ? "other" : "others"}` : "";
-  return `${emoji} ${nameText}${suffix}`;
-}
-
-function joinNames(names: readonly string[]): string {
-  if (names.length === 0) return "";
-  if (names.length === 1) return names[0] ?? "";
-  if (names.length === 2) return `${names[0]}, ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  const named = [...(mine ? ["You"] : []), ...reactedBy].slice(0, Math.min(2, total));
+  const rest = total - named.length;
+  if (named.length === 0) {
+    return { kinds, names: `${total} ${total === 1 ? "person" : "people"}`, others: null };
+  }
+  if (rest === 0) return { kinds, names: named.join(" and "), others: null };
+  return {
+    kinds,
+    names: named.join(", "),
+    others: `and ${rest} ${rest === 1 ? "other" : "others"}`,
+  };
 }
 
 /**

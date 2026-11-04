@@ -157,19 +157,20 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
   const feed = buildFeed(load.workouts, load.posts);
 
   return (
-    <div className="route-fade flex flex-col gap-5">
+    <div className="route-fade flex flex-col">
       {actionError && (
-        <p className="allow-pwa-select px-4 text-xs text-red-600 dark:text-red-500">
+        <p className="allow-pwa-select px-4 py-2 text-xs text-red-600 dark:text-red-500">
           {actionError}
         </p>
       )}
 
-      <section aria-labelledby="friends-activity" className="flex flex-col gap-3">
-        <h2 id="friends-activity" className="px-4 text-2xl font-semibold tracking-tight">
+      <section aria-labelledby="friends-activity" className="flex flex-col">
+        {/* The rings above already say whose this is, so the heading is for screen readers. */}
+        <h2 id="friends-activity" className="sr-only">
           Friends&apos; activity
         </h2>
         {feed.length === 0 ? (
-          <div className="mx-4 flex flex-col items-center gap-3 rounded-lg bg-white px-4 py-6 text-center dark:bg-zinc-950">
+          <div className="mx-4 mt-6 flex flex-col items-center gap-3 rounded-xl border border-zinc-200 px-4 py-6 text-center dark:border-zinc-800">
             <UsersRound
               className="h-8 w-8 text-zinc-400 dark:text-zinc-600"
               strokeWidth={1.75}
@@ -192,11 +193,15 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          // Hairlines between posts, like the mockup, not grey gaps.
+          <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
             {feed.map((item, index) => {
               const suggestionsAfter = Math.min(SUGGESTIONS_AFTER_POSTS, feed.length);
               return (
-                <div key={feedKey(item)} className="flex flex-col gap-5">
+                <div
+                  key={feedKey(item)}
+                  className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800"
+                >
                   <FeedPost item={item} onReact={react} onComments={setComments} />
                   {index === suggestionsAfter - 1 && <PeopleYouMayKnowRow />}
                 </div>

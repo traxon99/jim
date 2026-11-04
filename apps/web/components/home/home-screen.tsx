@@ -8,20 +8,18 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { ActivitySheet } from "./activity-sheet";
 import { FriendsFeed } from "./friends-feed";
-import { HomeShortcuts, HomeSummary } from "./home-summary";
 import { NewPostButton } from "./new-post-button";
 import { WeekRingsStrip } from "./week-rings-strip";
 
 /**
- * The Home tab. It opens like a mini profile — your streak, this week and
- * your recent stats — then scrolls into your friends' workouts (issue #35).
+ * The Home tab, friends first like the social mockups (#746): everyone's
+ * week rings, then your friends' workouts and posts. Your own stats live at
+ * the top of History.
  * New post, the activity bell and Profile are one tap away in the header
  * (issues #311, #404, #747, #753).
  */
 export function HomeScreen() {
   const { load } = useFriends();
-  const username = load.status === "ready" ? load.username : null;
-  const avatar = load.status === "ready" ? load.avatar : null;
   const hasFriends = load.status === "ready" && load.friends.some((f) => f.status === "accepted");
   const [activityOpen, setActivityOpen] = useState(false);
   const [activityUnread, setActivityUnread] = useState(false);
@@ -77,9 +75,7 @@ export function HomeScreen() {
       />
       {activityOpen && <ActivitySheet onClose={closeActivity} />}
       <WeekRingsStrip />
-      <HomeSummary username={username} avatar={avatar} />
-      <div className="flex flex-1 flex-col gap-6 bg-zinc-100 pt-5 pb-6 dark:bg-zinc-900/50">
-        <HomeShortcuts />
+      <div className="flex flex-1 flex-col border-t border-zinc-200 pb-6 dark:border-zinc-800">
         <Suspense fallback={null}>
           <FriendsFeed hasFriends={hasFriends} />
         </Suspense>

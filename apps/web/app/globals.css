@@ -200,21 +200,79 @@ body {
 }
 
 /* Floating emoji picker above the feed action row (issue #748). Gradients
-   instead of filter-on-parent so iOS keeps the pill's rounded clip (#374). */
+   instead of filter-on-parent so iOS keeps the pill's rounded clip (#374),
+   and no backdrop-filter behind its buttons (#720): the fill is nearly
+   opaque instead, so the post under it doesn't show through the emoji. */
 .reaction-picker-glass {
   margin: 0;
   min-width: 0;
-  border: 1px solid rgb(255 255 255 / 0.45);
-  background: linear-gradient(135deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.45));
-  box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.12), inset 1px 1px 0 rgb(255 255 255 / 0.85);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.96), rgb(244 244 245 / 0.9));
+  box-shadow: 0 10px 30px -6px rgb(0 0 0 / 0.25), inset 1px 1px 0 rgb(255 255 255 / 0.9);
 }
 
 :root.dark .reaction-picker-glass {
   border-color: rgb(255 255 255 / 0.14);
-  background: linear-gradient(135deg, rgb(63 63 70 / 0.55), rgb(24 24 27 / 0.4));
+  background: linear-gradient(135deg, rgb(63 63 70 / 0.96), rgb(39 39 42 / 0.92));
   box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.45), inset 1px 1px 0 rgb(255 255 255 / 0.12);
+}
+
+/* The reaction picker pops up from its button (#748 polish). */
+.reaction-popover {
+  animation: reaction-popover-in 160ms ease-out;
+  transform-origin: 24px 100%;
+}
+
+@keyframes reaction-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+}
+
+/* Double-tap a post to heart it: a big heart pops over the picture and fades. */
+.heart-burst {
+  animation: heart-burst 800ms ease-out forwards;
+  /* A text shadow, not filter: drop-shadow, which iOS mis-clips (LESSONS). */
+  text-shadow: 0 6px 20px rgb(0 0 0 / 0.3);
+}
+
+@keyframes heart-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  20% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  35% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-popover {
+    animation: none;
+  }
+  .heart-burst {
+    animation: heart-fade 800ms ease-out forwards;
+  }
+  @keyframes heart-fade {
+    to {
+      opacity: 0;
+    }
+  }
 }
 
 /* A floating workout timer sits over the sync slot, just above the pill, and
