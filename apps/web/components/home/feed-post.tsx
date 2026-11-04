@@ -198,9 +198,6 @@ function PostFrame({
             <Send className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
-        {pickerOpen && (
-          <ReactionPicker reactions={reactions} onPick={pick} className="self-start" />
-        )}
         {shareCopied && <p className="text-xs text-zinc-500 dark:text-zinc-400">Copied</p>}
         {summary && (
           <p className="allow-pwa-select text-sm text-zinc-800 dark:text-zinc-200">{summary}</p>
