@@ -243,7 +243,7 @@ const profile = (me) => {
   <div class="pbio"><b>${name}</b><span>${bio}</span><span class="m">🏋️ Iron Works · ${me?"2":"3"} of 4 this week</span></div>
   <div class="pbtns">${btns}<div class="pb sq">${I(me?"user-plus":"bell")}</div></div>
   <div class="lifts">${lifts.map(([l,v])=>`<div class="lift"><div class="lc"><b>${v}</b><small>e1RM</small></div><span>${l}</span></div>`).join("")}</div>
-  <div class="ptabs"><div class="on">${I("grid-3x3")}</div><div>${I("trophy")}</div><div>${I("calendar")}</div></div>
+  <div class="ptabs"><div class="on">${I("grid-3x3")}</div><div>${I("trophy")}</div>${me?`<div>${I("scale")}</div>`:""}</div>
   <div class="grid">${tiles.map(t=>tile(...t)).join("")}</div>
   ${tabs}`;
 };
