@@ -2,8 +2,12 @@
 
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
 import { PainPicker } from "@/components/injuries/pain-picker";
+import {
+  TRACKED_MEASUREMENT_KINDS,
+  bodyweightSeries,
+  measurementSeries,
+} from "@/lib/bodyweight/series";
 import { db } from "@/lib/db/schema";
-import { bodyweightSeries, measurementSeries, TRACKED_MEASUREMENT_KINDS } from "@/lib/bodyweight/series";
 import { logPain, sortOpenInjuries } from "@/lib/injuries";
 import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -59,7 +63,10 @@ export function ProfileBodyTab() {
         <section className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Measurements</h3>
-            <Link href="/profile/measurements" className="flex items-center gap-1 text-sm font-medium">
+            <Link
+              href="/profile/measurements"
+              className="flex items-center gap-1 text-sm font-medium"
+            >
               All
               <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
             </Link>

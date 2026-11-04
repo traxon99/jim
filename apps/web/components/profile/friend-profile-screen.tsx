@@ -276,6 +276,7 @@ export function FriendProfileScreen({ username }: { username: string }) {
                 at: selectedWorkout.endedAt,
               }}
               onReact={(sessionId, current, kind) => void react(sessionId, current, kind)}
+              onComments={() => {}}
             />
           </div>
         </div>

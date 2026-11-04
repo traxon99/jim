@@ -65,7 +65,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/comments", () => {
     ).json();
     expect(posted.commentId).toBeTruthy();
 
-    const feed = await (await workouts.GET()).json();
+    const feed = await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json();
     expect(feed.workouts[0].comments).toEqual({
       count: 1,
       latest: { username: "friend", body: "deep!" },
