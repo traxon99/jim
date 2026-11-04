@@ -421,6 +421,13 @@
       "when": 1793157245672,
       "tag": "0059_injury_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1793812550952,
+      "tag": "0060_personal_access_token_scope",
+      "breakpoints": true
     }
   ]
 }

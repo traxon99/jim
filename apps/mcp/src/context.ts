@@ -1,10 +1,16 @@
+import type { AccessTokenScope } from "@jim/core";
 import { type Db, type DbOrTx, runAsUser } from "@jim/db";
 
-/** Per-request identity, taken from the verified Supabase access token (see auth/provider.ts). */
+/** Per-request identity, taken from the verified access token (see auth/provider.ts). */
 export interface UserContext {
   db: Db;
   userId: string;
   email: string;
+  /**
+   * What the caller's token may do (issue #736). OAuth sessions and older
+   * personal access tokens are `read_write`; leaving it out means that too.
+   */
+  scope?: AccessTokenScope;
 }
 
 /** Runs `fn` inside an RLS-impersonated transaction for this request's user (ADR-005/006). */

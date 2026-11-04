@@ -1,7 +1,11 @@
+import type { AccessTokenScope } from "@jim/core";
+
 /** One personal access token as Settings lists it (issue #246); never the token itself. */
 export interface AccessTokenEntry {
   id: string;
   name: string;
+  /** `read` tokens can't call write tools (issue #736). */
+  scope: AccessTokenScope;
   /** The token's first few characters, e.g. "jim_pat_Ab3x". */
   prefix: string;
   createdAt: string;

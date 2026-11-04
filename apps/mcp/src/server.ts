@@ -33,6 +33,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { UserContext } from "./context.js";
 import { toolErrorMessage } from "./tool-error.js";
+import { guardWriteTools } from "./tool-scopes.js";
 import { deleteBodyMeasurement, logBodyMeasurement } from "./tools/body-measurements-write.js";
 import { createRoutine } from "./tools/create-routine.js";
 import { deleteRoutine } from "./tools/delete-routine.js";
@@ -168,6 +169,8 @@ const routineExerciseSchema = z.object({
  */
 export function createMcpServer(context: UserContext): McpServer {
   const server = new McpServer({ name: "jim", version: "0.1.0" });
+  // A read-only token gets the read-only error from every write tool (#736).
+  guardWriteTools(server, context.scope ?? "read_write");
 
   server.registerTool(
     "list_workouts",

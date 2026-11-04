@@ -10,13 +10,16 @@ import {
   describeLastUsed,
   expiryLabel,
   isExpired,
+  scopeLabel,
 } from "@/lib/access-tokens/format";
 import type { AccessTokenEntry, CreatedAccessToken } from "@/lib/access-tokens/types";
 import { claudeCodeAddCommandWithToken } from "@/lib/mcp/connect";
 import {
   ACCESS_TOKEN_EXPIRY_DAYS,
   ACCESS_TOKEN_NAME_MAX_LENGTH,
+  ACCESS_TOKEN_SCOPES,
   type AccessTokenExpiryDays,
+  type AccessTokenScope,
   accessTokenNameError,
 } from "@jim/core";
 import { type FormEvent, useEffect, useState } from "react";
@@ -34,6 +37,7 @@ export function AccessTokensSection({ endpoint }: { endpoint: string }) {
   const [tokens, setTokens] = useState<AccessTokenEntry[] | null>(null);
   const [name, setName] = useState("");
   const [expiry, setExpiry] = useState<AccessTokenExpiryDays>(DEFAULT_EXPIRY);
+  const [scope, setScope] = useState<AccessTokenScope>("read_write");
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<CreatedAccessToken | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +64,7 @@ export function AccessTokensSection({ endpoint }: { endpoint: string }) {
     }
     setCreating(true);
     setError(null);
-    const result = await createAccessToken(name.trim(), expiry);
+    const result = await createAccessToken(name.trim(), expiry, scope);
     setCreating(false);
     if (!result.ok) {
       setError(result.error);
@@ -87,8 +91,9 @@ export function AccessTokensSection({ endpoint }: { endpoint: string }) {
     <div className="flex flex-col gap-3">
       <h3 className="text-xs text-zinc-500 dark:text-zinc-500">Access tokens</h3>
       <p className="text-xs text-zinc-600 dark:text-zinc-400">
-        For scripts and MCP clients that can't sign in. A token can do anything the connector can,
-        so keep it secret and revoke it when you're done with it.
+        For scripts, dashboards and MCP clients that can't sign in. A read and write token can do
+        anything the connector can; a read only token can look but never change anything. Keep
+        tokens secret and revoke them when you're done with them.
       </p>
 
       <form onSubmit={(event) => void handleCreate(event)} className="flex flex-col gap-2">
@@ -102,6 +107,18 @@ export function AccessTokensSection({ endpoint }: { endpoint: string }) {
           enterKeyHint="done"
           className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
+        <select
+          aria-label="Token access"
+          value={scope}
+          onChange={(event) => setScope(event.target.value as AccessTokenScope)}
+          className="min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+        >
+          {[...ACCESS_TOKEN_SCOPES].reverse().map((option) => (
+            <option key={option} value={option}>
+              {scopeLabel(option)}
+            </option>
+          ))}
+        </select>
         <div className="flex gap-2">
           <select
             aria-label="Expires after"
@@ -155,7 +172,7 @@ export function AccessTokensSection({ endpoint }: { endpoint: string }) {
                   {token.name}
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                  <code>{token.prefix}…</code> ·{" "}
+                  {scopeLabel(token.scope)} · <code>{token.prefix}…</code> ·{" "}
                   <span className={isExpired(token) ? "text-red-600 dark:text-red-500" : undefined}>
                     {describeExpiry(token)}
                   </span>{" "}
