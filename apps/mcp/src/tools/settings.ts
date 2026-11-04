@@ -13,6 +13,7 @@ function toSettings(row: UserRow) {
     availablePlates: row.availablePlates.map(Number),
     defaultRestSeconds: row.defaultRestSeconds,
     weekStart: row.weekStart,
+    weeklyWorkoutGoal: row.weeklyWorkoutGoal,
     colorScheme: row.colorScheme,
     accentColor: row.accentColor,
     fontFamily: row.fontFamily,

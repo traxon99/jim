@@ -49,6 +49,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       availablePlates: ["45.00", "35.00", "25.00", "10.00", "5.00", "2.50"],
       defaultRestSeconds: 90,
       weekStart: 0,
+      weeklyWorkoutGoal: 3,
       colorScheme: "system",
       accentColor: "zinc",
       fontFamily: "sans",

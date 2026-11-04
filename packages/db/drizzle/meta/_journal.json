@@ -463,6 +463,20 @@
       "when": 1793822955000,
       "tag": "0065_reaction_picker_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1793826000000,
+      "tag": "0066_add_weekly_workout_goal",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1793826001000,
+      "tag": "0067_friend_week_rings",
+      "breakpoints": true
     }
   ]
 }

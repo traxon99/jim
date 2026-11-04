@@ -191,6 +191,9 @@ export const users = pgTable(
     defaultRestSeconds: integer("default_rest_seconds").notNull().default(90),
     // 0 = Sunday .. 6 = Saturday
     weekStart: smallint("week_start").notNull().default(0),
+    // Workouts per week the Home week rings count toward (issue #750). Editable
+    // in Settings → Workout; the setup walkthrough may seed it from a program.
+    weeklyWorkoutGoal: smallint("weekly_workout_goal").notNull().default(3),
     // The phone's IANA time zone, e.g. "America/Los_Angeles", reported on
     // each settings refresh so server-side week grouping (the MCP server
     // runs in UTC) matches the app's (issue #511). Null until a phone reports.

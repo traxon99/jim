@@ -18,6 +18,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const friends = await import("../route");
+const weekRings = await import("../week-rings/route");
 const workouts = await import("../workouts/route");
 const username = await import("../../username/route");
 const reactions = await import("../reactions/route");
@@ -87,6 +88,23 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
         reactions: [],
       }),
     ]);
+  });
+
+  it("returns week ring progress for you and friends", async () => {
+    signInAs(USER_A, "alice@example.com");
+    const body = await (await weekRings.GET()).json();
+    expect(body.people[0]).toMatchObject({
+      isSelf: true,
+      username: "ally",
+      shareWorkouts: true,
+      weeklyGoal: 3,
+    });
+    const bob = body.people.find((person: { username: string }) => person.username === "bob");
+    expect(bob).toMatchObject({
+      shareWorkouts: true,
+      workoutsThisWeek: 1,
+      weeklyGoal: 3,
+    });
   });
 
   it("reacts to a friend's workout and shows it to its owner", async () => {
