@@ -1,12 +1,7 @@
 "use client";
 
 import { LoadingText } from "@/components/loading-text";
-import {
-  fetchFriendPosts,
-  fetchFriendWorkouts,
-  fetchReceivedReactions,
-  toggleReaction,
-} from "@/lib/friends/client";
+import { fetchFriendPosts, fetchFriendWorkouts, toggleReaction } from "@/lib/friends/client";
 import { type FeedItem, buildFeed } from "@/lib/friends/feed";
 import { pickReaction, settleReaction, summarizeComments } from "@/lib/friends/format";
 import type {
@@ -14,14 +9,15 @@ import type {
   FeedComment,
   FriendPost,
   FriendWorkout,
-  ReceivedReaction,
   WorkoutReaction,
 } from "@/lib/friends/types";
-import { REACTION_EMOJI, REACTION_LABELS, type ReactionKind } from "@jim/core";
+import type { ReactionKind } from "@jim/core";
 import { UserPlus, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { FeedPost } from "./feed-post";
+import { PeopleYouMayKnowRow } from "./people-you-may-know";
 
 type Load =
   | { status: "loading" }
@@ -30,32 +26,26 @@ type Load =
       status: "ready";
       workouts: FriendWorkout[];
       posts: FriendPost[];
-      received: ReceivedReaction[];
     };
 
-const SECTION_HEADING =
-  "text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
-
-/** How many of the latest reactions to your own workouts Home lists. */
-const RECEIVED_SHOWN = 5;
+/** Insert People you may know after this many feed posts (#754). */
+const SUGGESTIONS_AFTER_POSTS = 2;
 
 /**
  * The social half of Home (issue #35), below your own summary: friends'
  * finished workouts to react to (issue #303) and the posts they've shared
- * (issue #316) as one feed, and who reacted to yours.
- * Finding and managing friends lives on the Friends page. Server data, not
- * IndexedDB — it refreshes whenever the app comes back to the foreground.
+ * (issue #316) as one feed. Finding friends lives on the Friends page.
+ * Server data, not IndexedDB — it refreshes whenever the app comes back to
+ * the foreground.
  */
 export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
+  const searchParams = useSearchParams();
+  const focusSessionId = searchParams.get("focus");
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [actionError, setActionError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [workouts, posts, received] = await Promise.all([
-      fetchFriendWorkouts(undefined),
-      fetchFriendPosts(undefined),
-      fetchReceivedReactions(),
-    ]);
+    const [workouts, posts] = await Promise.all([fetchFriendWorkouts(), fetchFriendPosts()]);
     if (!workouts.ok) {
       setLoad((current) =>
         current.status === "ready" ? current : { status: "error", error: workouts.error },
@@ -66,7 +56,6 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
       status: "ready",
       workouts: workouts.value,
       posts: posts.ok ? posts.value : [],
-      received: received.ok ? received.value : [],
     });
   }, []);
 
@@ -78,6 +67,12 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refresh]);
+
+  useEffect(() => {
+    if (!focusSessionId || load.status !== "ready") return;
+    const element = document.getElementById(`feed-session-${focusSessionId}`);
+    element?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focusSessionId, load.status]);
 
   function setReactions(
     target: CommentTarget,
@@ -169,20 +164,6 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
         </p>
       )}
 
-      {load.received.length > 0 && (
-        <section className="flex flex-col gap-2 px-4">
-          <h2 className={SECTION_HEADING}>Reactions to your workouts</h2>
-          <ul className="flex flex-col gap-2 rounded-lg bg-white p-3 dark:bg-zinc-950">
-            {load.received.slice(0, RECEIVED_SHOWN).map((reaction) => (
-              <ReceivedReactionRow
-                key={`${reaction.sessionId}:${reaction.userId}:${reaction.kind}`}
-                reaction={reaction}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-
       <section aria-labelledby="friends-activity" className="flex flex-col gap-3">
         <h2 id="friends-activity" className="px-4 text-2xl font-semibold tracking-tight">
           Friends&apos; activity
@@ -212,39 +193,19 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {feed.map((item) => (
-              <FeedPost key={feedKey(item)} item={item} onReact={react} onComments={setComments} />
-            ))}
+            {feed.map((item, index) => {
+              const suggestionsAfter = Math.min(SUGGESTIONS_AFTER_POSTS, feed.length);
+              return (
+                <div key={feedKey(item)} className="flex flex-col gap-5">
+                  <FeedPost item={item} onReact={react} onComments={setComments} />
+                  {index === suggestionsAfter - 1 && <PeopleYouMayKnowRow />}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
     </div>
-  );
-}
-
-function shortDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function ReceivedReactionRow({ reaction }: { reaction: ReceivedReaction }) {
-  return (
-    <li className="flex items-center gap-2 text-sm">
-      <span className="text-lg leading-none" aria-hidden="true">
-        {REACTION_EMOJI[reaction.kind]}
-      </span>
-      <span className="allow-pwa-select min-w-0 flex-1 truncate text-zinc-700 dark:text-zinc-300">
-        <span className="font-medium text-zinc-950 dark:text-zinc-50">@{reaction.username}</span>
-        <span className="sr-only"> reacted {REACTION_LABELS[reaction.kind]}</span> to{" "}
-        {reaction.sessionName ?? "your workout"}
-      </span>
-      <span className="shrink-0 text-xs text-zinc-500 dark:text-zinc-500">
-        {shortDate(reaction.startedAt)}
-      </span>
-    </li>
   );
 }
 

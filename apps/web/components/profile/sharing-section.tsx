@@ -5,7 +5,9 @@ import { fetchProfile, updateProfile } from "@/lib/friends/client";
 import type { ProfilePayload } from "@/lib/friends/types";
 import { useEffect, useState } from "react";
 
-type SharingPatch = Partial<Pick<ProfilePayload, "shareWorkouts" | "shareWorkoutDetails">>;
+type SharingPatch = Partial<
+  Pick<ProfilePayload, "shareWorkouts" | "shareWorkoutDetails" | "discoverableByFriendsOfFriends">
+>;
 
 /**
  * What friends see of your training (issue #316), saved as you toggle. Posts
@@ -74,8 +76,21 @@ export function SharingSection() {
           className={SWITCH_CLASS}
         />
       </label>
+      <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
+        Let friends of friends find me
+        <input
+          type="checkbox"
+          role="switch"
+          aria-checked={profile?.discoverableByFriendsOfFriends ?? true}
+          checked={profile?.discoverableByFriendsOfFriends ?? true}
+          disabled={profile === null}
+          onChange={(event) => void save({ discoverableByFriendsOfFriends: event.target.checked })}
+          className={SWITCH_CLASS}
+        />
+      </label>
       <p className="text-xs text-zinc-600 dark:text-zinc-400">
-        Posts you share always show to your friends, whatever these are set to.
+        Posts you share always show to your friends, whatever these are set to. People you may know
+        uses the friends-of-friends switch above.
       </p>
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
     </div>

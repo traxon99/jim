@@ -2,6 +2,37 @@
 
 import type { PostKind, PrKind, ReactionKind, RoutineIconColor } from "@jim/core";
 
+/** One row in Home's activity list (#753). */
+export type ActivityKind = "workout_reaction" | "post_reaction" | "friend_request" | "comment";
+
+export interface ActivityItem {
+  id: string;
+  kind: ActivityKind;
+  occurredAt: string;
+  actorUserId: string;
+  actorUsername: string;
+  actorAvatar: string | null;
+  sessionId: string | null;
+  sessionName: string | null;
+  postId: string | null;
+  commentId: string | null;
+  reactionKind: ReactionKind | null;
+}
+
+export interface ActivityPayload {
+  unread: boolean;
+  items: ActivityItem[];
+}
+
+/** A People you may know card (#754). */
+export interface FriendSuggestion {
+  userId: string;
+  username: string;
+  avatar: string | null;
+  reason: string;
+  mutualCount: number;
+}
+
 export interface FriendEntry {
   userId: string;
   username: string;
@@ -110,6 +141,8 @@ export interface ProfilePayload {
   shareWorkouts: boolean;
   /** Whether those workouts show their exercises and weights. */
   shareWorkoutDetails: boolean;
+  /** Whether you can show up in friends-of-friends suggestions (#754). */
+  discoverableByFriendsOfFriends: boolean;
 }
 
 export interface ProfileLiftHighlight {

@@ -23,7 +23,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Profiles look like the mockups: Posts, Records and Body tabs on yours, friend profiles at /friends/username, and Share profile holds what used to be Settings → Social.";
+  "Home has an activity bell, week rings for friends, and People you may know; friend profiles and Share profile settings; react with the emoji picker and comment from the speech bubble.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

@@ -2,12 +2,14 @@ import { type Result, apiRequest } from "@/lib/api/client";
 import type { PostDraft, ReactionKind } from "@jim/core";
 import type { WeekRingPerson } from "@jim/core";
 import type {
+  ActivityPayload,
   CommentTarget,
   FeedComment,
   FriendPost,
   FriendProfilePayload,
   FriendRecordRow,
   FriendRequestResult,
+  FriendSuggestion,
   FriendWorkout,
   FriendsPayload,
   OwnPost,
@@ -66,6 +68,45 @@ export async function fetchFriendPosts(
   return result.ok ? { ok: true, value: result.value.posts } : result;
 }
 
+export function fetchActivity(fetchImpl: typeof fetch = fetch) {
+  return apiRequest<ActivityPayload>(
+    "/api/activity",
+    undefined,
+    "Couldn't load activity",
+    fetchImpl,
+  );
+}
+
+export function markActivitySeen(fetchImpl: typeof fetch = fetch) {
+  return apiRequest<{ ok: boolean; lastSeenAt: string | null }>(
+    "/api/activity",
+    { method: "POST", body: JSON.stringify({ action: "mark_seen" }) },
+    "Couldn't update activity",
+    fetchImpl,
+  );
+}
+
+export async function fetchFriendSuggestions(
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<FriendSuggestion[]>> {
+  const result = await apiRequest<{ suggestions: FriendSuggestion[] }>(
+    "/api/friends/suggestions",
+    undefined,
+    "Couldn't load suggestions",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.suggestions } : result;
+}
+
+export function dismissFriendSuggestion(userId: string, fetchImpl: typeof fetch = fetch) {
+  return apiRequest<{ ok: boolean }>(
+    "/api/friends/suggestions",
+    { method: "DELETE", body: JSON.stringify({ userId }) },
+    "Couldn't dismiss the suggestion",
+    fetchImpl,
+  );
+}
+
 export function fetchFriendProfile(username: string, fetchImpl: typeof fetch = fetch) {
   return apiRequest<FriendProfilePayload>(
     `/api/friends/${encodeURIComponent(username)}`,
@@ -100,7 +141,15 @@ export function fetchProfile(fetchImpl: typeof fetch = fetch) {
 /** Changes the picture (null removes it) or sharing settings; the value is the saved profile. */
 export function updateProfile(
   patch: Partial<
-    Pick<ProfilePayload, "avatar" | "displayName" | "bio" | "shareWorkouts" | "shareWorkoutDetails">
+    Pick<
+      ProfilePayload,
+      | "avatar"
+      | "displayName"
+      | "bio"
+      | "shareWorkouts"
+      | "shareWorkoutDetails"
+      | "discoverableByFriendsOfFriends"
+    >
   >,
   fetchImpl: typeof fetch = fetch,
 ) {

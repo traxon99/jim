@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
+import { PeopleYouMayKnowRow } from "@/components/home/people-you-may-know";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
   friendRequestMessage,
@@ -18,10 +19,8 @@ const SECTION_HEADING =
   "text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
 
 /**
- * Finding and managing friends (issue #35), moved off Home so Home can open
- * on your own training: look someone up by their exact username, answer
- * requests, and see who you're already friends with. Opened from the
- * Friends button in Home's header, which badges pending requests.
+ * Finding and managing friends (issue #35): look someone up by exact username,
+ * answer requests, see suggestions, and manage who you're friends with.
  */
 export function FriendsScreen() {
   const { load, refresh } = useFriends();
@@ -86,13 +85,16 @@ export function FriendsScreen() {
         )}
 
         {load.status === "ready" && (
-          <FriendLists
-            friends={load.friends}
-            busyUserId={busyUserId}
-            onAccept={(userId) => void act(userId, () => respondToFriendRequest(userId, true))}
-            onDecline={(userId) => void act(userId, () => respondToFriendRequest(userId, false))}
-            onRemove={(userId) => void act(userId, () => removeFriend(userId))}
-          />
+          <>
+            <PeopleYouMayKnowRow compact />
+            <FriendLists
+              friends={load.friends}
+              busyUserId={busyUserId}
+              onAccept={(userId) => void act(userId, () => respondToFriendRequest(userId, true))}
+              onDecline={(userId) => void act(userId, () => respondToFriendRequest(userId, false))}
+              onRemove={(userId) => void act(userId, () => removeFriend(userId))}
+            />
+          </>
         )}
       </div>
     </main>

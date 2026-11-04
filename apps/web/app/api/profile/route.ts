@@ -26,6 +26,7 @@ function toPayload(row: typeof users.$inferSelect): ProfilePayload {
     bio: row.bio,
     shareWorkouts: row.shareWorkouts,
     shareWorkoutDetails: row.shareWorkoutDetails,
+    discoverableByFriendsOfFriends: row.discoverableByFriendsOfFriends,
   };
 }
 
@@ -42,7 +43,15 @@ export async function GET() {
 }
 
 type ProfilePatch = Partial<
-  Pick<ProfilePayload, "avatar" | "displayName" | "bio" | "shareWorkouts" | "shareWorkoutDetails">
+  Pick<
+    ProfilePayload,
+    | "avatar"
+    | "displayName"
+    | "bio"
+    | "shareWorkouts"
+    | "shareWorkoutDetails"
+    | "discoverableByFriendsOfFriends"
+  >
 >;
 
 /** Validates a patch, or returns why it can't be applied. */
@@ -75,7 +84,11 @@ function parsePatch(body: unknown): ProfilePatch | string {
     if (invalid) return invalid;
     patch.bio = bio === "" ? null : bio;
   }
-  for (const key of ["shareWorkouts", "shareWorkoutDetails"] as const) {
+  for (const key of [
+    "shareWorkouts",
+    "shareWorkoutDetails",
+    "discoverableByFriendsOfFriends",
+  ] as const) {
     if (key in candidate) {
       if (typeof candidate[key] !== "boolean") return "Invalid profile update";
       patch[key] = candidate[key];
