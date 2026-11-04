@@ -57,6 +57,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     expect(await (await profile.GET()).json()).toEqual({
       username: "bob",
       avatar: null,
+      displayName: null,
+      bio: null,
       shareWorkouts: true,
       shareWorkoutDetails: true,
     });
