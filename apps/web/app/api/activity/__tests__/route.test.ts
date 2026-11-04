@@ -42,6 +42,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/activity", () => {
   });
 
   it("lists a friend request and clears unread when marked seen", async () => {
+    signInAs(USER_A, "alice@example.com");
+    await friends.GET();
+    signInAs(USER_B, "bob@example.com");
+    await friends.GET();
+
     signInAs(USER_B, "bob@example.com");
     await friends.POST(
       new Request("http://localhost/api/friends", {

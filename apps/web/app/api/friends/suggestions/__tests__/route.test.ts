@@ -29,6 +29,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends/suggestions", () =
     await admin`INSERT INTO auth.users (id, email) VALUES
       (${USER_A}, 'alice@example.com'), (${USER_B}, 'bob@example.com'),
       (${USER_C}, 'carol@example.com')`;
+    await admin`INSERT INTO public.users (id, email) VALUES
+      (${USER_A}, 'alice@example.com'), (${USER_B}, 'bob@example.com'),
+      (${USER_C}, 'carol@example.com')`;
     await admin`INSERT INTO friendships (requester_id, addressee_id, status, accepted_at) VALUES
       (${USER_A}, ${USER_B}, 'accepted', now()),
       (${USER_B}, ${USER_C}, 'accepted', now())`;
