@@ -1,5 +1,11 @@
 import { REACTION_KINDS, type ReactionKind } from "@jim/core";
-import type { FriendWorkout, FriendWorkoutExercise, WorkoutReaction } from "./types";
+import type {
+  CommentSummary,
+  FeedComment,
+  FriendWorkout,
+  FriendWorkoutExercise,
+  WorkoutReaction,
+} from "./types";
 
 /** "185 lb × 5", "12 reps" or "3 sets" — the most useful thing to show per exercise. */
 export function describeExercise(exercise: FriendWorkoutExercise, units: FriendWorkout["units"]) {
@@ -43,4 +49,13 @@ export function withReaction(
   const others = reactions.filter((r) => r.kind !== kind);
   const next = count > 0 ? [...others, { kind, count, mine: reacted }] : others;
   return next.sort((a, b) => REACTION_KINDS.indexOf(a.kind) - REACTION_KINDS.indexOf(b.kind));
+}
+
+/** A loaded thread (oldest first) as the feed's count and newest comment (issue #749). */
+export function summarizeComments(comments: readonly FeedComment[]): CommentSummary {
+  const latest = comments.at(-1);
+  return {
+    count: comments.length,
+    latest: latest ? { username: latest.username, body: latest.body } : null,
+  };
 }

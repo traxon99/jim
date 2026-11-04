@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { describeExercise, reactionButtons, withReaction, workoutMinutes } from "../format";
+import {
+  describeExercise,
+  reactionButtons,
+  summarizeComments,
+  withReaction,
+  workoutMinutes,
+} from "../format";
 
 describe("describeExercise", () => {
   it("shows the heaviest set in the friend's units", () => {
@@ -75,5 +81,26 @@ describe("reactions", () => {
   it("leaves reactions alone when nothing changes", () => {
     const reactions = [{ kind: "fire" as const, count: 1, mine: true }];
     expect(withReaction(reactions, "fire", true)).toBe(reactions);
+  });
+});
+
+describe("summarizeComments", () => {
+  it("counts the thread and keeps its newest comment", () => {
+    const comment = (username: string, body: string) => ({
+      commentId: body,
+      userId: "u",
+      username,
+      avatar: null,
+      body,
+      createdAt: "2026-11-04T10:00:00Z",
+      mine: false,
+      canDelete: false,
+      reactions: [],
+    });
+    expect(summarizeComments([comment("maya", "first"), comment("theo", "second")])).toEqual({
+      count: 2,
+      latest: { username: "theo", body: "second" },
+    });
+    expect(summarizeComments([])).toEqual({ count: 0, latest: null });
   });
 });

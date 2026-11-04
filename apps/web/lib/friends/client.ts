@@ -1,6 +1,8 @@
 import { type Result, apiRequest } from "@/lib/api/client";
 import type { PostDraft, ReactionKind } from "@jim/core";
 import type {
+  CommentTarget,
+  FeedComment,
   FriendPost,
   FriendRequestResult,
   FriendWorkout,
@@ -187,4 +189,63 @@ export function friendRequestMessage(result: FriendRequestResult, username: stri
     case "self":
       return "That's your own username";
   }
+}
+
+function targetQuery(target: CommentTarget): string {
+  return "sessionId" in target
+    ? `sessionId=${encodeURIComponent(target.sessionId)}`
+    : `postId=${encodeURIComponent(target.postId)}`;
+}
+
+/** A workout's or post's comments, oldest first (issue #749). */
+export async function fetchComments(
+  target: CommentTarget,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<FeedComment[]>> {
+  const result = await apiRequest<{ comments: FeedComment[] }>(
+    `/api/comments?${targetQuery(target)}`,
+    undefined,
+    "Couldn't load comments",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.comments } : result;
+}
+
+/** Posts a comment; the value is its id. */
+export async function addComment(
+  target: CommentTarget,
+  body: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<string>> {
+  const result = await apiRequest<{ commentId: string }>(
+    "/api/comments",
+    { method: "POST", body: JSON.stringify({ ...target, body }) },
+    "Couldn't post your comment",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.commentId } : result;
+}
+
+export function deleteComment(commentId: string, fetchImpl: typeof fetch = fetch) {
+  return apiRequest<{ ok: boolean }>(
+    "/api/comments",
+    { method: "DELETE", body: JSON.stringify({ commentId }) },
+    "Couldn't delete the comment",
+    fetchImpl,
+  );
+}
+
+/** Sets or takes back your reaction on a comment; the value is whether `kind` is now yours. */
+export async function reactToComment(
+  commentId: string,
+  kind: ReactionKind,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<boolean>> {
+  const result = await apiRequest<{ reacted: boolean }>(
+    "/api/comments/reactions",
+    { method: "POST", body: JSON.stringify({ commentId, kind }) },
+    "Couldn't save your reaction",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.reacted } : result;
 }

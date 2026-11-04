@@ -1,5 +1,6 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { NO_COMMENTS, loadCommentSummaries } from "@/lib/friends/comment-summaries";
 import type { FriendPost, WorkoutReaction } from "@/lib/friends/types";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -27,6 +28,12 @@ export async function GET() {
   try {
     const posts = await withUserDb(async (tx): Promise<FriendPost[]> => {
       const rows = await tx.execute<PostRow>(sql`SELECT * FROM friend_posts(30)`);
+      // A workout post's comments are its workout's; the other kinds have their own.
+      const { bySession, byPost } = await loadCommentSummaries(
+        tx,
+        rows.flatMap((row) => (row.session_id ? [row.session_id] : [])),
+        rows.flatMap((row) => (row.session_id ? [] : [row.post_id])),
+      );
       return rows.map((row) => ({
         postId: row.post_id,
         userId: row.user_id,
@@ -43,6 +50,8 @@ export async function GET() {
           count: Number(reaction.count),
           mine: reaction.mine,
         })),
+        comments:
+          (row.session_id ? bySession.get(row.session_id) : byPost.get(row.post_id)) ?? NO_COMMENTS,
       }));
     });
     return NextResponse.json({ posts });

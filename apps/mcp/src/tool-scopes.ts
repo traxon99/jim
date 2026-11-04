@@ -26,6 +26,8 @@ export const READ_TOOLS = new Set([
   "search_places",
   "list_injuries",
   "get_settings",
+  "list_friend_activity",
+  "list_comments",
 ]);
 
 /** Tools that create, change or delete something, `dry_run` or not. */
@@ -55,6 +57,9 @@ export const WRITE_TOOLS = new Set([
   "clear_injury_exercise_rule",
   "delete_injury",
   "update_settings",
+  "add_comment",
+  "react_to_comment",
+  "delete_comment",
 ]);
 
 export const READ_ONLY_MESSAGE = "This token is read-only.";

@@ -435,6 +435,20 @@
       "when": 1793820403378,
       "tag": "0061_friend_workouts_post_media",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793821314654,
+      "tag": "0062_add_comments",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793821316018,
+      "tag": "0063_comments_functions",
+      "breakpoints": true
     }
   ]
 }

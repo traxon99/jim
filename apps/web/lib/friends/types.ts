@@ -76,6 +76,8 @@ export interface FriendWorkout {
   exercises: FriendWorkoutExercise[];
   /** Kinds anyone has reacted with (issue #303); kinds with no reactions are left out. */
   reactions: WorkoutReaction[];
+  /** Its comments (issue #749). */
+  comments: CommentSummary;
 }
 
 export interface WorkoutReaction {
@@ -124,4 +126,30 @@ export interface FriendPost extends OwnPost {
   avatar: string | null;
   /** The shared workout's reactions, for a "workout" post; empty otherwise. */
   reactions: WorkoutReaction[];
+  /** Comments on the post itself, for a record or achievement post (issue #749). */
+  comments: CommentSummary;
+}
+
+/** What a comment hangs off (issue #749): a workout, or a record or achievement post. */
+export type CommentTarget = { sessionId: string } | { postId: string };
+
+/** One comment in a thread, from /api/comments. */
+export interface FeedComment {
+  commentId: string;
+  userId: string;
+  username: string;
+  avatar: string | null;
+  body: string;
+  createdAt: string;
+  /** Whether the signed-in user wrote it. */
+  mine: boolean;
+  /** Whether the signed-in user may delete it: its author, or the owner of what it's on. */
+  canDelete: boolean;
+  reactions: WorkoutReaction[];
+}
+
+/** A workout's or post's comment count and newest comment, for the feed. */
+export interface CommentSummary {
+  count: number;
+  latest: { username: string; body: string } | null;
 }

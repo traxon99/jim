@@ -1,4 +1,5 @@
 import {
+  COMMENT_MAX_LENGTH,
   INJURY_RULE_EFFECTS,
   INJURY_RULE_NOTE_MAX,
   INJURY_RULE_REPS_MAX,
@@ -8,6 +9,8 @@ import {
   PAIN_MAX,
   PAIN_MIN,
   PROGRESSION_TYPES,
+  REACTION_EMOJI,
+  REACTION_KINDS,
   RPE_MAX,
   RPE_MIN,
 } from "@jim/core";
@@ -35,6 +38,13 @@ import type { UserContext } from "./context.js";
 import { toolErrorMessage } from "./tool-error.js";
 import { guardWriteTools } from "./tool-scopes.js";
 import { deleteBodyMeasurement, logBodyMeasurement } from "./tools/body-measurements-write.js";
+import {
+  addComment,
+  deleteComment,
+  listComments,
+  listFriendActivity,
+  reactToComment,
+} from "./tools/comments.js";
 import { createRoutine } from "./tools/create-routine.js";
 import { deleteRoutine } from "./tools/delete-routine.js";
 import { deleteWorkout } from "./tools/delete-workout.js";
@@ -960,6 +970,87 @@ export function createMcpServer(context: UserContext): McpServer {
       inputSchema: { injury: injuryRef, dry_run: dryRunParam(true) },
     },
     handle(({ dry_run, ...input }) => deleteInjury(context, { ...input, dryRun: dry_run })),
+  );
+
+  // Friends' activity and comments (issues #746, #749): the Home feed and
+  // comments sheet. Comments are seen by the owner and their friends.
+  const commentTarget = {
+    workoutId: z
+      .string()
+      .optional()
+      .describe("A workout's id from list_friend_activity (or the user's own from list_workouts)"),
+    postId: z
+      .string()
+      .optional()
+      .describe("A record or achievement post's id from list_friend_activity"),
+  };
+
+  server.registerTool(
+    "list_friend_activity",
+    {
+      title: "List friend activity",
+      description:
+        "Read-only. Accepted friends' latest finished workouts and posts (records, achievements, shared workouts), newest first, with reactions and comment counts, as the app's Home feed shows them. Friends who turned sharing off are left out. A workout post's comments are on its workoutId.",
+      inputSchema: {
+        limit: z.number().int().min(1).max(50).optional().describe("How many of each; default 20"),
+      },
+    },
+    handle((input) => listFriendActivity(context, input)),
+  );
+
+  server.registerTool(
+    "list_comments",
+    {
+      title: "List comments",
+      description:
+        "Read-only. The comments on a workout or post (the user's own or a friend's), oldest first, with who wrote each, whether the user may delete it, and its reactions. Pass exactly one of workoutId or postId.",
+      inputSchema: commentTarget,
+    },
+    handle((input) => listComments(context, input)),
+  );
+
+  server.registerTool(
+    "add_comment",
+    {
+      title: "Add comment",
+      description: `Comment on a friend's (or the user's own) finished workout or post, as the user. Friends see it under the post. Up to ${COMMENT_MAX_LENGTH} characters; @username mentions a friend. Pass exactly one of workoutId or postId.${PREVIEW_HINT}`,
+      inputSchema: {
+        ...commentTarget,
+        text: z.string().describe("The comment"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => addComment(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "react_to_comment",
+    {
+      title: "React to comment",
+      description: `React to a comment as the user, as the app's comments sheet does. One reaction per person: a different kind replaces theirs, the same kind takes it back (the result says whether it's now there).${PREVIEW_HINT}`,
+      inputSchema: {
+        commentId: z.string().describe("A comment id from list_comments"),
+        kind: z
+          .enum(REACTION_KINDS)
+          .describe(REACTION_KINDS.map((kind) => `${kind} ${REACTION_EMOJI[kind]}`).join(", ")),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => reactToComment(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "delete_comment",
+    {
+      title: "Delete comment",
+      description:
+        "Delete one of the user's own comments, or any comment on the user's own workout or post. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        commentId: z.string().describe("A comment id from list_comments"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) => deleteComment(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(

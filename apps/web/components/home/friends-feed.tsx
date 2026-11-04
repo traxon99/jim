@@ -8,8 +8,10 @@ import {
   toggleReaction,
 } from "@/lib/friends/client";
 import { type FeedItem, buildFeed } from "@/lib/friends/feed";
-import { withReaction } from "@/lib/friends/format";
+import { summarizeComments, withReaction } from "@/lib/friends/format";
 import type {
+  CommentTarget,
+  FeedComment,
   FriendPost,
   FriendWorkout,
   ReceivedReaction,
@@ -88,6 +90,29 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
             // A workout post carries the same workout's reactions.
             posts: current.posts.map((p) =>
               p.sessionId === sessionId ? { ...p, reactions: update(p.reactions) } : p,
+            ),
+          }
+        : current,
+    );
+  }
+
+  // The comments sheet's latest thread becomes the post's count and preview.
+  function setComments(target: CommentTarget, comments: FeedComment[]) {
+    const summary = summarizeComments(comments);
+    setLoad((current) =>
+      current.status === "ready"
+        ? {
+            ...current,
+            workouts: current.workouts.map((w) =>
+              "sessionId" in target && w.sessionId === target.sessionId
+                ? { ...w, comments: summary }
+                : w,
+            ),
+            posts: current.posts.map((p) =>
+              ("sessionId" in target && p.sessionId === target.sessionId) ||
+              ("postId" in target && p.postId === target.postId)
+                ? { ...p, comments: summary }
+                : p,
             ),
           }
         : current,
@@ -184,7 +209,7 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
           // Edge to edge, one after another, like a photo feed (issue #747).
           <div className="flex flex-col gap-2">
             {feed.map((item) => (
-              <FeedPost key={feedKey(item)} item={item} onReact={react} />
+              <FeedPost key={feedKey(item)} item={item} onReact={react} onComments={setComments} />
             ))}
           </div>
         )}
