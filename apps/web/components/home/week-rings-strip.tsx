@@ -112,7 +112,7 @@ export function WeekRingsStrip() {
   return (
     <nav
       aria-label="This week's workouts"
-      className="-mx-4 flex gap-4 overflow-x-auto overscroll-x-contain px-4 pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-4 flex w-full min-w-0 max-w-full gap-4 overflow-x-auto overscroll-x-contain px-4 pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {people.map((person) => (
         <Link

@@ -43,7 +43,7 @@ export function ShellScroller({ children }: { children: ReactNode }) {
     <div
       ref={ref}
       {...{ [SHELL_SCROLLER_ATTRIBUTE]: "" }}
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip overflow-y-auto"
     >
       {children}
     </div>
