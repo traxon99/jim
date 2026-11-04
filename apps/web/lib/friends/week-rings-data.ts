@@ -31,7 +31,7 @@ async function sessionsInRange(
   until: Date,
 ): Promise<{ startedAt: Date }[]> {
   const rows = await tx.execute<{ started_at: Date | string }>(
-    sql`SELECT started_at FROM friend_sessions_in_range(${userId}, ${since}, ${until})`,
+    sql`SELECT started_at FROM friend_sessions_in_range(${userId}, ${since.toISOString()}, ${until.toISOString()})`,
   );
   return rows.map((row) => ({ startedAt: new Date(row.started_at) }));
 }
