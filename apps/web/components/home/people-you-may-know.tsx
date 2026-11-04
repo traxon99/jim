@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 /**
  * Horizontal People you may know cards in Home's feed (#754).
  */
-export function PeopleYouMayKnowRow({ compact = false }: { compact?: boolean }) {
+export function PeopleYouMayKnowRow() {
   const [suggestions, setSuggestions] = useState<FriendSuggestion[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -68,14 +68,12 @@ export function PeopleYouMayKnowRow({ compact = false }: { compact?: boolean }) 
         <h2 id="people-you-may-know" className="text-base font-semibold tracking-tight">
           People you may know
         </h2>
-        {!compact && (
-          <Link
-            href="/friends"
-            className="shrink-0 text-sm font-medium text-accent underline-offset-2 hover:underline"
-          >
-            See all
-          </Link>
-        )}
+        <Link
+          href="/friends"
+          className="shrink-0 text-sm font-medium text-accent underline-offset-2 hover:underline"
+        >
+          See all
+        </Link>
       </div>
       {(message || error) && (
         <p
@@ -84,15 +82,11 @@ export function PeopleYouMayKnowRow({ compact = false }: { compact?: boolean }) 
           {error ?? message}
         </p>
       )}
-      <ul
-        className={`flex w-full min-w-0 gap-3 ${compact ? "px-4" : "snap-x snap-mandatory overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}`}
-      >
+      <ul className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {suggestions.map((person) => (
           <li
             key={person.userId}
-            className={`relative flex shrink-0 snap-start flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 ${
-              compact ? "w-full max-w-none flex-row justify-between" : "w-[148px]"
-            }`}
+            className="relative flex w-[148px] shrink-0 snap-start flex-col items-center gap-2 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
           >
             <button
               type="button"
@@ -107,9 +101,7 @@ export function PeopleYouMayKnowRow({ compact = false }: { compact?: boolean }) 
               avatar={person.avatar}
               className="h-14 w-14 text-lg"
             />
-            <div
-              className={`flex min-w-0 flex-col items-center gap-1 ${compact ? "flex-1 items-start" : ""}`}
-            >
+            <div className="flex min-w-0 flex-col items-center gap-1">
               <span className="allow-pwa-select truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                 {person.username}
               </span>
