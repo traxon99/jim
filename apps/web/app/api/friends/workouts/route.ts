@@ -1,6 +1,12 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
-import type { FriendWorkout, FriendWorkoutExercise, WorkoutReaction } from "@/lib/friends/types";
+import type {
+  FriendWorkout,
+  FriendWorkoutExercise,
+  FriendWorkoutMuscle,
+  FriendWorkoutRecord,
+  WorkoutReaction,
+} from "@/lib/friends/types";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -13,13 +19,18 @@ interface WorkoutRow extends Record<string, unknown> {
   name: string | null;
   started_at: Date | string;
   ended_at: Date | string;
+  routine_color: FriendWorkout["routineColor"];
+  gym_name: string | null;
+  volume: string | number | null;
+  muscles: FriendWorkoutMuscle[];
+  records: FriendWorkoutRecord[];
   exercises: FriendWorkoutExercise[];
   reactions: WorkoutReaction[];
 }
 
 /**
  * Accepted friends' latest finished workouts and their reactions, summarized
- * server-side by `friend_workouts()` (migrations 0023/0025/0031) — a friend's raw
+ * server-side by `friend_workouts()` (migrations 0023/0025/0031/0061) — a friend's raw
  * rows never leave Postgres, and never reach this user's IndexedDB.
  */
 export async function GET() {
@@ -35,6 +46,17 @@ export async function GET() {
         name: row.name,
         startedAt: new Date(row.started_at).toISOString(),
         endedAt: new Date(row.ended_at).toISOString(),
+        routineColor: row.routine_color,
+        gymName: row.gym_name,
+        volume: row.volume === null ? null : Number(row.volume),
+        muscles: row.muscles.map((m) => ({ muscle: m.muscle, sets: Number(m.sets) })),
+        records: row.records.map((record) => ({
+          exercise: record.exercise,
+          kind: record.kind,
+          value: Number(record.value),
+          weight: record.weight === null ? null : Number(record.weight),
+          reps: record.reps === null ? null : Number(record.reps),
+        })),
         exercises: row.exercises.map((exercise) => ({
           name: exercise.name,
           sets: Number(exercise.sets),

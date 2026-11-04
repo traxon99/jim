@@ -1,7 +1,5 @@
 "use client";
 
-import { Avatar } from "@/components/friends/avatar";
-import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
 import { LoadingText } from "@/components/loading-text";
 import {
   fetchFriendPosts,
@@ -10,12 +8,7 @@ import {
   toggleReaction,
 } from "@/lib/friends/client";
 import { type FeedItem, buildFeed } from "@/lib/friends/feed";
-import {
-  describeExercise,
-  reactionButtons,
-  withReaction,
-  workoutMinutes,
-} from "@/lib/friends/format";
+import { withReaction } from "@/lib/friends/format";
 import type {
   FriendPost,
   FriendWorkout,
@@ -26,6 +19,7 @@ import { REACTION_EMOJI, REACTION_LABELS, type ReactionKind } from "@jim/core";
 import { UserPlus, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { FeedPost } from "./feed-post";
 
 type Load =
   | { status: "loading" }
@@ -140,11 +134,13 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
   return (
     <div className="route-fade flex flex-col gap-5">
       {actionError && (
-        <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{actionError}</p>
+        <p className="allow-pwa-select px-4 text-xs text-red-600 dark:text-red-500">
+          {actionError}
+        </p>
       )}
 
       {load.received.length > 0 && (
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2 px-4">
           <h2 className={SECTION_HEADING}>Reactions to your workouts</h2>
           <ul className="flex flex-col gap-2 rounded-lg bg-white p-3 dark:bg-zinc-950">
             {load.received.slice(0, RECEIVED_SHOWN).map((reaction) => (
@@ -157,10 +153,12 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
         </section>
       )}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-2xl font-semibold tracking-tight">Friends&apos; activity</h2>
+      <section aria-labelledby="friends-activity" className="flex flex-col gap-3">
+        <h2 id="friends-activity" className="px-4 text-2xl font-semibold tracking-tight">
+          Friends&apos; activity
+        </h2>
         {feed.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg bg-white px-4 py-6 text-center dark:bg-zinc-950">
+          <div className="mx-4 flex flex-col items-center gap-3 rounded-lg bg-white px-4 py-6 text-center dark:bg-zinc-950">
             <UsersRound
               className="h-8 w-8 text-zinc-400 dark:text-zinc-600"
               strokeWidth={1.75}
@@ -183,7 +181,12 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
             )}
           </div>
         ) : (
-          feed.map((item) => <FeedCard key={feedKey(item)} item={item} onReact={react} />)
+          // Edge to edge, one after another, like a photo feed (issue #747).
+          <div className="flex flex-col gap-2">
+            {feed.map((item) => (
+              <FeedPost key={feedKey(item)} item={item} onReact={react} />
+            ))}
+          </div>
         )}
       </section>
     </div>
@@ -218,165 +221,4 @@ function ReceivedReactionRow({ reaction }: { reaction: ReceivedReaction }) {
 
 function feedKey(item: FeedItem): string {
   return item.type === "workout" ? `w:${item.workout.sessionId}` : `p:${item.post.postId}`;
-}
-
-type OnReact = (sessionId: string, current: WorkoutReaction[], kind: ReactionKind) => void;
-
-function FeedCard({ item, onReact }: { item: FeedItem; onReact: OnReact }) {
-  if (item.type === "workout") {
-    const { workout } = item;
-    return (
-      <WorkoutCard
-        workout={workout}
-        caption={item.post?.caption ?? null}
-        onReact={(kind) => onReact(workout.sessionId, workout.reactions, kind)}
-      />
-    );
-  }
-  const { post } = item;
-  const sessionId = post.sessionId;
-  return (
-    <PostCard
-      post={post}
-      onReact={sessionId ? (kind) => onReact(sessionId, post.reactions, kind) : null}
-    />
-  );
-}
-
-function Caption({ text }: { text: string }) {
-  return (
-    <p className="allow-pwa-select whitespace-pre-line break-words text-sm text-zinc-800 dark:text-zinc-200">
-      {text}
-    </p>
-  );
-}
-
-/** A shared record, achievement, or a workout outside the feed's own list (issue #316). */
-function PostCard({
-  post,
-  onReact,
-}: {
-  post: FriendPost;
-  onReact: ((kind: ReactionKind) => void) | null;
-}) {
-  const Icon = POST_KIND_ICONS[post.kind];
-  return (
-    <article className="flex flex-col gap-2 rounded-lg bg-white p-3 dark:bg-zinc-950">
-      <header className="flex items-center gap-3">
-        <Avatar username={post.username} avatar={post.avatar} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="allow-pwa-select truncate text-base font-semibold">
-            @{post.username}
-          </span>
-          <span className="truncate text-xs font-medium text-zinc-500 dark:text-zinc-500">
-            {POST_KIND_LABELS[post.kind]} · {shortDate(post.createdAt)}
-          </span>
-        </div>
-      </header>
-      {post.caption && <Caption text={post.caption} />}
-      <div className="flex items-start gap-3 rounded-lg bg-zinc-100 px-3 py-2 dark:bg-zinc-900">
-        <Icon
-          className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
-          strokeWidth={1.75}
-          aria-hidden="true"
-        />
-        <div className="allow-pwa-select flex min-w-0 flex-col">
-          <span className="break-words text-sm font-semibold">{post.title}</span>
-          {post.detail && (
-            <span className="break-words text-xs text-zinc-600 dark:text-zinc-400">
-              {post.detail}
-            </span>
-          )}
-        </div>
-      </div>
-      {onReact && <ReactionButtons reactions={post.reactions} onReact={onReact} />}
-    </article>
-  );
-}
-
-const POST_KIND_LABELS: Record<FriendPost["kind"], string> = {
-  workout: "Finished a workout",
-  record: "New personal record",
-  achievement: "Earned an achievement",
-};
-
-function WorkoutCard({
-  workout,
-  caption,
-  onReact,
-}: {
-  workout: FriendWorkout;
-  /** From the friend's post sharing this workout, if they wrote one. */
-  caption: string | null;
-  onReact: (kind: ReactionKind) => void;
-}) {
-  const date = shortDate(workout.startedAt);
-  const minutes = workoutMinutes(workout);
-
-  return (
-    <article className="flex flex-col gap-2 rounded-lg bg-white p-3 dark:bg-zinc-950">
-      <header className="flex items-center gap-3">
-        <Avatar username={workout.username} avatar={workout.avatar} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="allow-pwa-select truncate text-base font-semibold">
-            {workout.name ?? "Workout"}
-          </span>
-          <span className="allow-pwa-select truncate text-xs font-medium text-zinc-500 dark:text-zinc-500">
-            @{workout.username} · {date}
-            {minutes > 0 && ` · ${minutes} min`}
-          </span>
-        </div>
-      </header>
-      {caption && <Caption text={caption} />}
-      {workout.exercises.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {workout.exercises.map((exercise, index) => (
-            <li
-              // biome-ignore lint/suspicious/noArrayIndexKey: an exercise can repeat within a workout
-              key={index}
-              className="allow-pwa-select flex flex-col text-xs text-zinc-600 dark:text-zinc-400"
-            >
-              <span className="font-medium text-zinc-800 dark:text-zinc-200">{exercise.name}</span>
-              <span>{describeExercise(exercise, workout.units)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <ReactionButtons reactions={workout.reactions} onReact={onReact} />
-    </article>
-  );
-}
-
-function ReactionButtons({
-  reactions,
-  onReact,
-}: {
-  reactions: WorkoutReaction[];
-  onReact: (kind: ReactionKind) => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      {reactionButtons(reactions).map((reaction) => (
-        <button
-          key={reaction.kind}
-          type="button"
-          aria-pressed={reaction.mine}
-          aria-label={`${REACTION_LABELS[reaction.kind]}${
-            reaction.count > 0 ? `, ${reaction.count}` : ""
-          }`}
-          onClick={() => onReact(reaction.kind)}
-          className={`flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full border px-3 text-sm ${
-            reaction.mine
-              ? "border-accent text-accent"
-              : "border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
-          }`}
-        >
-          <span className="text-base leading-none" aria-hidden="true">
-            {REACTION_EMOJI[reaction.kind]}
-          </span>
-          {reaction.count > 0 && <span className="tabular-nums">{reaction.count}</span>}
-        </button>
-      ))}
-    </div>
-  );
 }

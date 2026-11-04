@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { createDb, users } from "@jim/db";
-import { eq } from "drizzle-orm";
+import { type Db, createDb, friendships, posts, routines, users, workoutReactions } from "@jim/db";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -94,8 +94,85 @@ export async function seedDevDatabase(databaseUrl: string) {
         })),
       });
     }
+    await seedFriends(db);
     return { exercises: count, workouts: 6 };
   } finally {
     await db.$client.end();
+  }
+}
+
+/**
+ * Three friends with recent workouts, a shared record and some reactions, so
+ * the Home feed, week rings and profiles have something to show (issue #746).
+ * They can't sign in; the fake auth only knows DEV_USER.
+ */
+const FRIENDS = [
+  { id: "00000000-0000-4000-8000-0000000f0001", username: "maya", color: "orange" },
+  { id: "00000000-0000-4000-8000-0000000f0002", username: "theo", color: "blue" },
+  { id: "00000000-0000-4000-8000-0000000f0003", username: "sam.lifts", color: "indigo" },
+] as const;
+
+async function seedFriends(db: Db) {
+  for (const [index, friend] of FRIENDS.entries()) {
+    const email = `${friend.username}@jim.test`;
+    await db.execute(sql`insert into auth.users (id, email) values (${friend.id}, ${email})`);
+    await db.insert(users).values({ id: friend.id, email, username: friend.username });
+    await db.insert(friendships).values({
+      requesterId: DEV_USER.id,
+      addresseeId: friend.id,
+      status: "accepted",
+      acceptedAt: new Date(),
+    });
+
+    const context = { db, userId: friend.id, email };
+    const routine = await createRoutine(context, {
+      name: "Push Day",
+      exercises: PUSH_DAY.map((lift) => ({ exercise: lift.exercise, targetSets: lift.sets })),
+    });
+    await db.update(routines).set({ iconColor: friend.color }).where(eq(routines.id, routine.id));
+
+    // A workout a few hours ago, and one each earlier this week and last.
+    for (const hoursAgo of [2 + index * 5, 50 + index * 7, 170]) {
+      const startedAt = new Date(Date.now() - hoursAgo * 3_600_000);
+      await logPastWorkout(context, {
+        startedAt: startedAt.toISOString(),
+        durationMinutes: 50 + index * 4,
+        name: "Push Day",
+        routineId: routine.id,
+        exercises: PUSH_DAY.map((lift) => ({
+          exercise: lift.exercise,
+          sets: Array.from({ length: lift.sets + 1 }, () => ({
+            weight: lift.weight + 20 - index * 10 + (hoursAgo < 24 ? 10 : 0),
+            reps: lift.reps,
+          })),
+        })),
+      });
+    }
+  }
+
+  const [sam] = FRIENDS.slice(2);
+  if (sam) {
+    await db.insert(posts).values({
+      userId: sam.id,
+      kind: "record",
+      title: "Deadlift",
+      detail: "Estimated 1RM · 405 lb",
+      caption: "Four plates. Finally.",
+      createdAt: new Date(Date.now() - 3 * 3_600_000),
+    });
+  }
+
+  // Friends reacting to the dev user's latest workout, and the dev user to maya's.
+  const [latest] = await db.execute<{ id: string }>(
+    sql`select id from sessions where user_id = ${DEV_USER.id} order by started_at desc limit 1`,
+  );
+  if (latest) {
+    for (const [index, friend] of FRIENDS.entries()) {
+      await db.insert(workoutReactions).values({
+        sessionId: latest.id,
+        userId: friend.id,
+        kind: index === 0 ? "fire" : "strong",
+      });
+    }
   }
 }

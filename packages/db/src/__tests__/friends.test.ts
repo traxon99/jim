@@ -177,6 +177,70 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("friends", () => {
     });
   });
 
+  it("carries what a feed post shows: tint, gym, volume, muscles and PRs (#747)", async () => {
+    const routine = first(
+      await admin<{ id: string }[]>`
+        INSERT INTO routines (user_id, name, icon_color) VALUES (${USER_B}, 'Push', 'orange')
+        RETURNING id`,
+    );
+    const gym = first(
+      await admin<{ id: string }[]>`
+        INSERT INTO gyms (user_id, name) VALUES (${USER_B}, 'Iron Works') RETURNING id`,
+    );
+    await admin`UPDATE sessions SET routine_id = ${routine.id}, gym_id = ${gym.id}
+      WHERE id = ${finishedSessionId}`;
+    const [topSet] = await admin<{ id: string; exercise_id: string }[]>`
+      SELECT s.id, se.exercise_id FROM sets s
+      JOIN session_exercises se ON se.id = s.session_exercise_id
+      WHERE se.session_id = ${finishedSessionId} AND s.weight = 185`;
+    if (!topSet) throw new Error("missing set");
+    await admin`INSERT INTO personal_records (user_id, exercise_id, kind, value, set_id, achieved_at)
+      VALUES (${USER_B}, ${topSet.exercise_id}, '1rm', 215.83, ${topSet.id}, now()),
+             (${USER_B}, ${topSet.exercise_id}, 'volume', 925, ${topSet.id}, now())`;
+
+    // A warm-up and a cardio exercise count toward none of the numbers.
+    for (const [slug, category] of [
+      ["arm-circles", "warmup"],
+      ["rower", "cardio"],
+    ] as const) {
+      const exercise = first(
+        await admin<{ id: string }[]>`
+          INSERT INTO exercises (slug, name, tracking_type, primary_muscles, category)
+          VALUES (${slug}, ${slug}, 'weight_reps', '{shoulders}', ${category}) RETURNING id`,
+      );
+      const se = first(
+        await admin<{ id: string }[]>`
+          INSERT INTO session_exercises (user_id, session_id, exercise_id, position)
+          VALUES (${USER_B}, ${finishedSessionId}, ${exercise.id}, 5) RETURNING id`,
+      );
+      await admin`INSERT INTO sets (user_id, session_exercise_id, set_index, weight, reps)
+        VALUES (${USER_B}, ${se.id}, 0, 20, 10)`;
+    }
+
+    const rows = await asUser(
+      admin,
+      USER_A,
+      (tx) => tx<Record<string, unknown>[]>`SELECT * FROM friend_workouts(30, ${USER_B})`,
+    );
+    expect(first(rows)).toMatchObject({
+      routine_color: "orange",
+      gym_name: "Iron Works",
+      muscles: [{ muscle: "chest", sets: 2 }],
+      // Only the estimated 1RM is a visible PR; volume PRs stay on the PR page.
+      records: [{ exercise: "Bench Press", kind: "1rm", value: 215.83, weight: 185, reps: 5 }],
+    });
+    expect(first(rows).exercises).toHaveLength(1);
+    // 185 × 5 + 175 × 8; the superseded 300 × 1 and the deleted squat set don't count.
+    expect(Number(first(rows).volume)).toBe(2325);
+
+    const none = await asUser(
+      admin,
+      USER_A,
+      (tx) => tx`SELECT * FROM friend_workouts(30, ${USER_C})`,
+    );
+    expect(none).toHaveLength(0);
+  });
+
   it("still keeps a friend's raw rows out of sync's RLS-scoped reads", async () => {
     const rows = await asUser(admin, USER_A, (tx) => tx`SELECT id FROM sessions`);
     expect(rows).toHaveLength(0);

@@ -1,6 +1,6 @@
 /** Shapes /api/friends and /api/friends/workouts return (issue #35). */
 
-import type { PostKind, ReactionKind } from "@jim/core";
+import type { PostKind, PrKind, ReactionKind, RoutineIconColor } from "@jim/core";
 
 export interface FriendEntry {
   userId: string;
@@ -38,6 +38,21 @@ export interface FriendWorkoutExercise {
   topReps: number | null;
 }
 
+export interface FriendWorkoutMuscle {
+  muscle: string;
+  sets: number;
+}
+
+export interface FriendWorkoutRecord {
+  exercise: string;
+  kind: PrKind;
+  /** The record's value: an estimated 1RM weight, or a rep count. */
+  value: number;
+  /** The set that set it. */
+  weight: number | null;
+  reps: number | null;
+}
+
 export interface FriendWorkout {
   sessionId: string;
   userId: string;
@@ -47,6 +62,16 @@ export interface FriendWorkout {
   name: string | null;
   startedAt: string;
   endedAt: string;
+  /** The routine's icon color, which tints the post (issue #747); null when it has none. */
+  routineColor: RoutineIconColor | null;
+  /** The gym it was done at, or null. */
+  gymName: string | null;
+  /** Working-set volume in the friend's units; null when they share no details. */
+  volume: number | null;
+  /** The top three muscles by working sets; empty when they share no details. */
+  muscles: FriendWorkoutMuscle[];
+  /** PRs set in it (estimated 1RM, and reps on bodyweight lifts); empty without details. */
+  records: FriendWorkoutRecord[];
   /** Empty when the friend shares no workout details (issue #316). */
   exercises: FriendWorkoutExercise[];
   /** Kinds anyone has reacted with (issue #303); kinds with no reactions are left out. */
