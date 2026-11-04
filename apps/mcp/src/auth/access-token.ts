@@ -39,7 +39,8 @@ function isUndefinedFunction(error: unknown): boolean {
  * Vercel production build, so for a few minutes after a merge this code can
  * run against a database without 0060. It then falls back to 0027's resolver
  * and treats the token as `read_write`. That can't widen a `read` token: read
- * tokens can only be created once the same migration has added the column.
+ * tokens can only be created once the same migration has added the column,
+ * and from then on 0027's resolver only finds `read_write` tokens.
  */
 export async function resolveAccessToken(
   db: Db,

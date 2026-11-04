@@ -1,7 +1,8 @@
-import { isAccessTokenScope } from "@jim/core";
 // Streamable HTTP + OAuth 2.1 MCP server (S8; see docs/STORIES.md and
 // docs/ARCHITECTURE.md §5). Holds a user's own Supabase session token and is
 // subject to the same RLS as the web app — never a service-role key (ADR-006).
+
+import { isAccessTokenScope } from "@jim/core";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import {
   getOAuthProtectedResourceMetadataUrl,

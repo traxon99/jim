@@ -153,6 +153,21 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("personal access tokens (#246)",
     await server.close();
   });
 
+  it("hides read tokens from the 0027 resolver an older server still calls", async () => {
+    const read = await insertToken(USER_A, { scope: "read" });
+    const readWrite = await insertToken(USER_A);
+    const legacy = async (token: string) => {
+      const hash = await hashAccessToken(token);
+      const [row] = await admin.begin(async (tx) => {
+        await tx`SET LOCAL ROLE anon`;
+        return tx`SELECT resolve_personal_access_token(${hash}) AS user_id`;
+      });
+      return row?.user_id;
+    };
+    expect(await legacy(read)).toBeNull();
+    expect(await legacy(readWrite)).toBe(USER_A);
+  });
+
   // Keep last: it drops the scoped resolver for the rest of this file.
   it("falls back to the 0027 resolver until migration 0060 has applied", async () => {
     const token = await insertToken(USER_A);
