@@ -51,6 +51,16 @@ describe("trainingStreak", () => {
   // Weeks start Monday (weekStart = 1). 2026-09-28 is a Monday.
   const now = day(2026, 9, 30);
 
+  it("splits weeks in a given time zone, as the server does (#738)", () => {
+    // Sunday 2026-09-27 at 21:00 in Chicago is already Monday in UTC.
+    const lateSunday = new Date("2026-09-28T02:00:00Z");
+    const wednesday = new Date("2026-09-30T17:00:00Z");
+    const chicago = trainingStreak([lateSunday, wednesday], 1, 1, wednesday, "America/Chicago");
+    expect(chicago).toEqual({ weeklyTarget: 1, current: 2, longest: 2, thisWeek: 1 });
+    const utc = trainingStreak([lateSunday, wednesday], 1, 1, wednesday, "UTC");
+    expect(utc).toEqual({ weeklyTarget: 1, current: 1, longest: 1, thisWeek: 2 });
+  });
+
   it("counts consecutive weeks meeting the target", () => {
     const streak = trainingStreak(
       [
