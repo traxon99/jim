@@ -163,7 +163,12 @@ function FriendLists({
           </div>
         ) : (
           accepted.map((friend) => (
-            <PersonRow key={friend.userId} username={friend.username} avatar={friend.avatar}>
+            <PersonRow
+              key={friend.userId}
+              username={friend.username}
+              avatar={friend.avatar}
+              href={`/friends/${friend.username}`}
+            >
               <button
                 type="button"
                 disabled={busyUserId === friend.userId}
@@ -287,20 +292,33 @@ function PersonRow({
   username,
   avatar,
   note,
+  href,
   children,
 }: {
   username: string;
   avatar: string | null;
   note?: string;
+  href?: string;
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-zinc-200 py-1 pl-2 pr-1 dark:border-zinc-800">
+  const main = (
+    <>
       <Avatar username={username} avatar={avatar} className="h-9 w-9 text-sm" />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="allow-pwa-select truncate text-sm font-medium">@{username}</span>
         {note && <span className="text-xs text-zinc-500 dark:text-zinc-500">{note}</span>}
       </div>
+    </>
+  );
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-zinc-200 py-1 pl-2 pr-1 dark:border-zinc-800">
+      {href ? (
+        <Link href={href} data-ripple className="flex min-w-0 flex-1 items-center gap-3">
+          {main}
+        </Link>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-3">{main}</div>
+      )}
       {children}
     </div>
   );

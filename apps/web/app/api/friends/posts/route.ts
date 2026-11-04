@@ -25,10 +25,20 @@ interface PostRow extends Record<string, unknown> {
  * `friend_posts()` — like their workouts, never read from the posts table
  * directly (ADR-017).
  */
-export async function GET() {
+function friendIdFrom(request: Request): string | null {
+  const value = new URL(request.url).searchParams.get("friendId");
+  return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
+}
+
+export async function GET(request: Request) {
+  const friendId = friendIdFrom(request);
   try {
     const posts = await withUserDb(async (tx): Promise<FriendPost[]> => {
-      const rows = await tx.execute<PostRow>(sql`SELECT * FROM friend_posts(30)`);
+      const rows = await tx.execute<PostRow>(
+        friendId
+          ? sql`SELECT * FROM friend_posts(30, ${friendId}::uuid)`
+          : sql`SELECT * FROM friend_posts(30)`,
+      );
       // A workout post's comments are its workout's; the other kinds have their own.
       const sessionIds = rows.flatMap((row) => (row.session_id ? [row.session_id] : []));
       const postIds = rows.flatMap((row) => (row.session_id ? [] : [row.post_id]));

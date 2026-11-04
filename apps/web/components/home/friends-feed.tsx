@@ -52,8 +52,8 @@ export function FriendsFeed({ hasFriends }: { hasFriends: boolean }) {
 
   const refresh = useCallback(async () => {
     const [workouts, posts, received] = await Promise.all([
-      fetchFriendWorkouts(),
-      fetchFriendPosts(),
+      fetchFriendWorkouts(undefined),
+      fetchFriendPosts(undefined),
       fetchReceivedReactions(),
     ]);
     if (!workouts.ok) {

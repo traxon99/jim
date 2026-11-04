@@ -1,3 +1,4 @@
+import { bioError, displayNameError, normalizeBio, normalizeDisplayName } from "@jim/core";
 import { users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import type { UserContext } from "../context.js";
@@ -33,6 +34,8 @@ function toSettings(row: UserRow) {
     pushWorkoutReminders: row.pushWorkoutReminders,
     pushWhatsNew: row.pushWhatsNew,
     pushWhatsNewEveryDeploy: row.pushWhatsNewEveryDeploy,
+    displayName: row.displayName,
+    bio: row.bio,
     sex: row.sex,
     birthdate: row.birthdate,
     heightCm: row.heightCm == null ? null : Number(row.heightCm),
@@ -77,11 +80,28 @@ export async function updateSettings(context: UserContext, input: UpdateSettings
     const values: Partial<typeof users.$inferInsert> = {};
     for (const [key, value] of Object.entries(patch)) {
       if (value === undefined) continue;
+      if (key === "displayName" || key === "bio") continue;
       if (key === "defaultBarWeight") values.defaultBarWeight = String(value);
       else if (key === "availablePlates") values.availablePlates = (value as number[]).map(String);
       else if (key === "heightCm" || key === "bodyweight") {
         values[key] = value === null ? null : String(value);
       } else (values as Record<string, unknown>)[key] = value;
+    }
+    if ("displayName" in patch) {
+      const name =
+        patch.displayName === null || patch.displayName === undefined
+          ? null
+          : normalizeDisplayName(String(patch.displayName));
+      const invalid = name === null || name === "" ? null : displayNameError(name);
+      if (invalid) throw new Error(invalid);
+      values.displayName = name === "" ? null : name;
+    }
+    if ("bio" in patch) {
+      const bio =
+        patch.bio === null || patch.bio === undefined ? null : normalizeBio(String(patch.bio));
+      const invalid = bio === null || bio === "" ? null : bioError(bio);
+      if (invalid) throw new Error(invalid);
+      values.bio = bio === "" ? null : bio;
     }
     if (Object.keys(values).length === 0) throw new Error("Nothing to change.");
     const [row] = await tx

@@ -2,7 +2,13 @@ import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { ProfilePayload } from "@/lib/friends/types";
-import { isValidAvatar } from "@jim/core";
+import {
+  bioError,
+  displayNameError,
+  isValidAvatar,
+  normalizeBio,
+  normalizeDisplayName,
+} from "@jim/core";
 import { users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -16,6 +22,8 @@ function toPayload(row: typeof users.$inferSelect): ProfilePayload {
   return {
     username: row.username,
     avatar: row.avatar,
+    displayName: row.displayName,
+    bio: row.bio,
     shareWorkouts: row.shareWorkouts,
     shareWorkoutDetails: row.shareWorkoutDetails,
   };
@@ -34,7 +42,7 @@ export async function GET() {
 }
 
 type ProfilePatch = Partial<
-  Pick<ProfilePayload, "avatar" | "shareWorkouts" | "shareWorkoutDetails">
+  Pick<ProfilePayload, "avatar" | "displayName" | "bio" | "shareWorkouts" | "shareWorkoutDetails">
 >;
 
 /** Validates a patch, or returns why it can't be applied. */
@@ -47,6 +55,25 @@ function parsePatch(body: unknown): ProfilePatch | string {
       return "That picture can't be used — try a different photo";
     }
     patch.avatar = candidate.avatar;
+  }
+  if ("displayName" in candidate) {
+    if (candidate.displayName !== null && typeof candidate.displayName !== "string") {
+      return "Invalid profile update";
+    }
+    const name =
+      candidate.displayName === null ? null : normalizeDisplayName(candidate.displayName);
+    const invalid = name === null || name === "" ? null : displayNameError(name);
+    if (invalid) return invalid;
+    patch.displayName = name === "" ? null : name;
+  }
+  if ("bio" in candidate) {
+    if (candidate.bio !== null && typeof candidate.bio !== "string") {
+      return "Invalid profile update";
+    }
+    const bio = candidate.bio === null ? null : normalizeBio(candidate.bio);
+    const invalid = bio === null || bio === "" ? null : bioError(bio);
+    if (invalid) return invalid;
+    patch.bio = bio === "" ? null : bio;
   }
   for (const key of ["shareWorkouts", "shareWorkoutDetails"] as const) {
     if (key in candidate) {

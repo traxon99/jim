@@ -15,6 +15,11 @@ const NESTED_UNDER: Partial<Record<BaseTab, readonly string[]>> = {
   "/home": ["/profile", "/progression", "/friends"],
 };
 
+/** Friend profile pages keep Home highlighted (issue #751). */
+export function isFriendProfilePath(pathname: string): boolean {
+  return /^\/friends\/[^/]+$/.test(pathname);
+}
+
 function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
@@ -22,6 +27,7 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
 /** Whether `tab` should render as the active tab for `pathname`. */
 export function isTabActive(tab: BaseTab, pathname: string): boolean {
   if (matchesPrefix(pathname, tab)) return true;
+  if (tab === "/home" && isFriendProfilePath(pathname)) return true;
   return (NESTED_UNDER[tab] ?? []).some((prefix) => matchesPrefix(pathname, prefix));
 }
 

@@ -35,10 +35,20 @@ interface WorkoutRow extends Record<string, unknown> {
  * server-side by `friend_workouts()` (migrations 0023/0025/0031/0061) — a friend's raw
  * rows never leave Postgres, and never reach this user's IndexedDB.
  */
-export async function GET() {
+function friendIdFrom(request: Request): string | null {
+  const value = new URL(request.url).searchParams.get("friendId");
+  return value && /^[0-9a-f-]{36}$/i.test(value) ? value : null;
+}
+
+export async function GET(request: Request) {
+  const friendId = friendIdFrom(request);
   try {
     const workouts = await withUserDb(async (tx): Promise<FriendWorkout[]> => {
-      const rows = await tx.execute<WorkoutRow>(sql`SELECT * FROM friend_workouts(30)`);
+      const rows = await tx.execute<WorkoutRow>(
+        friendId
+          ? sql`SELECT * FROM friend_workouts(30, ${friendId}::uuid)`
+          : sql`SELECT * FROM friend_workouts(30)`,
+      );
       const sessionIds = rows.map((row) => row.session_id);
       const { bySession } = await loadCommentSummaries(tx, sessionIds, []);
       const { bySession: namesBySession } = await loadReactionNames(tx, sessionIds, []);

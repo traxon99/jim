@@ -57,6 +57,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     expect(await (await profile.GET()).json()).toEqual({
       username: "bob",
       avatar: null,
+      displayName: null,
+      bio: null,
       shareWorkouts: true,
       shareWorkoutDetails: true,
     });
@@ -73,6 +75,18 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
 
     const ok = await profile.PATCH(jsonRequest("PATCH", { avatar: AVATAR }, "/api/profile"));
     expect(await ok.json()).toMatchObject({ avatar: AVATAR });
+
+    const named = await profile.PATCH(
+      jsonRequest("PATCH", { displayName: " Bobby ", bio: " Lifts " }, "/api/profile"),
+    );
+    expect(await named.json()).toEqual({
+      username: "bob",
+      avatar: AVATAR,
+      displayName: "Bobby",
+      bio: "Lifts",
+      shareWorkouts: true,
+      shareWorkoutDetails: true,
+    });
 
     signInAs(USER_A, "alice@example.com");
     const listed = await (await friends.GET()).json();
@@ -100,9 +114,16 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     ]);
 
     signInAs(USER_A, "alice@example.com");
-    const feed = await (await friendPosts.GET()).json();
+    const feed = await (await friendPosts.GET(new Request("http://test/api/friends/posts"))).json();
     expect(feed.posts).toEqual([
-      expect.objectContaining({ username: "bob", avatar: AVATAR, caption: "Ouch", reactions: [] }),
+      expect.objectContaining({
+        username: "bob",
+        avatar: AVATAR,
+        caption: "Ouch",
+        reactions: [],
+        reactedBy: [],
+        comments: { count: 0, latest: null },
+      }),
     ]);
   });
 
@@ -119,8 +140,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     await profile.PATCH(jsonRequest("PATCH", { shareWorkouts: false }, "/api/profile"));
 
     signInAs(USER_A, "alice@example.com");
-    expect((await (await workouts.GET()).json()).workouts).toEqual([]);
-    expect((await (await friendPosts.GET()).json()).posts).toHaveLength(1);
+    expect(
+      (await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json()).workouts,
+    ).toEqual([]);
+    expect(
+      (await (await friendPosts.GET(new Request("http://test/api/friends/posts"))).json()).posts,
+    ).toHaveLength(1);
   });
 
   it("deletes only the author's own post", async () => {
