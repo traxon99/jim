@@ -12,6 +12,11 @@ function workout(sessionId: string, endedAt: string): FriendWorkout {
     name: "Push Day",
     startedAt: endedAt,
     endedAt,
+    routineColor: null,
+    gymName: null,
+    volume: null,
+    muscles: [],
+    records: [],
     exercises: [],
     reactions: [],
   };

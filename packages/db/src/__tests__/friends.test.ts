@@ -177,6 +177,50 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("friends", () => {
     });
   });
 
+  it("carries what a feed post shows: tint, gym, volume, muscles and PRs (#747)", async () => {
+    const routine = first(
+      await admin<{ id: string }[]>`
+        INSERT INTO routines (user_id, name, icon_color) VALUES (${USER_B}, 'Push', 'orange')
+        RETURNING id`,
+    );
+    const gym = first(
+      await admin<{ id: string }[]>`
+        INSERT INTO gyms (user_id, name) VALUES (${USER_B}, 'Iron Works') RETURNING id`,
+    );
+    await admin`UPDATE sessions SET routine_id = ${routine.id}, gym_id = ${gym.id}
+      WHERE id = ${finishedSessionId}`;
+    const [topSet] = await admin<{ id: string; exercise_id: string }[]>`
+      SELECT s.id, se.exercise_id FROM sets s
+      JOIN session_exercises se ON se.id = s.session_exercise_id
+      WHERE se.session_id = ${finishedSessionId} AND s.weight = 185`;
+    if (!topSet) throw new Error("missing set");
+    await admin`INSERT INTO personal_records (user_id, exercise_id, kind, value, set_id, achieved_at)
+      VALUES (${USER_B}, ${topSet.exercise_id}, '1rm', 215.83, ${topSet.id}, now()),
+             (${USER_B}, ${topSet.exercise_id}, 'volume', 925, ${topSet.id}, now())`;
+
+    const rows = await asUser(
+      admin,
+      USER_A,
+      (tx) => tx<Record<string, unknown>[]>`SELECT * FROM friend_workouts(30, ${USER_B})`,
+    );
+    expect(first(rows)).toMatchObject({
+      routine_color: "orange",
+      gym_name: "Iron Works",
+      muscles: [{ muscle: "chest", sets: 2 }],
+      // Only the estimated 1RM is a visible PR; volume PRs stay on the PR page.
+      records: [{ exercise: "Bench Press", kind: "1rm", value: 215.83, weight: 185, reps: 5 }],
+    });
+    // 185 × 5 + 175 × 8; the superseded 300 × 1 and the deleted squat set don't count.
+    expect(Number(first(rows).volume)).toBe(2325);
+
+    const none = await asUser(
+      admin,
+      USER_A,
+      (tx) => tx`SELECT * FROM friend_workouts(30, ${USER_C})`,
+    );
+    expect(none).toHaveLength(0);
+  });
+
   it("still keeps a friend's raw rows out of sync's RLS-scoped reads", async () => {
     const rows = await asUser(admin, USER_A, (tx) => tx`SELECT id FROM sessions`);
     expect(rows).toHaveLength(0);

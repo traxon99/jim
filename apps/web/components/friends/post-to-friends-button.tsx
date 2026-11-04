@@ -59,7 +59,8 @@ export function PostToFriendsButton({
   );
 }
 
-function ComposePostCard({
+/** The compose card on its own, for a caller that picks what to post first (issue #747). */
+export function ComposePostCard({
   draft,
   onClose,
   onPosted,
