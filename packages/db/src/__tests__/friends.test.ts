@@ -198,6 +198,25 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("friends", () => {
       VALUES (${USER_B}, ${topSet.exercise_id}, '1rm', 215.83, ${topSet.id}, now()),
              (${USER_B}, ${topSet.exercise_id}, 'volume', 925, ${topSet.id}, now())`;
 
+    // A warm-up and a cardio exercise count toward none of the numbers.
+    for (const [slug, category] of [
+      ["arm-circles", "warmup"],
+      ["rower", "cardio"],
+    ] as const) {
+      const exercise = first(
+        await admin<{ id: string }[]>`
+          INSERT INTO exercises (slug, name, tracking_type, primary_muscles, category)
+          VALUES (${slug}, ${slug}, 'weight_reps', '{shoulders}', ${category}) RETURNING id`,
+      );
+      const se = first(
+        await admin<{ id: string }[]>`
+          INSERT INTO session_exercises (user_id, session_id, exercise_id, position)
+          VALUES (${USER_B}, ${finishedSessionId}, ${exercise.id}, 5) RETURNING id`,
+      );
+      await admin`INSERT INTO sets (user_id, session_exercise_id, set_index, weight, reps)
+        VALUES (${USER_B}, ${se.id}, 0, 20, 10)`;
+    }
+
     const rows = await asUser(
       admin,
       USER_A,
@@ -210,6 +229,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("friends", () => {
       // Only the estimated 1RM is a visible PR; volume PRs stay on the PR page.
       records: [{ exercise: "Bench Press", kind: "1rm", value: 215.83, weight: 185, reps: 5 }],
     });
+    expect(first(rows).exercises).toHaveLength(1);
     // 185 × 5 + 175 × 8; the superseded 300 × 1 and the deleted squat set don't count.
     expect(Number(first(rows).volume)).toBe(2325);
 

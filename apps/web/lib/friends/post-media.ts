@@ -28,20 +28,20 @@ export function postTint(color: RoutineIconColor | null): string {
   return `bg-linear-to-br ${color ? TINTS[color] : NEUTRAL_TINT}`;
 }
 
-/** "now", "5m", "2h", "3d", then a short date. */
+/** "now", "5m ago", "2h ago", "3d ago", then a short date. */
 export function timeAgo(iso: string, now: Date = new Date()): string {
   const then = Date.parse(iso);
   const minutes = Math.floor((now.getTime() - then) / 60_000);
   if (!Number.isFinite(minutes) || minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d`;
+  if (days < 7) return `${days}d ago`;
   return new Date(then).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** A workout's second header line: "Push Day · 2h · Iron Works". */
+/** A workout's second header line: "Push Day · 2h ago · Iron Works". */
 export function workoutHeaderLine(workout: FriendWorkout, now: Date = new Date()): string {
   return [workout.name ?? "Workout", timeAgo(workout.endedAt, now), workout.gymName]
     .filter((part): part is string => !!part)

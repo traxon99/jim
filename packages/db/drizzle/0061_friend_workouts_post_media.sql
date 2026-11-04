@@ -47,7 +47,8 @@ AS $$
     ORDER BY s.started_at DESC
     LIMIT least(greatest(coalesce(p_limit, 30), 1), 100)
   ),
-  -- Each exercise's current working sets (warm-ups and superseded rows left out).
+  -- Each strength exercise's current working sets: warm-up sets, warm-up and
+  -- cardio exercises, superseded rows and empty sets left out (LESSONS #395).
   working AS (
     SELECT se.session_id, se.id AS session_exercise_id, se.position, e.id AS exercise_id,
            e.name, e.primary_muscles, e.tracking_type, cs.id AS set_id, cs.weight, cs.reps
@@ -57,6 +58,8 @@ AS $$
     JOIN sets cs ON cs.session_exercise_id = se.id
     WHERE cs.deleted_at IS NULL
       AND cs.kind <> 'warmup'
+      AND e.category = 'strength'
+      AND (cs.reps > 0 OR cs.duration_seconds > 0)
       AND NOT EXISTS (SELECT 1 FROM sets newer WHERE newer.supersedes_id = cs.id)
   )
   SELECT

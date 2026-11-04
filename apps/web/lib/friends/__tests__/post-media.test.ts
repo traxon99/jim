@@ -14,10 +14,10 @@ const NOW = new Date("2026-11-04T12:00:00Z");
 describe("timeAgo", () => {
   it("counts minutes, hours and days, then falls back to a date", () => {
     expect(timeAgo("2026-11-04T11:59:40Z", NOW)).toBe("now");
-    expect(timeAgo("2026-11-04T11:55:00Z", NOW)).toBe("5m");
-    expect(timeAgo("2026-11-04T10:00:00Z", NOW)).toBe("2h");
-    expect(timeAgo("2026-11-01T12:00:00Z", NOW)).toBe("3d");
-    expect(timeAgo("2026-10-01T12:00:00Z", NOW)).not.toMatch(/d$/);
+    expect(timeAgo("2026-11-04T11:55:00Z", NOW)).toBe("5m ago");
+    expect(timeAgo("2026-11-04T10:00:00Z", NOW)).toBe("2h ago");
+    expect(timeAgo("2026-11-01T12:00:00Z", NOW)).toBe("3d ago");
+    expect(timeAgo("2026-10-01T12:00:00Z", NOW)).not.toMatch(/ago$/);
   });
 
   it("treats a time in the future as now", () => {
@@ -33,11 +33,13 @@ describe("workoutHeaderLine", () => {
   } as FriendWorkout;
 
   it("joins the name, how long ago and the gym", () => {
-    expect(workoutHeaderLine(workout, NOW)).toBe("Push Day · 2h · Iron Works");
+    expect(workoutHeaderLine(workout, NOW)).toBe("Push Day · 2h ago · Iron Works");
   });
 
   it("leaves out a missing gym and names an unnamed workout", () => {
-    expect(workoutHeaderLine({ ...workout, name: null, gymName: null }, NOW)).toBe("Workout · 2h");
+    expect(workoutHeaderLine({ ...workout, name: null, gymName: null }, NOW)).toBe(
+      "Workout · 2h ago",
+    );
   });
 });
 

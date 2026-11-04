@@ -43,14 +43,16 @@ export function PostCarousel({
           className="no-scrollbar flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
         >
           {slides.map((slide, i) => (
-            <div
+            <section
               // Slides are positional and never reorder.
               // biome-ignore lint/suspicious/noArrayIndexKey: fixed slide order
               key={i}
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${slides.length}`}
               className="flex h-full w-full shrink-0 snap-start snap-always flex-col overflow-hidden p-5"
             >
               {slide}
-            </div>
+            </section>
           ))}
         </div>
         {many && (

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/schema";
 import {
-  isVisiblePr,
+  countVisiblePrs,
   repsAtWeightExerciseIds,
   resolveCurrentRows,
   summarizeSession,
@@ -49,10 +49,7 @@ export async function recentWorkoutDrafts(
           : [];
       const sets = resolveCurrentRows(rawSets).filter((set) => !set.deletedAt);
       const setIds = new Set(sets.map((set) => set.id));
-      const prCount = personalRecords.filter(
-        (pr) =>
-          !pr.deletedAt && pr.setId && setIds.has(pr.setId) && isVisiblePr(pr, repsExerciseIds),
-      ).length;
+      const prCount = countVisiblePrs(personalRecords, setIds, repsExerciseIds);
       const summary = summarizeSession(
         sets.map((set) => ({
           weight: set.weight == null ? null : Number(set.weight),
