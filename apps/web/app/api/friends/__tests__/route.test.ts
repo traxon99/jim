@@ -91,10 +91,15 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
   });
 
   it("returns week ring progress for you and friends", async () => {
+    const startedAt = new Date().toISOString();
+    const endedAt = new Date(Date.now() + 3_600_000).toISOString();
+    await admin`INSERT INTO sessions (user_id, name, device_id, started_at, ended_at)
+      VALUES (${USER_B}, 'This week', 'b', ${startedAt}, ${endedAt})`;
+
     signInAs(USER_A, "alice@example.com");
     const body = await (await weekRings.GET()).json();
-    expect(body.people[0]).toMatchObject({
-      isSelf: true,
+    const self = body.people.find((person: { isSelf?: boolean }) => person.isSelf);
+    expect(self).toMatchObject({
       username: "ally",
       shareWorkouts: true,
       weeklyGoal: 3,
