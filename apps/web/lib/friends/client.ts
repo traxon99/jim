@@ -110,15 +110,17 @@ export async function fetchReceivedReactions(
   return result.ok ? { ok: true, value: result.value.reactions } : result;
 }
 
-/** Adds or takes back a reaction; the value is whether it's now there. */
+/** Adds or takes back a reaction on a workout or post; the value is whether it's now there. */
 export async function toggleReaction(
-  sessionId: string,
+  target: CommentTarget,
   kind: ReactionKind,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<boolean>> {
+  const body =
+    "sessionId" in target ? { sessionId: target.sessionId, kind } : { postId: target.postId, kind };
   const result = await apiRequest<{ reacted: boolean }>(
     "/api/friends/reactions",
-    { method: "POST", body: JSON.stringify({ sessionId, kind }) },
+    { method: "POST", body: JSON.stringify(body) },
     "Couldn't save your reaction",
     fetchImpl,
   );

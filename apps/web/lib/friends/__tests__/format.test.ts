@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   describeExercise,
-  reactionButtons,
+  pickReaction,
+  reactionSummary,
+  reactionTotal,
+  settleReaction,
   summarizeComments,
   withReaction,
   workoutMinutes,
@@ -42,13 +45,47 @@ describe("workoutMinutes", () => {
 });
 
 describe("reactions", () => {
-  it("lists every kind in button order", () => {
-    expect(reactionButtons([{ kind: "party", count: 2, mine: false }])).toEqual([
-      { kind: "strong", count: 0, mine: false },
-      { kind: "fire", count: 0, mine: false },
-      { kind: "clap", count: 0, mine: false },
-      { kind: "party", count: 2, mine: false },
+  it("replaces the user's reaction when they pick another kind", () => {
+    expect(
+      pickReaction(
+        [
+          { kind: "fire", count: 2, mine: true },
+          { kind: "party", count: 1, mine: false },
+        ],
+        "clap",
+      ),
+    ).toEqual([
+      { kind: "fire", count: 1, mine: false },
+      { kind: "clap", count: 1, mine: true },
+      { kind: "party", count: 1, mine: false },
     ]);
+  });
+
+  it("removes the user's reaction when they pick the same kind again", () => {
+    expect(pickReaction([{ kind: "fire", count: 2, mine: true }], "fire")).toEqual([
+      { kind: "fire", count: 1, mine: false },
+    ]);
+  });
+
+  it("settleReaction matches the server answer", () => {
+    const before = [{ kind: "fire" as const, count: 1, mine: false }];
+    expect(settleReaction(before, "strong", true)).toEqual([
+      { kind: "strong", count: 1, mine: true },
+      { kind: "fire", count: 1, mine: false },
+    ]);
+  });
+
+  it("formats the summary line", () => {
+    expect(
+      reactionSummary(
+        [
+          { kind: "strong", count: 5, mine: true },
+          { kind: "fire", count: 4, mine: false },
+        ],
+        ["theo"],
+      ),
+    ).toBe("💪🔥 You, theo and 7 others");
+    expect(reactionTotal([{ kind: "fire", count: 3, mine: false }])).toBe(3);
   });
 
   it("adds the user's reaction to a kind others already used", () => {
@@ -65,9 +102,6 @@ describe("reactions", () => {
       { kind: "strong", count: 1, mine: true },
       { kind: "fire", count: 2, mine: false },
       { kind: "party", count: 1, mine: false },
-    ]);
-    expect(withReaction([{ kind: "fire", count: 2, mine: false }], "fire", true)).toEqual([
-      { kind: "fire", count: 3, mine: true },
     ]);
   });
 

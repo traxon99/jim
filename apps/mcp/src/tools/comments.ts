@@ -48,6 +48,7 @@ interface PostRow extends Record<string, unknown> {
   detail: string | null;
   caption: string | null;
   created_at: Date | string;
+  reactions: { kind: string; count: number; mine: boolean }[];
 }
 
 interface SummaryRow extends Record<string, unknown> {
@@ -96,8 +97,32 @@ export async function listFriendActivity(context: UserContext, input: { limit?: 
         detail: p.detail,
         caption: p.caption,
         createdAt: new Date(p.created_at).toISOString(),
+        reactions: p.reactions.map((r) => ({ kind: r.kind, count: Number(r.count), mine: r.mine })),
         comments: counts.get(p.session_id ?? p.post_id) ?? 0,
       })),
+    };
+  });
+}
+
+/** Sets or takes back the user's one reaction on a workout or post (issue #748). */
+export async function reactToWorkout(
+  context: UserContext,
+  input: CommentTargetInput & { kind: ReactionKind; dryRun?: boolean },
+) {
+  const { sessionId, postId } = target(input);
+  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
+    const [row] = await tx.execute<{ reacted: boolean | null }>(
+      sessionId
+        ? sql`SELECT toggle_workout_reaction(${sessionId}::uuid, ${input.kind}::reaction_kind) AS reacted`
+        : sql`SELECT toggle_post_reaction(${postId}::uuid, ${input.kind}::reaction_kind) AS reacted`,
+    );
+    if (row?.reacted === null || row?.reacted === undefined) {
+      throw new Error(NOT_VISIBLE);
+    }
+    return {
+      ...(sessionId ? { workoutId: sessionId } : { postId }),
+      kind: input.kind,
+      reacted: row.reacted,
     };
   });
 }

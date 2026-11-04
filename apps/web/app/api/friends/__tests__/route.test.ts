@@ -99,6 +99,15 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
     );
     expect(bad.status).toBe(400);
 
+    const both = await reactions.POST(
+      jsonRequest(
+        "POST",
+        { sessionId: workout.sessionId, postId: workout.sessionId, kind: "fire" },
+        path,
+      ),
+    );
+    expect(both.status).toBe(400);
+
     const added = await reactions.POST(
       jsonRequest("POST", { sessionId: workout.sessionId, kind: "fire" }, path),
     );

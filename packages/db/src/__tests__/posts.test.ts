@@ -15,6 +15,7 @@ interface PostRow {
   session_id: string | null;
   title: string;
   caption: string | null;
+  reactions: { kind: string; count: number; mine: boolean }[];
 }
 
 interface WorkoutRow {
@@ -172,6 +173,20 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("posts and sharing settings", ()
   it("drops a workout post once its workout is deleted", async () => {
     await admin`UPDATE sessions SET deleted_at = now() WHERE id = ${finishedId}`;
     expect((await postsSeenBy(USER_A)).map((p) => p.kind)).not.toContain("workout");
+  });
+
+  it("reacts to a friend's record post", async () => {
+    const record = first((await postsSeenBy(USER_A)).filter((p) => p.kind === "record"));
+    const postId = record.post_id;
+    expect(
+      await commitAs(
+        USER_A,
+        (tx) => tx<{ r: boolean | null }[]>`
+          SELECT toggle_post_reaction(${postId}, 'fire') AS r`,
+      ).then((rows) => first(rows).r),
+    ).toBe(true);
+    const seen = first((await postsSeenBy(USER_A)).filter((p) => p.post_id === postId));
+    expect(seen.reactions).toEqual([{ kind: "fire", count: 1, mine: true }]);
   });
 
   it("includes each friend's picture in the friend list", async () => {

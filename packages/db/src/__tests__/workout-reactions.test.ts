@@ -1,6 +1,6 @@
 import type postgres from "postgres";
 import type { TransactionSql } from "postgres";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { asUser, first, resetTestDb } from "./test-db";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
@@ -78,6 +78,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
     await admin.end();
   });
 
+  beforeEach(async () => {
+    await admin`DELETE FROM workout_reactions WHERE session_id = ${finishedId}`;
+  });
+
   it("toggles a reaction on a friend's finished workout", async () => {
     expect(await toggle(USER_A, finishedId, "fire")).toBe(true);
     expect(await reactionsSeenBy(USER_A)).toEqual([{ kind: "fire", count: 1, mine: true }]);
@@ -92,9 +96,20 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
     await toggle(USER_C, finishedId, "party");
 
     expect(await reactionsSeenBy(USER_A)).toEqual([
-      { kind: "strong", count: 2, mine: true },
+      { kind: "strong", count: 1, mine: true },
       { kind: "party", count: 1, mine: false },
     ]);
+  });
+
+  it("lets one person replace their reaction kind", async () => {
+    await toggle(USER_A, finishedId, "fire");
+    await toggle(USER_A, finishedId, "clap");
+    expect(await reactionsSeenBy(USER_A)).toEqual([{ kind: "clap", count: 1, mine: true }]);
+  });
+
+  it("accepts the grind reaction kind", async () => {
+    expect(await toggle(USER_A, finishedId, "grind")).toBe(true);
+    expect(await reactionsSeenBy(USER_A)).toEqual([{ kind: "grind", count: 1, mine: true }]);
   });
 
   it("refuses reactions to a workout that isn't a friend's finished one", async () => {
@@ -102,8 +117,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
     // B can't react to their own workout.
     expect(await toggle(USER_B, finishedId, "fire")).toBeNull();
 
-    await admin`DELETE FROM friendships WHERE requester_id = ${USER_C}`;
+    await admin`DELETE FROM friendships WHERE requester_id = ${USER_C} AND addressee_id = ${USER_B}`;
     expect(await toggle(USER_C, finishedId, "clap")).toBeNull();
+    await admin`INSERT INTO friendships (requester_id, addressee_id, status, accepted_at)
+      VALUES (${USER_C}, ${USER_B}, 'accepted', now())`;
   });
 
   it("rejects an unknown reaction kind", async () => {
@@ -111,16 +128,18 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
   });
 
   it("shows the owner who reacted to which workout", async () => {
+    await toggle(USER_A, finishedId, "strong");
+    await toggle(USER_C, finishedId, "party");
+
     const rows = await asUser(
       admin,
       USER_B,
       (tx) => tx<ReceivedRow[]>`SELECT * FROM workout_reactions_received()`,
     );
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(2);
     expect(rows.map((r) => `${r.username}:${r.kind}`).sort()).toEqual([
       "alice:strong",
       "carol:party",
-      "carol:strong",
     ]);
     expect(first(rows)).toMatchObject({ session_id: finishedId, session_name: "Push Day" });
 

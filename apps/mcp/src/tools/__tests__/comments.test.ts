@@ -8,6 +8,7 @@ import {
   listComments,
   listFriendActivity,
   reactToComment,
+  reactToWorkout,
 } from "../comments.js";
 
 describe.skipIf(!process.env.TEST_DATABASE_URL)("comment tools (#749)", () => {
@@ -58,6 +59,16 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("comment tools (#749)", () => {
     await expect(
       addComment(me, { workoutId: "00000000-0000-4000-8000-000000000000", text: "hi" }),
     ).rejects.toThrow(/list_friend_activity/);
+  });
+
+  it("reacts to a workout and a grind kind", async () => {
+    expect(await reactToWorkout(me, { workoutId, kind: "fire" })).toMatchObject({
+      reacted: true,
+      kind: "fire",
+    });
+    await reactToWorkout(me, { workoutId, kind: "grind" });
+    const activity = await listFriendActivity(me);
+    expect(activity.workouts[0]?.reactions).toEqual([{ kind: "grind", count: 1, mine: true }]);
   });
 
   it("keeps one reaction per person on a comment", async () => {

@@ -19,6 +19,7 @@ function workout(sessionId: string, endedAt: string): FriendWorkout {
     records: [],
     exercises: [],
     reactions: [],
+    reactedBy: [],
     comments: { count: 0, latest: null },
   };
 }
@@ -36,6 +37,7 @@ function post(postId: string, createdAt: string, sessionId: string | null = null
     caption: `caption ${postId}`,
     createdAt,
     reactions: [],
+    reactedBy: [],
     comments: { count: 0, latest: null },
   };
 }

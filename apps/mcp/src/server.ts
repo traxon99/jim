@@ -44,6 +44,7 @@ import {
   listComments,
   listFriendActivity,
   reactToComment,
+  reactToWorkout,
 } from "./tools/comments.js";
 import { createRoutine } from "./tools/create-routine.js";
 import { deleteRoutine } from "./tools/delete-routine.js";
@@ -1037,6 +1038,22 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => reactToComment(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "react_to_workout",
+    {
+      title: "React to workout or post",
+      description: `React to a friend's finished workout or record/achievement post as the user, as the Home feed action row does. One reaction per person: a different kind replaces theirs, the same kind takes it back. Pass exactly one of workoutId or postId.${PREVIEW_HINT}`,
+      inputSchema: {
+        ...commentTarget,
+        kind: z
+          .enum(REACTION_KINDS)
+          .describe(REACTION_KINDS.map((kind) => `${kind} ${REACTION_EMOJI[kind]}`).join(", ")),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => reactToWorkout(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(

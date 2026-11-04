@@ -199,6 +199,24 @@ body {
     inset -1px -1px 0 rgb(255 255 255 / 0.06);
 }
 
+/* Floating emoji picker above the feed action row (issue #748). Gradients
+   instead of filter-on-parent so iOS keeps the pill's rounded clip (#374). */
+.reaction-picker-glass {
+  margin: 0;
+  min-width: 0;
+  border: 1px solid rgb(255 255 255 / 0.45);
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.45));
+  box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.12), inset 1px 1px 0 rgb(255 255 255 / 0.85);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+
+:root.dark .reaction-picker-glass {
+  border-color: rgb(255 255 255 / 0.14);
+  background: linear-gradient(135deg, rgb(63 63 70 / 0.55), rgb(24 24 27 / 0.4));
+  box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.45), inset 1px 1px 0 rgb(255 255 255 / 0.12);
+}
+
 /* A floating workout timer sits over the sync slot, just above the pill, and
    publishes its height; the sync status lifts above it rather than hiding
    behind it (components/workout/timer-bar-chrome.ts, #729). A transform, so the
