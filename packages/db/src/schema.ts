@@ -27,6 +27,7 @@ import {
   pgPolicy,
   pgSequence,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -180,6 +181,13 @@ export const users = pgTable(
     // so they show either way. Read by friend_workouts() (migration 0031).
     shareWorkouts: boolean("share_workouts").notNull().default(true),
     shareWorkoutDetails: boolean("share_workout_details").notNull().default(true),
+    // When the user last opened the Home activity list (#753). Null means every
+    // item counts as unread until they open it once.
+    lastSeenActivityAt: timestamp("last_seen_activity_at", { withTimezone: true }),
+    // Whether friends-of-friends can appear in People you may know (#754).
+    discoverableByFriendsOfFriends: boolean("discoverable_by_friends_of_friends")
+      .notNull()
+      .default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 
     // settings
@@ -1105,6 +1113,32 @@ export const friendships = pgTable(
       for: "select",
       to: authenticatedRole,
       using: sql`${authUid} IN (${table.requesterId}, ${table.addresseeId})`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// dismissed_friend_suggestions — a People you may know card the user closed
+// (#754). Own-rows-only RLS; writes go through dismiss_friend_suggestion().
+// ---------------------------------------------------------------------------
+
+export const dismissedFriendSuggestions = pgTable(
+  "dismissed_friend_suggestions",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    suggestedUserId: uuid("suggested_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.suggestedUserId] }),
+    pgPolicy("dismissed_friend_suggestions_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
     }),
   ],
 ).enableRLS();

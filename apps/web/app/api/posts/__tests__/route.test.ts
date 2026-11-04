@@ -61,6 +61,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
       bio: null,
       shareWorkouts: true,
       shareWorkoutDetails: true,
+      discoverableByFriendsOfFriends: true,
     });
   });
 

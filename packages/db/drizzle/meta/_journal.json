@@ -484,6 +484,13 @@
       "when": 1793900000000,
       "tag": "0068_profile_social",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1794000000000,
+      "tag": "0069_social_activity_suggestions",
+      "breakpoints": true
     }
   ]
 }

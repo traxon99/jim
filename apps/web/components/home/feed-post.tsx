@@ -58,6 +58,7 @@ export function FeedPost({
     const { workout } = item;
     return (
       <PostFrame
+        scrollId={workout.sessionId}
         username={workout.username}
         avatar={workout.avatar}
         subtitle={workoutHeaderLine(workout)}
@@ -85,6 +86,7 @@ export function FeedPost({
   const reactTarget: CommentTarget = sessionId ? { sessionId } : { postId: post.postId };
   return (
     <PostFrame
+      scrollId={sessionId}
       username={post.username}
       avatar={post.avatar}
       subtitle={`${POST_KIND_LABELS[post.kind]} · ${timeAgo(post.createdAt)}`}
@@ -115,6 +117,7 @@ const POST_KIND_LABELS: Record<FriendPost["kind"], string> = {
 };
 
 function PostFrame({
+  scrollId,
   username,
   avatar,
   subtitle,
@@ -128,6 +131,7 @@ function PostFrame({
   comments,
   onComments,
 }: {
+  scrollId: string | null;
   username: string;
   avatar: string | null;
   subtitle: string;
@@ -160,7 +164,10 @@ function PostFrame({
   }
 
   return (
-    <article className="flex flex-col bg-white pb-4 dark:bg-zinc-950">
+    <article
+      id={scrollId ? `feed-session-${scrollId}` : undefined}
+      className="flex flex-col bg-white pb-4 dark:bg-zinc-950"
+    >
       <header className="flex items-center gap-3 px-4 py-3">
         <Link href={`/friends/${username}`} data-ripple className="shrink-0">
           <Avatar username={username} avatar={avatar} />
