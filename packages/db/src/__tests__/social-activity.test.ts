@@ -46,11 +46,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions
   });
 
   it("lists reactions and friend requests, then clears unread when marked seen", async () => {
-    await commitAs(
-      USER_C,
-      (tx) =>
-        tx`INSERT INTO workout_reactions (session_id, user_id, kind) VALUES (${sessionId}, ${USER_C}, 'strong')`,
-    );
+    await commitAs(USER_B, (tx) => tx`SELECT toggle_workout_reaction(${sessionId}, 'strong')`);
     await commitAs(USER_D, (tx) => tx`SELECT send_friend_request('alice')`);
 
     const unreadBefore = await asUser(
