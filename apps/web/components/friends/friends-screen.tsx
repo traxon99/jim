@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
-import { PeopleYouMayKnowRow } from "@/components/home/people-you-may-know";
+import { FriendsSuggestionsSection } from "@/components/friends/friends-suggestions-section";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
   friendRequestMessage,
@@ -86,7 +86,7 @@ export function FriendsScreen() {
 
         {load.status === "ready" && (
           <>
-            <PeopleYouMayKnowRow compact />
+            <FriendsSuggestionsSection />
             <FriendLists
               friends={load.friends}
               busyUserId={busyUserId}
