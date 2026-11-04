@@ -21,7 +21,7 @@ export interface GetPrsInput {
  * one (issue #200): deleting a workout only tombstones its session, so its
  * personal_records rows are still there.
  */
-async function withoutDeletedSessions<T extends { setId: string | null }>(
+export async function withoutDeletedSessions<T extends { setId: string | null }>(
   tx: DbOrTx,
   rows: readonly T[],
 ): Promise<T[]> {

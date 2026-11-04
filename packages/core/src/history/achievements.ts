@@ -5,7 +5,7 @@ import {
   type StrengthProfile,
   type StrengthStandardTier,
 } from "../strength-standards/types";
-import { startOfWeek } from "./week-grouping";
+import { addWeeks, startOfWeek } from "./week-grouping";
 
 /*
  * Achievements and training streaks (issue #253). Nothing here is stored:
@@ -51,12 +51,14 @@ export interface TrainingStreak {
   thisWeek: number;
 }
 
-function nextWeek(week: Date): Date {
+function nextWeek(week: Date, weekStart: number, timeZone?: string): Date {
+  if (timeZone) return addWeeks(week, 1, weekStart, timeZone);
   // By calendar date rather than 7 × 24h, so a DST change can't drift it.
   return new Date(week.getFullYear(), week.getMonth(), week.getDate() + 7);
 }
 
-function previousWeek(week: Date): Date {
+function previousWeek(week: Date, weekStart: number, timeZone?: string): Date {
+  if (timeZone) return addWeeks(week, -1, weekStart, timeZone);
   return new Date(week.getFullYear(), week.getMonth(), week.getDate() - 7);
 }
 
@@ -65,40 +67,44 @@ function previousWeek(week: Date): Date {
  * `weeklyTarget` workouts. The current week is still in progress, so
  * falling short of it so far doesn't break the streak — it just isn't
  * counted until it's met.
+ *
+ * Weeks are in the device's own time zone, as on the phone. The server
+ * passes the user's stored IANA `timeZone` instead (the /v1 API, #738).
  */
 export function trainingStreak(
   workoutDates: readonly Date[],
   weeklyTarget: number,
   weekStart: number,
   now: Date,
+  timeZone?: string,
 ): TrainingStreak {
   const target = Math.max(1, weeklyTarget);
   const counts = new Map<number, number>();
   let earliest: Date | null = null;
   for (const date of workoutDates) {
-    const key = startOfWeek(date, weekStart).getTime();
+    const key = startOfWeek(date, weekStart, timeZone).getTime();
     counts.set(key, (counts.get(key) ?? 0) + 1);
     if (!earliest || date < earliest) earliest = date;
   }
 
-  const thisWeekStart = startOfWeek(now, weekStart);
+  const thisWeekStart = startOfWeek(now, weekStart, timeZone);
   const countFor = (week: Date) => counts.get(week.getTime()) ?? 0;
   const met = (week: Date) => countFor(week) >= target;
 
   let current = 0;
-  let week = met(thisWeekStart) ? thisWeekStart : previousWeek(thisWeekStart);
+  let week = met(thisWeekStart) ? thisWeekStart : previousWeek(thisWeekStart, weekStart, timeZone);
   while (met(week)) {
     current += 1;
-    week = previousWeek(week);
+    week = previousWeek(week, weekStart, timeZone);
   }
 
   let longest = 0;
   if (earliest) {
     let run = 0;
     for (
-      let cursor = startOfWeek(earliest, weekStart);
+      let cursor = startOfWeek(earliest, weekStart, timeZone);
       cursor.getTime() <= thisWeekStart.getTime();
-      cursor = nextWeek(cursor)
+      cursor = nextWeek(cursor, weekStart, timeZone)
     ) {
       run = met(cursor) ? run + 1 : 0;
       longest = Math.max(longest, run);

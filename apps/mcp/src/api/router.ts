@@ -6,8 +6,14 @@ import { ZodError, type z } from "zod";
 import { resolveAccessToken } from "../auth/access-token.js";
 import type { UserContext } from "../context.js";
 import { GENERIC_TOOL_ERROR } from "../tool-error.js";
+import { bodyQuery, v1BodyMeasurements } from "./body.js";
 import { ApiError, sendError } from "./errors.js";
+import { liftsQuery, v1Lifts } from "./lifts.js";
+import { planQuery, v1Dpr, v1Plan } from "./plan.js";
+import { prsQuery, v1Prs } from "./prs.js";
 import { v1Status } from "./status.js";
+import { v1Streak, v1Weeks, weeksQuery } from "./weeks.js";
+import { v1Workout, v1Workouts, workoutsQuery } from "./workouts.js";
 
 /** Requests per token per minute before a 429 (#737). */
 export const V1_RATE_LIMIT_PER_MINUTE = 120;
@@ -141,6 +147,17 @@ export function v1Router(getDb: () => Db): express.Router {
   };
 
   get("/status", (context) => v1Status(context));
+  get("/weeks", (context, req) => v1Weeks(context, parseQuery(weeksQuery, req)));
+  get("/streak", (context) => v1Streak(context));
+  get("/workouts", (context, req) => v1Workouts(context, parseQuery(workoutsQuery, req)));
+  get("/workouts/:id", (context, req) => v1Workout(context, String(req.params.id)));
+  get("/prs", (context, req) => v1Prs(context, parseQuery(prsQuery, req)));
+  get("/lifts", (context, req) => v1Lifts(context, parseQuery(liftsQuery, req)));
+  get("/body-measurements", (context, req) =>
+    v1BodyMeasurements(context, parseQuery(bodyQuery, req)),
+  );
+  get("/plan", (context, req) => v1Plan(context, parseQuery(planQuery, req)));
+  get("/dpr", (context) => v1Dpr(context));
 
   router.use((_req, res) => {
     sendError(res, 404, "not_found", "No such endpoint. See docs/API.md.");

@@ -4,7 +4,15 @@ import {
   resolveCurrentRows,
   summarizeSession,
 } from "@jim/core";
-import { exercises, gyms, personalRecords, sessionExercises, sessions, sets } from "@jim/db";
+import {
+  exercises,
+  gyms,
+  personalRecords,
+  routines,
+  sessionExercises,
+  sessions,
+  sets,
+} from "@jim/db";
 import { and, desc, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
@@ -63,6 +71,20 @@ export async function listWorkouts(context: UserContext, input: ListWorkoutsInpu
       (await tx.select().from(gyms).where(isNull(gyms.deletedAt))).map((g) => [g.id, g.name]),
     );
 
+    const routineIds = [
+      ...new Set(finished.flatMap((session) => (session.routineId ? [session.routineId] : []))),
+    ];
+    const routineNames = new Map(
+      routineIds.length
+        ? (
+            await tx
+              .select({ id: routines.id, name: routines.name })
+              .from(routines)
+              .where(inArray(routines.id, routineIds))
+          ).map((routine) => [routine.id, routine.name])
+        : [],
+    );
+
     const sessionExerciseIdsBySession = new Map<string, string[]>();
     for (const row of exerciseRows) {
       const list = sessionExerciseIdsBySession.get(row.sessionId);
@@ -100,6 +122,8 @@ export async function listWorkouts(context: UserContext, input: ListWorkoutsInpu
         id: session.id,
         name: session.name,
         routineId: session.routineId,
+        routineName: (session.routineId && routineNames.get(session.routineId)) ?? null,
+        exerciseCount: seIds.length,
         gym: (session.gymId && gymNames.get(session.gymId)) ?? null,
         startedAt: session.startedAt.toISOString(),
         endedAt: (session.endedAt as Date).toISOString(),

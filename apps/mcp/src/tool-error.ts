@@ -3,7 +3,7 @@ import { DrizzleQueryError } from "drizzle-orm";
 export const GENERIC_TOOL_ERROR = "Something went wrong on the server. Nothing was changed.";
 
 /** A database failure: drizzle wraps these with the full SQL and params in the message. */
-function isDatabaseError(error: unknown): boolean {
+export function isDatabaseError(error: unknown): boolean {
   for (let current: unknown = error, depth = 0; current && depth < 5; depth++) {
     if (current instanceof DrizzleQueryError) return true;
     if (!(current instanceof Error)) return false;
