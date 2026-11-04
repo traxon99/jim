@@ -2,7 +2,7 @@
 
 import { CallMark } from "@/components/dpr/call-mark";
 import { Avatar } from "@/components/friends/avatar";
-import { ReactButton, ReactionPicker } from "@/components/friends/reaction-picker";
+import { ReactButton } from "@/components/friends/reaction-picker";
 import { addComment, deleteComment, fetchComments, reactToComment } from "@/lib/friends/client";
 import { pickReaction, settleReaction } from "@/lib/friends/format";
 import { timeAgo } from "@/lib/friends/post-media";
@@ -52,6 +52,7 @@ export function CommentsSheet({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const closePicker = useCallback(() => setPickerFor(null), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLOListElement>(null);
   const keyboardInset = useKeyboardInset();
@@ -257,6 +258,7 @@ export function CommentsSheet({
                   onTogglePicker={() =>
                     setPickerFor((open) => (open === comment.commentId ? null : comment.commentId))
                   }
+                  onClosePicker={closePicker}
                   onReact={(kind) => void react(comment, kind)}
                   onReply={() => reply(comment)}
                   onDelete={() => void remove(comment)}
@@ -323,6 +325,7 @@ function CommentRow({
   friendNames,
   pickerOpen,
   onTogglePicker,
+  onClosePicker,
   onReact,
   onReply,
   onDelete,
@@ -331,6 +334,7 @@ function CommentRow({
   friendNames: ReadonlySet<string>;
   pickerOpen: boolean;
   onTogglePicker: () => void;
+  onClosePicker: () => void;
   onReact: (kind: ReactionKind) => void;
   onReply: () => void;
   onDelete: () => void;
@@ -373,16 +377,11 @@ function CommentRow({
           reactions={comment.reactions}
           pickerOpen={pickerOpen}
           onOpenPicker={onTogglePicker}
+          onClosePicker={onClosePicker}
+          onPick={onReact}
           ariaLabel={`React to ${comment.username}'s comment`}
         />
       </div>
-      {pickerOpen && (
-        <ReactionPicker
-          reactions={comment.reactions}
-          onPick={onReact}
-          className="ml-12 self-start"
-        />
-      )}
     </li>
   );
 }

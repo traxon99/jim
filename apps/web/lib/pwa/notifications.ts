@@ -23,7 +23,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Home has an activity bell, week rings for friends, and People you may know; friend profiles and Share profile settings; react with the emoji picker and comment from the speech bubble.";
+  "Home is now your friends' feed: double-tap a post to ❤️ it, and the reaction picker pops up over the post. Your 7/30/90-day stats moved to the top of History.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

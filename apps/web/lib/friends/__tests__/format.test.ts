@@ -84,7 +84,19 @@ describe("reactions", () => {
         ],
         ["theo"],
       ),
-    ).toBe("💪🔥 You, theo and 7 others");
+    ).toEqual({ kinds: ["strong", "fire"], names: "You, theo", others: "and 7 others" });
+    expect(reactionSummary([{ kind: "heart", count: 2, mine: false }], ["theo", "maya"])).toEqual({
+      kinds: ["heart"],
+      names: "theo and maya",
+      others: null,
+    });
+    // Names can lag a tap the server hasn't answered yet.
+    expect(reactionSummary([{ kind: "fire", count: 1, mine: true }], ["theo"])).toEqual({
+      kinds: ["fire"],
+      names: "You",
+      others: null,
+    });
+    expect(reactionSummary([], [])).toBeNull();
     expect(reactionTotal([{ kind: "fire", count: 3, mine: false }])).toBe(3);
   });
 

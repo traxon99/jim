@@ -1,6 +1,8 @@
+import { avatarColor } from "@/lib/friends/avatar-color";
+
 /**
  * A person's profile picture (issue #316), or the first letter of their
- * username when they haven't set one. Decorative: the username is always
+ * username on a color of their own when they haven't set one. Decorative: the username is always
  * shown next to it.
  */
 export function Avatar({
@@ -26,7 +28,7 @@ export function Avatar({
   return (
     <span
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-full bg-zinc-100 font-semibold uppercase text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full font-semibold uppercase text-white ${avatarColor(username)} ${className}`}
     >
       {username?.charAt(0) ?? ""}
     </span>

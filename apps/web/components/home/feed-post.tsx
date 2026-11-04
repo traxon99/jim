@@ -3,9 +3,14 @@
 import { Avatar } from "@/components/friends/avatar";
 import { CommentsSheet } from "@/components/friends/comments-sheet";
 import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
-import { ReactButton, ReactionPicker } from "@/components/friends/reaction-picker";
+import { ReactButton } from "@/components/friends/reaction-picker";
 import type { FeedItem } from "@/lib/friends/feed";
-import { describeExercise, reactionSummary, workoutMinutes } from "@/lib/friends/format";
+import {
+  describeExercise,
+  myReaction,
+  reactionSummary,
+  workoutMinutes,
+} from "@/lib/friends/format";
 import {
   RECORD_TINT,
   formatVolume,
@@ -25,10 +30,10 @@ import type {
   FriendWorkout,
   WorkoutReaction,
 } from "@/lib/friends/types";
-import type { ReactionKind } from "@jim/core";
+import { REACTION_EMOJI, type ReactionKind } from "@jim/core";
 import { Activity, Dumbbell, MessageCircle, Send, Trophy } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { PostCarousel } from "./post-carousel";
 
 export type OnReact = (
@@ -110,6 +115,9 @@ export function FeedPost({
   );
 }
 
+/** Two taps on a post's picture this close together heart it. */
+const DOUBLE_TAP_MS = 300;
+
 const POST_KIND_LABELS: Record<FriendPost["kind"], string> = {
   workout: "Finished a workout",
   record: "New personal record",
@@ -162,11 +170,27 @@ function PostFrame({
     setPickerOpen(false);
     onReact(kind);
   }
+  const closePicker = useCallback(() => setPickerOpen(false), []);
+
+  // Double-tap the picture to heart it, like a photo feed. It only ever adds
+  // a heart (a second double-tap doesn't take it back); the React button does.
+  const lastTap = useRef(0);
+  const [hearts, setHearts] = useState(0);
+  function handleMediaTap() {
+    const now = Date.now();
+    if (now - lastTap.current > DOUBLE_TAP_MS) {
+      lastTap.current = now;
+      return;
+    }
+    lastTap.current = 0;
+    setHearts((n) => n + 1);
+    if (myReaction(reactions) !== "heart") onReact("heart");
+  }
 
   return (
     <article
       id={scrollId ? `feed-session-${scrollId}` : undefined}
-      className="flex flex-col bg-white pb-4 dark:bg-zinc-950"
+      className="flex flex-col bg-white pb-5 dark:bg-zinc-950"
     >
       <header className="flex items-center gap-3 px-4 py-3">
         <Link href={`/friends/${username}`} data-ripple className="shrink-0">
@@ -185,16 +209,34 @@ function PostFrame({
           </span>
         </div>
       </header>
-      {media}
-      <div className="flex flex-col gap-2 px-4 pt-2">
-        {pickerOpen && (
-          <ReactionPicker reactions={reactions} onPick={pick} className="self-start" />
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: a double-tap shortcut; the React button is the accessible way to heart a post */}
+      <div
+        className="relative touch-manipulation"
+        onClick={handleMediaTap}
+        // A double-click would otherwise select the slide's text.
+        onMouseDown={(event) => {
+          if (event.detail > 1) event.preventDefault();
+        }}
+      >
+        {media}
+        {hearts > 0 && (
+          <span
+            key={hearts}
+            aria-hidden="true"
+            className="heart-burst pointer-events-none absolute inset-0 flex items-center justify-center text-[96px] leading-none"
+          >
+            {REACTION_EMOJI.heart}
+          </span>
         )}
+      </div>
+      <div className="flex flex-col gap-1.5 px-2 pt-1">
         <div className="flex items-center gap-1">
           <ReactButton
             reactions={reactions}
             pickerOpen={pickerOpen}
             onOpenPicker={() => setPickerOpen((open) => !open)}
+            onClosePicker={closePicker}
+            onPick={pick}
           />
           <button
             type="button"
@@ -213,10 +255,31 @@ function PostFrame({
           >
             <Send className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
           </button>
+          {shareCopied && (
+            <output className="ml-auto pr-2 text-xs text-zinc-500 dark:text-zinc-400">
+              Copied
+            </output>
+          )}
         </div>
-        {shareCopied && <p className="text-xs text-zinc-500 dark:text-zinc-400">Copied</p>}
+      </div>
+      <div className="flex flex-col gap-1.5 px-4">
         {summary && (
-          <p className="allow-pwa-select text-sm text-zinc-800 dark:text-zinc-200">{summary}</p>
+          <p className="flex min-w-0 items-center gap-2 text-sm">
+            <span className="flex shrink-0 -space-x-1.5" aria-hidden="true">
+              {summary.kinds.map((kind) => (
+                <span
+                  key={kind}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-xs ring-2 ring-white dark:bg-zinc-800 dark:ring-zinc-950"
+                >
+                  {REACTION_EMOJI[kind]}
+                </span>
+              ))}
+            </span>
+            <span className="allow-pwa-select min-w-0 truncate text-zinc-500 dark:text-zinc-400">
+              <span className="font-semibold text-zinc-950 dark:text-zinc-50">{summary.names}</span>
+              {summary.others && ` ${summary.others}`}
+            </span>
+          </p>
         )}
         {caption && (
           <p className="allow-pwa-select whitespace-pre-line break-words text-sm text-zinc-800 dark:text-zinc-200">

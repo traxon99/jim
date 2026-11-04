@@ -1,7 +1,7 @@
 "use client";
 
 import { LoadingText } from "@/components/loading-text";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { buildSessionHighlights, formatHighlightSet } from "@/lib/history/session-highlights";
@@ -10,10 +10,11 @@ import { formatMinutes } from "@/lib/home/stats";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart3, LineChart, Trophy } from "lucide-react";
+import { BarChart3, LineChart, type LucideIcon, TrendingUp, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TrainingCalendarMonth } from "./training-calendar-month";
+import { TrainingStats } from "./training-stats";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
@@ -26,6 +27,13 @@ const CARD_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
 });
+
+const SHORTCUTS: readonly { href: string; label: string; Icon: LucideIcon }[] = [
+  { href: "/history/prs", label: "PRs", Icon: Trophy },
+  { href: "/history/volume", label: "Volume", Icon: BarChart3 },
+  { href: "/progression", label: "Progress", Icon: TrendingUp },
+  { href: "/portal", label: "Analysis", Icon: LineChart },
+];
 
 /** Recent workouts shown at a time; "Show more" adds this many again. */
 const PAGE_SIZE = 20;
@@ -88,35 +96,23 @@ export function HistoryHome() {
   return (
     <main className="flex flex-1 flex-col">
       <PageHeader title="History" />
-      {/* Beside the title these ran off the right edge (issue #327); as their
-          own row of three equal pills they all fit at 393px. */}
-      <nav className="grid grid-cols-3 gap-2 px-4">
-        <Link
-          href="/history/prs"
-          data-ripple
-          className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
-        >
-          <Trophy className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          PRs
-        </Link>
-        <Link
-          href="/history/volume"
-          data-ripple
-          className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
-        >
-          <BarChart3 className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          Volume
-        </Link>
-        <Link
-          href="/portal"
-          data-ripple
-          className={`${FLOATING_BUTTON} whitespace-nowrap px-3 text-sm font-medium`}
-        >
-          <LineChart className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-          Analysis
-        </Link>
+      {/* Icon-over-label so all four fit at 393px (issue #327). Progress came
+          over from Home's shortcuts with your stats (#746). */}
+      <nav aria-label="Shortcuts" className="grid grid-cols-4 gap-2 px-4">
+        {SHORTCUTS.map(({ href, label, Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            data-ripple
+            className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-zinc-200 px-1 text-xs font-semibold dark:border-zinc-800"
+          >
+            <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            {label}
+          </Link>
+        ))}
       </nav>
       <div className={PAGE_BODY}>
+        <TrainingStats />
         <section>
           <TrainingCalendarMonth
             month={visibleMonth}

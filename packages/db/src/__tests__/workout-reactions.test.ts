@@ -112,6 +112,15 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("workout reactions", () => {
     expect(await reactionsSeenBy(USER_A)).toEqual([{ kind: "grind", count: 1, mine: true }]);
   });
 
+  it("accepts the heart reaction, sorted first", async () => {
+    await toggle(USER_C, finishedId, "fire");
+    expect(await toggle(USER_A, finishedId, "heart")).toBe(true);
+    const seen = await reactionsSeenBy(USER_A);
+    expect(seen[0]).toEqual({ kind: "heart", count: 1, mine: true });
+    expect(seen.map((r) => r.kind)).toContain("fire");
+    expect(await toggle(USER_A, finishedId, "heart")).toBe(false);
+  });
+
   it("refuses reactions to a workout that isn't a friend's finished one", async () => {
     expect(await toggle(USER_A, inProgressId, "fire")).toBeNull();
     // B can't react to their own workout.

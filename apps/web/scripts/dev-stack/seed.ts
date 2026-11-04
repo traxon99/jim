@@ -189,6 +189,14 @@ async function seedFriends(db: Db) {
         createdAt: new Date(Date.now() - minutesAgo * 60_000),
       });
     }
+    // And reactions, for the "theo, sam.lifts" line under it.
+    const [, , sam] = FRIENDS;
+    for (const [userId, kind] of [
+      [theo.id, "heart"],
+      [sam.id, "fire"],
+    ] as const) {
+      await db.insert(workoutReactions).values({ sessionId: mayas.id, userId, kind });
+    }
   }
 
   // Friends reacting to the dev user's latest workout.
