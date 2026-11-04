@@ -18,8 +18,15 @@ import {
   toggleReaction,
 } from "@/lib/friends/client";
 import { type FeedItem, buildFeed } from "@/lib/friends/feed";
-import { withReaction } from "@/lib/friends/format";
-import type { FriendProfilePayload, FriendRecordRow, FriendWorkout } from "@/lib/friends/types";
+import { pickReaction, settleReaction, summarizeComments } from "@/lib/friends/format";
+import type {
+  CommentTarget,
+  FeedComment,
+  FriendProfilePayload,
+  FriendRecordRow,
+  FriendWorkout,
+  WorkoutReaction,
+} from "@/lib/friends/types";
 import { weekActivity } from "@/lib/home/stats";
 import { profileTilesFromFeed } from "@/lib/profile/post-tiles";
 import { useToday } from "@/lib/pwa/use-today";
@@ -107,25 +114,32 @@ export function FriendProfileScreen({ username }: { username: string }) {
     setMenuOpen(false);
   }
 
-  async function react(sessionId: string, current: FriendWorkout["reactions"], kind: ReactionKind) {
-    const wasMine = current.some((reaction) => reaction.kind === kind && reaction.mine);
+  function patchWorkout(sessionId: string, patch: (workout: FriendWorkout) => FriendWorkout) {
     setWorkouts((list) =>
-      list.map((workout) =>
-        workout.sessionId === sessionId
-          ? { ...workout, reactions: withReaction(workout.reactions, kind, !wasMine) }
-          : workout,
-      ),
+      list.map((workout) => (workout.sessionId === sessionId ? patch(workout) : workout)),
     );
-    const result = await toggleReaction(sessionId, kind);
-    if (result.ok) {
-      setWorkouts((list) =>
-        list.map((workout) =>
-          workout.sessionId === sessionId
-            ? { ...workout, reactions: withReaction(workout.reactions, kind, result.value) }
-            : workout,
-        ),
-      );
-    }
+    setSelectedWorkout((current) => (current?.sessionId === sessionId ? patch(current) : current));
+  }
+
+  function setComments(target: CommentTarget, comments: FeedComment[]) {
+    if (!("sessionId" in target)) return;
+    const summary = summarizeComments(comments);
+    patchWorkout(target.sessionId, (workout) => ({ ...workout, comments: summary }));
+  }
+
+  async function react(target: CommentTarget, current: WorkoutReaction[], kind: ReactionKind) {
+    if (!("sessionId" in target)) return;
+    const sessionId = target.sessionId;
+    const before = current;
+    patchWorkout(sessionId, (workout) => ({
+      ...workout,
+      reactions: pickReaction(before, kind),
+    }));
+    const result = await toggleReaction(target, kind);
+    patchWorkout(sessionId, (workout) => ({
+      ...workout,
+      reactions: result.ok ? settleReaction(before, kind, result.value) : before,
+    }));
   }
 
   if (error) {
@@ -275,8 +289,8 @@ export function FriendProfileScreen({ username }: { username: string }) {
                 post: null,
                 at: selectedWorkout.endedAt,
               }}
-              onReact={(sessionId, current, kind) => void react(sessionId, current, kind)}
-              onComments={() => {}}
+              onReact={(target, current, kind) => void react(target, current, kind)}
+              onComments={setComments}
             />
           </div>
         </div>
