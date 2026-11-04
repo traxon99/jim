@@ -1,4 +1,5 @@
 import type postgres from "postgres";
+import type { TransactionSql } from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { asUser, first, resetTestDb } from "./test-db";
 
@@ -10,6 +11,14 @@ const USER_D = "44444444-4444-4444-4444-444444444444";
 describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions", () => {
   let admin: postgres.Sql;
   let sessionId: string;
+
+  function commitAs<T>(userId: string, fn: (tx: TransactionSql) => Promise<T>): Promise<T> {
+    return admin.begin(async (tx) => {
+      await tx.unsafe("SET LOCAL role authenticated");
+      await tx.unsafe(`SET LOCAL request.jwt.claim.sub = '${userId}'`);
+      return fn(tx);
+    }) as Promise<T>;
+  }
 
   beforeAll(async () => {
     admin = await resetTestDb();
@@ -37,13 +46,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions
   });
 
   it("lists reactions and friend requests, then clears unread when marked seen", async () => {
-    await asUser(
-      admin,
+    await commitAs(
       USER_C,
       (tx) =>
-        tx`INSERT INTO workout_reactions (session_id, user_id, kind) VALUES (${sessionId}, ${USER_C}, 'flex')`,
+        tx`INSERT INTO workout_reactions (session_id, user_id, kind) VALUES (${sessionId}, ${USER_C}, 'strong')`,
     );
-    await asUser(admin, USER_D, (tx) => tx`SELECT send_friend_request('alice')`);
+    await commitAs(USER_D, (tx) => tx`SELECT send_friend_request('alice')`);
 
     const unreadBefore = await asUser(
       admin,
@@ -55,7 +63,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions
     const activity = await asUser(admin, USER_A, (tx) => tx`SELECT * FROM list_activity()`);
     expect(activity.map((row) => row.kind).sort()).toEqual(["friend_request", "workout_reaction"]);
 
-    await asUser(admin, USER_A, (tx) => tx`SELECT mark_activity_seen()`);
+    await commitAs(USER_A, (tx) => tx`SELECT mark_activity_seen()`);
 
     const unreadAfter = await asUser(
       admin,
@@ -69,7 +77,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions
     const suggestions = await asUser(admin, USER_A, (tx) => tx`SELECT * FROM friend_suggestions()`);
     expect(suggestions).toMatchObject([{ user_id: USER_C, mutual_count: 1 }]);
 
-    await asUser(admin, USER_A, (tx) => tx`SELECT dismiss_friend_suggestion(${USER_C})`);
+    await commitAs(USER_A, (tx) => tx`SELECT dismiss_friend_suggestion(${USER_C})`);
     const afterDismiss = await asUser(
       admin,
       USER_A,
@@ -77,12 +85,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions
     );
     expect(afterDismiss).toHaveLength(0);
 
-    await asUser(
-      admin,
-      USER_C,
-      (tx) => tx`UPDATE users SET discoverable_by_friends_of_friends = false WHERE id = ${USER_C}`,
-    );
-    await asUser(admin, USER_A, (tx) => tx`DELETE FROM dismissed_friend_suggestions`);
+    await admin`UPDATE users SET discoverable_by_friends_of_friends = false WHERE id = ${USER_C}`;
+    await admin`DELETE FROM dismissed_friend_suggestions WHERE user_id = ${USER_A}`;
     const hidden = await asUser(admin, USER_A, (tx) => tx`SELECT * FROM friend_suggestions()`);
     expect(hidden).toHaveLength(0);
   });
