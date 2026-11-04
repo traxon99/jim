@@ -59,6 +59,8 @@ describe("friends client", () => {
     const saved = {
       username: "bob",
       avatar: null,
+      displayName: null,
+      bio: null,
       shareWorkouts: false,
       shareWorkoutDetails: true,
     };

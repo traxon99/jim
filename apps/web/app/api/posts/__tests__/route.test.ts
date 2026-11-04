@@ -100,7 +100,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     ]);
 
     signInAs(USER_A, "alice@example.com");
-    const feed = await (await friendPosts.GET()).json();
+    const feed = await (await friendPosts.GET(new Request("http://test/api/friends/posts"))).json();
     expect(feed.posts).toEqual([
       expect.objectContaining({ username: "bob", avatar: AVATAR, caption: "Ouch", reactions: [] }),
     ]);
@@ -119,8 +119,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     await profile.PATCH(jsonRequest("PATCH", { shareWorkouts: false }, "/api/profile"));
 
     signInAs(USER_A, "alice@example.com");
-    expect((await (await workouts.GET()).json()).workouts).toEqual([]);
-    expect((await (await friendPosts.GET()).json()).posts).toHaveLength(1);
+    expect(
+      (await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json()).workouts,
+    ).toEqual([]);
+    expect(
+      (await (await friendPosts.GET(new Request("http://test/api/friends/posts"))).json()).posts,
+    ).toHaveLength(1);
   });
 
   it("deletes only the author's own post", async () => {

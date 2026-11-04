@@ -171,6 +171,9 @@ export const users = pgTable(
     // URL the phone crops and shrinks before upload (@jim/core's
     // AVATAR_MAX_LENGTH caps it). Null shows the username's initial.
     avatar: text("avatar"),
+    // Profile header (issues #751/#752): optional name and bio line friends see.
+    displayName: text("display_name"),
+    bio: text("bio"),
     // Sharing settings (issue #316). Whether friends see this user's finished
     // workouts in their feed at all, and if so whether they see the exercises
     // and weights or just the name and duration. Posts are shared explicitly,

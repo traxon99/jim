@@ -83,7 +83,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
       VALUES (${USER_B}, 'Leg Day', 'b', ${LEG_DAY_START}, ${LEG_DAY_END})`;
 
     signInAs(USER_A, "alice@example.com");
-    const feed = await (await workouts.GET()).json();
+    const feed = await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json();
     expect(feed.workouts).toEqual([
       expect.objectContaining({
         userId: USER_B,
@@ -119,7 +119,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
 
   it("reacts to a friend's workout and shows it to its owner", async () => {
     signInAs(USER_A, "alice@example.com");
-    const workoutsList = (await (await workouts.GET()).json()).workouts;
+    const workoutsList = (
+      await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json()
+    ).workouts;
     const workout = workoutsList.find(
       (row: { name: string | null }) => row.name === "Leg Day",
     ) as (typeof workoutsList)[0];
@@ -143,7 +145,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
       jsonRequest("POST", { sessionId: workout.sessionId, kind: "fire" }, path),
     );
     expect(await added.json()).toEqual({ reacted: true });
-    const feed = await (await workouts.GET()).json();
+    const feed = await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json();
     expect(feed.workouts[0].reactions).toEqual([{ kind: "fire", count: 1, mine: true }]);
 
     signInAs(USER_B, "bob@example.com");
@@ -178,7 +180,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
     signInAs(USER_A, "alice@example.com");
     const response = await friends.DELETE(jsonRequest("DELETE", { userId: USER_B }));
     expect(await response.json()).toEqual({ ok: true });
-    const feed = await (await workouts.GET()).json();
+    const feed = await (await workouts.GET(new Request("http://test/api/friends/workouts"))).json();
     expect(feed.workouts).toEqual([]);
   });
 });

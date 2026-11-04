@@ -5,6 +5,8 @@ import type {
   CommentTarget,
   FeedComment,
   FriendPost,
+  FriendProfilePayload,
+  FriendRecordRow,
   FriendRequestResult,
   FriendWorkout,
   FriendsPayload,
@@ -33,10 +35,14 @@ export async function fetchWeekRings(
 }
 
 export async function fetchFriendWorkouts(
+  friendId?: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<FriendWorkout[]>> {
+  const path = friendId
+    ? `/api/friends/workouts?friendId=${encodeURIComponent(friendId)}`
+    : "/api/friends/workouts";
   const result = await apiRequest<{ workouts: FriendWorkout[] }>(
-    "/api/friends/workouts",
+    path,
     undefined,
     "Couldn't load your friends' workouts",
     fetchImpl,
@@ -45,15 +51,41 @@ export async function fetchFriendWorkouts(
 }
 
 export async function fetchFriendPosts(
+  friendId?: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<Result<FriendPost[]>> {
+  const path = friendId
+    ? `/api/friends/posts?friendId=${encodeURIComponent(friendId)}`
+    : "/api/friends/posts";
   const result = await apiRequest<{ posts: FriendPost[] }>(
-    "/api/friends/posts",
+    path,
     undefined,
     "Couldn't load your friends' posts",
     fetchImpl,
   );
   return result.ok ? { ok: true, value: result.value.posts } : result;
+}
+
+export function fetchFriendProfile(username: string, fetchImpl: typeof fetch = fetch) {
+  return apiRequest<FriendProfilePayload>(
+    `/api/friends/${encodeURIComponent(username)}`,
+    undefined,
+    "Couldn't load their profile",
+    fetchImpl,
+  );
+}
+
+export async function fetchFriendRecords(
+  username: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<FriendRecordRow[]>> {
+  const result = await apiRequest<{ records: FriendRecordRow[] }>(
+    `/api/friends/${encodeURIComponent(username)}/records`,
+    undefined,
+    "Couldn't load their records",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.records } : result;
 }
 
 export function fetchProfile(fetchImpl: typeof fetch = fetch) {
@@ -67,7 +99,9 @@ export function fetchProfile(fetchImpl: typeof fetch = fetch) {
 
 /** Changes the picture (null removes it) or sharing settings; the value is the saved profile. */
 export function updateProfile(
-  patch: Partial<Pick<ProfilePayload, "avatar" | "shareWorkouts" | "shareWorkoutDetails">>,
+  patch: Partial<
+    Pick<ProfilePayload, "avatar" | "displayName" | "bio" | "shareWorkouts" | "shareWorkoutDetails">
+  >,
   fetchImpl: typeof fetch = fetch,
 ) {
   return apiRequest<ProfilePayload>(

@@ -1,4 +1,5 @@
 import { DataSection } from "@/components/profile/data-section";
+import { ProfileBioSection } from "@/components/profile/profile-bio-section";
 import { ProfilePictureSection } from "@/components/profile/profile-picture-section";
 import { SettingsSubPage } from "@/components/profile/settings-sub-page";
 import { UsernameSection } from "@/components/profile/username-section";
@@ -14,6 +15,7 @@ export default async function AccountSettingsPage() {
     <SettingsSubPage title="Account">
       <ProfilePictureSection />
       <UsernameSection />
+      <ProfileBioSection />
       {userId && <DataSection userId={userId} />}
     </SettingsSubPage>
   );

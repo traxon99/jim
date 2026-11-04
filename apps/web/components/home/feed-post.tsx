@@ -27,6 +27,7 @@ import type {
 } from "@/lib/friends/types";
 import type { ReactionKind } from "@jim/core";
 import { Activity, Dumbbell, MessageCircle, Send, Trophy } from "lucide-react";
+import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { PostCarousel } from "./post-carousel";
 
@@ -161,9 +162,17 @@ function PostFrame({
   return (
     <article className="flex flex-col bg-white pb-4 dark:bg-zinc-950">
       <header className="flex items-center gap-3 px-4 py-3">
-        <Avatar username={username} avatar={avatar} />
+        <Link href={`/friends/${username}`} data-ripple className="shrink-0">
+          <Avatar username={username} avatar={avatar} />
+        </Link>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="allow-pwa-select truncate text-base font-semibold">{username}</span>
+          <Link
+            href={`/friends/${username}`}
+            data-ripple
+            className="allow-pwa-select truncate text-base font-semibold"
+          >
+            {username}
+          </Link>
           <span className="allow-pwa-select truncate text-sm text-zinc-500 dark:text-zinc-400">
             {subtitle}
           </span>

@@ -16,7 +16,7 @@ import {
 import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart3, Check, type LucideIcon, Ruler, Scale, TrendingUp, Trophy } from "lucide-react";
+import { BarChart3, Check, type LucideIcon, TrendingUp, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -27,8 +27,6 @@ const SHORTCUTS: readonly { href: string; label: string; Icon: LucideIcon }[] = 
   { href: "/history/prs", label: "PRs", Icon: Trophy },
   { href: "/history/volume", label: "Volume", Icon: BarChart3 },
   { href: "/progression", label: "Progress", Icon: TrendingUp },
-  { href: "/profile/weight", label: "Weight", Icon: Scale },
-  { href: "/profile/measurements", label: "Body", Icon: Ruler },
 ];
 
 /**
@@ -191,7 +189,7 @@ export function HomeSummary({
  */
 export function HomeShortcuts() {
   return (
-    <nav aria-label="Shortcuts" className="grid grid-cols-5 gap-2 px-4">
+    <nav aria-label="Shortcuts" className="grid grid-cols-3 gap-2 px-4">
       {SHORTCUTS.map(({ href, label, Icon }) => (
         <Link
           key={href}

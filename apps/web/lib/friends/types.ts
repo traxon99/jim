@@ -104,10 +104,47 @@ export interface ReceivedReaction {
 export interface ProfilePayload {
   username: string | null;
   avatar: string | null;
+  displayName: string | null;
+  bio: string | null;
   /** Whether friends see this user's finished workouts in their feed. */
   shareWorkouts: boolean;
   /** Whether those workouts show their exercises and weights. */
   shareWorkoutDetails: boolean;
+}
+
+export interface ProfileLiftHighlight {
+  key: string;
+  label: string;
+  e1rm: number;
+  units: "lb" | "kg";
+}
+
+/** A friend's profile header from `/api/friends/[username]` (issue #751). */
+export interface FriendProfilePayload {
+  userId: string;
+  username: string;
+  avatar: string | null;
+  displayName: string | null;
+  bio: string | null;
+  shareWorkouts: boolean;
+  shareWorkoutDetails: boolean;
+  units: "lb" | "kg";
+  weekStart: number;
+  timeZone: string | null;
+  workoutCount: number;
+  friendCount: number;
+  sessionDates: string[];
+  defaultGymName: string | null;
+  liftHighlights: ProfileLiftHighlight[];
+}
+
+export interface FriendRecordRow {
+  exerciseName: string;
+  kind: PrKind;
+  value: number;
+  weight: number | null;
+  reps: number | null;
+  achievedAt: string;
 }
 
 /** One of the signed-in user's own posts (issue #316). */

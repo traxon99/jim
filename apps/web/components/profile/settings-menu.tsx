@@ -11,13 +11,11 @@ import {
   SlidersHorizontal,
   Sparkles,
   UserRound,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
 
 const ICONS: Record<SettingsScreen["key"], LucideIcon> = {
   account: UserRound,
-  social: Users,
   workout: Dumbbell,
   gyms: MapPin,
   advanced: SlidersHorizontal,

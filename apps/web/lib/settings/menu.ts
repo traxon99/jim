@@ -7,7 +7,6 @@ export type SettingsScreen = {
   /** Matches the icon picked in SettingsMenu. */
   key:
     | "account"
-    | "social"
     | "workout"
     | "gyms"
     | "appearance"
@@ -28,12 +27,6 @@ export const SETTINGS_GROUPS: readonly (readonly SettingsScreen[])[] = [
       title: "Account",
       hint: "Photo, username and your data",
       href: "/profile/settings/account",
-    },
-    {
-      key: "social",
-      title: "Social",
-      hint: "What friends see and your shared links",
-      href: "/profile/settings/social",
     },
   ],
   [
