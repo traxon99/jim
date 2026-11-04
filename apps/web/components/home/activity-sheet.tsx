@@ -25,6 +25,10 @@ function rowLabel(item: ActivityItem): string {
       return item.reactionKind
         ? `${REACTION_LABELS[item.reactionKind]} your ${item.sessionName ?? "workout"}`
         : `Reacted to your ${item.sessionName ?? "workout"}`;
+    case "post_reaction":
+      return item.reactionKind
+        ? `${REACTION_LABELS[item.reactionKind]} your post`
+        : "Reacted to your post";
     case "friend_request":
       return "Sent you a friend request";
     case "comment":
@@ -35,6 +39,7 @@ function rowLabel(item: ActivityItem): string {
 function rowHref(item: ActivityItem): string {
   if (item.kind === "friend_request") return "/friends";
   if (item.kind === "workout_reaction" && item.sessionId) return `/history/${item.sessionId}`;
+  if (item.kind === "post_reaction" && item.postId) return `/home?focus=${item.postId}`;
   if (item.kind === "comment") {
     if (item.sessionId) return `/home?focus=${item.sessionId}`;
     if (item.postId) return `/home?focus=${item.postId}`;
@@ -158,11 +163,12 @@ export function ActivitySheet({ onClose }: { onClose: () => void }) {
                       {relativeTime(item.occurredAt)}
                     </span>
                   </span>
-                  {item.kind === "workout_reaction" && item.reactionKind && (
-                    <span className="text-xl leading-none" aria-hidden="true">
-                      {REACTION_EMOJI[item.reactionKind]}
-                    </span>
-                  )}
+                  {(item.kind === "workout_reaction" || item.kind === "post_reaction") &&
+                    item.reactionKind && (
+                      <span className="text-xl leading-none" aria-hidden="true">
+                        {REACTION_EMOJI[item.reactionKind]}
+                      </span>
+                    )}
                   {item.kind === "friend_request" && (
                     <UserPlus
                       className="h-5 w-5 shrink-0 text-zinc-500"

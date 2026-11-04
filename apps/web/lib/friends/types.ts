@@ -3,7 +3,7 @@
 import type { PostKind, PrKind, ReactionKind, RoutineIconColor } from "@jim/core";
 
 /** One row in Home's activity list (#753). */
-export type ActivityKind = "workout_reaction" | "friend_request" | "comment";
+export type ActivityKind = "workout_reaction" | "post_reaction" | "friend_request" | "comment";
 
 export interface ActivityItem {
   id: string;
