@@ -76,6 +76,18 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     const ok = await profile.PATCH(jsonRequest("PATCH", { avatar: AVATAR }, "/api/profile"));
     expect(await ok.json()).toMatchObject({ avatar: AVATAR });
 
+    const named = await profile.PATCH(
+      jsonRequest("PATCH", { displayName: " Bobby ", bio: " Lifts " }, "/api/profile"),
+    );
+    expect(await named.json()).toEqual({
+      username: "bob",
+      avatar: AVATAR,
+      displayName: "Bobby",
+      bio: "Lifts",
+      shareWorkouts: true,
+      shareWorkoutDetails: true,
+    });
+
     signInAs(USER_A, "alice@example.com");
     const listed = await (await friends.GET()).json();
     expect(listed.friends).toMatchObject([{ username: "bob", avatar: AVATAR }]);
@@ -104,7 +116,14 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
     signInAs(USER_A, "alice@example.com");
     const feed = await (await friendPosts.GET(new Request("http://test/api/friends/posts"))).json();
     expect(feed.posts).toEqual([
-      expect.objectContaining({ username: "bob", avatar: AVATAR, caption: "Ouch", reactions: [] }),
+      expect.objectContaining({
+        username: "bob",
+        avatar: AVATAR,
+        caption: "Ouch",
+        reactions: [],
+        reactedBy: [],
+        comments: { count: 0, latest: null },
+      }),
     ]);
   });
 
