@@ -1,7 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { ProfileBodyTab } from "@/components/profile/profile-body-tab";
 import { ProfileLiftHighlights } from "@/components/profile/profile-lift-highlights";
 import { ProfilePostsGrid } from "@/components/profile/profile-posts-grid";
@@ -57,7 +57,7 @@ export function ProfileHome() {
   const navTitle = header.username ?? "Profile";
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex min-w-0 w-full flex-1 flex-col">
       <PageHeader
         title={navTitle}
         back={{ href: "/home", label: "Home" }}
@@ -86,8 +86,8 @@ export function ProfileHome() {
           </>
         }
       />
-      <div className={`flex flex-col gap-4 ${PAGE_BODY}`}>
-        <div className="flex w-full items-center gap-4 px-4">
+      <div className="flex w-full flex-col gap-4 px-4 pt-2">
+        <div className="flex w-full items-center gap-4">
           <ProfileWeekRing days={header.weekDays}>
             <Avatar
               username={header.username}
@@ -102,7 +102,7 @@ export function ProfileHome() {
           />
         </div>
 
-        <div className="flex w-full flex-col gap-1 px-4 text-left">
+        <div className="flex w-full flex-col gap-1 text-left">
           <p className="text-base font-semibold">
             {displayName ?? (header.username ? `@${header.username}` : "You")}
           </p>
@@ -114,7 +114,7 @@ export function ProfileHome() {
           )}
         </div>
 
-        <div className="flex w-full gap-2 px-4">
+        <div className="flex w-full gap-2">
           <Link
             href="/profile/settings/account"
             data-ripple
@@ -143,7 +143,9 @@ export function ProfileHome() {
         </div>
 
         <ProfileLiftHighlights lifts={lifts} />
-        <ProfileTabs active={tab} onChange={setTab} showBody />
+      </div>
+      <ProfileTabs active={tab} onChange={setTab} showBody />
+      <div className="flex flex-1 flex-col pb-6">
         {tab === "posts" && (
           <ProfilePostsGrid
             tiles={tiles}

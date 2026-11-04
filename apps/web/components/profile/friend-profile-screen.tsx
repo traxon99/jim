@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/friends/avatar";
 import { FeedPost } from "@/components/home/feed-post";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { ProfileLiftHighlights } from "@/components/profile/profile-lift-highlights";
 import { ProfilePostsGrid } from "@/components/profile/profile-posts-grid";
 import { ProfileRecordsTab } from "@/components/profile/profile-records-tab";
@@ -167,7 +167,7 @@ export function FriendProfileScreen({ username }: { username: string }) {
       : null;
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex min-w-0 w-full flex-1 flex-col">
       <PageHeader
         title={profile.username}
         back={{ href: "/friends", label: "Friends" }}
@@ -203,8 +203,8 @@ export function FriendProfileScreen({ username }: { username: string }) {
           </div>
         }
       />
-      <div className={`flex flex-col gap-4 ${PAGE_BODY}`}>
-        <div className="flex w-full items-center gap-4 px-4">
+      <div className="flex w-full flex-col gap-4 px-4 pt-2">
+        <div className="flex w-full items-center gap-4">
           <ProfileWeekRing days={weekDays}>
             <Avatar
               username={profile.username}
@@ -219,13 +219,13 @@ export function FriendProfileScreen({ username }: { username: string }) {
           />
         </div>
 
-        <div className="flex w-full flex-col gap-1 px-4 text-left">
+        <div className="flex w-full flex-col gap-1 text-left">
           <p className="text-base font-semibold">{displayTitle}</p>
           {profile.bio && <p className="text-sm text-zinc-600 dark:text-zinc-400">{profile.bio}</p>}
           {gymLine && <p className="text-sm font-medium text-accent">🏋️ {gymLine}</p>}
         </div>
 
-        <div className="flex w-full gap-2 px-4">
+        <div className="flex w-full gap-2">
           <button
             type="button"
             className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-zinc-100 text-sm font-semibold dark:bg-zinc-900"
@@ -252,8 +252,9 @@ export function FriendProfileScreen({ username }: { username: string }) {
         </div>
 
         <ProfileLiftHighlights lifts={profile.liftHighlights} />
-        <ProfileTabs active={tab} onChange={setTab} showBody={false} />
-
+      </div>
+      <ProfileTabs active={tab} onChange={setTab} showBody={false} />
+      <div className="flex flex-1 flex-col pb-6">
         {tab === "posts" &&
           (profile.shareWorkouts || feed.length > 0 ? (
             <ProfilePostsGrid

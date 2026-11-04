@@ -23,7 +23,7 @@ export function ProfilePostsGrid({
   }
 
   return (
-    <ul className="grid grid-cols-3 gap-0.5">
+    <ul className="grid w-full min-w-0 grid-cols-3 gap-0.5">
       {tiles.map((tile) => {
         const inner = (
           <>
