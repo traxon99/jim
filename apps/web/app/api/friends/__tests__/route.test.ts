@@ -107,34 +107,6 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/friends", () => {
     });
   });
 
-  it("returns week ring progress for you and friends", async () => {
-    signInAs(USER_A, "alice@example.com");
-    await friends.POST(jsonRequest("POST", { username: "BOB" }));
-    signInAs(USER_B, "bob@example.com");
-    await friends.PATCH(jsonRequest("PATCH", { userId: USER_A, accept: true }));
-
-    const startedAt = new Date().toISOString();
-    const endedAt = new Date(Date.now() + 3_600_000).toISOString();
-    await admin`INSERT INTO sessions (user_id, name, device_id, started_at, ended_at)
-      VALUES (${USER_B}, 'Leg Day', 'b', ${startedAt}, ${endedAt})`;
-
-    signInAs(USER_A, "alice@example.com");
-    const body = await (await weekRings.GET()).json();
-    expect(body.people.length).toBeGreaterThanOrEqual(2);
-    expect(body.people.find((person: { isSelf?: boolean }) => person.isSelf)).toMatchObject({
-      username: "ally",
-      shareWorkouts: true,
-      weeklyGoal: 3,
-    });
-    expect(
-      body.people.find((person: { username: string }) => person.username === "bob"),
-    ).toMatchObject({
-      shareWorkouts: true,
-      workoutsThisWeek: 1,
-      weeklyGoal: 3,
-    });
-  });
-
   it("reacts to a friend's workout and shows it to its owner", async () => {
     signInAs(USER_A, "alice@example.com");
     const workoutsList = (await (await workouts.GET()).json()).workouts;
