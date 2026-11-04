@@ -38,3 +38,40 @@ $$;
 REVOKE ALL ON FUNCTION public.friend_sessions_in_range(uuid, timestamptz, timestamptz) FROM PUBLIC;
 --> statement-breakpoint
 GRANT EXECUTE ON FUNCTION public.friend_sessions_in_range(uuid, timestamptz, timestamptz) TO authenticated;
+--> statement-breakpoint
+-- Week-ring settings for accepted friends. Users RLS only exposes your own row,
+-- so this runs as definer like list_friends().
+CREATE FUNCTION public.friend_week_ring_peers()
+RETURNS TABLE (
+  user_id uuid,
+  username text,
+  avatar text,
+  share_workouts boolean,
+  weekly_workout_goal smallint,
+  week_start smallint,
+  time_zone text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT
+    other.id,
+    other.username,
+    other.avatar,
+    other.share_workouts,
+    other.weekly_workout_goal,
+    other.week_start,
+    other.time_zone
+  FROM friendships f
+  JOIN users other
+    ON other.id = CASE WHEN f.requester_id = auth.uid() THEN f.addressee_id ELSE f.requester_id END
+  WHERE f.status = 'accepted'
+    AND auth.uid() IN (f.requester_id, f.addressee_id)
+  ORDER BY other.username
+$$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.friend_week_ring_peers() FROM PUBLIC;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.friend_week_ring_peers() TO authenticated;

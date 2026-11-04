@@ -7,8 +7,7 @@ import {
   startOfWeek,
 } from "@jim/core";
 import type { DbOrTx } from "@jim/db";
-import { users } from "@jim/db";
-import { inArray, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 interface UserRingRow {
   id: string;
@@ -79,29 +78,28 @@ export async function loadWeekRingPeople(
     timeZone: me.timeZone,
   };
 
-  interface FriendListRow extends Record<string, unknown> {
+  interface FriendPeerRow extends Record<string, unknown> {
     user_id: string;
-    status: string;
+    username: string | null;
+    avatar: string | null;
+    share_workouts: boolean;
+    weekly_workout_goal: number;
+    week_start: number;
+    time_zone: string | null;
   }
-  const friendLinks = await tx.execute<FriendListRow>(sql`SELECT * FROM list_friends()`);
-  const friendIds = friendLinks
-    .filter((row) => row.status === "accepted")
-    .map((row) => row.user_id);
-  const friendRows =
-    friendIds.length === 0
-      ? []
-      : await tx
-          .select({
-            id: users.id,
-            username: users.username,
-            avatar: users.avatar,
-            shareWorkouts: users.shareWorkouts,
-            weeklyWorkoutGoal: users.weeklyWorkoutGoal,
-            weekStart: users.weekStart,
-            timeZone: users.timeZone,
-          })
-          .from(users)
-          .where(inArray(users.id, friendIds));
+  const friendRows = (
+    await tx.execute<FriendPeerRow>(sql`SELECT * FROM friend_week_ring_peers()`)
+  ).map(
+    (row): UserRingRow => ({
+      id: row.user_id,
+      username: row.username,
+      avatar: row.avatar,
+      shareWorkouts: row.share_workouts,
+      weeklyWorkoutGoal: row.weekly_workout_goal,
+      weekStart: row.week_start,
+      timeZone: row.time_zone,
+    }),
+  );
 
   const self = await ringRowForUser(tx, meRow, now, true);
   const friends = await Promise.all(friendRows.map((row) => ringRowForUser(tx, row, now, false)));
