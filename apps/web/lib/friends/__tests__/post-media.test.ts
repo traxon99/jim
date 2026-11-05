@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  muscleBarPercent,
+  exerciseLine,
   postTint,
   recordLines,
+  recordsByExercise,
+  routineDot,
   splitRecordDetail,
   timeAgo,
   workoutHeaderLine,
+  workoutSets,
 } from "../post-media";
 import type { FriendWorkout } from "../types";
 
@@ -32,14 +35,12 @@ describe("workoutHeaderLine", () => {
     gymName: "Iron Works",
   } as FriendWorkout;
 
-  it("joins the name, how long ago and the gym", () => {
-    expect(workoutHeaderLine(workout, NOW)).toBe("Push Day · 2h ago · Iron Works");
+  it("joins how long ago and the gym, leaving the name to the title", () => {
+    expect(workoutHeaderLine(workout, NOW)).toBe("2h ago · Iron Works");
   });
 
-  it("leaves out a missing gym and names an unnamed workout", () => {
-    expect(workoutHeaderLine({ ...workout, name: null, gymName: null }, NOW)).toBe(
-      "Workout · 2h ago",
-    );
+  it("leaves out a missing gym", () => {
+    expect(workoutHeaderLine({ ...workout, gymName: null }, NOW)).toBe("2h ago");
   });
 });
 
@@ -50,12 +51,53 @@ describe("postTint", () => {
   });
 });
 
-describe("muscleBarPercent", () => {
-  it("scales against the busiest muscle, never vanishing", () => {
-    expect(muscleBarPercent(9, 9)).toBe(100);
-    expect(muscleBarPercent(3, 9)).toBe(33);
-    expect(muscleBarPercent(0, 9)).toBe(4);
-    expect(muscleBarPercent(1, 0)).toBe(0);
+describe("routineDot", () => {
+  it("uses the routine's color, or zinc without one", () => {
+    expect(routineDot("teal")).toBe("bg-teal-500");
+    expect(routineDot(null)).toContain("bg-zinc-400");
+  });
+});
+
+describe("workoutSets", () => {
+  it("adds up every exercise's sets", () => {
+    expect(
+      workoutSets({
+        exercises: [
+          { name: "Bench", sets: 4, topWeight: 225, topReps: 5 },
+          { name: "Dips", sets: 3, topWeight: null, topReps: 12 },
+        ],
+      }),
+    ).toBe(7);
+    expect(workoutSets({ exercises: [] })).toBe(0);
+  });
+});
+
+describe("exerciseLine", () => {
+  it("shows sets × the top weight", () => {
+    expect(exerciseLine({ name: "Bench", sets: 4, topWeight: 225, topReps: 5 }, "lb")).toBe(
+      "4 × 225 lb",
+    );
+  });
+
+  it("falls back to reps, then to sets alone", () => {
+    expect(exerciseLine({ name: "Pull-up", sets: 3, topWeight: null, topReps: 12 }, "kg")).toBe(
+      "3 × 12 reps",
+    );
+    expect(exerciseLine({ name: "Plank", sets: 1, topWeight: 0, topReps: null }, "kg")).toBe(
+      "1 set",
+    );
+  });
+});
+
+describe("recordsByExercise", () => {
+  it("groups a workout's PRs by exercise", () => {
+    const e1rm = { exercise: "Bench", kind: "1rm" as const, value: 262, weight: 225, reps: 5 };
+    const reps = { ...e1rm, kind: "reps_at_weight" as const, value: 5 };
+    const squat = { ...e1rm, exercise: "Squat" };
+    const byExercise = recordsByExercise([e1rm, reps, squat]);
+    expect(byExercise.get("Bench")).toEqual([e1rm, reps]);
+    expect(byExercise.get("Squat")).toEqual([squat]);
+    expect(byExercise.has("Row")).toBe(false);
   });
 });
 

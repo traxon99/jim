@@ -1,7 +1,7 @@
 import type { PrKind, RoutineIconColor } from "@jim/core";
-import type { FriendWorkout, FriendWorkoutRecord } from "./types";
+import type { FriendWorkout, FriendWorkoutExercise, FriendWorkoutRecord } from "./types";
 
-// What a full-width feed post (issue #747) shows in its media area.
+// What a feed post (issue #747, simplified in #770) and a profile's post tiles show.
 
 /**
  * The media area's background: a gradient in the routine's icon color, with
@@ -41,11 +41,55 @@ export function timeAgo(iso: string, now: Date = new Date()): string {
   return new Date(then).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-/** A workout's second header line: "Push Day · 2h ago · Iron Works". */
+/** A workout post's second header line: "2h ago · Iron Works". The title names the workout. */
 export function workoutHeaderLine(workout: FriendWorkout, now: Date = new Date()): string {
-  return [workout.name ?? "Workout", timeAgo(workout.endedAt, now), workout.gymName]
+  return [timeAgo(workout.endedAt, now), workout.gymName]
     .filter((part): part is string => !!part)
     .join(" · ");
+}
+
+/** The dot beside a workout post's title, in its routine's icon color. */
+const DOTS: Record<RoutineIconColor, string> = {
+  red: "bg-red-500",
+  orange: "bg-orange-500",
+  amber: "bg-amber-500",
+  green: "bg-green-500",
+  teal: "bg-teal-500",
+  blue: "bg-blue-500",
+  indigo: "bg-indigo-500",
+  pink: "bg-pink-500",
+};
+
+export function routineDot(color: RoutineIconColor | null): string {
+  return color ? DOTS[color] : "bg-zinc-400 dark:bg-zinc-500";
+}
+
+/** Working sets across the workout's exercises. */
+export function workoutSets(workout: Pick<FriendWorkout, "exercises">): number {
+  return workout.exercises.reduce((sum, exercise) => sum + exercise.sets, 0);
+}
+
+/** One row of a post's exercise list: "4 × 225 lb", "3 × 12 reps" or "2 sets". */
+export function exerciseLine(
+  exercise: FriendWorkoutExercise,
+  units: FriendWorkout["units"],
+): string {
+  if (exercise.topWeight !== null && exercise.topWeight > 0) {
+    return `${exercise.sets} × ${exercise.topWeight} ${units}`;
+  }
+  if (exercise.topReps !== null) return `${exercise.sets} × ${exercise.topReps} reps`;
+  return `${exercise.sets} ${exercise.sets === 1 ? "set" : "sets"}`;
+}
+
+/** A workout's PRs by exercise name, so the exercise list can mark the lifts that set one. */
+export function recordsByExercise(
+  records: readonly FriendWorkoutRecord[],
+): Map<string, FriendWorkoutRecord[]> {
+  const byExercise = new Map<string, FriendWorkoutRecord[]>();
+  for (const record of records) {
+    byExercise.set(record.exercise, [...(byExercise.get(record.exercise) ?? []), record]);
+  }
+  return byExercise;
 }
 
 /** "12,450" — whole units, grouped. */
@@ -53,18 +97,12 @@ export function formatVolume(volume: number): string {
   return Math.round(volume).toLocaleString();
 }
 
-/** How full a muscle's bar is next to the busiest one, 0–100. */
-export function muscleBarPercent(sets: number, most: number): number {
-  if (most <= 0) return 0;
-  return Math.max(4, Math.min(100, Math.round((sets / most) * 100)));
-}
-
 const RECORD_KIND_LINES: Partial<Record<PrKind, string>> = {
   "1rm": "e1RM",
   reps_at_weight: "rep PR",
 };
 
-/** "Bench Press · 225 lb × 5" and "New e1RM · 262 lb" for a PR row on the summary slide. */
+/** "Bench Press · 225 lb × 5" and "New e1RM · 262 lb": what a PR mark on a post says. */
 export function recordLines(
   record: FriendWorkoutRecord,
   units: FriendWorkout["units"],
@@ -87,7 +125,7 @@ export function recordLines(
 
 /**
  * A record post's detail ("Estimated 1RM · 225 lb", from recordPostDraft)
- * split into its label and the amount the slide shows large. A detail without
+ * split into its label and the amount the post shows in bold. A detail without
  * the separator is all label.
  */
 export function splitRecordDetail(detail: string | null): { label: string; amount: string | null } {
