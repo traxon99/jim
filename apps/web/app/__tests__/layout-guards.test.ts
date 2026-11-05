@@ -107,4 +107,21 @@ describe("layout guards", () => {
     const header = readFileSync(path.join(webRoot, "components/page-header.tsx"), "utf8");
     expect(header).not.toMatch(/backdrop-blur/);
   });
+
+  it("keeps iOS 26's scroll-edge blur off the header: a solid, hittable status-bar band (#772)", () => {
+    const css = readFileSync(path.join(webRoot, "app/globals.css"), "utf8");
+    // WebKit only skips its own top-edge blur when the top edge hit-tests to
+    // a fixed, full-width box with a plain background color. Glass (backdrop
+    // filter, mask) or pointer-events: none brings the blur back over the header.
+    const rules = [...css.matchAll(/\.status-bar-scrim\s*\{([^}]*)\}/g)];
+    expect(rules.length).toBeGreaterThan(0);
+    const [, base] = rules[0];
+    expect(base).toMatch(/position:\s*fixed/);
+    expect(base).toMatch(/background-color:\s*var\(--background\)/);
+    for (const [, body] of rules) {
+      expect(body).not.toMatch(
+        /backdrop-filter|mask-image|pointer-events:\s*none|opacity|rgb\([^)]*\/|background:/,
+      );
+    }
+  });
 });

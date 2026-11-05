@@ -120,41 +120,39 @@ body {
 
 /* The app shell ((shell)/layout.tsx) draws edge to edge instead: its scroller
    pads itself by the safe-area inset, so content scrolls up underneath the
-   status bar, where .status-bar-scrim blurs and darkens it rather than it
-   disappearing behind a solid band (issue #305). */
+   status bar, behind .status-bar-scrim (issue #305; that band is solid
+   since #772, see below). */
 :root:has([data-edge-to-edge]) body {
   padding-top: 0;
 }
 
-/* The translucent band over the status bar / notch (components/status-bar-scrim.tsx).
-   Zero height wherever there's no top inset (a browser tab), and its lower
-   part fades out so it has no hard bottom edge. z-40: above every
-   overlay (z-20/z-30) — their content can scroll under the notch too — but
-   below the boot splash (z-50). */
+/* The solid band over the status bar / notch (components/status-bar-scrim.tsx).
+   Zero height wherever there's no top inset (a browser tab).
+
+   It's opaque on purpose (#772). iOS 26 draws its own "scroll edge" blur over
+   the top of an installed web app, reaching well past the status bar and
+   onto the page header at rest. WebKit skips it when the top edge hit-tests
+   to a fixed, full-width box with a plain background color: it extends that
+   color instead. So this band has a solid page color, no backdrop-filter or
+   mask (either makes WebKit treat the edge as glass and blur it), and takes
+   hits (pointer-events: none hides it from that hit test). It only covers
+   the status bar, where nothing is tappable anyway.
+
+   z-40: above every overlay (z-20/z-30), but below the boot splash (z-50). */
 .status-bar-scrim {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 40;
   height: env(safe-area-inset-top);
-  pointer-events: none;
-  background: rgb(0 0 0 / 0.35);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
-  mask-image: linear-gradient(to bottom, #000 55%, transparent);
-}
-
-:root.dark .status-bar-scrim {
-  background: rgb(0 0 0 / 0.55);
+  background-color: var(--background);
 }
 
 /* The backdrop behind the floating page header (components/page-header.tsx).
    There's no solid bar: the title and buttons float over a soft wash that
    reaches up over the status-bar inset and fades out below the header, so
-   there's no hard edge (issue #311). The blur itself stays up over the
-   status bar (.status-bar-scrim): a backdrop-filter behind the header made
-   the title and buttons look blurred on the phone (#720), so this layer is
-   a plain translucent fill, a little denser to keep the title readable. */
+   there's no hard edge (issue #311). No backdrop-filter: behind the header it
+   made the title and buttons look blurred on the phone (#720), so this layer
+   is a plain translucent fill, a little denser to keep the title readable. */
 .floating-header-backdrop {
   position: absolute;
   inset: calc(-1 * env(safe-area-inset-top)) 0 -1.25rem 0;
@@ -166,7 +164,9 @@ body {
 }
 
 :root.dark .floating-header-backdrop {
-  background: linear-gradient(to bottom, rgb(0 0 0 / 0.92), rgb(0 0 0 / 0.8));
+  /* The dark page color (--background, #0a0a0a), not pure black, so it meets
+     the solid status-bar band above without a seam (#772). */
+  background: linear-gradient(to bottom, rgb(10 10 10 / 0.92), rgb(10 10 10 / 0.8));
 }
 
 /* The bottom tab bar (components/bottom-tab-bar.tsx), Liquid Glass style: a
