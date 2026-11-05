@@ -273,6 +273,8 @@ rather than writing new keyframes:
   card. The backdrop fades while the card rises. To close, set `data-closing="true"` and unmount on the
   backdrop's own `animationend`. Under reduced motion, skip straight to unmounting, because no
   `animationend` fires (`components/workout/pre-workout-sheet.tsx`).
+- For easing, timing, press feedback and the other motion rules, follow
+  [`docs/ANIMATION.md`](ANIMATION.md).
 - Keep transitions short (under ~250ms) and opacity/transform only. Put a `transform` animation on
   the sheet itself, never on an ancestor of a `fixed` element: a transformed ancestor becomes the
   containing block and breaks `fixed` positioning.
