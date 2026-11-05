@@ -23,7 +23,7 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Home is now your friends' feed: double-tap a post to ❤️ it, and the reaction picker pops up over the post. Your 7/30/90-day stats moved to the top of History.";
+  "Friends' posts on Home are simpler: a short workout summary with its top exercises, and badges that call out PRs and achievements.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
