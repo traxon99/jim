@@ -8,6 +8,8 @@ row to [`docs/LESSONS-LEDGER.md`](docs/LESSONS-LEDGER.md) in the same PR.
 Also read, when they apply:
 
 - `docs/PWA.md`: before building or changing any screen, overlay, popup or input.
+- `docs/ANIMATION.md`: before any touch, gesture, transition or animation work. The 20 motion
+  rules (easing, timing, press scale, popover origin, exits, reduced motion).
 - `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`: local-first IndexedDB, append-only sets,
   foreground-driven sync.
 
