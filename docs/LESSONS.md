@@ -62,7 +62,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       rounded corners. Use gradients inside the shape instead (#374, #376). Every layer of a
       see-through surface stays translucent: no `border-box` gradient "border trick" under a
       translucent fill, it paints under the whole shape (#717). Keep `backdrop-filter` out from behind
-      text and buttons: the page header's blur sits over the status bar only (#720).
+      text and buttons (#720). The status-bar band stays a solid, hittable, page-colored fixed bar
+      (no blur, mask or `pointer-events: none`): anything else lets iOS 26 draw its own scroll-edge
+      blur down over the page header at rest, which no emulator shows (#772, guard test).
 - [ ] Themed color? `bg-accent`/`text-accent-foreground`, never a fixed palette color (#445).
 - [ ] A view that swaps its content in place resets its scroller when the item changes, and a
       strip of tap targets keeps `min-w-11` and scrolls sideways instead of shrinking (#677, #683).

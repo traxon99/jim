@@ -32,9 +32,8 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 /**
  * The header every top-level page shares. There's no solid bar: the title and
  * any buttons float, pinned below the status bar, over a translucent wash that
- * softens content scrolling under them. The blur stays up over the status
- * bar (.status-bar-scrim), so the title and buttons stay sharp (#311, #313,
- * #720).
+ * softens content scrolling under them. Nothing blurs behind the title and
+ * buttons, so they stay sharp (#311, #313, #720, #772).
  */
 export function PageHeader({
   title,
