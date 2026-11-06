@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { sourceFiles } from "@/lib/test/source-scan";
+import { readCode, sourceFiles } from "@/lib/test/source-scan";
 import { describe, expect, it } from "vitest";
 
 // jsdom can't measure layout, so these lock down the CSS that keeps forms
@@ -123,5 +123,15 @@ describe("layout guards", () => {
         /backdrop-filter|mask-image|pointer-events:\s*none|opacity|rgb\([^)]*\/|background:/,
       );
     }
+  });
+
+  it("starts screens at --top-inset, below iOS 26's edge blur, not at the raw safe-area inset (#772)", () => {
+    // Only globals.css reads env(safe-area-inset-top): it defines --top-inset
+    // (24px lower in the installed iOS app) and sizes the status-bar band.
+    const offenders = ["app", "components"]
+      .flatMap((dir) => sourceFiles(path.join(webRoot, dir), [".tsx", ".ts"]))
+      .filter((file) => readCode(file).includes("safe-area-inset-top"))
+      .map((file) => path.relative(webRoot, file));
+    expect(offenders).toEqual([]);
   });
 });

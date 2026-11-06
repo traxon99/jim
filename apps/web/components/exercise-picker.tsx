@@ -197,7 +197,7 @@ export function ExercisePicker({
       <div
         className="route-fade safe-x fixed inset-0 z-20 flex flex-col overflow-y-auto overscroll-contain bg-white dark:bg-zinc-950"
         style={{
-          paddingTop: "env(safe-area-inset-top)",
+          paddingTop: "var(--top-inset)",
           paddingBottom: "max(12px, env(safe-area-inset-bottom))",
         }}
       >
@@ -227,7 +227,7 @@ export function ExercisePicker({
   return portal(
     <div
       className="route-fade safe-x fixed inset-0 z-20 flex flex-col overscroll-none bg-white dark:bg-zinc-950"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{ paddingTop: "var(--top-inset)" }}
     >
       <div className="flex touch-none items-center justify-between gap-2 border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
         <h2 className="text-lg font-semibold">

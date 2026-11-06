@@ -83,7 +83,7 @@ export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
       onAnimationEnd={handleAnimationEnd}
       className="sheet-backdrop fixed inset-0 z-20 flex items-center justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm"
       style={{
-        paddingTop: "max(16px, env(safe-area-inset-top))",
+        paddingTop: "max(16px, var(--top-inset))",
         paddingBottom: "max(16px, env(safe-area-inset-bottom))",
       }}
     >

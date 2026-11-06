@@ -198,7 +198,7 @@ export function CommentsSheet({
     // z-30: above the tab bar and FloatingCard (z-20), like the reorder sheet.
     <div
       className="safe-x fixed inset-0 z-30 flex flex-col justify-end overscroll-none"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{ paddingTop: "var(--top-inset)" }}
     >
       <button
         type="button"

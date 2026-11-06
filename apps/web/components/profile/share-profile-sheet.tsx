@@ -28,7 +28,7 @@ export function ShareProfileSheet({ open, onClose }: { open: boolean; onClose: (
     <div
       className="safe-x fixed inset-0 z-50 flex flex-col overscroll-none bg-white dark:bg-zinc-950"
       style={{
-        paddingTop: "env(safe-area-inset-top)",
+        paddingTop: "var(--top-inset)",
         paddingBottom: "max(12px, env(safe-area-inset-bottom))",
       }}
     >
