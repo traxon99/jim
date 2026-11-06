@@ -47,7 +47,7 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-[env(safe-area-inset-top)] z-10 isolate flex w-full items-center gap-3 px-4 pt-3 pb-3 text-left">
+    <header className="sticky top-(--top-inset) z-10 isolate flex w-full items-center gap-3 px-4 pt-3 pb-3 text-left">
       <div aria-hidden="true" className="floating-header-backdrop" />
       {back && <BackLink href={back.href} label={back.label} />}
       {/* Beside actions the title keeps its width and they shrink; alone, a

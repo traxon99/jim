@@ -48,7 +48,7 @@ export function ErrorScreen({ error }: { error: Error & { digest?: string } }) {
       role="alert"
       className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 bg-white px-6 text-center text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50"
       style={{
-        paddingTop: "env(safe-area-inset-top)",
+        paddingTop: "var(--top-inset)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >

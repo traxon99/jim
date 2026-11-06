@@ -104,7 +104,7 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   /* Bottom clearance is each screen's own job (the tab bar pads itself;
      centered auth screens don't reach the edge), so only top is global. */
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--top-inset);
   /* iOS ignores the manifest's portrait lock, so a phone on its side puts the
      Dynamic Island over one edge (#673). Zero in portrait. Full-screen
      overlays are `fixed`, outside this padding, and use `safe-x` instead. */
@@ -126,6 +126,23 @@ body {
   padding-top: 0;
 }
 
+/* Where content starts below the top of the screen. In the installed iOS app,
+   iOS 26 draws its own scroll-edge blur past the status bar (measured on an
+   iPhone: it fades out about 32pt below the inset, #772), and no CSS or meta
+   tag turns it off. So page headers and full-screen overlays start 24px lower
+   there, clear of it, and only content scrolled up under them gets blurred.
+   Everywhere else this is just the safe-area inset. Use it, not
+   env(safe-area-inset-top), for anything that starts a screen (guard test). */
+:root {
+  --top-inset: env(safe-area-inset-top);
+}
+
+@supports (-webkit-touch-callout: none) {
+  :root:has(body.pwa) {
+    --top-inset: calc(env(safe-area-inset-top) + 24px);
+  }
+}
+
 /* The solid band over the status bar / notch (components/status-bar-scrim.tsx).
    Zero height wherever there's no top inset (a browser tab).
 
@@ -136,7 +153,8 @@ body {
    color instead. So this band has a solid page color, no backdrop-filter or
    mask (either makes WebKit treat the edge as glass and blur it), and takes
    hits (pointer-events: none hides it from that hit test). It only covers
-   the status bar, where nothing is tappable anyway.
+   the status bar, where nothing is tappable anyway. On Jackson's iPhone the
+   blur still showed with this band alone, hence --top-inset above.
 
    z-40: above every overlay (z-20/z-30), but below the boot splash (z-50). */
 .status-bar-scrim {
@@ -155,7 +173,7 @@ body {
    is a plain translucent fill, a little denser to keep the title readable. */
 .floating-header-backdrop {
   position: absolute;
-  inset: calc(-1 * env(safe-area-inset-top)) 0 -1.25rem 0;
+  inset: calc(-1 * var(--top-inset)) 0 -1.25rem 0;
   z-index: -1;
   pointer-events: none;
   background: linear-gradient(to bottom, rgb(255 255 255 / 0.96), rgb(255 255 255 / 0.88));

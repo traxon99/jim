@@ -107,7 +107,7 @@ export function FocusView({
     <section
       aria-label="Focus view"
       className="route-fade safe-x fixed inset-0 z-20 flex flex-col overscroll-none bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{ paddingTop: "var(--top-inset)" }}
     >
       <header className="flex shrink-0 touch-none items-center gap-2 border-b border-zinc-200 px-2 py-2 dark:border-zinc-800">
         <button

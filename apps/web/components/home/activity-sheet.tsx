@@ -115,7 +115,7 @@ export function ActivitySheet({ onClose }: { onClose: () => void }) {
       />
       <section
         className="route-fade safe-x relative z-10 mt-auto flex max-h-[min(85lvh,640px)] min-h-0 flex-col rounded-t-2xl bg-white pb-[max(12px,env(safe-area-inset-bottom))] dark:bg-zinc-950"
-        style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
+        style={{ paddingTop: "max(12px, var(--top-inset))" }}
         aria-labelledby="activity-sheet-title"
       >
         <header className="flex shrink-0 touch-none items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">

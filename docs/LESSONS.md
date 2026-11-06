@@ -64,7 +64,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       translucent fill, it paints under the whole shape (#717). Keep `backdrop-filter` out from behind
       text and buttons (#720). The status-bar band stays a solid, hittable, page-colored fixed bar
       (no blur, mask or `pointer-events: none`): anything else lets iOS 26 draw its own scroll-edge
-      blur down over the page header at rest, which no emulator shows (#772, guard test).
+      blur down over the page header at rest, which no emulator shows. Even then it reaches ~32pt
+      past the inset, so screens start at `var(--top-inset)` (24px lower in the installed iOS app),
+      never raw `env(safe-area-inset-top)` (#772, guard tests).
 - [ ] Themed color? `bg-accent`/`text-accent-foreground`, never a fixed palette color (#445).
 - [ ] A view that swaps its content in place resets its scroller when the item changes, and a
       strip of tap targets keeps `min-w-11` and scrolls sideways instead of shrinking (#677, #683).
