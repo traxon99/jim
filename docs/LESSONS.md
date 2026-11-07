@@ -167,6 +167,7 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       resolve through `findRoutine`. Set fields are validated against `trackingType` (#513, #514,
       #515).
 - [ ] Database errors reach the caller as a generic message (#514).
+- [ ] A new migration's `meta/_journal.json` `when` is newer than the previous entry's, or Drizzle skips it in production (#775).
 
 **Routing, links and security**
 - [ ] Moved a feature to a new screen? Grep for links to its old home and repoint them (#543,
