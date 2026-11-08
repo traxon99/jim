@@ -1,0 +1,130 @@
+{
+  "generatedAt": "2026-11-08T09:35:00Z",
+  "branch": "cursor/issue-audit-batch-4300",
+  "openIssueCount": 11,
+  "openPrs": [
+    {
+      "number": 718,
+      "title": "Bump vitest from 2.1.9 to 4.1.11",
+      "disposition": "dependency_only",
+      "notes": "Dependabot PR; out of scope for this bounded code pass."
+    }
+  ],
+  "dispositions": [
+    {
+      "number": 755,
+      "title": "Social: show friends' PRP calls on feed posts",
+      "status": "blocked_owner_decision",
+      "evidence": [
+        "Feed posts render workout summaries in apps/web/components/home/feed-post.tsx with no CallMark",
+        "Issue body lists phone-publish vs server-compute options; explicitly needs Jackson's call",
+        "PRs #747–#768 shipped feed/comments/reactions; #755 is the remaining open social slice"
+      ]
+    },
+    {
+      "number": 746,
+      "title": "Social redesign tracking",
+      "status": "done_except_followup",
+      "evidence": [
+        "Sub-issues #747–#754 all closed",
+        "Merged PRs #756–#768 through 2026-11-07 implement feed, reactions, comments, profiles, week rings, bell, suggestions",
+        "Only #755 remains open under this epic"
+      ]
+    },
+    {
+      "number": 734,
+      "title": "Jackson OS: read-only data API tracking",
+      "status": "code_complete_metadata_stale",
+      "evidence": [
+        "#735 ADR-022 and #736 read-only PAT closed",
+        "Merged #743–#745; apps/mcp/src/api/* and docs/API.md document all /v1 endpoints",
+        "apps/mcp/src/api/__tests__/data.test.ts covers endpoints; issue checklist still shows #735/#736 unchecked"
+      ]
+    },
+    {
+      "number": 681,
+      "title": "Manifest and icons",
+      "status": "partially_addressed_this_pr",
+      "evidence": [
+        "apps/web/app/manifest.ts has id, white theme/background, shortcuts; layout viewport themeColor pair",
+        "public/sw.template.js and /icons/badge route shipped in PR #699",
+        "Gap fixed in this PR: showLocalNotification used /icons/192 badge (rest timer fallback)",
+        "Blocked: final icon artwork still placeholder in lib/pwa/icon-mark.tsx (needs design)"
+      ],
+      "prPartialFix": true
+    },
+    {
+      "number": 662,
+      "title": "Every navigation waits on the server",
+      "status": "partially_addressed",
+      "evidence": [
+        "apps/web/app/(shell)/loading.tsx shipped with route-loading delay (#662 comment)",
+        "apps/web/app/error.tsx covers shell render errors (#664)",
+        "Architectural fix (client-only routes, offline navigation) not implemented; shell layout still calls getClaims"
+      ]
+    },
+    {
+      "number": 556,
+      "title": "Split largest components",
+      "status": "in_progress_low_priority",
+      "evidence": [
+        "useSessionList shared by History (apps/web/lib/history/use-session-list.ts)",
+        "SessionSetTable, RestDialog, StickyNoteDialog extracted from session-exercise-section",
+        "session-exercise-section.tsx still ~996 lines; apps/mcp/src/server.ts ~1202 lines"
+      ]
+    },
+    {
+      "number": 437,
+      "title": "MCP PRP blocks, social writes, program generator",
+      "status": "blocked_deferred",
+      "evidence": [
+        "Issue defers PRP block tools until block planner moves to @jim/core",
+        "Social write MCP tools exist for comments/reactions (#749/#748) but broader social parity deferred",
+        "No product decision on confirmation policy for publishes"
+      ]
+    },
+    {
+      "number": 533,
+      "title": "Vercel preview DB isolation",
+      "status": "blocked_infrastructure",
+      "evidence": [
+        "Requires separate preview database; user directive: do not wire fake credentials",
+        "apps/web/scripts/prebuild.mjs still documents shared production DB on previews"
+      ]
+    },
+    {
+      "number": 660,
+      "title": "Advanced feature: tempo",
+      "status": "open_feature",
+      "evidence": [
+        "Feedback enhancement; no tempo fields in routines/schema",
+        "Needs product design (eccentric/isometric/concentric at routine level)"
+      ]
+    },
+    {
+      "number": 645,
+      "title": "Tapping completed set checkmark to unlog",
+      "status": "blocked_architecture",
+      "evidence": [
+        "Relabeled enhancement; owner comment cites append-only sets in docs/ARCHITECTURE.md",
+        "No unlog/set-supersede UX in session-set-table"
+      ]
+    },
+    {
+      "number": 427,
+      "title": "Cardio progression",
+      "status": "open_feature",
+      "evidence": [
+        "Explicitly future work after #423 cardio logging",
+        "No progression engine for cardio in packages/core"
+      ]
+    }
+  ],
+  "thisPr": {
+    "fixes": ["#681 notification badge parity for showLocalNotification (rest timer fallback)"],
+    "testsAdded": [
+      "apps/web/lib/pwa/__tests__/notification-assets.test.ts",
+      "sw-notifications.test.ts badge assertion"
+    ]
+  }
+}

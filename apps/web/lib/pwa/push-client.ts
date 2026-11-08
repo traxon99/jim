@@ -1,4 +1,6 @@
 import {
+  NOTIFICATION_BADGE_URL,
+  NOTIFICATION_ICON_URL,
   PUSH_NOTIFICATIONS_STORAGE_KEY,
   type PushMessage,
   type PushSupport,
@@ -86,8 +88,8 @@ export async function showLocalNotification(message: PushMessage): Promise<void>
   const registration = await navigator.serviceWorker.ready;
   await registration.showNotification(message.title, {
     body: message.body,
-    icon: "/icons/192",
-    badge: "/icons/192",
+    icon: NOTIFICATION_ICON_URL,
+    badge: NOTIFICATION_BADGE_URL,
     tag: message.tag,
     data: { url: message.url },
   });
