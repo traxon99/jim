@@ -14,6 +14,11 @@ export const PUSH_NOTIFICATIONS_STORAGE_KEY = "jim:push-notifications-enabled";
  */
 export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
+/** Full-color icon for notification banners (#681). */
+export const NOTIFICATION_ICON_URL = "/icons/192";
+/** Monochrome silhouette Android draws from alpha; not the full-color icon (#681). */
+export const NOTIFICATION_BADGE_URL = "/icons/badge";
+
 /**
  * What the current deployed version's "app updated" notification says
  * changed. Update this string alongside whatever shipped. It's the only
@@ -22,7 +27,8 @@ export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE = "Fixed reactions failing to save on friends' posts.";
+export const LATEST_RELEASE_NOTE =
+  "Rest-timer alerts use the correct notification badge on Android.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

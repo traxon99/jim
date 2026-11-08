@@ -28,7 +28,7 @@ function fakeWindow(path: string, visibilityState: DocumentVisibilityState = "hi
 /** Runs the real worker template's notification handlers against fake clients. */
 function loadWorker(windows: FakeWindow[]) {
   const handlers = new Map<string, (event: unknown) => void>();
-  const shown: { tag?: string; close: ReturnType<typeof vi.fn> }[] = [];
+  const shown: { tag?: string; badge?: string; close: ReturnType<typeof vi.fn> }[] = [];
   const openWindow = vi.fn(async () => null);
   const context = {
     self: {
@@ -37,9 +37,11 @@ function loadWorker(windows: FakeWindow[]) {
         handlers.set(type, handler),
       clients: { matchAll: async () => windows, openWindow },
       registration: {
-        showNotification: vi.fn(async (_title: string, options: { tag?: string }) => {
-          shown.push({ tag: options.tag, close: vi.fn() });
-        }),
+        showNotification: vi.fn(
+          async (_title: string, options: { tag?: string; badge?: string }) => {
+            shown.push({ tag: options.tag, badge: options.badge, close: vi.fn() });
+          },
+        ),
         getNotifications: async ({ tag }: { tag: string }) =>
           shown.filter((notification) => notification.tag === tag),
         update: async () => {},
@@ -97,6 +99,7 @@ describe("service worker notifications", () => {
     const worker = loadWorker([fakeWindow("/workout/abc", "visible")]);
     await worker.push({ title: "Rest complete", tag: "jim-rest-timer" });
     expect(worker.shown).toHaveLength(1);
+    expect(worker.shown[0]?.badge).toBe("/icons/badge");
     expect(worker.shown[0]?.close).toHaveBeenCalled();
   });
 
