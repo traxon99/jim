@@ -59,7 +59,6 @@ import {
   type PreviousSetsByKind,
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
-  clampRpe,
   exerciseDisplayName,
   isVisiblePrKind,
   nearestLoadableWeight,
@@ -78,8 +77,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { RestDialog, StickyNoteDialog, formatRest } from "./exercise-settings-dialogs";
-
 import { SessionSetTable } from "./session-set-table";
+import {
+  type SessionSetDraftValues,
+  parseSetDraftNumber,
+  parseSetDraftRpe,
+  sessionSetTableSizes,
+} from "./session-set-ui";
 
 interface Props {
   sessionId: string;
@@ -125,77 +129,7 @@ interface Props {
   onInjurySwap?: () => void;
 }
 
-function toNumberOrNull(value: string): number | null {
-  if (value.trim() === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function toRpeOrNull(value: string): number | null {
-  const n = toNumberOrNull(value);
-  return n == null ? null : clampRpe(n);
-}
-
 /** Rest choices in the ⋯ menu's Update Rest Timers; 0 turns it off. */
-
-interface DraftValues {
-  weight: string;
-  reps: string;
-  rpe: string;
-  kind: SetKind;
-}
-
-function sizesFor(large: boolean) {
-  return {
-    title: large ? "text-2xl font-bold" : "text-base font-semibold",
-    meta: large
-      ? "text-base text-zinc-500 dark:text-zinc-500"
-      : "text-xs text-zinc-500 dark:text-zinc-500",
-    // Set rows (header, logged and to-log) are the same list-view row in
-    // both views: focus view puts its Log button beside the inputs too, and
-    // at ~305px wide that only fits with the compact inputs.
-    headerRow: "text-xs font-medium text-zinc-500 dark:text-zinc-500",
-    // The rule sits on the cells: the table's separated borders (for the gap
-    // between logged rows, issue #391) don't draw a row's own border.
-    headerCell: "border-b border-zinc-200 py-1 pr-2 font-medium dark:border-zinc-800",
-    // pl-2 lines the label up with a logged row's, which is inset from its
-    // tinted edge (issue #391).
-    indexCell: "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
-    cell: "py-2 pr-2 align-middle",
-    // Last session's weight over ×reps for the same set (issue #323), stacked
-    // in small grey type so the column stays ~40px wide at 393px.
-    prevCell:
-      "py-2 pr-2 align-middle text-center text-xs leading-tight tabular-nums text-zinc-400 dark:text-zinc-500",
-    // `relative` anchors the swipe-to-delete strip (issue #350).
-    actionCell: "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
-    // Values are centered and sized as large as the row allows (issue #186):
-    // the input is pinned to h-11, the same height as the log/repeat buttons
-    // beside it, so the row doesn't grow; text-xl is the largest size where a
-    // five-character weight ("315.5") still fits the ~70px column on an
-    // iPhone 16.
-    input:
-      "h-11 w-full min-w-0 rounded-md border bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50",
-    // Kept apart from `input` so a box PRP prefilled can swap in its call's
-    // dashed outline (issue #712) without two border colors fighting.
-    inputBorder: "border-zinc-300 dark:border-zinc-700",
-    // Only the next set's ✓ is the filled, primary button (issue #319); the
-    // sets after it get a quiet outline, so the eye lands on what's next
-    // rather than on everything left to do.
-    logButton:
-      "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
-    laterLogButton:
-      "flex min-h-11 min-w-11 items-center justify-center rounded-md border border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500",
-    repeatButton:
-      "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
-    rowIcon: "h-4 w-4",
-    notesLabel: large
-      ? "flex flex-col gap-1 text-base font-medium"
-      : "flex flex-col gap-1 text-xs font-medium",
-    notesInput: large
-      ? "rounded-lg border border-zinc-300 bg-white px-3 py-3 text-lg text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-      : "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
-  };
-}
 
 export function SessionExerciseSection({
   sessionId,
@@ -217,7 +151,7 @@ export function SessionExerciseSection({
   onInjurySwap,
 }: Props) {
   const nameLongPress = useLongPress(onNameLongPress);
-  const sizes = sizesFor(large);
+  const sizes = sessionSetTableSizes(large);
   const fieldId = useId();
   const rawSets = useLiveQuery(
     () => db.sets.where("sessionExerciseId").equals(item.id).toArray(),
@@ -239,7 +173,9 @@ export function SessionExerciseSection({
   const [notesOpen, setNotesOpen] = useState(Boolean(item.notes));
   const notesInputRef = useRef<HTMLInputElement>(null);
   const [focusNotes, setFocusNotes] = useState(false);
-  const [draftOverrides, setDraftOverrides] = useState<Map<number, DraftValues>>(new Map());
+  const [draftOverrides, setDraftOverrides] = useState<Map<number, SessionSetDraftValues>>(
+    new Map(),
+  );
   const [stickyEditing, setStickyEditing] = useState(false);
   const [restEditing, setRestEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -323,7 +259,7 @@ export function SessionExerciseSection({
   const showStrengthHints = showsStrengthHints(settings);
   const strengthProfile = useMemo(() => strengthProfileFromSettings(settings), [settings]);
 
-  function defaultDraft(index: number): DraftValues {
+  function defaultDraft(index: number): SessionSetDraftValues {
     return {
       weight: "",
       reps: "",
@@ -332,7 +268,7 @@ export function SessionExerciseSection({
     };
   }
 
-  function draftFor(index: number): DraftValues {
+  function draftFor(index: number): SessionSetDraftValues {
     return draftOverrides.get(index) ?? defaultDraft(index);
   }
 
@@ -397,7 +333,7 @@ export function SessionExerciseSection({
   // The ramp aims at the first working set's suggested weight. For a DPR
   // lift the working sets themselves build up to DPR's weight (issue #385),
   // so that's the lightest of them.
-  const firstWorkingWeight = toNumberOrNull(
+  const firstWorkingWeight = parseSetDraftNumber(
     ruleWeightPlaceholder(rule, "working") ??
       dprWeightPlaceholder(dpr, "working", { ordinal: 0, count: workingTarget }) ??
       prefillWeightForSet(0, previousSets.working[0], targetWeight),
@@ -424,13 +360,13 @@ export function SessionExerciseSection({
   }
   // PRP's own suggestion, not a custom rule's or last time's: the box gets
   // the call's dashed outline until something is typed in it (issue #712).
-  function dprSuggestsWeight(index: number, draft: DraftValues): boolean {
+  function dprSuggestsWeight(index: number, draft: SessionSetDraftValues): boolean {
     if (draft.weight !== "" || kindAt(index) === "warmup") return false;
     if (ruleWeightPlaceholder(rule, draft.kind) !== null) return false;
     const ordinal = ordinals[index] ?? 0;
     return dprWeightPlaceholder(dpr, draft.kind, { ordinal, count: workingTarget }) !== null;
   }
-  function dprSuggestsReps(index: number, draft: DraftValues): boolean {
+  function dprSuggestsReps(index: number, draft: SessionSetDraftValues): boolean {
     if (draft.reps !== "" || kindAt(index) === "warmup") return false;
     if (ruleRepsPlaceholder(rule, draft.kind) !== null) return false;
     return dprRepsPlaceholder(dpr, draft.kind) !== null;
@@ -454,7 +390,7 @@ export function SessionExerciseSection({
       : (target?.targetRepsLow?.toString() ?? "");
   }
 
-  function updateDraft(index: number, patch: Partial<DraftValues>) {
+  function updateDraft(index: number, patch: Partial<SessionSetDraftValues>) {
     setDraftOverrides((current) => {
       const next = new Map(current);
       next.set(index, { ...(current.get(index) ?? defaultDraft(index)), ...patch });
@@ -485,7 +421,7 @@ export function SessionExerciseSection({
     setNumberLabels([...sets.map((set) => set.kind), nextDraft.kind]).at(-1) ??
     "1";
   const suggestionReps =
-    toNumberOrNull(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
+    parseSetDraftNumber(nextDraft.reps) ?? previous?.reps ?? target?.targetRepsLow ?? 5;
   const barWeight = Number(settings.defaultBarWeight) || 0;
   const plates = useMemo(
     () => settings.availablePlates.map(Number).filter((plate) => plate > 0),
@@ -515,8 +451,9 @@ export function SessionExerciseSection({
 
   async function saveRow(index: number) {
     const draft = draftFor(index);
-    const weight = toNumberOrNull(draft.weight) ?? toNumberOrNull(suggestedWeightFor(index));
-    const reps = toNumberOrNull(draft.reps) ?? toNumberOrNull(suggestedRepsFor(index));
+    const weight =
+      parseSetDraftNumber(draft.weight) ?? parseSetDraftNumber(suggestedWeightFor(index));
+    const reps = parseSetDraftNumber(draft.reps) ?? parseSetDraftNumber(suggestedRepsFor(index));
     const { set, prs } = await completeSet({
       userId,
       sessionExerciseId: item.id,
@@ -525,7 +462,7 @@ export function SessionExerciseSection({
       kind: draft.kind,
       weight,
       reps,
-      rpe: toRpeOrNull(draft.rpe),
+      rpe: parseSetDraftRpe(draft.rpe),
       workSeconds: workSeconds?.() ?? null,
     });
     setJustLoggedId(set.id);
@@ -681,7 +618,7 @@ export function SessionExerciseSection({
     },
   ];
 
-  function weightInputFor(index: number, draft: DraftValues) {
+  function weightInputFor(index: number, draft: SessionSetDraftValues) {
     return (
       <input
         id={index === nextIndex ? `${fieldId}-weight` : undefined}
@@ -697,7 +634,7 @@ export function SessionExerciseSection({
       />
     );
   }
-  function repsInputFor(index: number, draft: DraftValues) {
+  function repsInputFor(index: number, draft: SessionSetDraftValues) {
     return (
       <input
         id={index === nextIndex ? `${fieldId}-reps` : undefined}
@@ -711,7 +648,7 @@ export function SessionExerciseSection({
       />
     );
   }
-  function rpeInputFor(index: number, draft: DraftValues) {
+  function rpeInputFor(index: number, draft: SessionSetDraftValues) {
     return (
       <input
         id={index === nextIndex ? `${fieldId}-rpe` : undefined}

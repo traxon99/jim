@@ -6,6 +6,7 @@ import type { SetKind } from "@/lib/sessions/set-kinds";
 import type { PreviousSet } from "@jim/core";
 import type { ReactNode } from "react";
 import { RpeInfoMenu } from "./rpe-info-menu";
+import type { SessionSetTableSizes } from "./session-set-ui";
 import { SetKindMenu } from "./set-kind-menu";
 import { SetRow } from "./set-row";
 import { SwipeToDeleteRow } from "./use-swipe-to-delete";
@@ -24,10 +25,7 @@ interface Props {
   nextLabel: string;
   justLoggedId: string | null;
   prSetIds: ReadonlySet<string>;
-  sizes: Record<
-    "headerRow" | "headerCell" | "prevCell" | "indexCell" | "cell" | "actionCell",
-    string
-  >;
+  sizes: SessionSetTableSizes;
   previousFor: (index: number) => PreviousSet | undefined;
   kindFor: (index: number) => SetKind;
   onChangeKind: (index: number, kind: SetKind) => void;
