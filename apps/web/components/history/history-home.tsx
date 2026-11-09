@@ -3,11 +3,13 @@
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
+import { SickDayToggle } from "@/components/sick-days/sick-day-controls";
 import { db } from "@/lib/db/schema";
 import { buildSessionHighlights, formatHighlightSet } from "@/lib/history/session-highlights";
 import { useSessionList } from "@/lib/history/use-session-list";
 import { formatMinutes } from "@/lib/home/stats";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { useSickDays } from "@/lib/sick-days/use-sick-days";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { BarChart3, LineChart, type LucideIcon, TrendingUp, Trophy } from "lucide-react";
@@ -40,7 +42,7 @@ const PAGE_SIZE = 20;
 /** Exercises listed on a card before "+N more". */
 const CARD_EXERCISES = 4;
 
-export function HistoryHome() {
+export function HistoryHome({ userId }: { userId: string }) {
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   // Issue #328: History opens on recent workouts; tapping a day narrows the
@@ -49,6 +51,7 @@ export function HistoryHome() {
   const [shown, setShown] = useState(PAGE_SIZE);
 
   const list = useSessionList();
+  const sickDays = useSickDays();
   const rawSessions = list?.sessions;
   const rawSessionExercises = list?.sessionExercises;
   const rawExercises = list?.exercises;
@@ -118,6 +121,7 @@ export function HistoryHome() {
             month={visibleMonth}
             weekStart={settings.weekStart}
             days={calendarDays}
+            sickDays={sickDays}
             selectedDate={selectedDate}
             onSelectDate={(date) => {
               // Tapping the selected day again goes back to all workouts.
@@ -149,6 +153,8 @@ export function HistoryHome() {
               </button>
             )}
           </div>
+          {/* Any past day can be marked sick (issue #779). */}
+          {selectedDate && <SickDayToggle userId={userId} day={dateKey(selectedDate)} />}
           {visibleSessions.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <p className="text-sm text-zinc-500 dark:text-zinc-500">

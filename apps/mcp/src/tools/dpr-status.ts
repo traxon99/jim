@@ -29,6 +29,7 @@ import {
   sessionExercises,
   sessions,
   sets,
+  sickDays,
   users,
 } from "@jim/db";
 import { eq, inArray } from "drizzle-orm";
@@ -229,6 +230,7 @@ export async function dprStatus(context: UserContext) {
     const routineRows = await tx.select().from(routines);
     const itemRows = await tx.select().from(routineExercises);
     const injuryRows = await tx.select().from(injuries);
+    const sickDayRows = await tx.select().from(sickDays);
     const exerciseIds = [...new Set(liftRows.map((lift) => lift.exerciseId))];
     const exerciseRows = exerciseIds.length
       ? await tx
@@ -254,6 +256,7 @@ export async function dprStatus(context: UserContext) {
         sets: setRows,
         routines: routineRows,
         routineExercises: itemRows,
+        sickDays: sickDayRows,
       },
       injuries: injuryRows,
       timeZone: user.timeZone,

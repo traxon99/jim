@@ -5,6 +5,7 @@ import {
   applyInjuryEffect,
   applyInjuryLimit,
 } from "../injuries/effects";
+import { dayKeyNoon } from "../sick-days";
 import {
   type DprDecision,
   type RepRange,
@@ -141,7 +142,8 @@ export function callForLift(input: {
 
 /**
  * When the block really ends: its planned end pushed back by any layoffs
- * inside it (a 14+ day gap between sessions of its focused lifts).
+ * inside it (a 14+ day gap between sessions of its focused lifts) and by
+ * its sick days (issue #779).
  */
 export function blockEffectiveEnd(
   block: DprBlockInfo,
@@ -153,7 +155,10 @@ export function blockEffectiveEnd(
   const ids = new Set(exerciseIds);
   const dates = snapshot.history.filter((h) => ids.has(h.exerciseId)).map((h) => h.date);
   const until = now < block.endsAt ? now : block.endsAt;
-  return new Date(block.endsAt.getTime() + layoffDays(dates, block.startedAt, until) * DAY_MS);
+  const sick = (snapshot.sickDays ?? []).map(dayKeyNoon);
+  return new Date(
+    block.endsAt.getTime() + layoffDays(dates, block.startedAt, until, sick) * DAY_MS,
+  );
 }
 
 /** An active block past its (layoff-shifted) end is waiting on its recap. */
@@ -199,6 +204,7 @@ export function liftProgress(
       },
       series,
       now,
+      (snapshot.sickDays ?? []).map(dayKeyNoon),
     ),
   };
 }

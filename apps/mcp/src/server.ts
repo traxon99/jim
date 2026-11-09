@@ -13,6 +13,7 @@ import {
   REACTION_KINDS,
   RPE_MAX,
   RPE_MIN,
+  SICK_DAY_NOTE_MAX,
 } from "@jim/core";
 import {
   accentColorEnum,
@@ -74,6 +75,7 @@ import { scheduleDateSchema, scheduleWorkout } from "./tools/schedule-workout.js
 import { cancelScheduledWorkout, listScheduledWorkouts } from "./tools/scheduled-workouts.js";
 import { searchExercisesTool } from "./tools/search-exercises.js";
 import { getSettings, updateSettings } from "./tools/settings.js";
+import { listSickDays, markSickDays, unmarkSickDays } from "./tools/sick-days.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
@@ -971,6 +973,50 @@ export function createMcpServer(context: UserContext): McpServer {
       inputSchema: { injury: injuryRef, dry_run: dryRunParam(true) },
     },
     handle(({ dry_run, ...input }) => deleteInjury(context, { ...input, dryRun: dry_run })),
+  );
+
+  // Sick days (issue #779): private to the user, like injuries.
+  const sickDay = (what: string) => z.string().describe(`YYYY-MM-DD; ${what}`);
+  server.registerTool(
+    "list_sick_days",
+    {
+      title: "List sick days",
+      description:
+        "Read-only. The days the user marked as sick, newest first, with any note, and whether today is one. A sick day never changes a workout: it lowers its week's streak target by one (a week sick enough to need no workout neither counts nor breaks the streak) and pushes a running PRP block's end back a day. Narrow with from/to.",
+      inputSchema: {
+        from: sickDay("earliest day to list").optional(),
+        to: sickDay("latest day to list").optional(),
+      },
+    },
+    handle((input) => listSickDays(context, input)),
+  );
+  server.registerTool(
+    "mark_sick_day",
+    {
+      title: "Mark sick day",
+      description: `Mark a day, or a run of days up to a month long, as sick days, like the app's "Take a sick day". Days already marked stay marked (a note given replaces theirs). Days can't be in the future.${PREVIEW_HINT}`,
+      inputSchema: {
+        from: sickDay("first sick day; defaults to today").optional(),
+        to: sickDay("last sick day; defaults to from").optional(),
+        note: z.string().max(SICK_DAY_NOTE_MAX).optional().describe('e.g. "flu"'),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => markSickDays(context, { ...input, dryRun: dry_run })),
+  );
+  server.registerTool(
+    "unmark_sick_day",
+    {
+      title: "Unmark sick day",
+      description:
+        "Unmark a day, or a run of days, the user marked as sick by mistake. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        from: sickDay("first day to unmark"),
+        to: sickDay("last day to unmark; defaults to from").optional(),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) => unmarkSickDays(context, { ...input, dryRun: dry_run })),
   );
 
   // Friends' activity and comments (issues #746, #749): the Home feed and

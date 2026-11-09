@@ -498,6 +498,13 @@
       "when": 1794100000000,
       "tag": "0070_add_heart_reaction",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794246273662,
+      "tag": "0071_add_sick_days",
+      "breakpoints": true
     }
   ]
 }

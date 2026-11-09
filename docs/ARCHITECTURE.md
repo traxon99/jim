@@ -144,6 +144,8 @@ injuries           id, user_id, area, side?, started_on, healed_on?, note?
                    -- left|right|both for paired areas. Open until healed_on (#627).
 pain_checkins      id, user_id, injury_id, day, pain_level (0–10)
                    -- one per injury per local day; a day without one has no pain level
+sick_days          id, user_id, day, note?
+                   -- a local day marked sick (#779); readers treat any live row as sick
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 

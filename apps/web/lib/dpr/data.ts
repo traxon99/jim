@@ -15,15 +15,17 @@ export async function loadDprSnapshot(
   database: JimDatabase,
   defaultRange: RepRange,
 ): Promise<DprSnapshot> {
-  const [sessions, sessionExercises, sets, routines, routineExercises] = await Promise.all([
-    database.sessions.toArray(),
-    database.sessionExercises.toArray(),
-    database.sets.toArray(),
-    database.routines.toArray(),
-    database.routineExercises.toArray(),
-  ]);
+  const [sessions, sessionExercises, sets, routines, routineExercises, sickDays] =
+    await Promise.all([
+      database.sessions.toArray(),
+      database.sessionExercises.toArray(),
+      database.sets.toArray(),
+      database.routines.toArray(),
+      database.routineExercises.toArray(),
+      database.sickDays.toArray(),
+    ]);
   return buildDprSnapshot(
-    { sessions, sessionExercises, sets, routines, routineExercises },
+    { sessions, sessionExercises, sets, routines, routineExercises, sickDays },
     defaultRange,
   );
 }

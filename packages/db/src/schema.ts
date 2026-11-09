@@ -917,6 +917,36 @@ export const painCheckins = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// sick_days — a local calendar day the user marked as sick (issue #779).
+// Marking a day again reuses its live row; unmarking tombstones it. Readers
+// treat a day as sick while any live row has it, in case two devices each
+// marked it offline. Private to the user, like injuries.
+// ---------------------------------------------------------------------------
+
+export const sickDays = pgTable(
+  "sick_days",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("sick_days", table.userId),
+    index("sick_days_server_seq").on(table.serverSeq),
+    index("sick_days_user_seq").on(table.userId, table.serverSeq),
+    index("sick_days_user_day").on(table.userId, table.day),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // scheduled_workouts — planned sessions written by the MCP server (S8's
 // `schedule_workout`). Deliberately its own table rather than a `sessions`
 // row with a future `startedAt`: the phone treats any `sessions` row with

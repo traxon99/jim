@@ -7,6 +7,7 @@ import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercis
 import { buildSessionListEntries } from "@/lib/history/session-list-entries";
 import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
+import { sickDayKeys } from "@jim/core";
 import {
   type DbOrTx,
   bodyMeasurements,
@@ -25,6 +26,7 @@ import {
   sessionExercises,
   sessions,
   sets,
+  sickDays,
   users,
 } from "@jim/db";
 import { eq, inArray } from "drizzle-orm";
@@ -473,6 +475,7 @@ export async function loadCalendarData(): Promise<PortalCalendarData> {
       .from(gyms);
     const injuryRows = await tx.select().from(injuries);
     const checkinRows = await tx.select().from(painCheckins);
+    const sickDayRows = await tx.select().from(sickDays);
     const exerciseIds = [...new Set(sessionExerciseRows.map((row) => row.exerciseId))];
     const exerciseRows =
       exerciseIds.length === 0
@@ -514,6 +517,7 @@ export async function loadCalendarData(): Promise<PortalCalendarData> {
       ),
       achievements: serializeAchievements(achievements),
       painDays: buildPainDays(injuryRows, checkinRows),
+      sickDays: sickDayKeys(sickDayRows),
     };
   });
 }
@@ -589,6 +593,7 @@ export async function loadProgressionData(): Promise<PortalProgressionData> {
     const routineRows = await tx.select().from(routines);
     const routineExerciseRows = await tx.select().from(routineExercises);
     const injuryRows = await tx.select().from(injuries);
+    const sickDayRows = await tx.select().from(sickDays);
     const exerciseIds = [
       ...new Set([
         ...sessionExerciseRows.map((row) => row.exerciseId),
@@ -610,6 +615,7 @@ export async function loadProgressionData(): Promise<PortalProgressionData> {
       routines: routineRows,
       routineExercises: routineExerciseRows,
       injuries: injuryRows,
+      sickDays: sickDayRows,
     };
   });
 }

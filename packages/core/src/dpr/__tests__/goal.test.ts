@@ -119,6 +119,14 @@ describe("baseline, layoffs and on-track status", () => {
     expect(layoffDays([day(3), day(10)], day(0), day(12))).toBe(0);
   });
 
+  it("adds sick days outside a counted gap (#779)", () => {
+    // Days 4–6 are sick in a normal week; day 60 is after `now`.
+    const sick = [day(4), day(5), day(6), day(30), day(60)];
+    expect(layoffDays([day(3), day(10)], day(0), day(12), sick)).toBe(3);
+    // Here 4–6 sit in the gap 3→20 and 30 in 22→50, which already count.
+    expect(layoffDays([day(3), day(20), day(22)], day(0), day(50), sick)).toBe(17 + 28);
+  });
+
   it("pushes the goal date back by the layoff", () => {
     expect(goalDate(block, 14)).toEqual(day(84));
   });

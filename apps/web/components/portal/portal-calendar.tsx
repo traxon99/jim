@@ -1,7 +1,11 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
-import { INTENSITY_LEVELS, intensityClass } from "@/components/history/training-calendar-month";
+import {
+  INTENSITY_LEVELS,
+  SICK_DAY_CLASS,
+  intensityClass,
+} from "@/components/history/training-calendar-month";
 import {
   type CalendarPeriod,
   type PortalCalendarData,
@@ -15,6 +19,7 @@ import {
   type AchievementCategory,
   buildTrainingCalendar,
   dateKey,
+  dayKeyNoon,
   painSuggestion,
   trainingStreak,
 } from "@jim/core";
@@ -67,6 +72,7 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
   const [showInjuries, setShowInjuries] = useState(false);
   const hasPainDays = Object.keys(data.painDays).length > 0;
   const painDays = showInjuries ? data.painDays : null;
+  const sickDays = useMemo(() => new Set(data.sickDays ?? []), [data.sickDays]);
 
   const workouts = useMemo(
     () =>
@@ -106,9 +112,11 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
         data.weeklyTarget,
         data.weekStart,
         today,
+        undefined,
+        [...sickDays].map(dayKeyNoon),
       ),
     };
-  }, [isClient, period, workouts, data.weekStart, data.weeklyTarget]);
+  }, [isClient, period, workouts, data.weekStart, data.weeklyTarget, sickDays]);
 
   const selectedWorkouts = useMemo(
     () =>
@@ -192,6 +200,7 @@ export function PortalCalendar({ data }: { data: PortalCalendarData }) {
               onSelect={(key) => setSelectedKey((current) => (current === key ? null : key))}
               units={data.units}
               painDays={painDays}
+              sickDays={sickDays}
             />
             {selectedKey ? (
               <div className="flex flex-col gap-2 border-t border-zinc-100 pt-3 dark:border-zinc-900">
@@ -257,6 +266,7 @@ function YearHeatmap({
   onSelect,
   units,
   painDays,
+  sickDays,
 }: {
   columns: ReturnType<typeof heatmapColumns>;
   days: ReturnType<typeof buildTrainingCalendar>;
@@ -267,6 +277,8 @@ function YearHeatmap({
   units: string;
   /** With "Show injuries" on: check-in days tint by their worst pain instead of volume. */
   painDays: PortalCalendarData["painDays"] | null;
+  /** Sick days (issue #779): a day off shows a dashed outline, and every label says so. */
+  sickDays: ReadonlySet<string>;
 }) {
   const maxVolume = Math.max(0, ...[...days.values()].map((day) => day.totalVolume));
   const weekdayLabels = useMemo(() => {
@@ -319,7 +331,9 @@ function YearHeatmap({
                 const day = days.get(key);
                 const pain = painDays?.[key];
                 const painTint = pain ? painClass(pain.pain) : "";
-                const painText = pain ? `; pain: ${pain.injuries.join(", ")}` : "";
+                const painText = `${pain ? `; pain: ${pain.injuries.join(", ")}` : ""}${
+                  sickDays.has(key) ? "; sick day" : ""
+                }`;
                 const ring =
                   key === selectedKey
                     ? "ring-2 ring-accent"
@@ -331,7 +345,16 @@ function YearHeatmap({
                     <span
                       key={key}
                       title={`${date.toLocaleDateString()}${painText}`}
-                      className={`${CELL} ${painTint || "bg-zinc-100 dark:bg-zinc-900"} ${ring}`}
+                      {...(painText
+                        ? {
+                            role: "img",
+                            "aria-label": `${date.toLocaleDateString()}${painText}`,
+                          }
+                        : {})}
+                      className={`${CELL} ${
+                        painTint ||
+                        (sickDays.has(key) ? SICK_DAY_CLASS : "bg-zinc-100 dark:bg-zinc-900")
+                      } ${ring}`}
                     />
                   );
                 }
@@ -370,7 +393,13 @@ function YearHeatmap({
           <span aria-hidden="true" className={`h-3 w-3 rounded-sm ${PAIN_CLASSES.skip}`} />
         </div>
       )}
-      <div className="flex items-center justify-end gap-1 text-[11px] text-zinc-500 dark:text-zinc-500">
+      <div className="flex flex-wrap items-center justify-end gap-1 text-[11px] text-zinc-500 dark:text-zinc-500">
+        {sickDays.size > 0 && (
+          <>
+            <span aria-hidden="true" className={`h-3 w-3 rounded-sm ${SICK_DAY_CLASS}`} />
+            <span className="mr-2">Sick day</span>
+          </>
+        )}
         <span className="mr-0.5">Less volume</span>
         {INTENSITY_LEVELS.map((level) => (
           <span key={level} aria-hidden="true" className={`h-3 w-3 rounded-sm ${level}`} />

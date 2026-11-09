@@ -19,6 +19,7 @@ import {
   sessionExercises,
   sessions,
   sets,
+  sickDays,
 } from "@jim/db";
 import { gt } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
@@ -44,6 +45,7 @@ const PULL_TABLES: Record<SyncTable | "scheduledWorkouts", PgTable & { serverSeq
   gyms: gyms,
   injuries: injuries,
   painCheckins: painCheckins,
+  sickDays: sickDays,
   scheduledWorkouts: scheduledWorkouts,
 };
 

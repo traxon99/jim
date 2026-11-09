@@ -15,6 +15,7 @@ import type {
   SessionRow,
   SetRow,
   SettingsRow,
+  SickDayRow,
 } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings/defaults";
 import {
@@ -56,6 +57,8 @@ export interface ExportTables extends HistoryTables {
   /** Injuries and their pain check-ins (issue #627); private, but the user's own. */
   injuries?: readonly InjuryRow[];
   painCheckins?: readonly PainCheckinRow[];
+  /** Sick days (issue #779); private, but the user's own. */
+  sickDays?: readonly SickDayRow[];
   settings: SettingsRow | undefined;
 }
 
@@ -200,6 +203,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     gyms,
     injuries = [],
     painCheckins = [],
+    sickDays = [],
     settings,
   } = tables;
   const exerciseName = new Map(history.exercises.map((exercise) => [exercise.id, exercise.name]));
@@ -237,6 +241,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     gyms: live(gyms),
     injuries: live(injuries),
     painCheckins: live(painCheckins),
+    sickDays: live(sickDays),
   };
   return JSON.stringify(data, null, 2);
 }
