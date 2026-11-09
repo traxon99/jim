@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { dayKeyNoon, dayKeysBetween, sickDayKeys } from "..";
+import { dayKeyInstant, dayKeyNoon, dayKeysBetween, sickDayKeys } from "..";
+import { dayKey } from "../../injuries/days";
 
 describe("sickDayKeys", () => {
   it("keeps live, valid days once each, oldest first", () => {
@@ -36,5 +37,13 @@ describe("dayKeyNoon", () => {
     expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([
       2026, 2, 8, 12,
     ]);
+  });
+});
+
+describe("dayKeyInstant", () => {
+  it("lands on the same local day in far-off zones", () => {
+    for (const zone of ["Pacific/Kiritimati", "Pacific/Auckland", "UTC", "Pacific/Pago_Pago"]) {
+      expect(dayKey(dayKeyInstant("2026-11-08", zone), zone)).toBe("2026-11-08");
+    }
   });
 });

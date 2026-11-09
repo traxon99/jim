@@ -3,9 +3,10 @@
 import { type SickDayRow, db } from "@/lib/db/schema";
 import { useTodayKey } from "@/lib/injuries/use-injuries";
 import { markSickDay, unmarkSickDay } from "@/lib/sick-days";
+import { useLogGuard } from "@/lib/workout/log-guard";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Thermometer } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
 /** The live sick-day row for `day`, null when it isn't sick, undefined while loading. */
 function useSickDayRow(day: string): SickDayRow | null | undefined {
@@ -25,30 +26,31 @@ function useSickDayRow(day: string): SickDayRow | null | undefined {
 function useSickDayAction(userId: string, day: string) {
   const row = useSickDayRow(day);
   const today = useTodayKey();
-  const busyRef = useRef(false);
+  // Held until the live row re-renders, not just until the write resolves,
+  // so a double tap can't mark the day and then unmark it (#318, #491).
+  const guard = useLogGuard(row);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const set = useCallback(
     async (sick: boolean) => {
-      if (busyRef.current) return;
       // Unmarking loses the note, so ask first when there is one.
       if (!sick && row?.note && !window.confirm("Unmark this sick day? Its note is removed too."))
         return;
-      busyRef.current = true;
       setBusy(true);
       setError(null);
       try {
-        if (sick) await markSickDay({ userId, day, today });
-        else await unmarkSickDay(day);
+        await guard.run(async () => {
+          if (sick) await markSickDay({ userId, day, today });
+          else await unmarkSickDay(day);
+        });
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Couldn't save the sick day");
       } finally {
-        busyRef.current = false;
         setBusy(false);
       }
     },
-    [userId, day, today, row?.note],
+    [userId, day, today, row?.note, guard],
   );
 
   return { row, isFuture: day > today, busy, error, set };

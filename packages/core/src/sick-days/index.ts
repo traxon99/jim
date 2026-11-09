@@ -1,4 +1,4 @@
-import { isDayKey } from "../injuries/days";
+import { dayKey, isDayKey } from "../injuries/days";
 
 /**
  * Sick days (issue #779, CONTEXT.md): local calendar days, YYYY-MM-DD, the
@@ -42,4 +42,17 @@ export function dayKeysBetween(from: string, to: string): string[] {
 export function dayKeyNoon(day: string): Date {
   const [year, month, date] = day.split("-").map(Number) as [number, number, number];
   return new Date(year, month - 1, date, 12);
+}
+
+/**
+ * An instant inside `day` in an IANA zone (the server's view of a user's
+ * day, issue #511): noon UTC, nudged 12 hours when the zone is far enough
+ * east or west that noon UTC falls on the day before or after.
+ */
+export function dayKeyInstant(day: string, timeZone: string): Date {
+  const noon = new Date(`${day}T12:00:00Z`);
+  const local = dayKey(noon, timeZone);
+  if (local > day) return new Date(noon.getTime() - 12 * 60 * 60 * 1000);
+  if (local < day) return new Date(noon.getTime() + 12 * 60 * 60 * 1000);
+  return noon;
 }

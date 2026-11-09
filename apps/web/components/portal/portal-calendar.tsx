@@ -277,7 +277,7 @@ function YearHeatmap({
   units: string;
   /** With "Show injuries" on: check-in days tint by their worst pain instead of volume. */
   painDays: PortalCalendarData["painDays"] | null;
-  /** Sick days (issue #779): a rest day shows grey, and every label says so. */
+  /** Sick days (issue #779): a day off shows a dashed outline, and every label says so. */
   sickDays: ReadonlySet<string>;
 }) {
   const maxVolume = Math.max(0, ...[...days.values()].map((day) => day.totalVolume));
@@ -345,6 +345,12 @@ function YearHeatmap({
                     <span
                       key={key}
                       title={`${date.toLocaleDateString()}${painText}`}
+                      {...(painText
+                        ? {
+                            role: "img",
+                            "aria-label": `${date.toLocaleDateString()}${painText}`,
+                          }
+                        : {})}
                       className={`${CELL} ${
                         painTint ||
                         (sickDays.has(key) ? SICK_DAY_CLASS : "bg-zinc-100 dark:bg-zinc-900")

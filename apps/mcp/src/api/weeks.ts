@@ -3,6 +3,7 @@ import {
   type V1Streak,
   type V1Weeks,
   WEEKLY_SET_TARGETS,
+  dayKeyInstant,
   sickDayKeys,
   trainingStreak,
   weeklyStreakTarget,
@@ -124,11 +125,12 @@ export async function v1Streak(context: UserContext, now: Date = new Date()): Pr
       ? await tx.select().from(programRoutines).where(eq(programRoutines.programId, active.id))
       : [];
     const target = weeklyStreakTarget(active ? { mode: active.mode, items } : null);
-    // Sick days (issue #779) lower their week's target, as on the phone. Noon
-    // UTC lands on the right local day in every zone within ±11 hours.
+    // Sick days (issue #779) lower their week's target, as on the phone,
+    // placed on their local day in the user's zone.
+    const zone = userZone(user?.timeZone);
     const sick = sickDayKeys(
       await tx.select({ day: sickDays.day, deletedAt: sickDays.deletedAt }).from(sickDays),
-    ).map((day) => new Date(`${day}T12:00:00Z`));
+    ).map((day) => dayKeyInstant(day, zone));
     const streak = trainingStreak(
       finished.map((session) => session.startedAt),
       target,

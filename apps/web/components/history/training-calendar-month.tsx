@@ -24,8 +24,8 @@ export function intensityClass(volume: number, maxVolume: number): string {
   return INTENSITY_LEVELS[0];
 }
 
-/** A sick day with no workout (issue #779): grey, the same on the phone and the portal. */
-export const SICK_DAY_CLASS = "bg-zinc-300 dark:bg-zinc-700";
+/** A sick day with no workout (issue #779): a dashed outline, so it never reads as a volume shade. */
+export const SICK_DAY_CLASS = "border border-dashed border-zinc-500 dark:border-zinc-400";
 
 const LABEL_DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
