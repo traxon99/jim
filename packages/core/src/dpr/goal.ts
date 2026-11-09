@@ -98,15 +98,35 @@ export function baselineE1rm(series: readonly E1rmPoint[], blockStart: Date): nu
   return Math.max(...before.map((p) => p.e1rm));
 }
 
-/** Total days of layoff gaps (14+ days) inside [start, now]. */
-export function layoffDays(dates: readonly Date[], start: Date, now: Date): number {
+/**
+ * Total days of layoff gaps (14+ days) inside [start, now], plus each sick
+ * day (issue #779) in that span that isn't already inside a counted gap.
+ */
+export function layoffDays(
+  dates: readonly Date[],
+  start: Date,
+  now: Date,
+  sickDays: readonly Date[] = [],
+): number {
   const times = [start.getTime(), ...dates.map((d) => d.getTime()), now.getTime()]
     .filter((t) => t >= start.getTime() && t <= now.getTime())
     .sort((a, b) => a - b);
   let total = 0;
+  const gaps: [number, number][] = [];
   for (let i = 1; i < times.length; i++) {
-    const gap = Math.floor(((times[i] as number) - (times[i - 1] as number)) / DAY_MS);
-    if (gap >= LAYOFF_MIN_DAYS) total += gap;
+    const from = times[i - 1] as number;
+    const to = times[i] as number;
+    const gap = Math.floor((to - from) / DAY_MS);
+    if (gap >= LAYOFF_MIN_DAYS) {
+      total += gap;
+      gaps.push([from, to]);
+    }
+  }
+  for (const sick of sickDays) {
+    const t = sick.getTime();
+    if (t < start.getTime() || t > now.getTime()) continue;
+    if (gaps.some(([from, to]) => t >= from && t <= to)) continue;
+    total += 1;
   }
   return total;
 }
@@ -128,12 +148,13 @@ export type OnTrackStatus = "ahead" | "on_track" | "behind";
 /**
  * Compares where the lift is (best of the latest 3 in-block e1RMs, to smooth
  * a single off day) with a straight line from baseline to goal, ±2%. Layoff
- * days don't count toward elapsed time. No in-block sessions yet → on track.
+ * and sick days don't count toward elapsed time. No in-block sessions yet → on track.
  */
 export function onTrackStatus(
   block: DprBlockGoal,
   e1rmSeries: readonly E1rmPoint[],
   now: Date,
+  sickDays: readonly Date[] = [],
 ): OnTrackStatus {
   const inBlock = e1rmSeries
     .filter((p) => p.date >= block.startDate && p.date <= now && p.e1rm > 0)
@@ -144,6 +165,7 @@ export function onTrackStatus(
     inBlock.map((p) => p.date),
     block.startDate,
     now,
+    sickDays,
   );
   const elapsedDays = (now.getTime() - block.startDate.getTime()) / DAY_MS - layoff;
   const progress = Math.min(1, Math.max(0, elapsedDays / (block.weeks * 7)));

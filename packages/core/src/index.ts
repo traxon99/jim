@@ -17,6 +17,7 @@ export * from "./routines";
 export * from "./search-highlight";
 export * from "./sessions";
 export * from "./sharing";
+export * from "./sick-days";
 export * from "./social";
 export * from "./strength-standards";
 export * from "./supersets";

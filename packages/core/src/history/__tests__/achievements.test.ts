@@ -61,6 +61,25 @@ describe("trainingStreak", () => {
     expect(utc).toEqual({ weeklyTarget: 1, current: 1, longest: 1, thisWeek: 2 });
   });
 
+  it("lowers a week's target by its sick days (#779)", () => {
+    // Target 2. Week of 9-21 has one workout and one sick day, so it counts.
+    const workouts = [day(2026, 9, 14), day(2026, 9, 16), day(2026, 9, 21), day(2026, 9, 28)];
+    expect(trainingStreak(workouts, 2, 1, now).current).toBe(0);
+    const streak = trainingStreak(workouts, 2, 1, now, undefined, [
+      day(2026, 9, 23),
+      day(2026, 9, 29),
+    ]);
+    expect(streak).toEqual({ weeklyTarget: 2, current: 3, longest: 3, thisWeek: 1 });
+  });
+
+  it("bridges a fully sick week without counting it (#779)", () => {
+    // Target 1: the week of 9-21 has no workout but a sick day.
+    const workouts = [day(2026, 9, 14), day(2026, 9, 28)];
+    expect(trainingStreak(workouts, 1, 1, now).current).toBe(1);
+    const streak = trainingStreak(workouts, 1, 1, now, undefined, [day(2026, 9, 22)]);
+    expect(streak).toEqual({ weeklyTarget: 1, current: 2, longest: 2, thisWeek: 1 });
+  });
+
   it("counts consecutive weeks meeting the target", () => {
     const streak = trainingStreak(
       [

@@ -16,6 +16,7 @@ import {
   sessionExercises,
   sessions,
   sets,
+  sickDays,
   syncMutations,
 } from "@jim/db";
 import { type SQL, sql } from "drizzle-orm";
@@ -225,6 +226,10 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
   painCheckins: {
     table: painCheckins,
     updatable: ["painLevel"],
+  },
+  sickDays: {
+    table: sickDays,
+    updatable: ["note"],
   },
 };
 

@@ -124,6 +124,37 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.deleted_at).not.toBeNull();
   });
 
+  it("applies a sick day and its later unmark (issue #779)", async () => {
+    const id = uuidv7();
+    const created = new Date("2026-11-09T10:00:00Z").toISOString();
+    const sickDay = {
+      id,
+      userId: USER_A,
+      day: "2026-11-09",
+      note: "flu",
+      createdAt: created,
+      updatedAt: created,
+      deviceId: "device-a",
+      deletedAt: null,
+    };
+    const later = new Date("2026-11-09T11:00:00Z").toISOString();
+    const body = await (
+      await push([
+        { id: uuidv7(), table: "sickDays", entity: sickDay },
+        {
+          id: uuidv7(),
+          table: "sickDays",
+          entity: { ...sickDay, updatedAt: later, deletedAt: later },
+        },
+      ])
+    ).json();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual(["applied", "applied"]);
+    const [row] = await admin<{ day: string; note: string; deleted_at: string | null }[]>`
+      SELECT to_char(day, 'YYYY-MM-DD') AS day, note, deleted_at FROM sick_days WHERE id = ${id}`;
+    expect(row).toMatchObject({ day: "2026-11-09", note: "flu" });
+    expect(row?.deleted_at).not.toBeNull();
+  });
+
   it("applies a gym's coordinates and clears them on a later edit (issue #462)", async () => {
     const gymId = uuidv7();
     const created = new Date("2026-10-11T10:00:00Z").toISOString();

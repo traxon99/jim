@@ -9,6 +9,7 @@ import type {
   SessionRow,
   SetRow,
   SettingsRow,
+  SickDayRow,
 } from "@/lib/db/schema";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
@@ -16,10 +17,12 @@ import {
   type AchievementSet,
   type AchievementStrengthRecord,
   type TrainingStreak,
+  dayKeyNoon,
   deletedSessionExerciseIds,
   deriveAchievements,
   isStrengthExercise,
   resolveCurrentRows,
+  sickDayKeys,
   standardLiftForSlug,
   trainingStreak,
   weeklyStreakTarget,
@@ -36,6 +39,8 @@ export interface AchievementTables {
   programRoutines: readonly ProgramRoutineRow[];
   /** Weigh-in history, so badges use the bodyweight on each lift's date (issue #247). */
   bodyMeasurements?: readonly BodyMeasurementRow[];
+  /** Sick days (issue #779) lower their week's streak target. */
+  sickDays?: readonly SickDayRow[];
 }
 
 export interface AchievementData {
@@ -127,6 +132,8 @@ export function buildAchievementData(
     streakTarget,
     settings.weekStart,
     now,
+    undefined,
+    sickDayKeys(tables.sickDays ?? []).map(dayKeyNoon),
   );
 
   return { achievements, streak };

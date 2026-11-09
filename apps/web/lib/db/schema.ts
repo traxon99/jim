@@ -15,6 +15,7 @@ import type {
   sessionExercises,
   sessions,
   sets,
+  sickDays,
   users,
 } from "@jim/db";
 import Dexie, { type EntityTable } from "dexie";
@@ -58,6 +59,7 @@ export type GymRow = Omit<GymSelect, "latitude" | "longitude"> &
 
 export type InjuryRow = typeof injuries.$inferSelect;
 export type PainCheckinRow = typeof painCheckins.$inferSelect;
+export type SickDayRow = typeof sickDays.$inferSelect;
 
 export interface SyncTableRowMap {
   routines: RoutineRow;
@@ -75,6 +77,7 @@ export interface SyncTableRowMap {
   gyms: GymRow;
   injuries: InjuryRow;
   painCheckins: PainCheckinRow;
+  sickDays: SickDayRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -163,6 +166,7 @@ export class JimDatabase extends Dexie {
   gyms!: EntityTable<GymRow, "id">;
   injuries!: EntityTable<InjuryRow, "id">;
   painCheckins!: EntityTable<PainCheckinRow, "id">;
+  sickDays!: EntityTable<SickDayRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -197,6 +201,10 @@ export class JimDatabase extends Dexie {
     this.version(5).stores({
       injuries: "id, updatedAt, deletedAt",
       painCheckins: "id, injuryId, day",
+    });
+    // Sick days (issue #779).
+    this.version(6).stores({
+      sickDays: "id, day",
     });
   }
 }

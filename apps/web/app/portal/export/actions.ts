@@ -19,6 +19,7 @@ import {
   sessionExercises,
   sessions,
   sets,
+  sickDays,
 } from "@jim/db";
 import { eq, inArray, or } from "drizzle-orm";
 
@@ -47,6 +48,7 @@ export async function loadExportTables(): Promise<ExportTables> {
     const gymRows = await tx.select().from(gyms);
     const injuryRows = await tx.select().from(injuries);
     const checkinRows = await tx.select().from(painCheckins);
+    const sickDayRows = await tx.select().from(sickDays);
     // The exercises the history names, plus every custom one the user owns.
     const exerciseIds = [
       ...new Set([
@@ -79,6 +81,7 @@ export async function loadExportTables(): Promise<ExportTables> {
       gyms: gymRows,
       injuries: injuryRows,
       painCheckins: checkinRows,
+      sickDays: sickDayRows,
     };
   });
 }

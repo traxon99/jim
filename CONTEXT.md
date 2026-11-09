@@ -15,6 +15,15 @@ A set the lifter could not get another rep on: marked as a failure set, or logge
 tracks it like a working set and reads it as where the lifter's limit is; it is never a miss.
 _Avoid_: Failed set, miss
 
+## Sick days
+
+**Sick day**:
+A calendar day the user marked as sick (issue #779), with an optional note. It never changes a
+workout. It lowers its week's streak target by one, so a week sick enough to need no workout is
+excused (it neither counts nor breaks the streak), and it pushes a running PRP block's end back a
+day, like a layoff. Private to the user, like injuries.
+_Avoid_: Illness, off day, rest day (a rest day is part of a program)
+
 ## Injuries
 
 **Injury**:

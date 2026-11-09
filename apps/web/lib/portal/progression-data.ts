@@ -9,6 +9,7 @@ import type {
   SessionRow,
   SetRow,
   SettingsRow,
+  SickDayRow,
 } from "@/lib/db/schema";
 import { currentBlock, liveBlockLifts } from "@/lib/dpr/block-select";
 import { type DprContext, buildDprContext, liftGoal } from "@/lib/dpr/calls";
@@ -41,6 +42,8 @@ export interface PortalProgressionData {
   routineExercises: RoutineExerciseRow[];
   /** Injuries bend PRP's calls as on the phone (issue #627). */
   injuries?: InjuryRow[];
+  /** Sick days push the block's end back as on the phone (issue #779). */
+  sickDays?: SickDayRow[];
 }
 
 export interface PortalBlockRecap {

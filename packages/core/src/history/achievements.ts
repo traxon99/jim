@@ -70,6 +70,10 @@ function previousWeek(week: Date, weekStart: number, timeZone?: string): Date {
  *
  * Weeks are in the device's own time zone, as on the phone. The server
  * passes the user's stored IANA `timeZone` instead (the /v1 API, #738).
+ *
+ * Each sick day (issue #779) lowers its week's target by one. A week that
+ * meets the lowered target counts; a week sick enough to need no workout
+ * and with none logged is excused: it neither counts nor breaks the streak.
  */
 export function trainingStreak(
   workoutDates: readonly Date[],
@@ -77,6 +81,7 @@ export function trainingStreak(
   weekStart: number,
   now: Date,
   timeZone?: string,
+  sickDates: readonly Date[] = [],
 ): TrainingStreak {
   const target = Math.max(1, weeklyTarget);
   const counts = new Map<number, number>();
@@ -86,15 +91,27 @@ export function trainingStreak(
     counts.set(key, (counts.get(key) ?? 0) + 1);
     if (!earliest || date < earliest) earliest = date;
   }
+  const sickCounts = new Map<number, number>();
+  for (const date of sickDates) {
+    const key = startOfWeek(date, weekStart, timeZone).getTime();
+    sickCounts.set(key, (sickCounts.get(key) ?? 0) + 1);
+  }
 
   const thisWeekStart = startOfWeek(now, weekStart, timeZone);
   const countFor = (week: Date) => counts.get(week.getTime()) ?? 0;
-  const met = (week: Date) => countFor(week) >= target;
+  const weekStatus = (week: Date): "met" | "excused" | "missed" => {
+    const needed = Math.max(0, target - (sickCounts.get(week.getTime()) ?? 0));
+    if (countFor(week) >= Math.max(1, needed)) return "met";
+    return needed === 0 ? "excused" : "missed";
+  };
 
   let current = 0;
-  let week = met(thisWeekStart) ? thisWeekStart : previousWeek(thisWeekStart, weekStart, timeZone);
-  while (met(week)) {
-    current += 1;
+  let week =
+    weekStatus(thisWeekStart) === "missed"
+      ? previousWeek(thisWeekStart, weekStart, timeZone)
+      : thisWeekStart;
+  for (let status = weekStatus(week); status !== "missed"; status = weekStatus(week)) {
+    if (status === "met") current += 1;
     week = previousWeek(week, weekStart, timeZone);
   }
 
@@ -106,7 +123,9 @@ export function trainingStreak(
       cursor.getTime() <= thisWeekStart.getTime();
       cursor = nextWeek(cursor, weekStart, timeZone)
     ) {
-      run = met(cursor) ? run + 1 : 0;
+      const status = weekStatus(cursor);
+      if (status === "met") run += 1;
+      else if (status === "missed") run = 0;
       longest = Math.max(longest, run);
     }
   }

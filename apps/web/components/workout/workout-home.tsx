@@ -6,6 +6,7 @@ import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIcon } from "@/components/routines/routine-icon";
+import { SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-controls";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
@@ -36,6 +37,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const dprContext = useDprContext();
   const gyms = useGyms();
   const hasOpenInjury = useHasOpenInjury();
+  const sickToday = useSickToday();
   const itemsByRoutine = useLiveQuery(async () => {
     const map = new Map<string, RoutineExerciseRow[]>();
     if (!dprContext) return map;
@@ -150,7 +152,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
           </p>
         )}
 
-        <UpNextCard starting={starting} onStart={handleChooseRoutine} />
+        {/* A sick day (issue #779) takes the up-next spot; training stays a tap away below. */}
+        {sickToday ? (
+          <SickTodayCard userId={userId} sick />
+        ) : (
+          <UpNextCard starting={starting} onStart={handleChooseRoutine} />
+        )}
 
         {/* Your routines come first (issue #329); the ways to start without
           one and the PRP invite follow. */}
@@ -238,6 +245,8 @@ export function WorkoutHome({ userId }: { userId: string }) {
         </div>
 
         <TryDprCard completedSessionCount={completedSessionCount} />
+
+        {sickToday === false && <SickTodayCard userId={userId} sick={false} />}
 
         {preview && (
           <PreWorkoutSheet

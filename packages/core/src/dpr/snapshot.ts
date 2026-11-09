@@ -4,6 +4,7 @@ import {
   type PredictionSet,
   predictOneRepMaxNow,
 } from "../history/predicted-one-rep-max";
+import { type SickDaySource, sickDayKeys } from "../sick-days";
 import { resolveCurrentRows } from "../sync/supersede";
 import {
   type DprHistoryEntry,
@@ -33,6 +34,8 @@ export interface DprSnapshot {
   /** Start of the first completed session, or null with no history. */
   firstSessionAt: Date | null;
   completedSessionCount: number;
+  /** Sick days (issue #779), YYYY-MM-DD: they push a block's end back like a layoff. */
+  sickDays?: string[];
 }
 
 /** The subset of each synced row the snapshot reads — Dexie and Drizzle rows both fit. */
@@ -61,6 +64,8 @@ export interface DprSourceRows {
     updatedAt: Date;
     deletedAt: Date | null;
   }[];
+  /** Sick-day rows (issue #779); optional so older callers keep working. */
+  sickDays?: readonly SickDaySource[];
 }
 
 export interface DprSourceSet {
@@ -174,6 +179,7 @@ export function buildDprSnapshot(rows: DprSourceRows, defaultRange: RepRange): D
     usageRows,
     firstSessionAt,
     completedSessionCount: completed.size,
+    sickDays: sickDayKeys(rows.sickDays ?? []),
   };
 }
 

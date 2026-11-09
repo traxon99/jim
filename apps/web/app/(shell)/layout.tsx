@@ -37,7 +37,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
   const tabs = {
     workout: <WorkoutHome userId={userId} />,
     routines: <RoutinesList userId={userId} />,
-    history: <HistoryHome />,
+    history: <HistoryHome userId={userId} />,
     exercises: <ExercisesList userId={userId} />,
     home: <HomeScreen />,
   };

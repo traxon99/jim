@@ -3,10 +3,11 @@ import {
   type V1Streak,
   type V1Weeks,
   WEEKLY_SET_TARGETS,
+  sickDayKeys,
   trainingStreak,
   weeklyStreakTarget,
 } from "@jim/core";
-import { programRoutines, programs, sessions, users } from "@jim/db";
+import { programRoutines, programs, sessions, sickDays, users } from "@jim/db";
 import { and, eq, gte, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 import { type UserContext, withUser } from "../context.js";
@@ -123,12 +124,18 @@ export async function v1Streak(context: UserContext, now: Date = new Date()): Pr
       ? await tx.select().from(programRoutines).where(eq(programRoutines.programId, active.id))
       : [];
     const target = weeklyStreakTarget(active ? { mode: active.mode, items } : null);
+    // Sick days (issue #779) lower their week's target, as on the phone. Noon
+    // UTC lands on the right local day in every zone within ±11 hours.
+    const sick = sickDayKeys(
+      await tx.select({ day: sickDays.day, deletedAt: sickDays.deletedAt }).from(sickDays),
+    ).map((day) => new Date(`${day}T12:00:00Z`));
     const streak = trainingStreak(
       finished.map((session) => session.startedAt),
       target,
       user?.weekStart ?? 0,
       now,
       userZone(user?.timeZone),
+      sick,
     );
     return {
       weeks: streak.current,

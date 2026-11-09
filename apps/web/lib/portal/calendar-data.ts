@@ -25,6 +25,8 @@ export interface PortalCalendarData {
    * a check-in are absent.
    */
   painDays: Record<string, { pain: number; injuries: string[] }>;
+  /** Sick days (issue #779), YYYY-MM-DD, oldest first. */
+  sickDays: string[];
 }
 
 /** Each check-in day's worst pain and the injuries behind it, e.g. "Left knee 4". */

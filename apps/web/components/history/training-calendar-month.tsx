@@ -1,6 +1,7 @@
 "use client";
 
 import { type TrainingDay, buildCalendarMonth, dateKey } from "@jim/core";
+import { Thermometer } from "lucide-react";
 import { useMemo } from "react";
 
 const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
@@ -23,12 +24,21 @@ export function intensityClass(volume: number, maxVolume: number): string {
   return INTENSITY_LEVELS[0];
 }
 
+/** A sick day with no workout (issue #779): grey, the same on the phone and the portal. */
+export const SICK_DAY_CLASS = "bg-zinc-300 dark:bg-zinc-700";
+
 const LABEL_DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 /** Screen-reader name for a day cell, so trained and selected days aren't conveyed by color alone. */
-export function dayAriaLabel(date: Date, sessionCount: number, isSelected: boolean): string {
+export function dayAriaLabel(
+  date: Date,
+  sessionCount: number,
+  isSelected: boolean,
+  isSick = false,
+): string {
   const parts = [LABEL_DATE_FORMAT.format(date)];
   if (sessionCount > 0) parts.push(`${sessionCount} workout${sessionCount === 1 ? "" : "s"}`);
+  if (isSick) parts.push("sick day");
   if (isSelected) parts.push("selected");
   return parts.join(", ");
 }
@@ -42,6 +52,8 @@ interface Props {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   today?: Date;
+  /** Sick days (issue #779) as YYYY-MM-DD keys. */
+  sickDays?: ReadonlySet<string>;
 }
 
 /**
@@ -58,6 +70,7 @@ export function TrainingCalendarMonth({
   onPrevMonth,
   onNextMonth,
   today = new Date(),
+  sickDays,
 }: Props) {
   const weeks = useMemo(() => buildCalendarMonth(month, weekStart), [month, weekStart]);
   const maxVolume = Math.max(0, ...[...days.values()].map((day) => day.totalVolume));
@@ -109,22 +122,24 @@ export function TrainingCalendarMonth({
               const day = days.get(key);
               const isToday = key === todayKey;
               const isSelected = key === selectedKey;
+              const isSick = sickDays?.has(key) ?? false;
+              const shade = intensityClass(day?.totalVolume ?? 0, maxVolume);
 
               return (
                 <button
                   key={key}
                   type="button"
                   onClick={() => onSelectDate(date)}
-                  aria-label={dayAriaLabel(date, day?.sessionCount ?? 0, isSelected)}
+                  aria-label={dayAriaLabel(date, day?.sessionCount ?? 0, isSelected, isSick)}
                   aria-pressed={isSelected}
-                  title={
+                  title={`${
                     day
                       ? `${date.toLocaleDateString()} — ${day.sessionCount} session${day.sessionCount > 1 ? "s" : ""}`
                       : date.toLocaleDateString()
-                  }
-                  className={`aspect-square min-h-9 rounded-lg text-sm ${
+                  }${isSick ? " · sick day" : ""}`}
+                  className={`relative flex aspect-square min-h-9 items-center justify-center rounded-lg text-sm ${
                     inMonth ? "" : "text-zinc-400 dark:text-zinc-600"
-                  } ${intensityClass(day?.totalVolume ?? 0, maxVolume)} ${
+                  } ${shade || (isSick ? SICK_DAY_CLASS : "")} ${
                     isSelected
                       ? "ring-2 ring-accent"
                       : isToday
@@ -133,6 +148,13 @@ export function TrainingCalendarMonth({
                   }`}
                 >
                   {date.getDate()}
+                  {isSick && (
+                    <Thermometer
+                      className="pointer-events-none absolute right-0.5 top-0.5 h-2.5 w-2.5"
+                      strokeWidth={2.25}
+                      aria-hidden="true"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -142,6 +164,12 @@ export function TrainingCalendarMonth({
 
       {/* What the shading means (issue #328). */}
       <div className="flex items-center justify-end gap-1 text-[11px] text-zinc-500 dark:text-zinc-500">
+        {sickDays && sickDays.size > 0 && (
+          <span className="mr-2 flex items-center gap-1">
+            <span aria-hidden="true" className={`h-3 w-3 rounded-sm ${SICK_DAY_CLASS}`} />
+            Sick
+          </span>
+        )}
         <span className="mr-0.5">Less volume</span>
         {INTENSITY_LEVELS.map((level) => (
           <span key={level} aria-hidden="true" className={`h-3 w-3 rounded-sm ${level}`} />
