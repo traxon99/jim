@@ -24,8 +24,16 @@ export function intensityClass(volume: number, maxVolume: number): string {
   return INTENSITY_LEVELS[0];
 }
 
-/** A sick day with no workout (issue #779): a dashed outline, so it never reads as a volume shade. */
+/** A sick day (issue #779): a dashed outline, so it never reads as a volume shade. */
 export const SICK_DAY_CLASS = "border border-dashed border-zinc-500 dark:border-zinc-400";
+
+/**
+ * A day cell's fill: the volume shade and, on a sick day, the dashed outline
+ * as well. A day can be sick and trained (issue #781), so neither hides the other.
+ */
+export function dayFillClass(shade: string, isSick: boolean): string {
+  return [shade, isSick ? SICK_DAY_CLASS : ""].filter(Boolean).join(" ");
+}
 
 const LABEL_DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
@@ -139,7 +147,7 @@ export function TrainingCalendarMonth({
                   }${isSick ? " · sick day" : ""}`}
                   className={`relative flex aspect-square min-h-9 items-center justify-center rounded-lg text-sm ${
                     inMonth ? "" : "text-zinc-400 dark:text-zinc-600"
-                  } ${shade || (isSick ? SICK_DAY_CLASS : "")} ${
+                  } ${dayFillClass(shade, isSick)} ${
                     isSelected
                       ? "ring-2 ring-accent"
                       : isToday

@@ -98,7 +98,8 @@ export function useSickToday(): boolean | undefined {
 
 /**
  * The Workout tab's sick-day card (issue #779): while today is marked sick
- * it takes the up-next spot; otherwise it's a quiet "Feeling sick?" link.
+ * it sits above the up-next card, since a sick day can still hold a workout
+ * (#781); otherwise it's a quiet "Feeling sick?" link.
  */
 export function SickTodayCard({ userId, sick }: { userId: string; sick: boolean }) {
   const today = useTodayKey();
@@ -135,7 +136,8 @@ export function SickTodayCard({ userId, sick }: { userId: string; sick: boolean 
         Sick day
       </span>
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        Rest up. A sick day doesn't break your streak, and a PRP block waits for you.
+        Rest up. A sick day doesn't break your streak, and a PRP block waits for you. Training
+        anyway? Start a workout as usual; today stays a sick day.
       </p>
       <button
         type="button"

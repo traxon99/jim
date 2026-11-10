@@ -21,7 +21,8 @@ _Avoid_: Failed set, miss
 A calendar day the user marked as sick (issue #779), with an optional note. It never changes a
 workout. It lowers its week's streak target by one, so a week sick enough to need no workout is
 excused (it neither counts nor breaks the streak), and it pushes a running PRP block's end back a
-day, like a layoff. Private to the user, like injuries.
+day, like a layoff. A sick day can also hold a workout (#781): the workout counts as usual and
+the day still shows as sick. Private to the user, like injuries.
 _Avoid_: Illness, off day, rest day (a rest day is part of a program)
 
 ## Injuries

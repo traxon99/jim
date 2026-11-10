@@ -100,6 +100,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       row while the user isn't editing (#519).
 - [ ] Server data shown on more than one tab lives in one shared store (like `useFriends`), so an
       action on one tab updates the others (#524, #653).
+- [ ] Marks that can share a day (sick, trained, pain) layer on a calendar cell, never `a || b`;
+      a status card never hides the way to start a workout (#781).
 - [ ] Depends on today's date? Use `useToday()` and list it in memo deps; iOS resumes a suspended
       app with yesterday's state (#523).
 - [ ] Theme-dependent paint (splash, `color-scheme`) is set before first paint, not after Dexie
