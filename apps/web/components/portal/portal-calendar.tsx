@@ -277,7 +277,7 @@ function YearHeatmap({
   units: string;
   /** With "Show injuries" on: check-in days tint by their worst pain instead of volume. */
   painDays: PortalCalendarData["painDays"] | null;
-  /** Sick days (issue #779): a day off shows a dashed outline, and every label says so. */
+  /** Sick days (issue #779): a dashed outline, trained or not (#781), and every label says so. */
   sickDays: ReadonlySet<string>;
 }) {
   const maxVolume = Math.max(0, ...[...days.values()].map((day) => day.totalVolume));
@@ -375,7 +375,7 @@ function YearHeatmap({
                     onClick={() => onSelect(key)}
                     className={`${CELL} ${
                       painTint || intensityClass(day.totalVolume, maxVolume) || INTENSITY_LEVELS[0]
-                    } ${ring}`}
+                    } ${sickDays.has(key) ? SICK_DAY_CLASS : ""} ${ring}`}
                   />
                 );
               })}

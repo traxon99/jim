@@ -152,12 +152,10 @@ export function WorkoutHome({ userId }: { userId: string }) {
           </p>
         )}
 
-        {/* A sick day (issue #779) takes the up-next spot; training stays a tap away below. */}
-        {sickToday ? (
-          <SickTodayCard userId={userId} sick />
-        ) : (
-          <UpNextCard starting={starting} onStart={handleChooseRoutine} />
-        )}
+        {/* A sick day (issue #779) leads, but training still works the same:
+          a sick day and a workout can share a day (#781). */}
+        {sickToday && <SickTodayCard userId={userId} sick />}
+        <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
         {/* Your routines come first (issue #329); the ways to start without
           one and the PRP invite follow. */}
