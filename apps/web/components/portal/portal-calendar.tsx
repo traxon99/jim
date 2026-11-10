@@ -4,6 +4,7 @@ import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import {
   INTENSITY_LEVELS,
   SICK_DAY_CLASS,
+  dayFillClass,
   intensityClass,
 } from "@/components/history/training-calendar-month";
 import {
@@ -351,10 +352,10 @@ function YearHeatmap({
                             "aria-label": `${date.toLocaleDateString()}${painText}`,
                           }
                         : {})}
-                      className={`${CELL} ${
-                        painTint ||
-                        (sickDays.has(key) ? SICK_DAY_CLASS : "bg-zinc-100 dark:bg-zinc-900")
-                      } ${ring}`}
+                      className={`${CELL} ${dayFillClass(
+                        painTint || (sickDays.has(key) ? "" : "bg-zinc-100 dark:bg-zinc-900"),
+                        sickDays.has(key),
+                      )} ${ring}`}
                     />
                   );
                 }
@@ -373,9 +374,10 @@ function YearHeatmap({
                     aria-label={label}
                     aria-pressed={key === selectedKey}
                     onClick={() => onSelect(key)}
-                    className={`${CELL} ${
-                      painTint || intensityClass(day.totalVolume, maxVolume) || INTENSITY_LEVELS[0]
-                    } ${sickDays.has(key) ? SICK_DAY_CLASS : ""} ${ring}`}
+                    className={`${CELL} ${dayFillClass(
+                      painTint || intensityClass(day.totalVolume, maxVolume) || INTENSITY_LEVELS[0],
+                      sickDays.has(key),
+                    )} ${ring}`}
                   />
                 );
               })}

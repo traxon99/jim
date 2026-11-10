@@ -23,6 +23,8 @@ describe("dayAriaLabel", () => {
 describe("dayFillClass", () => {
   it("keeps the sick outline on a trained day (issue #781)", () => {
     expect(dayFillClass("bg-accent", true)).toBe(`bg-accent ${SICK_DAY_CLASS}`);
+    // The portal's pain tint layers the same way.
+    expect(dayFillClass("bg-red-300", true)).toBe(`bg-red-300 ${SICK_DAY_CLASS}`);
   });
 
   it("shows the outline alone on an untrained sick day, and nothing extra otherwise", () => {
