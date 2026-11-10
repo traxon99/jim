@@ -20,7 +20,7 @@ Most of the bugs below came from breaking this model without meaning to.
    │                      overflow: hidden (installed only)
    └─ (shell)/layout.tsx  flex-1 min-h-0 flex column
       ├─ scroll container flex-1 min-h-0 overflow-y-auto   ← THE ONLY THING THAT SCROLLS
-      │  └─ TabbedShell   5 tabs kept mounted via <Activity>, plus routed children
+      │  └─ TabbedShell   5 base screens kept mounted via <Activity> (4 bar tabs + Exercises under Plan), plus routed children
       ├─ SyncStatusIndicator
       └─ BottomTabBar     shrink-0, pads its own bottom safe area
 ```
@@ -364,7 +364,7 @@ with `pnpm dev:shot <path>` (the `run-app` skill, `.claude/skills/run-app/SKILL.
    - switch tabs mid-action, come back, and check that no stale state is left behind.
 4. **Changing the service worker, routing or auth?** Check an offline cold start: sign in, load
    the app once, deploy (or bump the build), load once more, then force-quit, switch on Airplane
-   Mode and open Jim from the home screen. It must open on the Workout tab, not Safari's "not
+   Mode and open Jim from the home screen. It must open on the Lift tab, not Safari's "not
    connected" page. The worker keeps signed-in pages in `jim-pages-<build>`, stored under the URL a
    redirect ended on, and sign-out deletes it (#661).
 5. Things only a real iPhone shows: keyboard scroll behavior, the `dvh` first-paint bug, safe-area

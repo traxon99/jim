@@ -12,9 +12,9 @@ import { NewPostButton } from "./new-post-button";
 import { WeekRingsStrip } from "./week-rings-strip";
 
 /**
- * The Home tab, friends first like the social mockups (#746): everyone's
- * week rings, then your friends' workouts and posts. Your own stats live at
- * the top of History.
+ * The Friends tab (Home until #783), friends first like the social mockups (#746): everyone's
+ * week rings, then your friends' workouts and posts. Your own stats live in
+ * History.
  * New post, the activity bell and Profile are one tap away in the header
  * (issues #311, #404, #747, #753).
  */
@@ -46,7 +46,7 @@ export function HomeScreen() {
   return (
     <main className="flex min-w-0 w-full flex-1 flex-col">
       <PageHeader
-        title="Home"
+        title="Friends"
         actions={
           <>
             <NewPostButton />

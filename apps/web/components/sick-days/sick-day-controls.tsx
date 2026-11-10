@@ -101,6 +101,31 @@ export function useSickToday(): boolean | undefined {
  * it sits above the up-next card, since a sick day can still hold a workout
  * (#781); otherwise it's a quiet "Feeling sick?" link.
  */
+/** Lift's compact "Sick day" chip, beside Empty and Smart (#783). */
+export function SickDayChip({ userId, className }: { userId: string; className: string }) {
+  const today = useTodayKey();
+  const { busy, error, set } = useSickDayAction(userId, today);
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void set(true)}
+        aria-label="Take a sick day"
+        className={className}
+      >
+        <Thermometer className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+        Sick day
+      </button>
+      {error && (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-500">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function SickTodayCard({ userId, sick }: { userId: string; sick: boolean }) {
   const today = useTodayKey();
   const { busy, error, set } = useSickDayAction(userId, today);

@@ -4,9 +4,10 @@ import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { LoadingText } from "@/components/loading-text";
-import { PAGE_BODY, PageHeader } from "@/components/page-header";
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { ProgramWeekStrip, useProgramCycle } from "@/components/routines/program-week-strip";
 import { RoutineIcon } from "@/components/routines/routine-icon";
-import { SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-controls";
+import { SickDayChip, SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-controls";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
@@ -15,13 +16,19 @@ import { useHasOpenInjury } from "@/lib/injuries/use-injuries";
 import { formatLastDone, lastDoneByRoutine } from "@/lib/routines/last-done";
 import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/start-session";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Play } from "lucide-react";
+import { Play, Plus, TrendingUp, Zap } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PreWorkoutSheet } from "./pre-workout-sheet";
 import { UpNextCard } from "./up-next-card";
+
+/** Empty, Smart and Sick day share one compact row on Lift (#783). */
+const CHIP =
+  "flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-300 px-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-700";
 
 export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
@@ -38,6 +45,11 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const gyms = useGyms();
   const hasOpenInjury = useHasOpenInjury();
   const sickToday = useSickToday();
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  // The week strip and up next lead Lift (#783); the up-next routine is left
+  // out of "Other routines" below it.
+  const { suggestion, cycle } = useProgramCycle(settings.weekStart);
+  const upNextId = suggestion?.next && suggestion.routine ? suggestion.routine.id : null;
   const itemsByRoutine = useLiveQuery(async () => {
     const map = new Map<string, RoutineExerciseRow[]>();
     if (!dprContext) return map;
@@ -81,9 +93,17 @@ export function WorkoutHome({ userId }: { userId: string }) {
 
   const lastDone = useMemo(() => lastDoneByRoutine(rawSessions ?? []), [rawSessions]);
 
-  const routineGroups = useMemo(
-    () => groupRoutinesByFolder((rawRoutines ?? []).filter((routine) => !routine.deletedAt)),
+  const routinesById = useMemo(
+    () => new Map((rawRoutines ?? []).map((routine) => [routine.id, routine])),
     [rawRoutines],
+  );
+
+  const routineGroups = useMemo(
+    () =>
+      groupRoutinesByFolder(
+        (rawRoutines ?? []).filter((routine) => !routine.deletedAt && routine.id !== upNextId),
+      ),
+    [rawRoutines, upNextId],
   );
 
   // Nothing was started if this throws, so free the buttons and say so
@@ -142,8 +162,24 @@ export function WorkoutHome({ userId }: { userId: string }) {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Workout" />
+      <PageHeader
+        title="Lift"
+        actions={
+          // PRP Progress moved here from History's shortcuts (#783).
+          <Link href="/progression" aria-label="Progress" data-ripple className={FLOATING_BUTTON}>
+            <TrendingUp className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+          </Link>
+        }
+      />
       <div className={PAGE_BODY}>
+        {suggestion && cycle && (
+          <ProgramWeekStrip
+            programId={suggestion.program.id}
+            mode={suggestion.program.mode}
+            cycle={cycle}
+            routinesById={routinesById}
+          />
+        )}
         <BlockEndCard context={dprContext} />
 
         {startError && (
@@ -157,13 +193,46 @@ export function WorkoutHome({ userId }: { userId: string }) {
         {sickToday && <SickTodayCard userId={userId} sick />}
         <UpNextCard starting={starting} onStart={handleChooseRoutine} />
 
-        {/* Your routines come first (issue #329); the ways to start without
-          one and the PRP invite follow. */}
+        {/* The ways to start without a routine, one compact row (#783). */}
+        <div className={`grid gap-2 ${sickToday === false ? "grid-cols-3" : "grid-cols-2"}`}>
+          <button
+            type="button"
+            onClick={() => void handleStartEmpty()}
+            disabled={starting}
+            aria-label="Start empty workout"
+            className={CHIP}
+          >
+            <Plus className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            Empty
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleStartSmart()}
+            disabled={starting}
+            aria-label="Smart workout, balances recent volume"
+            className={CHIP}
+          >
+            <Zap className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            Smart
+          </button>
+          {sickToday === false && <SickDayChip userId={userId} className={CHIP} />}
+        </div>
+
+        {/* Your routines (issue #329); with a program, the up-next one is
+          already above, so these are the others. */}
         {routineGroups.length > 0 && (
           <div className="flex flex-col gap-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-              Start from a routine
-            </h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                {upNextId ? "Other routines" : "Start from a routine"}
+              </h2>
+              <Link
+                href="/routines?view=routines"
+                className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+              >
+                All in Plan
+              </Link>
+            </div>
             {routineGroups.map((group) => (
               <section key={group.folder ?? "__ungrouped"} className="flex flex-col gap-1">
                 {group.folder && (
@@ -220,31 +289,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => void handleStartEmpty()}
-            disabled={starting}
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 py-3 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-          >
-            Start empty workout
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleStartSmart()}
-            disabled={starting}
-            className="flex min-h-11 flex-col items-center justify-center rounded-lg border border-zinc-300 px-3 py-2 text-base font-medium disabled:opacity-50 dark:border-zinc-700"
-          >
-            Smart workout
-            <span className="text-xs font-normal text-zinc-500 dark:text-zinc-500">
-              Balances recent volume
-            </span>
-          </button>
-        </div>
-
         <TryDprCard completedSessionCount={completedSessionCount} />
-
-        {sickToday === false && <SickTodayCard userId={userId} sick={false} />}
 
         {preview && (
           <PreWorkoutSheet

@@ -1,27 +1,20 @@
 "use client";
 
 import { SHELL_SCROLLER_ATTRIBUTE } from "@/components/shell-scroller";
-import { type BaseTab, isTabActive } from "@/lib/navigation/tabs";
+import { type BarTab, isTabActive } from "@/lib/navigation/tabs";
 import { useHideTabBarForKeyboard } from "@/lib/pwa/use-keyboard-open";
 import { useHasActiveSession } from "@/lib/sessions/use-active-session";
-import {
-  BicepsFlexed,
-  ClipboardList,
-  Dumbbell,
-  History,
-  House,
-  type LucideIcon,
-} from "lucide-react";
+import { ClipboardList, Dumbbell, History, type LucideIcon, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useRef } from "react";
 
-const TABS: readonly { href: BaseTab; label: string; Icon: LucideIcon }[] = [
-  { href: "/workout", label: "Workout", Icon: Dumbbell },
-  { href: "/routines", label: "Routines", Icon: ClipboardList },
+// Four tabs (#783): Exercises moved into Plan, Home became Friends.
+const TABS: readonly { href: BarTab; label: string; Icon: LucideIcon }[] = [
+  { href: "/workout", label: "Lift", Icon: Dumbbell },
+  { href: "/routines", label: "Plan", Icon: ClipboardList },
   { href: "/history", label: "History", Icon: History },
-  { href: "/exercises", label: "Exercises", Icon: BicepsFlexed },
-  { href: "/home", label: "Home", Icon: House },
+  { href: "/home", label: "Friends", Icon: Users },
 ];
 
 export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {

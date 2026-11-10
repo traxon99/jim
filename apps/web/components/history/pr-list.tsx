@@ -196,7 +196,10 @@ export function PrList() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Personal records" back={{ href: "/history", label: "History" }} />
+      <PageHeader
+        title="Personal records"
+        back={{ href: "/history/insights", label: "Insights" }}
+      />
       <div className={PAGE_BODY}>
         {byExercise.length > 0 && (
           <div className="allow-pwa-select grid grid-cols-3 gap-2">

@@ -39,7 +39,14 @@ import { VolumePlan } from "./volume-plan";
  * running; then the block's progress; at its end the recap, an optional
  * deload week, and the next block.
  */
-export function ProgressionHome({ userId }: { userId: string }) {
+export function ProgressionHome({
+  userId,
+  fromSettings = false,
+}: {
+  userId: string;
+  /** Opened from Settings › Advanced, so Back returns there; otherwise Lift (#783). */
+  fromSettings?: boolean;
+}) {
   const cached = useLiveQuery(() => db.settings.get("me"), []);
   const settings = cached ?? DEFAULT_SETTINGS;
   const blocks = useLiveQuery(() => db.dprBlocks.toArray(), []);
@@ -207,7 +214,11 @@ export function ProgressionHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col">
       <PageHeader
         title="Progression"
-        back={{ href: "/profile/settings/advanced", label: "Advanced" }}
+        back={
+          fromSettings
+            ? { href: "/profile/settings/advanced", label: "Advanced" }
+            : { href: "/workout", label: "Lift" }
+        }
       />
       <div className={PAGE_BODY}>
         {loading && <LoadingText />}

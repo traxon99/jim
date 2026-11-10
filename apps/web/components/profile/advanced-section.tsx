@@ -193,7 +193,7 @@ export function AdvancedSection() {
       </h2>
       <DprSettings settings={settings} onSave={save} />
       <Link
-        href="/progression"
+        href="/progression?from=settings"
         data-ripple
         className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
       >

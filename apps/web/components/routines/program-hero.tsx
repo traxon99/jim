@@ -3,19 +3,11 @@
 import { FloatingCard } from "@/components/floating-card";
 import type { ProgramRow, RoutineRow } from "@/lib/db/schema";
 import { setActiveProgram } from "@/lib/programs/set-active";
-import { useNextWorkout } from "@/lib/programs/use-next-workout";
-import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
-import { useToday } from "@/lib/pwa/use-today";
-import {
-  type CycleDay,
-  formatProgramWeek,
-  isWarmupRoutine,
-  programCycle,
-  programWeekProgress,
-} from "@jim/core";
-import { Check, ChevronRight, Layers, Moon, Repeat } from "lucide-react";
+import { formatProgramWeek, isWarmupRoutine, programWeekProgress } from "@jim/core";
+import { ChevronRight, Layers, Repeat } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { ProgramWeekStrip, useProgramCycle } from "./program-week-strip";
 import { RoutineIcon } from "./routine-icon";
 
 interface Props {
@@ -38,22 +30,8 @@ function exerciseCountLabel(count: number): string {
  * Without an active program it's an invite to pick or build one.
  */
 export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart }: Props) {
-  const suggestion = useNextWorkout();
-  const today = useToday();
+  const { suggestion, cycle, today } = useProgramCycle(weekStart);
   const [switching, setSwitching] = useState(false);
-  // Keeps today in view on a strip wider than the card (docs/LESSONS.md, #677).
-  const todayRef = useRef<HTMLLIElement>(null);
-
-  const cycle = useMemo(() => {
-    if (!suggestion) return null;
-    return programCycle({
-      mode: suggestion.program.mode,
-      items: suggestion.items,
-      next: suggestion.next,
-      now: today,
-      weekdayOrder: Array.from({ length: 7 }, (_, i) => (weekStart + i) % 7),
-    });
-  }, [suggestion, today, weekStart]);
 
   // Each routine once, in program order; rest days and warm-ups stay out.
   const programRoutines = useMemo(() => {
@@ -69,13 +47,6 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
     }
     return list;
   }, [suggestion, routinesById]);
-
-  const todayIndex = cycle?.todayIndex ?? -1;
-  const programId = suggestion?.program.id;
-  useEffect(() => {
-    if (todayIndex < 0 || !programId) return;
-    todayRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
-  }, [todayIndex, programId]);
 
   // Still loading: hold the space quietly rather than flash the invite.
   if (suggestion === undefined) return null;
@@ -136,11 +107,6 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
     .filter(Boolean)
     .join(" · ");
 
-  const dayName = (day: CycleDay): string => {
-    if (day.routineIds.length === 0) return "Rest";
-    return day.routineIds.map((id) => routinesById.get(id)?.name ?? "Routine").join(" + ");
-  };
-
   return (
     <section
       aria-label="Current program"
@@ -182,57 +148,13 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
         </p>
       </div>
 
-      {cycle && cycle.days.length > 0 && (
-        <ol
-          key={program.id}
-          aria-label="This cycle"
-          className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1"
-        >
-          {cycle.days.map((day, index) => {
-            const name = dayName(day);
-            const weekday = day.weekday !== null ? WEEKDAY_NAMES[day.weekday].slice(0, 3) : null;
-            const isToday = day.state === "today";
-            const done = day.state === "past" && program.mode === "sequence";
-            const stateText = isToday ? "today" : day.state === "past" ? "earlier" : "coming up";
-            return (
-              <li
-                // Days have no stable id of their own; the order is the identity.
-                // biome-ignore lint/suspicious/noArrayIndexKey: fixed-order strip
-                key={index}
-                ref={isToday ? todayRef : undefined}
-                aria-label={`${weekday ?? `Day ${index + 1}`}: ${name}, ${stateText}`}
-                className="flex w-14 min-w-14 shrink-0 flex-col items-center gap-1"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
-                    isToday
-                      ? "bg-accent text-accent-foreground"
-                      : done
-                        ? "bg-zinc-900/10 text-zinc-700 dark:bg-white/15 dark:text-zinc-200"
-                        : "border border-zinc-900/15 text-zinc-600 dark:border-white/20 dark:text-zinc-400"
-                  }`}
-                >
-                  {done ? (
-                    <Check className="h-4 w-4" strokeWidth={2.25} />
-                  ) : isToday && day.routineIds.length === 0 ? (
-                    <Moon className="h-4 w-4" strokeWidth={2} />
-                  ) : (
-                    (weekday ?? index + 1)
-                  )}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={`w-full truncate text-center text-xs ${
-                    isToday ? "font-semibold" : "text-zinc-600 dark:text-zinc-400"
-                  }`}
-                >
-                  {isToday && program.mode === "sequence" ? "Today" : name}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+      {cycle && (
+        <ProgramWeekStrip
+          programId={program.id}
+          mode={program.mode}
+          cycle={cycle}
+          routinesById={routinesById}
+        />
       )}
 
       {programRoutines.length === 0 ? (
