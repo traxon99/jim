@@ -217,7 +217,7 @@ The riskiest story. Budget accordingly, and treat its tests as part of the deliv
 
 - A program is an ordered set of routines, run as a **sequence** (rotate; next = the one after the
   last completed) or a **weekly schedule** (each routine pinned to a weekday)
-- At most one program is active; the app launches onto the Workout tab, which leads with the
+- At most one program is active; the app launches onto the Lift tab (Workout before #783), which leads with the
   active program's suggested workout and a one-tap Start
 - Suggestion logic lives in `packages/core` (`suggestNextWorkout`) so any future MCP surface
   agrees with the phone

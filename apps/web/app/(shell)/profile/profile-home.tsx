@@ -60,7 +60,7 @@ export function ProfileHome() {
     <main className="flex min-w-0 w-full flex-1 flex-col">
       <PageHeader
         title={navTitle}
-        back={{ href: "/home", label: "Home" }}
+        back={{ href: "/home", label: "Friends" }}
         actions={
           <>
             {header.sharePrivate && (

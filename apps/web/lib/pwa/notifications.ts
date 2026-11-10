@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Sick days can hold a workout now: log one and the day still shows as sick.";
+  "Four tabs now: Lift, Plan, History and Friends, with History down to just your workouts.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

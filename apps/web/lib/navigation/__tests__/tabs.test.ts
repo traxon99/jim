@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE_TABS, isExerciseCardPath, isTabActive, scrollKey } from "../tabs";
+import { BAR_TABS, BASE_TABS, isExerciseCardPath, isTabActive, scrollKey } from "../tabs";
 
 describe("isTabActive", () => {
   it("replaces the Profile tab with Home", () => {
@@ -18,11 +18,22 @@ describe("isTabActive", () => {
     expect(isTabActive("/routines", "/routinesx")).toBe(false);
   });
 
-  it("keeps Home highlighted on Profile and the screens under it", () => {
+  it("shows four tabs: Lift, Plan, History, Friends (#783)", () => {
+    expect(BAR_TABS).toEqual(["/workout", "/routines", "/history", "/home"]);
+    expect(BASE_TABS).toContain("/exercises");
+  });
+
+  it("keeps Plan highlighted on Exercises and Lift on PRP Progress (#783)", () => {
+    expect(isTabActive("/routines", "/exercises")).toBe(true);
+    expect(isTabActive("/routines", "/exercises/abc")).toBe(true);
+    expect(isTabActive("/workout", "/progression")).toBe(true);
+    expect(isTabActive("/home", "/progression")).toBe(false);
+  });
+
+  it("keeps Friends highlighted on Profile and the screens under it", () => {
     expect(isTabActive("/home", "/home")).toBe(true);
     expect(isTabActive("/home", "/profile")).toBe(true);
     expect(isTabActive("/home", "/profile/settings")).toBe(true);
-    expect(isTabActive("/home", "/progression")).toBe(true);
     expect(isTabActive("/home", "/friends")).toBe(true);
     expect(isTabActive("/home", "/friends/maya")).toBe(true);
     expect(isTabActive("/workout", "/profile")).toBe(false);

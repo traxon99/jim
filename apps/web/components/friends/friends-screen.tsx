@@ -38,7 +38,7 @@ export function FriendsScreen() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Friends" back={{ href: "/home", label: "Home" }} />
+      <PageHeader title="Your friends" back={{ href: "/home", label: "Friends" }} />
       <div className={PAGE_BODY}>
         <AddFriendForm onSent={refresh} />
 

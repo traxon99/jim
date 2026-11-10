@@ -15,7 +15,9 @@ export function SettingsHome({
     <main className="flex flex-1 flex-col">
       <PageHeader
         title="Settings"
-        back={fromHome ? { href: "/home", label: "Home" } : { href: "/profile", label: "Profile" }}
+        back={
+          fromHome ? { href: "/home", label: "Friends" } : { href: "/profile", label: "Profile" }
+        }
       />
       <div className={`items-center text-center ${PAGE_BODY}`}>
         {email && <p className="text-sm text-zinc-600 dark:text-zinc-400">{email}</p>}

@@ -1,18 +1,29 @@
 /**
- * The bottom tab bar's five tab home screens, in bar order. Each one stays
- * mounted by TabbedShell across tab switches.
+ * The five screens TabbedShell keeps mounted across tab switches. Exercises
+ * is one of them, but it lives under Plan rather than in the bar (#783).
  */
 export const BASE_TABS = ["/workout", "/routines", "/history", "/exercises", "/home"] as const;
 
 export type BaseTab = (typeof BASE_TABS)[number];
 
 /**
+ * The four tabs in the bottom bar, in order (#783): Lift, Plan, History and
+ * Friends. Routes keep their old names so links and the PWA start URL work.
+ */
+export const BAR_TABS = ["/workout", "/routines", "/history", "/home"] as const;
+
+export type BarTab = (typeof BAR_TABS)[number];
+
+/**
  * Screens that aren't tabs themselves but are reached from one, so that
  * tab stays highlighted while they're open. Profile (and its settings)
- * and Friends live behind the buttons in Home's header.
+ * and the friends list live behind the buttons in Friends' header, PRP
+ * Progress behind Lift's, and Exercises is a segment of Plan (#783).
  */
 const NESTED_UNDER: Partial<Record<BaseTab, readonly string[]>> = {
-  "/home": ["/profile", "/progression", "/friends"],
+  "/workout": ["/progression"],
+  "/routines": ["/exercises"],
+  "/home": ["/profile", "/friends"],
 };
 
 /** Friend profile pages keep Home highlighted (issue #751). */
