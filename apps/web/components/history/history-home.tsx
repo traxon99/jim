@@ -9,6 +9,7 @@ import { buildSessionHighlights, formatHighlightSet } from "@/lib/history/sessio
 import { useSessionList } from "@/lib/history/use-session-list";
 import { groupSessionsByWeek, summarizeWeek } from "@/lib/history/week-sections";
 import { formatCompact, formatMinutes } from "@/lib/home/stats";
+import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useSickDays } from "@/lib/sick-days/use-sick-days";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
@@ -60,6 +61,8 @@ export function HistoryHome({ userId }: { userId: string }) {
   // History is just your workouts by week (#783); the calendar and search
   // open from the header, and the stats live on Insights.
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // "This week" moves on when iOS resumes the app in a new week (#523).
+  const today = useToday();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -116,14 +119,13 @@ export function HistoryHome({ userId }: { userId: string }) {
 
   // Weeks over the shown page; each summary counts the whole week.
   const weeks = useMemo(() => {
-    const now = new Date();
-    const all = groupSessionsByWeek(listedSessions, settings.weekStart, now);
+    const all = groupSessionsByWeek(listedSessions, settings.weekStart, today);
     const totals = new Map(all.map((week) => [week.start.getTime(), summarizeWeek(week.sessions)]));
-    return groupSessionsByWeek(visibleSessions, settings.weekStart, now).map((week) => ({
+    return groupSessionsByWeek(visibleSessions, settings.weekStart, today).map((week) => ({
       ...week,
       summary: totals.get(week.start.getTime()) ?? summarizeWeek(week.sessions),
     }));
-  }, [listedSessions, visibleSessions, settings.weekStart]);
+  }, [listedSessions, visibleSessions, settings.weekStart, today]);
 
   const loading = list === undefined;
 
