@@ -1,20 +1,21 @@
 "use client";
 
 import { SHELL_SCROLLER_ATTRIBUTE } from "@/components/shell-scroller";
+import { TabIcon, type TabIconName } from "@/components/tab-icon";
 import { type BarTab, isTabActive } from "@/lib/navigation/tabs";
 import { useHideTabBarForKeyboard } from "@/lib/pwa/use-keyboard-open";
 import { useHasActiveSession } from "@/lib/sessions/use-active-session";
-import { ClipboardList, Dumbbell, History, type LucideIcon, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useRef } from "react";
 
 // Four tabs (#783): Exercises moved into Plan, Home became Friends.
-const TABS: readonly { href: BarTab; label: string; Icon: LucideIcon }[] = [
-  { href: "/workout", label: "Lift", Icon: Dumbbell },
-  { href: "/routines", label: "Plan", Icon: ClipboardList },
-  { href: "/history", label: "History", Icon: History },
-  { href: "/home", label: "Friends", Icon: Users },
+// Solar icons, outline when idle and filled duotone when current (#788).
+const TABS: readonly { href: BarTab; label: string; icon: TabIconName }[] = [
+  { href: "/workout", label: "Lift", icon: "lift" },
+  { href: "/routines", label: "Plan", icon: "plan" },
+  { href: "/history", label: "History", icon: "history" },
+  { href: "/home", label: "Friends", icon: "friends" },
 ];
 
 export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
@@ -78,7 +79,7 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
         className="tab-bar-glass pointer-events-auto mx-auto max-w-md rounded-[2rem] p-1.5"
       >
         <nav className="flex gap-1">
-          {TABS.map(({ href, label, Icon }) => {
+          {TABS.map(({ href, label, icon }) => {
             const active = isTabActive(href, pathname);
             const showActiveSessionDot = href === "/workout" && hasActiveSession;
             return (
@@ -100,7 +101,7 @@ export function BottomTabBar({ syncStatus }: { syncStatus?: ReactNode }) {
                 }`}
               >
                 <span className="relative">
-                  <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+                  <TabIcon name={icon} active={active} className="h-6 w-6" />
                   {showActiveSessionDot && (
                     <span
                       className="workout-indicator-dot absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400"

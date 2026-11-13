@@ -25,6 +25,27 @@ export function SettingsHome({
         <SettingsMenu />
         <SignOutButton />
         <p className="text-xs text-zinc-500 dark:text-zinc-500">Jim v{APP_VERSION}</p>
+        {/* Solar is CC BY 4.0, which asks for a credit (#788). */}
+        <p className="-mt-3 text-xs text-zinc-500 dark:text-zinc-500">
+          Tab icons:{" "}
+          <a
+            href="https://www.figma.com/community/file/1166831539721848736"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2"
+          >
+            Solar
+          </a>{" "}
+          by 480 Design,{" "}
+          <a
+            href="https://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2"
+          >
+            CC BY 4.0
+          </a>
+        </p>
       </div>
     </main>
   );
