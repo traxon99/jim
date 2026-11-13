@@ -77,7 +77,7 @@ export function ProgramWeekStrip({
             key={index}
             ref={isToday ? todayRef : undefined}
             aria-label={`${weekday ?? `Day ${index + 1}`}: ${name}, ${stateText}`}
-            className="flex w-14 min-w-14 shrink-0 flex-col items-center gap-1"
+            className="flex min-w-11 flex-1 shrink-0 flex-col items-center gap-1"
           >
             <span
               aria-hidden="true"

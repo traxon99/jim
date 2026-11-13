@@ -2,7 +2,7 @@
 
 import { Highlight } from "@/components/highlight";
 import { LoadingText } from "@/components/loading-text";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
 import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
 import { type RoutineRow, db } from "@/lib/db/schema";
 import { type LibraryFolder, libraryFolders, splitWarmups } from "@/lib/routines/library";
@@ -23,9 +23,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { ExploreList } from "./explore-list";
-import { PlanNav, planSegmentFromView } from "./plan-nav";
+import { PlanNav, SEGMENTED_TRACK, planSegmentFromView, segmentClass } from "./plan-nav";
 import { ProgramHero } from "./program-hero";
-import { RoutineIcon } from "./routine-icon";
+import { RoutineIconTile } from "./routine-icon";
 
 type View = "routines" | "warmups" | "explore";
 
@@ -66,17 +66,18 @@ function RoutineListRow({
         className="-mx-3 flex items-center gap-3 px-3 py-3"
       >
         {isWarmupRoutine(routine) ? (
-          <Flame
-            className="h-5 w-5 shrink-0 text-orange-500 dark:text-orange-400"
-            strokeWidth={1.75}
+          <span
             aria-hidden="true"
-          />
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-orange-500/12 dark:bg-orange-400/15"
+          >
+            <Flame className="h-4 w-4 text-orange-500 dark:text-orange-400" strokeWidth={2} />
+          </span>
         ) : (
-          <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
+          <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} />
         )}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-base font-medium">
+            <span className="truncate text-base font-semibold tracking-[-0.014em]">
               <Highlight text={routine.name} query={query} />
             </span>
             {badge && (
@@ -104,8 +105,7 @@ function RoutineListRow({
   );
 }
 
-const LIST_CARD =
-  "flex flex-col divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white px-3 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950";
+const LIST_CARD = "surface flex flex-col divide-y divide-zinc-900/10 px-3.5 dark:divide-white/10";
 
 /** A folder of routines that folds shut; "Other" holds the unfoldered ones. */
 function FolderCard({
@@ -156,11 +156,7 @@ function FolderCard({
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-      {children}
-    </h3>
-  );
+  return <h3 className={`${SECTION_LABEL} px-1`}>{children}</h3>;
 }
 
 /**
@@ -335,7 +331,6 @@ function PlanScreen({ userId }: { userId: string }) {
             <ProgramHero
               programs={programs}
               routinesById={routinesById}
-              exerciseCounts={exerciseCounts}
               weekStart={settings.weekStart}
             />
             {/* Your other programs, one tap to open (#783). Without an
@@ -371,7 +366,7 @@ function PlanScreen({ userId }: { userId: string }) {
                   <Link
                     href="/routines/programs/new"
                     data-ripple
-                    className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+                    className="surface press flex min-h-[46px] items-center justify-center gap-1.5 px-3 text-[15px] font-semibold"
                   >
                     <Plus className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                     New program
@@ -379,7 +374,7 @@ function PlanScreen({ userId }: { userId: string }) {
                   <Link
                     href="/routines/programs/generate"
                     data-ripple
-                    className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+                    className="surface press flex min-h-[46px] items-center justify-center gap-1.5 px-3 text-[15px] font-semibold"
                   >
                     <Sparkles className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
                     Build me one
@@ -390,14 +385,8 @@ function PlanScreen({ userId }: { userId: string }) {
           </>
         ) : (
           <section aria-label="Library" className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-              Library
-            </h2>
-            <div
-              role="tablist"
-              aria-label="Library"
-              className="grid grid-cols-3 gap-1 rounded-lg border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-800 dark:bg-zinc-900"
-            >
+            <h2 className={`${SECTION_LABEL} px-1`}>Library</h2>
+            <div role="tablist" aria-label="Library" className={SEGMENTED_TRACK}>
               {VIEWS.map((option) => (
                 <button
                   key={option.value}
@@ -408,11 +397,7 @@ function PlanScreen({ userId }: { userId: string }) {
                     setView(option.value);
                     setQuery("");
                   }}
-                  className={`min-h-11 rounded-md text-sm font-medium ${
-                    view === option.value
-                      ? "bg-white shadow-sm dark:bg-zinc-800"
-                      : "text-zinc-500 dark:text-zinc-500"
-                  }`}
+                  className={segmentClass(view === option.value)}
                 >
                   {option.label}
                 </button>

@@ -16,6 +16,7 @@ import postgres from "postgres";
 import { seedCatalog } from "../../../../packages/db/src/seed/index";
 import { createRoutine } from "../../../mcp/src/tools/create-routine";
 import { logPastWorkout } from "../../../mcp/src/tools/log-past-workout";
+import { createProgram } from "../../../mcp/src/tools/programs";
 import type { DevUser } from "./fake-auth";
 import { assertLocal } from "./postgres";
 
@@ -103,8 +104,9 @@ export async function seedDevDatabase(databaseUrl: string) {
         })),
       });
     }
+    const extra = await seedProgram(context, routine.id);
     await seedFriends(db);
-    return { exercises: count, workouts: 6 };
+    return { exercises: count, workouts: 6 + extra };
   } finally {
     await db.$client.end();
   }
@@ -212,4 +214,75 @@ async function seedFriends(db: Db) {
       });
     }
   }
+}
+
+const PULL_DAY = [
+  { exercise: "Barbell Row", sets: 3, weight: 155, reps: 8 },
+  { exercise: "Lat Pulldown", sets: 3, weight: 130, reps: 10 },
+  { exercise: "Face Pull", sets: 3, weight: 40, reps: 15 },
+  { exercise: "Hammer Curl", sets: 3, weight: 35, reps: 10 },
+];
+
+const LEGS = [
+  { exercise: "Barbell Squat", sets: 3, weight: 225, reps: 5 },
+  { exercise: "Romanian Deadlift", sets: 3, weight: 185, reps: 8 },
+  { exercise: "Leg Press", sets: 3, weight: 360, reps: 10 },
+  { exercise: "Lying Leg Curl", sets: 3, weight: 90, reps: 12 },
+  { exercise: "Standing Calf Raise", sets: 3, weight: 135, reps: 15 },
+];
+
+type Lift = (typeof PUSH_DAY)[number];
+type Context = Parameters<typeof createRoutine>[0];
+
+/**
+ * An active weekly program around today (#787): Pull four days ago and Legs
+ * two days ago, both done, with Push Day today, so Plan's program card shows
+ * done days, today and rest days, and Lift's week strip has something in it.
+ */
+async function seedProgram(context: Context, pushId: string): Promise<number> {
+  const make = (name: string, lifts: Lift[]) =>
+    createRoutine(context, {
+      name,
+      exercises: lifts.map((lift) => ({
+        exercise: lift.exercise,
+        targetSets: lift.sets,
+        targetRepsLow: lift.reps - 2,
+        targetRepsHigh: lift.reps + 2,
+        targetWeight: lift.weight,
+      })),
+    });
+  const pull = await make("Pull Day", PULL_DAY);
+  const legs = await make("Legs", LEGS);
+
+  const weekday = (daysAgo: number) => (new Date().getDay() - daysAgo + 7) % 7;
+  await createProgram(context, {
+    name: "Upper/Lower",
+    mode: "weekly",
+    durationWeeks: 8,
+    activate: true,
+    entries: [
+      { routine: pull.id, weekday: weekday(4) },
+      { routine: legs.id, weekday: weekday(2) },
+      { routine: pushId, weekday: weekday(0) },
+    ],
+  });
+
+  for (const [daysAgo, name, routineId, lifts] of [
+    [4, "Pull Day", pull.id, PULL_DAY],
+    [2, "Legs", legs.id, LEGS],
+  ] as const) {
+    const startedAt = new Date(Date.now() - daysAgo * 86_400_000);
+    startedAt.setHours(18, 0, 0, 0);
+    await logPastWorkout(context, {
+      startedAt: startedAt.toISOString(),
+      durationMinutes: 50,
+      name,
+      routineId,
+      exercises: lifts.map((lift) => ({
+        exercise: lift.exercise,
+        sets: Array.from({ length: lift.sets }, () => ({ weight: lift.weight, reps: lift.reps })),
+      })),
+    });
+  }
+  return 2;
 }

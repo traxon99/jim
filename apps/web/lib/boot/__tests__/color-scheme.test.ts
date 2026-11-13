@@ -82,6 +82,6 @@ describe("applyThemeColor (#681)", () => {
     applyThemeColor(true, doc);
     expect(metas.map((attributes) => attributes.get("content"))).toEqual(["#0a0a0a", "#0a0a0a"]);
     applyThemeColor(false, doc);
-    expect(metas[0]?.get("content")).toBe("#ffffff");
+    expect(metas[0]?.get("content")).toBe("#f2f2f7");
   });
 });

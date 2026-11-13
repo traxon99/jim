@@ -58,3 +58,43 @@ export function RoutineIcon({
     </svg>
   );
 }
+
+// Soft tile behind a routine icon (#787): the routine's own hue at low
+// opacity, so the colored mark reads as an app-icon-like chip in lists.
+const TILE_CLASS: Record<RoutineIconColor, string> = {
+  red: "bg-red-500/12 dark:bg-red-400/15",
+  orange: "bg-orange-500/12 dark:bg-orange-400/15",
+  amber: "bg-amber-500/14 dark:bg-amber-400/15",
+  green: "bg-green-500/12 dark:bg-green-400/15",
+  teal: "bg-teal-500/12 dark:bg-teal-400/15",
+  blue: "bg-blue-500/12 dark:bg-blue-400/15",
+  indigo: "bg-indigo-500/12 dark:bg-indigo-400/15",
+  pink: "bg-pink-500/12 dark:bg-pink-400/15",
+};
+
+/** A routine's outlined colored icon on a soft tile of the same hue (#787). */
+export function RoutineIconTile({
+  shape,
+  color,
+  size = "md",
+}: {
+  shape: RoutineIconShape;
+  color: RoutineIconColor;
+  /** sm: 26px for dense rows; md: 32px for list rows and cards. */
+  size?: "sm" | "md";
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex shrink-0 items-center justify-center ${TILE_CLASS[color]} ${
+        size === "sm" ? "h-[26px] w-[26px] rounded-lg" : "h-8 w-8 rounded-[10px]"
+      }`}
+    >
+      <RoutineIcon
+        shape={shape}
+        color={color}
+        className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"}
+      />
+    </span>
+  );
+}
