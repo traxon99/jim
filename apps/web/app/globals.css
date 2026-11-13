@@ -6,8 +6,10 @@
    preference instead of just following it. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Light mode is iOS's grouped background (#787): white cards (`.surface`)
+   sit on a soft grey page, as in Settings and Health. */
 :root {
-  --background: #ffffff;
+  --background: #f2f2f7;
   --foreground: #171717;
   /* Default accent theme ("zinc"): tracks foreground/background so it's the
      same monochrome inverted look this app always had, in both color
@@ -176,7 +178,7 @@ body {
   inset: calc(-1 * var(--top-inset)) 0 -1.25rem 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgb(255 255 255 / 0.96), rgb(255 255 255 / 0.88));
+  background: linear-gradient(to bottom, rgb(242 242 247 / 0.96), rgb(242 242 247 / 0.88));
   -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
   mask-image: linear-gradient(to bottom, #000 65%, transparent);
 }
@@ -383,7 +385,7 @@ body {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: var(--background);
+  background: #ffffff;
   border-color: color-mix(in srgb, var(--tint-1, var(--accent)) 40%, transparent);
   box-shadow: 0 10px 30px -14px color-mix(in srgb, var(--tint-1, var(--accent)) 55%, transparent),
     inset 0 1px 0 rgb(255 255 255 / 0.6);
@@ -433,6 +435,7 @@ body {
 }
 
 :root.dark[data-cards="glass"] .tinted-card {
+  background: #0a0a0a;
   box-shadow: 0 10px 30px -14px color-mix(in srgb, var(--tint-1, var(--accent)) 45%, transparent),
     inset 0 1px 0 rgb(255 255 255 / 0.08);
 }
@@ -707,7 +710,7 @@ body.pwa {
    and the app's own --background, so neither the launch nor the reveal
    flashes a different color. */
 .loading-screen {
-  --splash-bg: #ffffff;
+  --splash-bg: #f2f2f7;
   --splash-fg: #171717;
   position: fixed;
   inset: 0;
@@ -1000,4 +1003,64 @@ body.pwa .allow-pwa-select {
 
 .dark .leaflet-tooltip-top::before {
   border-top-color: #3f3f46;
+}
+
+/* Apple-style surfaces (#787, the apple-design skill). A `.surface` is a solid
+   card on the grouped page: white in light mode, zinc-900 in dark, no border,
+   so hierarchy comes from the card itself rather than outlines. */
+.surface {
+  border-radius: 1.25rem;
+  background: #ffffff;
+}
+
+:root.dark .surface {
+  background: #18181b; /* zinc-900 */
+}
+
+/* Scale to 0.97 while held (docs/ANIMATION.md rule 4), on press, instantly
+   readable. Reduced motion keeps the tap ripple and drops the scale. */
+.press {
+  transition: transform 100ms ease-out;
+}
+
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press {
+    transition: none;
+  }
+
+  .press:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* A tinted `.surface` card in the default plain style (#787): its routine's hue
+   washes in softly from the top, like the mockup's Up next and program cards.
+   The frosted glass style above draws its own color instead. */
+:root:not([data-cards="glass"]) .tinted-card.surface {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tint-1, var(--accent)) 12%, transparent),
+    transparent 60%
+  );
+}
+
+/* Plan's active program card always fits the first view (#787): its day rows
+   (at most seven, lib/programs/program-day-rows.ts) give up height on short
+   screens, down to 36px, and the meta line goes below 700px tall. The 540px is
+   everything above the rows plus the tab pill. Measured with the dev stack:
+   at 393×852 the card ends 172px above the pill (89px once the installed
+   app's 83px top inset is added), at 375×667 65px above (21px after the SE's
+   44px). */
+.program-day-row {
+  height: clamp(36px, calc((100dvh - 540px) / 7), 44px);
+}
+
+@media (max-height: 700px) {
+  .program-meta {
+    display: none;
+  }
 }

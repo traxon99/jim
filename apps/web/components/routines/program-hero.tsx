@@ -2,51 +2,38 @@
 
 import { FloatingCard } from "@/components/floating-card";
 import type { ProgramRow, RoutineRow } from "@/lib/db/schema";
+import { db } from "@/lib/db/schema";
+import { programDayRows } from "@/lib/programs/program-day-rows";
 import { setActiveProgram } from "@/lib/programs/set-active";
-import { formatProgramWeek, isWarmupRoutine, programWeekProgress } from "@jim/core";
-import { ChevronRight, Layers, Repeat } from "lucide-react";
+import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
+import { formatProgramWeek, programWeekProgress } from "@jim/core";
+import { useLiveQuery } from "dexie-react-hooks";
+import { Check, ChevronRight, Layers, Moon } from "lucide-react";
 import Link from "next/link";
-import { useId, useMemo, useState } from "react";
-import { ProgramWeekStrip, useProgramCycle } from "./program-week-strip";
-import { RoutineIcon } from "./routine-icon";
+import { useId, useState } from "react";
+import { cycleDayName, useProgramCycle } from "./program-week-strip";
+import { RoutineIconTile } from "./routine-icon";
 
 interface Props {
   programs: ProgramRow[];
   routinesById: Map<string, RoutineRow>;
-  exerciseCounts: Map<string, number>;
   weekStart: number;
 }
 
 const SECONDARY_BUTTON =
-  "flex min-h-11 items-center rounded-full border border-zinc-900/10 bg-white/60 px-3 text-sm font-medium dark:border-white/15 dark:bg-zinc-900/60";
-
-function exerciseCountLabel(count: number): string {
-  return `${count} exercise${count === 1 ? "" : "s"}`;
-}
+  "press flex min-h-11 items-center rounded-full bg-zinc-900/[0.06] px-3.5 text-sm font-semibold dark:bg-white/10";
 
 /**
  * The active program, first thing on the Routines page (issue #655): where
  * today sits in its rotation, and its routines with the next one marked.
  * Without an active program it's an invite to pick or build one.
  */
-export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart }: Props) {
+export function ProgramHero({ programs, routinesById, weekStart }: Props) {
   const { suggestion, cycle, today } = useProgramCycle(weekStart);
   const [switching, setSwitching] = useState(false);
 
-  // Each routine once, in program order; rest days and warm-ups stay out.
-  const programRoutines = useMemo(() => {
-    if (!suggestion) return [];
-    const seen = new Set<string>();
-    const list: RoutineRow[] = [];
-    for (const item of [...suggestion.items].sort((a, b) => a.position - b.position)) {
-      if (item.deletedAt || !item.routineId || seen.has(item.routineId)) continue;
-      const routine = routinesById.get(item.routineId);
-      if (!routine || routine.deletedAt || isWarmupRoutine(routine)) continue;
-      seen.add(item.routineId);
-      list.push(routine);
-    }
-    return list;
-  }, [suggestion, routinesById]);
+  // This week's finished workouts tick off their days on the card (#787).
+  const sessions = useLiveQuery(() => db.sessions.toArray(), []);
 
   // Still loading: hold the space quietly rather than flash the invite.
   if (suggestion === undefined) return null;
@@ -92,7 +79,7 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
     );
   }
 
-  const { program, next, routine: nextRoutine } = suggestion;
+  const { program, routine: nextRoutine } = suggestion;
   const todayDay = cycle && cycle.todayIndex >= 0 ? cycle.days[cycle.todayIndex] : undefined;
   const restingToday = todayDay !== undefined && todayDay.routineIds.length === 0;
   const weekProgress = programWeekProgress(program, today);
@@ -107,16 +94,20 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
     .filter(Boolean)
     .join(" · ");
 
+  const rows = cycle
+    ? programDayRows({ cycle, mode: program.mode, today, sessions: sessions ?? [] })
+    : [];
+
   return (
     <section
       aria-label="Current program"
       data-tint={nextRoutine?.iconColor ?? "indigo"}
-      className="tinted-card flex min-w-0 flex-col gap-4 rounded-xl border border-accent p-4"
+      className="tinted-card surface flex min-w-0 flex-col"
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col px-4 pt-3.5 pb-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            Current program
+          <span className="text-[13px] font-semibold text-zinc-600 dark:text-zinc-300">
+            Following
           </span>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => setSwitching(true)} className={SECONDARY_BUTTON}>
@@ -133,87 +124,119 @@ export function ProgramHero({ programs, routinesById, exerciseCounts, weekStart 
         </div>
         <Link
           href={`/routines/programs/${program.id}`}
-          className="flex min-w-0 items-center gap-1 text-xl font-semibold"
+          className="mt-1 flex min-w-0 items-center gap-1 text-[26px] leading-[1.1] font-bold tracking-[-0.024em]"
         >
           <span className="truncate">{program.name}</span>
           <ChevronRight
-            className="h-5 w-5 shrink-0 text-zinc-500"
-            strokeWidth={1.75}
+            className="h-5 w-5 shrink-0 text-zinc-400"
+            strokeWidth={2.25}
             aria-hidden="true"
           />
         </Link>
-        <p className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
-          <Repeat className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-          {statusLine}
-        </p>
+        <p className="program-meta mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">{statusLine}</p>
+        {weekProgress && !weekProgress.finished && weekProgress.total <= 16 && (
+          <div
+            role="img"
+            aria-label={formatProgramWeek(weekProgress)}
+            className="mt-2.5 grid gap-1"
+            style={{ gridTemplateColumns: `repeat(${weekProgress.total}, minmax(0, 1fr))` }}
+          >
+            {Array.from({ length: weekProgress.total }, (_, week) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: one bar per week, fixed order
+                key={week}
+                className={`h-1.5 rounded-full ${
+                  week < weekProgress.week ? "bg-accent" : "bg-zinc-900/10 dark:bg-white/15"
+                } ${week === weekProgress.week - 1 ? "opacity-60" : ""}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {cycle && (
-        <ProgramWeekStrip
-          programId={program.id}
-          mode={program.mode}
-          cycle={cycle}
-          routinesById={routinesById}
-        />
-      )}
-
-      {programRoutines.length === 0 ? (
+      {rows.length === 0 ? (
         <Link
           href={`/routines/programs/${program.id}`}
-          className="text-sm text-zinc-600 underline underline-offset-4 dark:text-zinc-400"
+          className="px-4 pb-4 text-sm text-zinc-600 underline underline-offset-4 dark:text-zinc-400"
         >
           {program.mode === "weekly"
             ? `Pick days for the routines in ${program.name} to see what's scheduled.`
             : `Add routines to ${program.name} to see what's up next.`}
         </Link>
       ) : (
-        <ul className="flex flex-col divide-y divide-zinc-900/10 rounded-lg bg-white/50 px-3 dark:divide-white/10 dark:bg-zinc-900/40">
-          {programRoutines.map((routine) => {
-            const isNext = next?.routineId === routine.id;
-            const warmup = routine.warmupRoutineId
-              ? routinesById.get(routine.warmupRoutineId)
-              : undefined;
-            const meta = [
-              exerciseCountLabel(exerciseCounts.get(routine.id) ?? 0),
-              warmup && !warmup.deletedAt ? warmup.name : null,
-            ]
-              .filter(Boolean)
-              .join(" · ");
-            return (
-              <li key={routine.id}>
-                <Link
-                  href={`/routines/${routine.id}`}
-                  data-ripple
-                  className="-mx-3 flex items-center gap-3 px-3 py-3"
+        // Every day of the cycle, today highlighted (#787). Rows shrink on short
+        // screens so the whole card fits Plan's first view (.program-day-row).
+        <ol aria-label="This cycle" className="flex flex-col px-4 pb-1.5">
+          {rows.map(({ index, day, isToday, done }) => {
+            const routine = day.routineIds[0] ? routinesById.get(day.routineIds[0]) : undefined;
+            const name = cycleDayName(day, routinesById);
+            const label =
+              day.weekday !== null ? WEEKDAY_NAMES[day.weekday].slice(0, 3) : `Day ${index + 1}`;
+            const rest = day.routineIds.length === 0;
+            const content = (
+              <>
+                <span
+                  className={`w-9 shrink-0 text-xs font-semibold uppercase tracking-[0.04em] ${
+                    isToday ? "text-accent" : "text-zinc-500 dark:text-zinc-500"
+                  }`}
                 >
-                  <RoutineIcon
-                    shape={routine.iconShape}
-                    color={routine.iconColor}
-                    className="h-5 w-5"
-                  />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-base font-medium">{routine.name}</span>
-                      {isNext && (
-                        <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                          Next
-                        </span>
-                      )}
-                    </span>
-                    <span className="truncate text-xs text-zinc-600 dark:text-zinc-400">
-                      {meta}
-                    </span>
+                  {day.weekday !== null ? label : index + 1}
+                </span>
+                {routine ? (
+                  <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} size="sm" />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-[26px] w-[26px] shrink-0 items-center justify-center"
+                  >
+                    <Moon
+                      className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-600"
+                      strokeWidth={2}
+                    />
                   </span>
-                  <ChevronRight
-                    className="h-4 w-4 shrink-0 text-zinc-500"
-                    strokeWidth={1.75}
+                )}
+                <span
+                  className={`min-w-0 flex-1 truncate text-base tracking-[-0.012em] ${
+                    rest ? "text-zinc-400 dark:text-zinc-600" : "font-medium"
+                  }`}
+                >
+                  {name}
+                </span>
+                {isToday ? (
+                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-bold tracking-[0.05em] text-accent-foreground">
+                    TODAY
+                  </span>
+                ) : done ? (
+                  <Check
+                    className="h-[18px] w-[18px] shrink-0 text-green-600 dark:text-green-500"
+                    strokeWidth={2.6}
                     aria-hidden="true"
                   />
-                </Link>
+                ) : null}
+              </>
+            );
+            const rowClass = `program-day-row flex items-center gap-3 ${
+              isToday ? "-mx-2.5 rounded-xl bg-zinc-900/[0.05] px-2.5 dark:bg-white/[0.07]" : ""
+            }`;
+            const ariaLabel = `${label}: ${name}${isToday ? ", today" : done ? ", done" : ""}`;
+            return (
+              <li
+                key={index}
+                data-today={isToday || undefined}
+                aria-label={ariaLabel}
+                className="border-t border-zinc-900/10 first:border-t-transparent data-today:border-t-transparent dark:border-white/10 [[data-today]+&]:border-t-transparent"
+              >
+                {routine && !rest ? (
+                  <Link href={`/routines/${routine.id}`} data-ripple className={rowClass}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div className={rowClass}>{content}</div>
+                )}
               </li>
             );
           })}
-        </ul>
+        </ol>
       )}
       {switchCard}
     </section>

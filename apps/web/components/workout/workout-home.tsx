@@ -4,35 +4,74 @@ import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
 import { LoadingText } from "@/components/loading-text";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
 import { ProgramWeekStrip, useProgramCycle } from "@/components/routines/program-week-strip";
-import { RoutineIcon } from "@/components/routines/routine-icon";
+import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { SickDayChip, SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-controls";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { useGyms } from "@/lib/gyms/use-gyms";
 import { useHasOpenInjury } from "@/lib/injuries/use-injuries";
+import { useToday } from "@/lib/pwa/use-today";
 import { formatLastDone, lastDoneByRoutine } from "@/lib/routines/last-done";
 import { startSmartSession } from "@/lib/sessions/smart-workout";
 import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/start-session";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Play, Plus, TrendingUp, Zap } from "lucide-react";
+import { Play, Plus, Thermometer, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PreWorkoutSheet } from "./pre-workout-sheet";
 import { UpNextCard } from "./up-next-card";
 
-/** Empty, Smart and Sick day share one compact row on Lift (#783). */
-const CHIP =
-  "flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-300 px-2 text-sm font-medium disabled:opacity-50 dark:border-zinc-700";
+/**
+ * Empty, Smart and Sick day share one row on Lift (#783) as tiles: a colored
+ * icon over the label and a one-line hint (#787).
+ */
+const TILE =
+  "surface press flex min-h-[92px] w-full min-w-0 flex-col items-start gap-2 p-3 text-left disabled:opacity-50";
+
+const EYEBROW_FORMAT = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  month: "short",
+  day: "numeric",
+});
+
+function QuickTile({
+  icon,
+  tint,
+  label,
+  hint,
+}: {
+  icon: React.ReactNode;
+  /** Fixed hues tell the three actions apart, like iOS Settings icons. */
+  tint: string;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className={`flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-white ${tint}`}
+      >
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-[15px] font-semibold tracking-[-0.012em]">{label}</span>
+        <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>
+      </span>
+    </>
+  );
+}
 
 export function WorkoutHome({ userId }: { userId: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const today = useToday();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   // The routine waiting on the pre-workout sheet (issue #235); opened by the
@@ -164,6 +203,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col">
       <PageHeader
         title="Lift"
+        eyebrow={EYEBROW_FORMAT.format(today)}
         actions={
           // PRP Progress moved here from History's shortcuts (#783).
           <Link href="/progression" aria-label="Progress" data-ripple className={FLOATING_BUTTON}>
@@ -172,13 +212,15 @@ export function WorkoutHome({ userId }: { userId: string }) {
         }
       />
       <div className={PAGE_BODY}>
-        {suggestion && cycle && (
-          <ProgramWeekStrip
-            programId={suggestion.program.id}
-            mode={suggestion.program.mode}
-            cycle={cycle}
-            routinesById={routinesById}
-          />
+        {suggestion && cycle && cycle.days.length > 0 && (
+          <div className="surface px-2 pt-3 pb-2">
+            <ProgramWeekStrip
+              programId={suggestion.program.id}
+              mode={suggestion.program.mode}
+              cycle={cycle}
+              routinesById={routinesById}
+            />
+          </div>
         )}
         <BlockEndCard context={dprContext} />
 
@@ -200,59 +242,81 @@ export function WorkoutHome({ userId }: { userId: string }) {
             onClick={() => void handleStartEmpty()}
             disabled={starting}
             aria-label="Start empty workout"
-            className={CHIP}
+            className={TILE}
           >
-            <Plus className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-            Empty
+            <QuickTile
+              icon={<Plus className="h-[17px] w-[17px]" strokeWidth={2.2} />}
+              tint="bg-zinc-500"
+              label="Empty"
+              hint="Log freely"
+            />
           </button>
           <button
             type="button"
             onClick={() => void handleStartSmart()}
             disabled={starting}
             aria-label="Smart workout, balances recent volume"
-            className={CHIP}
+            className={TILE}
           >
-            <Zap className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-            Smart
+            <QuickTile
+              icon={<Zap className="h-[17px] w-[17px]" strokeWidth={2.2} />}
+              tint="bg-violet-500"
+              label="Smart"
+              hint="Built for today"
+            />
           </button>
-          {sickToday === false && <SickDayChip userId={userId} className={CHIP} />}
+          {sickToday === false && (
+            <SickDayChip
+              userId={userId}
+              className={TILE}
+              content={
+                <QuickTile
+                  icon={<Thermometer className="h-[17px] w-[17px]" strokeWidth={2.2} />}
+                  tint="bg-cyan-600"
+                  label="Sick day"
+                  hint="Keeps your streak"
+                />
+              }
+            />
+          )}
         </div>
 
         {/* Your routines (issue #329); with a program, the up-next one is
           already above, so these are the others. */}
         {routineGroups.length > 0 && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          <div className="flex flex-col gap-2">
+            <div className="-mb-1 flex items-center justify-between gap-2 px-1">
+              <h2 className={SECTION_LABEL}>
                 {upNextId ? "Other routines" : "Start from a routine"}
               </h2>
               <Link
                 href="/routines?view=routines"
-                className="flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
+                className="flex min-h-11 items-center text-[15px] font-medium text-accent"
               >
                 All in Plan
               </Link>
             </div>
             {routineGroups.map((group) => (
               <section key={group.folder ?? "__ungrouped"} className="flex flex-col gap-1">
-                {group.folder && (
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                    {group.folder}
-                  </h3>
-                )}
-                <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+                {group.folder && <h3 className={`${SECTION_LABEL} px-1`}>{group.folder}</h3>}
+                <ul className="surface flex flex-col overflow-hidden">
                   {group.routines.map((routine) => (
-                    <li key={routine.id} className="flex items-center justify-between gap-2 py-3">
+                    <li
+                      key={routine.id}
+                      className="relative flex items-center justify-between gap-2 py-2 pr-3 pl-3.5 before:absolute before:top-0 before:right-0 before:left-[58px] before:border-t before:border-zinc-900/10 first:before:hidden dark:before:border-white/10"
+                    >
                       <button
                         type="button"
                         onClick={() => handlePreviewRoutine(routine.id, routine.name)}
                         data-ripple
                         className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
                       >
-                        <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />
+                        <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} />
                         <span className="flex min-w-0 flex-col">
-                          <span className="truncate text-base font-medium">{routine.name}</span>
-                          <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                          <span className="truncate text-base font-semibold tracking-[-0.014em]">
+                            {routine.name}
+                          </span>
+                          <span className="text-sm text-zinc-500 dark:text-zinc-400">
                             {(() => {
                               const done = lastDone.get(routine.id);
                               return done ? formatLastDone(done) : "Not done yet";
@@ -277,9 +341,13 @@ export function WorkoutHome({ userId }: { userId: string }) {
                         onClick={() => handleChooseRoutine(routine.id, routine.name)}
                         disabled={starting}
                         aria-label={`Start ${routine.name}`}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-300 disabled:opacity-50 dark:border-zinc-700"
+                        className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.06] disabled:opacity-50 dark:bg-white/10"
                       >
-                        <Play className="h-4 w-4 fill-current" strokeWidth={2} aria-hidden="true" />
+                        <Play
+                          className="ml-0.5 h-3.5 w-3.5 fill-current"
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
                       </button>
                     </li>
                   ))}

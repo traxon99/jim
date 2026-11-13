@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Four tabs now: Lift, Plan, History and Friends, with History down to just your workouts.";
+  "A cleaner look for Lift, Plan and History: your whole program at a glance, and every exercise on each workout.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

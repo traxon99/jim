@@ -69,7 +69,7 @@ export const viewport: Viewport = {
   // Matches --background in each system theme (#681); COLOR_SCHEME_SCRIPT and
   // ColorSchemeEffect repoint both at Jim's own theme setting.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
 };

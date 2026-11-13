@@ -7,7 +7,14 @@ import Link from "next/link";
  * button stays sharp on the phone (#720).
  */
 export const FLOATING_BUTTON =
-  "flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-zinc-900/10 bg-white/80 text-zinc-800 dark:border-white/15 dark:bg-zinc-900/80 dark:text-zinc-100";
+  "press flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-zinc-200/85 text-zinc-900 dark:bg-zinc-800/85 dark:text-zinc-100";
+
+/**
+ * A section's small uppercase label on the grouped page (#787), with its
+ * optional link or totals on the same line.
+ */
+export const SECTION_LABEL =
+  "text-[13px] font-semibold uppercase tracking-[0.03em] text-zinc-500 dark:text-zinc-500";
 
 /**
  * Classes for the content below a PageHeader, so every page shares the same
@@ -37,10 +44,13 @@ export function BackLink({ href, label }: { href: string; label: string }) {
  */
 export function PageHeader({
   title,
+  eyebrow,
   back,
   actions,
 }: {
   title: string;
+  /** A small line above the title, like today's date on Lift (#787). */
+  eyebrow?: string;
   /** Where the back button leads, shown as a pill before the title. */
   back?: { href: string; label: string };
   /** Buttons pinned to the right; style them with FLOATING_BUTTON. */
@@ -52,9 +62,10 @@ export function PageHeader({
       {back && <BackLink href={back.href} label={back.label} />}
       {/* Beside actions the title keeps its width and they shrink; alone, a
           long title wraps rather than running off the edge (issue #327). */}
-      <h1 className={`${actions ? "shrink-0" : "min-w-0"} text-3xl font-bold tracking-tight`}>
-        {title}
-      </h1>
+      <div className={`${actions ? "shrink-0" : "min-w-0"} flex flex-col`}>
+        {eyebrow && <span className={SECTION_LABEL}>{eyebrow}</span>}
+        <h1 className="text-[34px] leading-[1.06] font-bold tracking-[-0.028em]">{title}</h1>
+      </div>
       {actions && (
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">{actions}</div>
       )}

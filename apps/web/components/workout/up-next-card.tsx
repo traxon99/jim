@@ -1,7 +1,7 @@
 "use client";
 
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
-import { RoutineIcon } from "@/components/routines/routine-icon";
+import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
@@ -91,7 +91,7 @@ export function UpNextCard({ starting, onStart }: Props) {
       <section
         aria-label="Rest day"
         data-tint="indigo"
-        className="tinted-card flex flex-col gap-3 rounded-xl border border-accent p-4"
+        className="tinted-card surface flex flex-col gap-3 p-4"
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -121,7 +121,7 @@ export function UpNextCard({ starting, onStart }: Props) {
         <button
           type="button"
           onClick={() => setSkipped(true)}
-          className="min-h-11 rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium dark:border-zinc-700"
+          className="press min-h-[52px] rounded-full bg-zinc-900/[0.06] px-4 py-3 text-[17px] font-semibold dark:bg-white/10"
         >
           Skip rest day
         </button>
@@ -133,18 +133,20 @@ export function UpNextCard({ starting, onStart }: Props) {
     <section
       aria-label="Suggested workout"
       data-tint={routine.iconColor}
-      className="tinted-card flex flex-col gap-3 rounded-xl border border-accent p-4"
+      className="tinted-card surface flex flex-col gap-3 p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+          <span className="text-[13px] font-semibold text-zinc-600 dark:text-zinc-300">
             {heading(next)}
           </span>
-          <span className="flex min-w-0 items-center gap-2 text-lg font-semibold">
-            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
-            <span className="truncate">{routine.name}</span>
+          <span className="mt-1 flex min-w-0 items-center gap-2.5">
+            <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} />
+            <span className="truncate text-[28px] leading-[1.08] font-bold tracking-[-0.024em]">
+              {routine.name}
+            </span>
           </span>
-          <span className="text-xs text-zinc-500 dark:text-zinc-500">
+          <span className="mt-1 text-[15px] text-zinc-600 dark:text-zinc-400">
             {program.name}
             {exerciseCount !== undefined &&
               ` · ${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`}
@@ -169,7 +171,7 @@ export function UpNextCard({ starting, onStart }: Props) {
         type="button"
         onClick={() => onStart(routine.id, routine.name)}
         disabled={starting}
-        className="tinted-action min-h-11 rounded-lg bg-accent px-4 py-3 text-base font-medium text-accent-foreground disabled:opacity-50"
+        className="tinted-action press min-h-[52px] rounded-full bg-accent px-4 py-3 text-[17px] font-semibold tracking-[-0.015em] text-accent-foreground disabled:opacity-50"
       >
         {next.reason === "next-scheduled" && next.doneToday
           ? "Start it now"

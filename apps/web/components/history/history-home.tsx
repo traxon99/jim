@@ -1,8 +1,8 @@
 "use client";
 
 import { LoadingText } from "@/components/loading-text";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
-import { RoutineIcon } from "@/components/routines/routine-icon";
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
+import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { SickDayToggle } from "@/components/sick-days/sick-day-controls";
 import { db } from "@/lib/db/schema";
 import { buildSessionHighlights, formatHighlightSet } from "@/lib/history/session-highlights";
@@ -14,7 +14,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useSickDays } from "@/lib/sick-days/use-sick-days";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart3, CalendarDays, Search } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronRight, Dumbbell, Search, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TrainingCalendarMonth } from "./training-calendar-month";
@@ -33,10 +33,13 @@ const CARD_DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
 
 /** Recent workouts shown at a time; "Show more" adds this many again. */
 const PAGE_SIZE = 20;
-/** Exercises listed on a card before "+N more". */
-const CARD_EXERCISES = 4;
+/**
+ * Exercises listed on a card before "+N more". High enough that a normal
+ * session shows every exercise (#787); only very long ones fold.
+ */
+const CARD_EXERCISES = 8;
 
-/** "4 workouts · 3h 52m · 48.1k lb · 2 PRs" under a week's heading (#783). */
+/** "4 workouts · 3h 52m · 48.1k lb · 2 PRs" beside a week's heading (#783, #787). */
 function weekSummaryLine(
   summary: { workouts: number; minutes: number; volume: number; prs: number },
   units: string,
@@ -140,41 +143,62 @@ export function HistoryHome({ userId }: { userId: string }) {
         <Link
           href={`/history/${session.id}`}
           data-ripple
-          className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800"
+          className="surface press flex flex-col px-3.5 pt-3 pb-2"
         >
-          <div className="flex flex-col gap-0.5">
-            <span className="flex min-w-0 items-center gap-2 text-base font-semibold">
-              {routine && <RoutineIcon shape={routine.iconShape} color={routine.iconColor} />}
-              <span className="truncate">{session.name}</span>
+          <div className="flex items-center gap-3">
+            {routine ? (
+              <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-zinc-900/[0.06] text-zinc-500 dark:bg-white/10"
+              >
+                <Dumbbell className="h-4 w-4" strokeWidth={2} />
+              </span>
+            )}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-[17px] leading-tight font-semibold tracking-[-0.018em]">
+                  {session.name}
+                </span>
+                {session.prCount > 0 && (
+                  <span className="flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 text-xs font-bold text-amber-800 dark:bg-amber-400/20 dark:text-amber-300">
+                    <Trophy className="h-3 w-3" strokeWidth={2.4} aria-hidden="true" />
+                    {session.prCount} PR{session.prCount > 1 ? "s" : ""}
+                  </span>
+                )}
+              </span>
+              <span className="truncate text-[13.5px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                {CARD_DATE_FORMAT.format(session.startedAt)}
+                {minutes !== null && ` · ${formatMinutes(minutes)}`} ·{" "}
+                {Math.round(session.totalVolume).toLocaleString()} {settings.units}
+              </span>
             </span>
-            <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-500">
-              {CARD_DATE_FORMAT.format(session.startedAt)}
-              {minutes !== null && ` · ${formatMinutes(minutes)}`} ·{" "}
-              {Math.round(session.totalVolume).toLocaleString()} {settings.units}
-              {session.prCount > 0
-                ? ` · ${session.prCount} PR${session.prCount > 1 ? "s" : ""}`
-                : ""}
-            </span>
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-zinc-400"
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
           </div>
           {highlights.length > 0 && (
-            <ul className="flex flex-col gap-0.5 text-sm">
+            // Every exercise with its best set, in compact rows (#787).
+            <ul className="mt-2.5 ml-11 flex flex-col border-t border-zinc-900/10 pt-1 text-[14.5px] dark:border-white/10">
               {highlights.slice(0, CARD_EXERCISES).map((highlight, index) => (
                 <li
                   // biome-ignore lint/suspicious/noArrayIndexKey: an exercise can repeat in a workout
                   key={index}
-                  className="flex justify-between gap-3"
+                  className="flex min-h-6 items-center justify-between gap-3"
                 >
-                  <span className="min-w-0 truncate text-zinc-700 dark:text-zinc-300">
-                    {highlight.exerciseName}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-500">
+                  <span className="min-w-0 truncate">{highlight.exerciseName}</span>
+                  <span className="shrink-0 font-semibold tabular-nums">
                     {formatHighlightSet(highlight)}
                   </span>
                 </li>
               ))}
               {highlights.length > CARD_EXERCISES && (
-                <li className="text-xs text-zinc-500 dark:text-zinc-500">
-                  +{highlights.length - CARD_EXERCISES} more
+                <li className="flex min-h-6 items-center text-sm text-zinc-500 dark:text-zinc-400">
+                  {highlights.length - CARD_EXERCISES} more exercise
+                  {highlights.length - CARD_EXERCISES === 1 ? "" : "s"}
                 </li>
               )}
             </ul>
@@ -237,7 +261,7 @@ export function HistoryHome({ userId }: { userId: string }) {
       />
       <div className={PAGE_BODY}>
         {searchOpen && (
-          <label className="flex min-w-0 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 dark:border-zinc-700 dark:bg-zinc-900">
+          <label className="flex min-w-0 items-center gap-2 rounded-xl bg-zinc-900/[0.07] px-3 dark:bg-white/[0.12]">
             <Search
               className="h-4 w-4 shrink-0 text-zinc-500"
               strokeWidth={1.75}
@@ -281,7 +305,7 @@ export function HistoryHome({ userId }: { userId: string }) {
         <section className="flex flex-col gap-2">
           {(selectedDate || needle) && (
             <div className="flex min-h-11 items-center justify-between gap-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+              <h2 className={`${SECTION_LABEL} px-1`}>
                 {selectedDate
                   ? DAY_FORMAT.format(selectedDate)
                   : `${searchResults.length} workout${searchResults.length === 1 ? "" : "s"}`}
@@ -330,11 +354,9 @@ export function HistoryHome({ userId }: { userId: string }) {
                   aria-label={week.label}
                   className="flex flex-col gap-2"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-                      {week.label}
-                    </h3>
-                    <p className="text-sm tabular-nums text-zinc-600 dark:text-zinc-400">
+                  <div className="flex min-w-0 items-baseline justify-between gap-3 px-1">
+                    <h3 className={`${SECTION_LABEL} shrink-0`}>{week.label}</h3>
+                    <p className="min-w-0 truncate text-[13px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {weekSummaryLine(week.summary, settings.units)}
                     </p>
                   </div>
@@ -347,7 +369,7 @@ export function HistoryHome({ userId }: { userId: string }) {
             <button
               type="button"
               onClick={() => setShown((count) => count + PAGE_SIZE)}
-              className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+              className="surface press min-h-11 px-4 text-[15px] font-semibold"
             >
               Show more
             </button>

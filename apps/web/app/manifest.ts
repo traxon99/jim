@@ -15,8 +15,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // The app's light background: Android draws the launch screen and status
     // bar from these, and a dark one flashed before a white app (#681). The
     // viewport's themeColor pair follows the system theme after launch.
-    background_color: "#ffffff",
-    theme_color: "#ffffff",
+    background_color: "#f2f2f7",
+    theme_color: "#f2f2f7",
     orientation: "portrait",
     // Long-press shortcut on Android (#681).
     shortcuts: [{ name: "Start workout", short_name: "Workout", url: "/workout" }],

@@ -102,7 +102,16 @@ export function useSickToday(): boolean | undefined {
  * (#781); otherwise it's a quiet "Feeling sick?" link.
  */
 /** Lift's compact "Sick day" chip, beside Empty and Smart (#783). */
-export function SickDayChip({ userId, className }: { userId: string; className: string }) {
+export function SickDayChip({
+  userId,
+  className,
+  content,
+}: {
+  userId: string;
+  className: string;
+  /** Replaces the icon and label, e.g. Lift's quick-action tile (#787). */
+  content?: React.ReactNode;
+}) {
   const today = useTodayKey();
   const { busy, error, set } = useSickDayAction(userId, today);
   return (
@@ -114,8 +123,12 @@ export function SickDayChip({ userId, className }: { userId: string; className: 
         aria-label="Take a sick day"
         className={className}
       >
-        <Thermometer className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-        Sick day
+        {content ?? (
+          <>
+            <Thermometer className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+            Sick day
+          </>
+        )}
       </button>
       {error && (
         <p role="alert" className="text-sm text-red-600 dark:text-red-500">

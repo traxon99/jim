@@ -20,8 +20,8 @@ describe("notification and manifest assets (#681)", () => {
   it("pins manifest launch colors, id and workout shortcut", () => {
     const m = manifest();
     expect(m.id).toBe("/");
-    expect(m.theme_color).toBe("#ffffff");
-    expect(m.background_color).toBe("#ffffff");
+    expect(m.theme_color).toBe("#f2f2f7");
+    expect(m.background_color).toBe("#f2f2f7");
     expect(m.shortcuts).toEqual(
       expect.arrayContaining([expect.objectContaining({ url: "/workout", name: "Start workout" })]),
     );

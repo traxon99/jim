@@ -27,7 +27,7 @@ export function storeColorScheme(
 }
 
 /** globals.css --background in each theme: what the status bar should match. */
-export const THEME_COLORS = { light: "#ffffff", dark: "#0a0a0a" } as const;
+export const THEME_COLORS = { light: "#f2f2f7", dark: "#0a0a0a" } as const;
 
 /**
  * Points every theme-color meta at the app's theme, not the system's: the
