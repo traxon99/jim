@@ -154,7 +154,7 @@ export function ProgramHero({ programs, routinesById, weekStart }: Props) {
         )}
       </div>
 
-      {rows.length === 0 ? (
+      {rows.every((row) => row.day.routineIds.length === 0) ? (
         <Link
           href={`/routines/programs/${program.id}`}
           className="px-4 pb-4 text-sm text-zinc-600 underline underline-offset-4 dark:text-zinc-400"
@@ -223,11 +223,15 @@ export function ProgramHero({ programs, routinesById, weekStart }: Props) {
               <li
                 key={index}
                 data-today={isToday || undefined}
-                aria-label={ariaLabel}
                 className="border-t border-zinc-900/10 first:border-t-transparent data-today:border-t-transparent dark:border-white/10 [[data-today]+&]:border-t-transparent"
               >
                 {routine && !rest ? (
-                  <Link href={`/routines/${routine.id}`} data-ripple className={rowClass}>
+                  <Link
+                    href={`/routines/${routine.id}`}
+                    data-ripple
+                    aria-label={ariaLabel}
+                    className={rowClass}
+                  >
                     {content}
                   </Link>
                 ) : (

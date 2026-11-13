@@ -1049,14 +1049,18 @@ body.pwa .allow-pwa-select {
 }
 
 /* Plan's active program card always fits the first view (#787): its day rows
-   (at most seven, lib/programs/program-day-rows.ts) give up height on short
-   screens, down to 36px, and the meta line goes below 700px tall. The 540px is
+   (at most seven, lib/programs/program-day-rows.ts) sit closer together on short
+   screens, down to a 36px pitch, and the meta line goes below 700px tall. The 540px is
    everything above the rows plus the tab pill. Measured with the dev stack:
    at 393×852 the card ends 172px above the pill (89px once the installed
    app's 83px top inset is added), at 375×667 65px above (21px after the SE's
    44px). */
 .program-day-row {
-  height: clamp(36px, calc((100dvh - 540px) / 7), 44px);
+  --row-pitch: clamp(36px, calc((100dvh - 540px) / 7), 44px);
+  /* The tap target stays 44px (docs/PWA.md); on short screens rows overlap by
+     the difference instead, so each step down the list is the smaller pitch. */
+  height: 44px;
+  margin-block: calc((var(--row-pitch) - 44px) / 2);
 }
 
 @media (max-height: 700px) {
