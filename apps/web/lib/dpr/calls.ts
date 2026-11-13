@@ -32,6 +32,9 @@ import {
 import { currentBlock, liveBlockLifts } from "./block-select";
 import { type DprSnapshot, defaultRepRange } from "./data";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+
 /**
  * Everything needed to make DPR calls for any lift, gathered once per
  * screen. Null (from `useDprContext`) means no DPR UI at all: DPR is off,
@@ -223,6 +226,8 @@ export interface DprBadge {
    * outline on the exercise card and on the weight and reps boxes it prefills.
    */
   borderClassName: string;
+  /** Tailwind fill and ring for the PRP popover's "Today" tile. */
+  softClassName: string;
 }
 
 const BADGES: Record<DprCall, DprBadge> = {
@@ -233,6 +238,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     className: "border-green-600 text-green-700 dark:border-green-500 dark:text-green-400",
     textClassName: "text-green-700 dark:text-green-400",
     borderClassName: "border-green-600 dark:border-green-500",
+    softClassName: "bg-green-500/10 ring-green-600/40 dark:bg-green-500/15 dark:ring-green-500/45",
   },
   hold: {
     word: "STAY",
@@ -241,6 +247,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     className: "border-zinc-400 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400",
     textClassName: "text-zinc-600 dark:text-zinc-400",
     borderClassName: "border-zinc-500 dark:border-zinc-400",
+    softClassName: "bg-zinc-500/10 ring-zinc-500/30 dark:bg-zinc-400/15 dark:ring-zinc-400/35",
   },
   deload: {
     word: "DOWN",
@@ -249,6 +256,8 @@ const BADGES: Record<DprCall, DprBadge> = {
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
     textClassName: "text-orange-700 dark:text-orange-400",
     borderClassName: "border-orange-600 dark:border-orange-500",
+    softClassName:
+      "bg-orange-500/10 ring-orange-600/40 dark:bg-orange-500/15 dark:ring-orange-500/45",
   },
   reenter: {
     word: "EASE",
@@ -257,6 +266,8 @@ const BADGES: Record<DprCall, DprBadge> = {
     className: "border-orange-600 text-orange-700 dark:border-orange-500 dark:text-orange-400",
     textClassName: "text-orange-700 dark:text-orange-400",
     borderClassName: "border-orange-600 dark:border-orange-500",
+    softClassName:
+      "bg-orange-500/10 ring-orange-600/40 dark:bg-orange-500/15 dark:ring-orange-500/45",
   },
   light: {
     word: "LIGHT",
@@ -265,6 +276,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     className: "border-sky-600 text-sky-700 dark:border-sky-500 dark:text-sky-400",
     textClassName: "text-sky-700 dark:text-sky-400",
     borderClassName: "border-sky-600 dark:border-sky-500",
+    softClassName: "bg-sky-500/10 ring-sky-600/40 dark:bg-sky-500/15 dark:ring-sky-500/45",
   },
   insufficient: {
     word: "RPE",
@@ -273,6 +285,7 @@ const BADGES: Record<DprCall, DprBadge> = {
     className: "border-zinc-400 text-zinc-500 dark:border-zinc-600 dark:text-zinc-500",
     textClassName: "text-zinc-500 dark:text-zinc-500",
     borderClassName: "border-zinc-500 dark:border-zinc-400",
+    softClassName: "bg-zinc-500/10 ring-zinc-500/30 dark:bg-zinc-400/15 dark:ring-zinc-400/35",
   },
 };
 
@@ -379,20 +392,62 @@ const STATUS_TEXT: Record<OnTrackStatus, string> = {
   behind: "behind",
 };
 
-/** e.g. "on track · e1RM 231 → 245 by Dec 19". */
+/**
+ * The block goal for the PRP popover, e.g. "On track · e1RM 231 → 245". The
+ * block's end date is in the popover's header, so it isn't repeated here.
+ */
 export function dprGoalLine(ctx: DprContext, exerciseId: string): DprGoalLine | null {
   const lift = ctx.lifts.get(exerciseId);
   if (!lift) return null;
   const goal = liftGoal(lift);
-  const by = ctx.block.endsAt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   if (goal.baselineE1rm === null || goal.goalE1rm === null) {
-    return { status: null, text: `Goal set after your first session with RPE · block ends ${by}` };
+    return { status: null, text: "Goal unlocks after your next session with RPE" };
   }
   const { currentE1rm, status } = liftProgress(ctx.snapshot, exerciseId, ctx.block, goal, ctx.now);
+  const label = status ? STATUS_TEXT[status] : "no data yet";
   return {
     status,
-    text: `${status ? STATUS_TEXT[status] : "no data yet"} · e1RM ${Math.round(currentE1rm ?? goal.baselineE1rm)} → ${Math.round(goal.goalE1rm)} by ${by}`,
+    text: `${label.charAt(0).toUpperCase()}${label.slice(1)} · e1RM ${Math.round(currentE1rm ?? goal.baselineE1rm)} → ${Math.round(goal.goalE1rm)}`,
   };
+}
+
+/**
+ * Where the block stands for the PRP popover's header: "Week 3 of 4" (or
+ * "Deload week"), whole days left, and how far through it is (0–1).
+ */
+export function dprBlockProgress(
+  block: Pick<DprBlockRow, "startedAt" | "endsAt" | "weeks" | "status">,
+  now: Date,
+): { label: string; daysLeft: number; fraction: number } {
+  const total = block.endsAt.getTime() - block.startedAt.getTime();
+  const elapsed = now.getTime() - block.startedAt.getTime();
+  const week = Math.min(block.weeks, Math.max(1, Math.floor(elapsed / WEEK_MS) + 1));
+  return {
+    label: block.status === "deload" ? "Deload week" : `Week ${week} of ${block.weeks}`,
+    daysLeft: Math.max(0, Math.ceil((block.endsAt.getTime() - now.getTime()) / DAY_MS)),
+    fraction: total > 0 ? Math.min(1, Math.max(0, elapsed / total)) : 1,
+  };
+}
+
+/**
+ * The popover's one plain sentence on why today's weight is what it is. The
+ * numbers are already in the last time / today tiles, so an increase just
+ * says it went up; other calls keep the engine's reason, which says what it
+ * takes to move.
+ */
+export function dprPlainWhy(decision: DprDecision): string {
+  switch (decision.call) {
+    case "increase":
+      return decision.reason.startsWith("Beat PRP")
+        ? "You beat PRP's call last time, so the weight jumps to catch up."
+        : "You cleared the target last time, so the weight goes up.";
+    case "insufficient":
+      return decision.reason === "Add RPE for PRP"
+        ? "Add RPE to your working sets so PRP can make a call."
+        : "Log this lift with RPE to get a call next time.";
+    default:
+      return `${decision.reason}.`.replace(/\.\.$/, ".");
+  }
 }
 
 export function liftGoal(lift: DprBlockLiftRow): {

@@ -27,7 +27,8 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE = "New tab bar icons that fill in on the tab you're on.";
+export const LATEST_RELEASE_NOTE =
+  "Tap the PRP badge to see last time vs today for each focused lift.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

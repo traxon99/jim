@@ -68,6 +68,22 @@ export interface DprDecision {
   reason: string;
   /** Qualifying streak for increase/hold-on-track, miss streak for hold-on-miss/deload. */
   streak: number;
+  /**
+   * The session the call was judged from, for "last time vs today" (the PRP
+   * popover). The newest non-light session; null or absent with no history.
+   */
+  last?: DprLastSession | null;
+}
+
+/** What the lift's top sets came to last time, e.g. 1×12 @ 185, RPE 8.5. */
+export interface DprLastSession {
+  date: Date;
+  weight: number;
+  /** How many top sets, and the fewest reps among them. */
+  sets: number;
+  reps: number;
+  /** The top sets' average RPE as logged; null when none was. */
+  rpe: number | null;
 }
 
 export interface DecideInput {
@@ -344,6 +360,27 @@ export function decideNextWeight(input: DecideInput): DprDecision {
 }
 
 function decideCore(input: DecideInput, detectOutperformance: boolean): DprDecision {
+  return { ...decideCall(input, detectOutperformance), last: lastSession(input.sessions) };
+}
+
+/** The newest non-light session's top sets (a light day doesn't make the call). */
+function lastSession(sessions: readonly DprSession[]): DprLastSession | null {
+  const summaries = sessions
+    .map(summarize)
+    .filter((s): s is Summary => s !== null)
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  const s = summaries.find((x) => !x.light) ?? summaries[0];
+  if (!s) return null;
+  return {
+    date: s.date,
+    weight: s.topWeight,
+    sets: s.topSets.length,
+    reps: Math.min(...s.topSets.map((set) => set.reps)),
+    rpe: s.loggedRpe,
+  };
+}
+
+function decideCall(input: DecideInput, detectOutperformance: boolean): DprDecision {
   const { repRange, preset, increment, now } = input;
   const fallback = input.fallbackWeight ?? null;
 
