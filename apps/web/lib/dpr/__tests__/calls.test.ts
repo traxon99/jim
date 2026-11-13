@@ -387,8 +387,8 @@ describe("Routine PRP calls (issue #213)", () => {
     if (!ctx) throw new Error("expected a PRP context");
     const line = dprGoalLine(ctx, BENCH);
     expect(line?.status).not.toBeNull();
-    expect(line?.text).toMatch(/^(ahead|on track|behind) · e1RM \d+ → 242 by /);
-    expect(dprGoalLine(ctx, ROW)?.text).toMatch(/^Goal set after your first session with RPE/);
+    expect(line?.text).toMatch(/^(Ahead|On track|Behind) · e1RM \d+ → 242$/);
+    expect(dprGoalLine(ctx, ROW)?.text).toBe("Goal unlocks after your next session with RPE");
     expect(dprGoalLine(ctx, SQUAT)).toBeNull();
   });
 });

@@ -513,3 +513,19 @@ describe("decideNextWeight — light days (issue #235)", () => {
     expect(d.previousWeight).toBe(165);
   });
 });
+
+describe("decideNextWeight — last session (PRP popover)", () => {
+  it("reports the newest session's top sets", () => {
+    const d = decide([s3(28, 185, 8, 7.5), s3(25, 180, 8, 7)]);
+    expect(d.last).toEqual({ date: day(28), weight: 185, sets: 3, reps: 8, rpe: 7.5 });
+  });
+
+  it("uses the fewest reps among the top sets", () => {
+    const d = decide([session(28, [working(185, 8), working(185, 6)])]);
+    expect(d.last).toMatchObject({ sets: 2, reps: 6 });
+  });
+
+  it("is null with no history", () => {
+    expect(decide([], "moderate", { fallbackWeight: 100 }).last).toBeNull();
+  });
+});
