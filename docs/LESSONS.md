@@ -106,6 +106,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       app with yesterday's state (#523).
 - [ ] Theme-dependent paint (splash, `color-scheme`) is set before first paint, not after Dexie
       loads. A tab or page keeps its own scroll position (`scrollKey`) (#666, #669).
+- [ ] No fixed `theme_color`/`background_color` in the manifest: Android paints the navigation bar
+      under the gesture handle from them in both themes (#792). Theme colors go in the theme-color
+      metas (`THEME_COLORS`), which reach the status bar.
 - [ ] A `setTimeout`/`setInterval` in a component or hook? Keep it in a ref and clear it on
       unmount (#549).
 - [ ] A screen that loads from the network? A failed load shows the error with Try again (#543).

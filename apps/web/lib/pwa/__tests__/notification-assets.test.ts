@@ -17,11 +17,14 @@ describe("notification and manifest assets (#681)", () => {
     expect(sw).toMatch(/badge:\s*["']\/icons\/badge["']/);
   });
 
-  it("pins manifest launch colors, id and workout shortcut", () => {
+  it("pins manifest id and workout shortcut, with no fixed theme colors (#792)", () => {
     const m = manifest();
     expect(m.id).toBe("/");
-    expect(m.theme_color).toBe("#f2f2f7");
-    expect(m.background_color).toBe("#f2f2f7");
+    // A WebAPK paints the Android navigation bar from these in both themes:
+    // white under the dark app (#792), or a dark launch before a light one
+    // (#681). Left out, the bar follows the phone's theme.
+    expect(m).not.toHaveProperty("theme_color");
+    expect(m).not.toHaveProperty("background_color");
     expect(m.shortcuts).toEqual(
       expect.arrayContaining([expect.objectContaining({ url: "/workout", name: "Start workout" })]),
     );

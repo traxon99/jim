@@ -12,11 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     start_url: "/workout",
     display: "standalone",
-    // The app's light background: Android draws the launch screen and status
-    // bar from these, and a dark one flashed before a white app (#681). The
-    // viewport's themeColor pair follows the system theme after launch.
-    background_color: "#f2f2f7",
-    theme_color: "#f2f2f7",
+    // No theme_color or background_color (#792). An installed Android app
+    // paints the system navigation bar under the gesture handle from these,
+    // and a manifest has one color for both themes, so a light one drew a
+    // white strip under the dark app (and a dark one a black launch before a
+    // light app, #681). Left out, Android follows the phone's light/dark
+    // theme; the status bar follows Jim's theme via the viewport's
+    // themeColor metas (lib/boot/color-scheme.ts).
     orientation: "portrait",
     // Long-press shortcut on Android (#681).
     shortcuts: [{ name: "Start workout", short_name: "Workout", url: "/workout" }],
