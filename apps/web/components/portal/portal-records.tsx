@@ -28,6 +28,7 @@ import {
   recentPersonalRecords,
 } from "@jim/core";
 import { Medal, Search, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader } from "./analysis-range";
 import { useIsClient } from "./use-is-client";
@@ -175,9 +176,12 @@ export function PortalRecords({ data }: { data: PortalRecordsData }) {
                     className="flex min-w-0 items-center justify-between gap-2 py-2"
                   >
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate font-medium">
+                      <Link
+                        href={`/portal/exercises/${record.exerciseId}`}
+                        className="truncate font-medium underline-offset-4 hover:underline"
+                      >
                         {exerciseNames.get(record.exerciseId) ?? "Unknown exercise"}
-                      </span>
+                      </Link>
                       <span className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
                         {PR_KIND_LABELS[record.kind]}
                         {isRecentPersonalRecord(record, now) && <NewBadge />}

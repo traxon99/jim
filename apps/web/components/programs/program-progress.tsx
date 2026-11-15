@@ -1,5 +1,6 @@
 "use client";
 
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { db } from "@/lib/db/schema";
 import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercise";
 import { buildProgramProgressSets } from "@/lib/programs/progress-data";
@@ -25,9 +26,12 @@ function formatDay(date: Date) {
  * in the program to its latest.
  */
 export function ProgramProgress({
+  userId,
   routineIds,
   since,
 }: {
+  /** For the exercise card a name opens (issue #796). */
+  userId: string;
   routineIds: readonly string[];
   since: Date | null;
 }) {
@@ -125,7 +129,9 @@ export function ProgramProgress({
                 >
                   <div className="min-w-0">
                     <p className="truncate font-medium">
-                      {names.get(exercise.exerciseId) ?? "Exercise"}
+                      <ExerciseNameButton exerciseId={exercise.exerciseId} userId={userId}>
+                        {names.get(exercise.exerciseId) ?? "Exercise"}
+                      </ExerciseNameButton>
                     </p>
                     <p className="truncate text-xs text-zinc-500 dark:text-zinc-500">
                       {exercise.sessionCount} {exercise.sessionCount === 1 ? "workout" : "workouts"}

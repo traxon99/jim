@@ -15,6 +15,7 @@ const LISTS = [
   "components/dpr/lift-card.tsx",
   "components/dpr/block-recap.tsx",
   "components/programs/program-generator.tsx",
+  "components/programs/program-progress.tsx",
 ];
 
 describe("exercise card reach (#796)", () => {

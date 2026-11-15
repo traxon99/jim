@@ -2,7 +2,11 @@
 
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type FocusEvent, type ReactNode, useState } from "react";
+
+function stopPropagation(event: FocusEvent) {
+  event.stopPropagation();
+}
 
 /**
  * An exercise's name wherever a list shows it (issue #796): tapping it opens
@@ -47,7 +51,14 @@ export function ExerciseNameButton({
       >
         {children}
       </button>
-      {open && <ExerciseDetail id={exerciseId} userId={userId} onClose={() => setOpen(false)} />}
+      {open && (
+        // The card is portaled, but React still bubbles its focus events up
+        // this tree: a routine row would read them as the user editing it and
+        // stop taking synced edits (#519, #796).
+        <span className="contents" onFocus={stopPropagation} onBlur={stopPropagation}>
+          <ExerciseDetail id={exerciseId} userId={userId} onClose={() => setOpen(false)} />
+        </span>
+      )}
     </>
   );
 }
