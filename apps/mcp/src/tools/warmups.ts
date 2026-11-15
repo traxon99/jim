@@ -4,6 +4,7 @@ import { eq, isNull, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser, withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
+import { loadPreferences } from "./exercise-preferences.js";
 import { findRoutine, nextRoutineIcon, nextRoutinePosition } from "./find-routine.js";
 import { resolveExercise } from "./resolve-exercise.js";
 
@@ -121,6 +122,7 @@ export async function createWarmup(context: UserContext, input: CreateWarmupInpu
         template,
         new Map(globals.map((row) => [row.slug, row.id])),
         uuidv7,
+        await loadPreferences(tx),
       );
       const nameById = new Map(globals.map((row) => [row.id, row.name]));
       routineId = instantiated.routine.id;

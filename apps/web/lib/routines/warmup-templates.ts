@@ -1,5 +1,6 @@
 import { mutate } from "@/lib/db/mutate";
 import { type JimDatabase, type RoutineExerciseRow, type RoutineRow, db } from "@/lib/db/schema";
+import { loadExercisePreferences } from "@/lib/exercises/preferences";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type WarmupTemplate,
@@ -29,6 +30,7 @@ export async function addWarmupTemplate(
     template,
     exerciseIdBySlug,
     uuidv7,
+    await loadExercisePreferences(database),
   );
 
   const deviceId = await getDeviceId(database);
