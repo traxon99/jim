@@ -14,6 +14,25 @@ describe("buildExercisePreferenceMap", () => {
     ]);
     expect([...map]).toEqual([["squat", "like"]]);
   });
+
+  it("lets the live row win a tie with a tombstone, in either order", () => {
+    const tombstone = {
+      id: "01",
+      exerciseSlug: "squat",
+      preference: "dislike",
+      updatedAt: at(5),
+      deletedAt: at(5),
+    };
+    const live = {
+      id: "02",
+      exerciseSlug: "squat",
+      preference: "like",
+      updatedAt: at(5),
+      deletedAt: null,
+    };
+    expect(buildExercisePreferenceMap([tombstone, live]).get("squat")).toBe("like");
+    expect(buildExercisePreferenceMap([live, tombstone]).get("squat")).toBe("like");
+  });
 });
 
 describe("orderByPreference", () => {

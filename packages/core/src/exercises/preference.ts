@@ -19,6 +19,7 @@ export function isExercisePreference(value: unknown): value is ExercisePreferenc
 }
 
 export interface ExercisePreferenceRowLike {
+  id?: string;
   exerciseSlug: string;
   preference: string;
   updatedAt: Date;
@@ -27,8 +28,10 @@ export interface ExercisePreferenceRowLike {
 
 /**
  * Slug → preference from the user's rows. Two devices can each write a row
- * for the same slug offline, so the newest live row wins; an exercise whose
- * newest row is tombstoned has no preference.
+ * for the same slug offline, so the newest row wins; an exercise whose
+ * newest row is tombstoned has no preference. Changing a preference can
+ * tombstone one row and write another at the same instant, so on a tie the
+ * live row wins, then the later uuidv7 id.
  */
 export function buildExercisePreferenceMap(
   rows: readonly ExercisePreferenceRowLike[],
@@ -36,7 +39,7 @@ export function buildExercisePreferenceMap(
   const newest = new Map<string, ExercisePreferenceRowLike>();
   for (const row of rows) {
     const kept = newest.get(row.exerciseSlug);
-    if (!kept || row.updatedAt.getTime() > kept.updatedAt.getTime()) {
+    if (!kept || isNewer(row, kept)) {
       newest.set(row.exerciseSlug, row);
     }
   }
@@ -45,6 +48,13 @@ export function buildExercisePreferenceMap(
     if (!row.deletedAt && isExercisePreference(row.preference)) map.set(slug, row.preference);
   }
   return map;
+}
+
+function isNewer(row: ExercisePreferenceRowLike, kept: ExercisePreferenceRowLike): boolean {
+  const diff = row.updatedAt.getTime() - kept.updatedAt.getTime();
+  if (diff !== 0) return diff > 0;
+  if (!row.deletedAt !== !kept.deletedAt) return !row.deletedAt;
+  return (row.id ?? "") > (kept.id ?? "");
 }
 
 /** 1 for a like, -1 for a dislike, 0 otherwise. */

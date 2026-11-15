@@ -60,6 +60,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("exercise preference tools (#795
       SELECT exercise_slug, preference FROM exercise_preferences WHERE deleted_at IS NULL
     `;
     expect(live).toEqual([{ exercise_slug: "leg-press", preference: "like" }]);
+    // Read back the way the phone and Claude do, where a tombstone ties the new row.
+    expect(await listExercisePreferences(context)).toEqual({
+      liked: [expect.objectContaining({ name: "Leg Press" })],
+      disliked: [],
+    });
   });
 
   it("carries a merged exercise's preference to the kept one", async () => {
