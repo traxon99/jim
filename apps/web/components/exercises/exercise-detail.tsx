@@ -212,9 +212,7 @@ export function ExerciseDetail({
               )}
             </div>
 
-            {!isWarmup && !isCardio && (
-              <ExercisePreferenceControl userId={userId} slug={exercise.slug} />
-            )}
+            {!isCardio && <ExercisePreferenceControl userId={userId} slug={exercise.slug} />}
 
             {exercise.imageUrls.length > 0 && (
               <div className="flex gap-2 overflow-x-auto">

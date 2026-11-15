@@ -63,6 +63,20 @@ describe("instantiateWarmupTemplate", () => {
     ],
   };
 
+  it("leaves out disliked exercises without reporting them missing (issue #795)", () => {
+    const result = instantiateWarmupTemplate(
+      template,
+      new Map([
+        ["a", "ex-a"],
+        ["b", "ex-b"],
+      ]),
+      () => "id",
+      new Map([["a", "dislike"]]),
+    );
+    expect(result.items.map((item) => [item.exerciseId, item.position])).toEqual([["ex-b", 0]]);
+    expect(result.missingSlugs).toEqual(["missing"]);
+  });
+
   it("resolves slugs to local exercise ids and reports the ones not synced yet", () => {
     let n = 0;
     const result = instantiateWarmupTemplate(

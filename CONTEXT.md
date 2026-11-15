@@ -21,7 +21,8 @@ _Avoid_: Failed set, miss
 The user's Like or Dislike on an exercise (issue #795), set on the exercise sheet as Like / None /
 Dislike, None being the default. Smart workouts, the program generator and Claude favour a liked
 exercise and never pick a disliked one; the Replace list shows liked ones first and disliked ones
-last, dimmed. The user can still add a disliked exercise by hand, and Jim never changes a routine
+last, dimmed. Warm-up exercises have one too, and a built-in warm-up template leaves out
+disliked ones. The user can still add a disliked exercise by hand, and Jim never changes a routine
 because of it. Kept by slug, so it follows the exercise through a copy-on-write clone.
 _Avoid_: Favourite, Never, hidden (hidden is Archive)
 
