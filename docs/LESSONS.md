@@ -193,6 +193,11 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] A page that grants access names the host receiving it and sends `frame-ancestors 'none'`
       (#509). Third-party data is pinned to a commit SHA and its enums validated (#505).
 
+**Copy**
+- [ ] No explainer text: no captions, helper lines or footnotes describing what a feature does or
+      why. Text on screen is data, a label, or something the user must act on (an error, an
+      irreversible confirmation). See `docs/PWA.md` §7.
+
 **Accessibility**
 - [ ] State shown only by color or a ring also has text: `aria-label` with the facts, and
       `aria-pressed` on toggles (#529).
