@@ -1,6 +1,7 @@
 "use client";
 
 import { Highlight } from "@/components/highlight";
+import { SlidersHorizontal, ThumbsDown, ThumbsUp } from "@/components/icons/solar";
 import { useIncrementalList } from "@/components/use-incremental-list";
 import { type ExerciseRow, db } from "@/lib/db/schema";
 import { EXERCISE_CATEGORY_TABS, exerciseMetaLine } from "@/lib/exercises/display";
@@ -21,7 +22,6 @@ import {
   sortExercisesByUsage,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { SlidersHorizontal, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
 /**

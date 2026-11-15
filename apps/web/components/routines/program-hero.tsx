@@ -1,6 +1,7 @@
 "use client";
 
 import { FloatingCard } from "@/components/floating-card";
+import { Check, ChevronRight, Layers, Moon } from "@/components/icons/solar";
 import type { ProgramRow, RoutineRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { programDayRows } from "@/lib/programs/program-day-rows";
@@ -8,7 +9,6 @@ import { setActiveProgram } from "@/lib/programs/set-active";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { formatProgramWeek, programWeekProgress } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, ChevronRight, Layers, Moon } from "lucide-react";
 import Link from "next/link";
 import { useId, useState } from "react";
 import { cycleDayName, useProgramCycle } from "./program-week-strip";

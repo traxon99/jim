@@ -1,8 +1,15 @@
+import {
+  Disc3,
+  Dumbbell,
+  type IconComponent,
+  PersonStanding,
+  Trophy,
+  Weight,
+} from "@/components/icons/solar";
 import type { Achievement, AchievementCategory } from "@jim/core";
-import { Disc3, Dumbbell, type LucideIcon, PersonStanding, Trophy, Weight } from "lucide-react";
 import type { CSSProperties } from "react";
 
-const ACHIEVEMENT_ICONS: Record<AchievementCategory, LucideIcon> = {
+const ACHIEVEMENT_ICONS: Record<AchievementCategory, IconComponent> = {
   workouts: Dumbbell,
   volume: Weight,
   plates: Disc3,

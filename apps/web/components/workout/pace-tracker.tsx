@@ -1,7 +1,7 @@
 "use client";
 
+import { ChevronDown } from "@/components/icons/solar";
 import { type PaceExercise, type PacePoint, type PaceStatus, computePace } from "@jim/core";
-import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
 const WIDTH = 320;

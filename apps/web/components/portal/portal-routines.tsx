@@ -1,6 +1,7 @@
 "use client";
 
 import { Highlight } from "@/components/highlight";
+import { Flame, Search } from "@/components/icons/solar";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import type { PortalPlansData, PortalRoutine } from "@/lib/portal/plans-data";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
@@ -12,7 +13,6 @@ import {
   programWeekProgress,
   searchRoutines,
 } from "@jim/core";
-import { Flame, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { PortalSectionHeader } from "./analysis-range";

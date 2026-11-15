@@ -1,5 +1,6 @@
 "use client";
 
+import { UserPlus, UsersRound } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { fetchFriendPosts, fetchFriendWorkouts, toggleReaction } from "@/lib/friends/client";
 import { type FeedItem, buildFeed } from "@/lib/friends/feed";
@@ -12,7 +13,6 @@ import type {
   WorkoutReaction,
 } from "@/lib/friends/types";
 import type { ReactionKind } from "@jim/core";
-import { UserPlus, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";

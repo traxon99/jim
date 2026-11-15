@@ -2,6 +2,7 @@
 
 import { BodyMap, muscleSummary } from "@/components/exercises/body-map";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
+import { ChevronLeft, ExternalLink, MapPin, Sparkles } from "@/components/icons/solar";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import type { PortalExerciseDetail } from "@/lib/portal/exercises-data";
 import { reviveRecordEntries } from "@/lib/portal/records-data";
@@ -24,7 +25,6 @@ import {
   predictedOneRepMaxSeries,
   warmupFrequency,
 } from "@jim/core";
-import { ChevronLeft, ExternalLink, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";

@@ -2,11 +2,11 @@
 
 import { formatTooltipDate } from "@/components/charts/chart-tooltip";
 import { FloatingCard } from "@/components/floating-card";
+import { ChevronLeft, ChevronRight, X } from "@/components/icons/solar";
 import { formatSetLine } from "@/lib/charts/chart-hover";
 import type { PortalWorkout } from "@/lib/portal/analysis-data";
 import { isStandalone } from "@/lib/pwa/standalone";
 import type { AnalysisSet } from "@jim/core";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 

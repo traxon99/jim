@@ -1,8 +1,8 @@
 "use client";
 
+import { CircleCheck, CircleX } from "@/components/icons/solar";
 import type { DprBlockRow, ExerciseRow } from "@/lib/db/schema";
 import type { DprBlockRecapSummary, DprLiftRecap } from "@jim/core";
-import { CircleCheck, CircleX } from "lucide-react";
 import { formatDate, formatWeight } from "./labels";
 
 function pct(change: number | null): string {

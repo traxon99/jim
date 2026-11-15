@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
@@ -24,7 +25,6 @@ import {
   withoutPrimary,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";

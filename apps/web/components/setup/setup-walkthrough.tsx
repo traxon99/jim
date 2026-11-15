@@ -3,6 +3,7 @@
 import { CallMark } from "@/components/dpr/call-mark";
 import { EXPERIENCE_LABELS } from "@/components/dpr/labels";
 import { AddressField, type AddressValue } from "@/components/gyms/address-field";
+import { Check, Star } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { AccentColorSection } from "@/components/profile/accent-color-section";
 import { CardStyleSection } from "@/components/profile/card-style-section";
@@ -17,7 +18,6 @@ import { SETUP_STEPS, type SetupStep, setupExitHref } from "@/lib/setup/steps";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type ExploreProgramTemplate, PROGRAM_TEMPLATES, weeklyStreakTarget } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 

@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/icons/solar";
 
 // Shown the moment a route inside the shell is tapped, while its server
 // round trip is still out (#662). Without it a tap on weak gym signal looked

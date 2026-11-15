@@ -1,11 +1,11 @@
 "use client";
 
+import { Check, Moon } from "@/components/icons/solar";
 import type { RoutineRow } from "@/lib/db/schema";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useToday } from "@/lib/pwa/use-today";
 import { type CycleDay, type ProgramCycle, type ProgramMode, programCycle } from "@jim/core";
-import { Check, Moon } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
 /**

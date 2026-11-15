@@ -1,6 +1,7 @@
 "use client";
 
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
+import { Layers, Moon } from "@/components/icons/solar";
 import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
@@ -10,7 +11,6 @@ import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import type { NextWorkout } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Layers, Moon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

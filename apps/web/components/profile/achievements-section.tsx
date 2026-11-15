@@ -2,10 +2,10 @@
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
+import { Flame } from "@/components/icons/solar";
 import { achievementPostDraft } from "@/lib/friends/post-drafts";
 import { useAchievements } from "@/lib/history/use-achievements";
 import type { Achievement, AchievementCategory } from "@jim/core";
-import { Flame } from "lucide-react";
 import { useMemo } from "react";
 
 function weeks(count: number): string {

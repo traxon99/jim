@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "@/components/icons/solar";
 import { logBodyweight } from "@/lib/bodyweight";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
@@ -7,7 +8,6 @@ import { cmToFeetInches, feetInchesToCm } from "@/lib/settings/height";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { normalizeDecimalInput } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 

@@ -2,10 +2,16 @@
 
 import { Highlight } from "@/components/highlight";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  ChartLine,
+  ChevronRight,
+  Search,
+} from "@/components/icons/solar";
 import type { PortalTrainingData } from "@/lib/portal/analysis-data";
 import { type PortalExerciseIndexRow, exerciseMatchesSearch } from "@/lib/portal/exercises-data";
 import { analysisRangeStart, strengthTrends } from "@jim/core";
-import { ArrowDownRight, ArrowUpRight, ChartLine, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";

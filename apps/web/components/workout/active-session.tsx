@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { Bandage, Focus, LayoutList } from "@/components/icons/solar";
 import type { ExerciseInjury } from "@/components/injuries/injury-hint";
 import { PainCheckin } from "@/components/injuries/pain-checkin";
 import { ReportInjuryCard } from "@/components/injuries/report-injury-card";
@@ -75,7 +76,6 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Bandage, Focus, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FocusView, type FocusViewExercise } from "./focus-view";

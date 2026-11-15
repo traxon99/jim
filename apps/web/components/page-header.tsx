@@ -1,4 +1,4 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "@/components/icons/solar";
 import Link from "next/link";
 
 /**

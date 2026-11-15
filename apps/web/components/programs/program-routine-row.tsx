@@ -1,12 +1,12 @@
 "use client";
 
+import { Moon, Trash2 } from "@/components/icons/solar";
 import { RoutineIcon } from "@/components/routines/routine-icon";
 import { WarmupOptions } from "@/components/routines/warmup-options";
 import type { ProgramRoutineRow as ProgramRoutineEntity, RoutineRow } from "@/lib/db/schema";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Moon, Trash2 } from "lucide-react";
 
 interface Props {
   item: ProgramRoutineEntity;

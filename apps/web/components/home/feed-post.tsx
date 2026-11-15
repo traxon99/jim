@@ -4,6 +4,7 @@ import { Avatar } from "@/components/friends/avatar";
 import { CommentsSheet } from "@/components/friends/comments-sheet";
 import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
 import { ReactButton } from "@/components/friends/reaction-picker";
+import { type IconComponent, MessageCircle, Send, Trophy } from "@/components/icons/solar";
 import type { FeedItem } from "@/lib/friends/feed";
 import { myReaction, reactionSummary, workoutMinutes } from "@/lib/friends/format";
 import {
@@ -27,7 +28,6 @@ import type {
   WorkoutReaction,
 } from "@/lib/friends/types";
 import { REACTION_EMOJI, type ReactionKind } from "@jim/core";
-import { type LucideIcon, MessageCircle, Send, Trophy } from "lucide-react";
 import Link from "next/link";
 import { type MouseEvent, type ReactNode, useCallback, useRef, useState } from "react";
 
@@ -311,7 +311,7 @@ function PostBadge({
   children,
 }: {
   tone: keyof typeof BADGE_TONES;
-  icon: LucideIcon;
+  icon: IconComponent;
   children: ReactNode;
 }) {
   return (

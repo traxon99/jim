@@ -2,6 +2,7 @@
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
+import { Send } from "@/components/icons/solar";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
@@ -23,7 +24,6 @@ import {
   summarizeSession,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Send } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 

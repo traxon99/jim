@@ -13,6 +13,7 @@ import {
 } from "@/components/history/pr-badges";
 import { PrSparkline } from "@/components/history/pr-sparkline";
 import { predictionDetail } from "@/components/history/predicted-one-rep-max-stat";
+import { ChevronDown, Medal, SlidersHorizontal, Sparkles } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { bodyweightLookup } from "@/lib/bodyweight";
@@ -41,7 +42,6 @@ import {
   recentPersonalRecords,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronDown, Medal, SlidersHorizontal, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";

@@ -1,16 +1,16 @@
 "use client";
 
+import { CircleMinus, type IconComponent, ThumbsDown, ThumbsUp } from "@/components/icons/solar";
 import { SEGMENTED_TRACK, segmentClass } from "@/components/routines/plan-nav";
 import { setExercisePreference } from "@/lib/exercises/preferences";
 import { useExercisePreferences } from "@/lib/exercises/use-exercise-preferences";
 import type { ExercisePreference } from "@jim/core";
-import { CircleMinus, type LucideIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useId } from "react";
 
 const OPTIONS: readonly {
   value: ExercisePreference | null;
   label: string;
-  Icon: LucideIcon;
+  Icon: IconComponent;
   activeClass: string;
 }[] = [
   {

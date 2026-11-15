@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
+import { UserPlus, X } from "@/components/icons/solar";
 import {
   dismissFriendSuggestion,
   fetchFriendSuggestions,
@@ -9,7 +10,6 @@ import {
 } from "@/lib/friends/client";
 import type { FriendSuggestion } from "@/lib/friends/types";
 import { refreshFriends } from "@/lib/friends/use-friends";
-import { UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 

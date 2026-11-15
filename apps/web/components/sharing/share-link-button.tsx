@@ -1,10 +1,10 @@
 "use client";
 
 import { FloatingCard } from "@/components/floating-card";
+import { Share } from "@/components/icons/solar";
 import { createShareLink, sharePath } from "@/lib/sharing/client";
 import { shareUrl } from "@/lib/sharing/share-url";
 import type { ShareSnapshot } from "@jim/core";
-import { Share } from "lucide-react";
 import { useCallback, useId, useState } from "react";
 
 interface Props {

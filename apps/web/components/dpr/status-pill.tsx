@@ -1,5 +1,5 @@
+import { CircleAlert, CircleCheck, TrendingUp } from "@/components/icons/solar";
 import type { OnTrackStatus } from "@jim/core";
-import { CircleAlert, CircleCheck, TrendingUp } from "lucide-react";
 
 const PILLS: Record<OnTrackStatus, { label: string; className: string; Icon: typeof CircleCheck }> =
   {

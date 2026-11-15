@@ -27,8 +27,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE =
-  "Warm-up exercises can be liked or disliked too, and built-in warm-ups leave out the ones you dislike.";
+export const LATEST_RELEASE_NOTE = "Fresh icons throughout the app.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

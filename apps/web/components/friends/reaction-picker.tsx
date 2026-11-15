@@ -1,11 +1,11 @@
 "use client";
 
+import { SmilePlus } from "@/components/icons/solar";
 import { useLongPress } from "@/components/workout/use-long-press";
 import { myReaction, reactionTotal } from "@/lib/friends/format";
 import { popoverPosition } from "@/lib/friends/popover-position";
 import type { WorkoutReaction } from "@/lib/friends/types";
 import { REACTION_EMOJI, REACTION_KINDS, REACTION_LABELS, type ReactionKind } from "@jim/core";
-import { SmilePlus } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 

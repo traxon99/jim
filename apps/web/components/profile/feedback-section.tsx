@@ -1,7 +1,7 @@
 "use client";
 
+import { Send } from "@/components/icons/solar";
 import { type FeedbackType, submitFeedback } from "@/lib/feedback/submit";
-import { Send } from "lucide-react";
 import { useState } from "react";
 
 type Status = "idle" | "sending" | "sent" | "error";

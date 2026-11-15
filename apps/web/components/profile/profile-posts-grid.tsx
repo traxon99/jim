@@ -1,7 +1,7 @@
 "use client";
 
+import { Trophy } from "@/components/icons/solar";
 import type { ProfilePostTile } from "@/lib/profile/post-tiles";
-import { Trophy } from "lucide-react";
 import Link from "next/link";
 
 /** Three-column grid of tinted workout/post tiles (issues #751/#752). */

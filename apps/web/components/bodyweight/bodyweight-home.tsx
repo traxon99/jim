@@ -13,6 +13,7 @@ import { useUndoable } from "@/components/undo-bar";
 import type { BodyMeasurementRow } from "@/lib/db/schema";
 
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
+import { ClipboardPaste, HeartPulse, Upload } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
   type WeightImportPreview,
@@ -30,7 +31,6 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type WeightUnit, WorkoutCsvError } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ClipboardPaste, HeartPulse, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 const RANGES = [

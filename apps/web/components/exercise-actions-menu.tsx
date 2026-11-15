@@ -1,11 +1,16 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, type LucideIcon, MoreHorizontal } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  type IconComponent,
+  MoreHorizontal,
+} from "@/components/icons/solar";
 import { useEffect, useRef, useState } from "react";
 
 export interface ExerciseAction {
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   /** Runs on tap. Omitted for an entry that only opens `submenu`. */
   onSelect?: () => void;
   /** Entries shown in place of the menu, with a back row, when tapped. */

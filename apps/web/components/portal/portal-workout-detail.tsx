@@ -1,12 +1,12 @@
 "use client";
 
 import { SessionSetRow } from "@/components/history/session-set-row";
+import { ChevronLeft } from "@/components/icons/solar";
 import { RestStatsLine } from "@/components/workout/rest-stats-line";
 import { formatMinutes } from "@/lib/home/stats";
 import type { PortalWorkoutDetail } from "@/lib/portal/workouts-data";
 import { isStandalone } from "@/lib/pwa/standalone";
 import { setNumberLabels } from "@/lib/sessions/set-kinds";
-import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useIsClient } from "./use-is-client";
