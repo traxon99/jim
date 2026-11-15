@@ -1,5 +1,6 @@
 import { mutate } from "@/lib/db/mutate";
 import { type JimDatabase, type SessionExerciseRow, type SessionRow, db } from "@/lib/db/schema";
+import { loadExercisePreferences } from "@/lib/exercises/preferences";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
@@ -25,11 +26,12 @@ async function planSmartWorkoutFromDb(
   now: Date = new Date(),
   options: { exerciseCount?: number; alreadyPickedIds?: readonly string[] } = {},
 ): Promise<SmartWorkoutPlan> {
-  const [sessions, sessionExercises, sets, exercises] = await Promise.all([
+  const [sessions, sessionExercises, sets, exercises, preferences] = await Promise.all([
     database.sessions.toArray(),
     database.sessionExercises.toArray(),
     database.sets.toArray(),
     database.exercises.toArray(),
+    loadExercisePreferences(database),
   ]);
 
   // Warm-up sets aren't training volume, same as warm-up exercises.
@@ -51,7 +53,14 @@ async function planSmartWorkoutFromDb(
     category: "strength",
   });
 
-  return planSmartWorkout({ now, sets: volumeSets, exercises: candidates, usage, ...options });
+  return planSmartWorkout({
+    now,
+    sets: volumeSets,
+    exercises: candidates,
+    usage,
+    preferences,
+    ...options,
+  });
 }
 
 /** How many suggestions the Add exercise menu shows. */

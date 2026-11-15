@@ -3,6 +3,7 @@ import { gyms } from "@jim/db";
 import { isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
+import { loadPreferences } from "./exercise-preferences.js";
 import { visibleExercises } from "./resolve-exercise.js";
 
 export interface SearchExercisesInput {
@@ -26,6 +27,7 @@ export async function searchExercisesTool(context: UserContext, input: SearchExe
       : rows;
     const filtered = filterExercises(byMuscle, { equipment: input.equipment });
     const ranked = input.query ? searchExercises(filtered, input.query) : filtered;
+    const preferences = await loadPreferences(tx);
     const gymNames = new Map(
       (await tx.select().from(gyms).where(isNull(gyms.deletedAt))).map((g) => [g.id, g.name]),
     );
@@ -39,6 +41,8 @@ export async function searchExercisesTool(context: UserContext, input: SearchExe
       equipment: row.equipment,
       trackingType: row.trackingType,
       isCustom: row.ownerId !== null,
+      // Like / Dislike (issue #795), only when set.
+      ...(preferences.has(row.slug) ? { preference: preferences.get(row.slug) } : {}),
       // Machine details (issue #450), only when set.
       ...(machineName(row) ? { machine: machineName(row) } : {}),
       ...(row.pulleyType ? { pulleyType: row.pulleyType } : {}),

@@ -1,5 +1,6 @@
 import { type JimDatabase, db } from "@/lib/db/schema";
 import { startDprForProgram } from "@/lib/dpr/start-for-program";
+import { loadExercisePreferences } from "@/lib/exercises/preferences";
 import { addProgramTemplate } from "@/lib/explore/add-template";
 import { setActiveProgram } from "@/lib/programs/set-active";
 import { patchSettings } from "@/lib/settings";
@@ -21,10 +22,11 @@ export async function generateProgramFromDb(
   answers: ProgramQuestionnaire,
   database: JimDatabase = db,
 ): Promise<GeneratedProgram> {
-  const [exercises, sessions, sessionExercises] = await Promise.all([
+  const [exercises, sessions, sessionExercises, preferences] = await Promise.all([
     database.exercises.toArray(),
     database.sessions.toArray(),
     database.sessionExercises.toArray(),
+    loadExercisePreferences(database),
   ]);
 
   const liveSessions = new Map(
@@ -42,6 +44,7 @@ export async function generateProgramFromDb(
     ...answers,
     exercises: exercises.filter((exercise) => exercise.ownerId == null),
     usage,
+    preferences,
   });
 }
 

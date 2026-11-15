@@ -188,3 +188,49 @@ describe("planSmartWorkout", () => {
     );
   });
 });
+
+describe("planSmartWorkout preferences (issue #795)", () => {
+  const legs = [
+    exercise("squat", ["quadriceps"]),
+    exercise("leg-press", ["quadriceps"]),
+    exercise("hack", ["quadriceps"]),
+  ];
+
+  it("never picks a disliked exercise", () => {
+    const plan = planSmartWorkout({
+      now: NOW,
+      sets: [],
+      exercises: legs,
+      usage: new Map(),
+      exerciseCount: 3,
+      preferences: new Map([["hack", "dislike"]]),
+    });
+    expect(plan.picks.map((pick) => pick.exerciseId)).not.toContain("hack");
+  });
+
+  it("favours a liked exercise over an untouched one", () => {
+    const plan = planSmartWorkout({
+      now: NOW,
+      sets: [],
+      exercises: legs,
+      usage: new Map(),
+      exerciseCount: 1,
+      preferences: new Map([["leg-press", "like"]]),
+    });
+    expect(plan.picks[0]?.exerciseId).toBe("leg-press");
+  });
+
+  it("still counts a disliked exercise already in the workout", () => {
+    const plan = planSmartWorkout({
+      now: NOW,
+      sets: [],
+      // Without hack's sets counted, quads (target 10) would beat biceps (6) on the tie.
+      exercises: [...legs, exercise("curl", ["biceps"])],
+      usage: new Map(),
+      exerciseCount: 1,
+      alreadyPickedIds: ["hack"],
+      preferences: new Map([["hack", "dislike"]]),
+    });
+    expect(plan.picks[0]?.muscle).toBe("biceps");
+  });
+});

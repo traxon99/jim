@@ -6,6 +6,7 @@ import {
   bodyMeasurements,
   dprBlockLifts,
   dprBlocks,
+  exercisePreferences,
   exercises,
   gyms,
   injuries,
@@ -46,6 +47,7 @@ const PULL_TABLES: Record<SyncTable | "scheduledWorkouts", PgTable & { serverSeq
   injuries: injuries,
   painCheckins: painCheckins,
   sickDays: sickDays,
+  exercisePreferences: exercisePreferences,
   scheduledWorkouts: scheduledWorkouts,
 };
 

@@ -9,3 +9,4 @@ export * from "./usage";
 export * from "./demo-video";
 export * from "./body-map";
 export * from "./machine";
+export * from "./preference";

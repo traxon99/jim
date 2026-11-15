@@ -255,6 +255,11 @@ from the install gate and runs there) the same restrictions just feel broken, so
   `position: relative; overflow: hidden` for it, so bear that in mind if a button needs an overflowing
   child (a badge, say).
 - Respect `prefers-reduced-motion` on every animation (see the existing ones in `globals.css`).
+- **Features explain themselves; no explainer copy.** Labels, icons, order and state do the
+  explaining. Don't add captions, helper text, footnotes or subtitles that describe what a control
+  does or why ("Liked lifts come first…", "Smart workouts use this…"). Keep text that carries data
+  (a number, a date, a name) or that the user has to act on (an error, a confirmation of something
+  that can't be undone). If a control needs a sentence to make sense, change the control.
 - Tap targets are at least 44×44 (`min-h-11 min-w-11`), and primary workout controls go in the
   bottom third of the screen.
 

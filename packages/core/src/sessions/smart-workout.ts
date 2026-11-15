@@ -1,4 +1,5 @@
 import type { Muscle } from "../exercises/muscles";
+import { type ExercisePreferenceMap, isPickable, preferenceRank } from "../exercises/preference";
 import type { ExerciseUsage } from "../exercises/usage";
 import {
   PRIMARY_MUSCLE_VOLUME_WEIGHT,
@@ -31,6 +32,12 @@ const SMART_WORKOUT_LOOKBACK_DAYS = 7;
 /** A muscle hit as a primary this recently is still recovering, so it's picked last. */
 const SMART_WORKOUT_RECOVERY_HOURS = 48;
 const SMART_WORKOUT_DEFAULT_EXERCISE_COUNT = 5;
+/**
+ * What a Like adds to an exercise's score (issue #795): more than a staple
+ * or a compound, less than one the user already does, so it nudges the pick
+ * without overriding volume balance.
+ */
+const SMART_WORKOUT_LIKE_BONUS = 40;
 /** Sets each picked exercise is assumed to add, while choosing the rest. */
 const SMART_WORKOUT_SETS_PER_EXERCISE = 3;
 
@@ -78,6 +85,8 @@ export interface SmartWorkoutInput {
   /** From `buildExerciseUsage` — exercises the user already does are preferred. */
   usage: ReadonlyMap<string, ExerciseUsage>;
   exerciseCount?: number;
+  /** Slug → Like/Dislike (issue #795): liked ones are favoured, disliked ones never picked. */
+  preferences?: ExercisePreferenceMap;
   /**
    * Exercises already in the workout (issue #226: suggestions in an ad hoc
    * workout's Add exercise menu). They're never picked again, and their sets
@@ -109,7 +118,13 @@ const TARGET_MUSCLES = Object.keys(SMART_WORKOUT_WEEKLY_SET_TARGETS) as Muscle[]
  * big gap doesn't swallow the whole workout. Compounds come first in the
  * returned order.
  */
-export function planSmartWorkout(input: SmartWorkoutInput): SmartWorkoutPlan {
+export function planSmartWorkout(rawInput: SmartWorkoutInput): SmartWorkoutPlan {
+  const input: SmartWorkoutInput = {
+    ...rawInput,
+    exercises: rawInput.exercises.filter((exercise) =>
+      isPickable(rawInput.preferences, exercise.slug),
+    ),
+  };
   const count = input.exerciseCount ?? SMART_WORKOUT_DEFAULT_EXERCISE_COUNT;
   const nowMs = input.now.getTime();
   const windowStart = nowMs - SMART_WORKOUT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
@@ -135,7 +150,8 @@ export function planSmartWorkout(input: SmartWorkoutInput): SmartWorkoutPlan {
   const projected = { ...recentSets };
   const picked = new Set<string>();
   const picks: SmartWorkoutPick[] = [];
-  const exerciseById = new Map(input.exercises.map((exercise) => [exercise.id, exercise]));
+  // From every exercise, so a disliked one the user added by hand still counts.
+  const exerciseById = new Map(rawInput.exercises.map((exercise) => [exercise.id, exercise]));
 
   for (const exerciseId of input.alreadyPickedIds ?? []) {
     picked.add(exerciseId);
@@ -221,6 +237,7 @@ function bestExerciseFor(
     const stapleIndex = staples.indexOf(exercise.slug);
     if (stapleIndex >= 0) score += 20 - stapleIndex;
     if (exercise.mechanic === "compound") score += 5;
+    if (preferenceRank(input.preferences, exercise.slug) === 1) score += SMART_WORKOUT_LIKE_BONUS;
     // Don't load a muscle that's still recovering as a side effect.
     for (const other of exercise.primaryMuscles) {
       if (other !== muscle && recovering.has(other)) score -= 10;

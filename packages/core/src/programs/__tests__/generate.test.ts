@@ -228,3 +228,18 @@ describe("generateProgram", () => {
     expect(none.template.days).toEqual([]);
   });
 });
+
+describe("generateProgram preferences (issue #795)", () => {
+  it("never picks a disliked exercise", () => {
+    const result = generateProgram(input({ preferences: new Map([["barbell-squat", "dislike"]]) }));
+    expect(allSlugs(result)).not.toContain("barbell-squat");
+    expect(allSlugs(result)).toContain("front-squat-clean-grip");
+  });
+
+  it("puts a liked lift first in its slot", () => {
+    const plain = generateProgram(input());
+    expect(allSlugs(plain)).not.toContain("leg-press");
+    const liked = generateProgram(input({ preferences: new Map([["leg-press", "like"]]) }));
+    expect(allSlugs(liked)).toContain("leg-press");
+  });
+});

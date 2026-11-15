@@ -146,6 +146,8 @@ pain_checkins      id, user_id, injury_id, day, pain_level (0–10)
                    -- one per injury per local day; a day without one has no pain level
 sick_days          id, user_id, day, note?
                    -- a local day marked sick (#779); readers treat any live row as sick
+exercise_preferences id, user_id, exercise_slug, preference (like|dislike)
+                   -- by slug so it survives a clone (#795); None tombstones; newest live row wins
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 

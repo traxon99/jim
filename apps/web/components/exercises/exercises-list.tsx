@@ -34,6 +34,7 @@ export function ExercisesList({ userId }: { userId: string }) {
             query={deferredQuery}
             used={usage.get(exercise.id)}
             gymNames={gymNames}
+            preference={catalog.preferences?.get(exercise.slug)}
           />
         </Link>
       </li>
