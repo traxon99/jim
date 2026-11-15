@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { ShareLinkButton } from "@/components/sharing/share-link-button";
@@ -426,9 +427,15 @@ export function RoutineDetail({
             );
             return (
               <li key={item.id} className="flex flex-col gap-0.5 py-3">
-                <span className="flex items-center gap-2 text-base font-medium">
+                <span className="flex min-w-0 items-center gap-2 text-base font-medium">
                   {label && <SupersetBadge label={label} />}
-                  {info?.name ?? "Unknown exercise"}
+                  {info ? (
+                    <ExerciseNameButton exerciseId={item.exerciseId} userId={userId}>
+                      {info.name}
+                    </ExerciseNameButton>
+                  ) : (
+                    "Unknown exercise"
+                  )}
                 </span>
                 <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-500">
                   {summary ?? "No targets set"}
@@ -466,6 +473,7 @@ export function RoutineDetail({
                     removeExerciseAction(() => void handleRemoveItem(item)),
                   ]}
                   exerciseName={exercisesById.get(item.exerciseId)?.name ?? "Unknown exercise"}
+                  userId={userId}
                   warmup={exercisesById.get(item.exerciseId)?.warmup ?? null}
                   cardio={exercisesById.get(item.exerciseId)?.cardio ?? false}
                   units={settings.units}
@@ -515,6 +523,7 @@ export function RoutineDetail({
 
       {sheetOpen && (
         <PreWorkoutSheet
+          userId={userId}
           context={dprContext}
           routineId={routine.id}
           routineName={routine.name}

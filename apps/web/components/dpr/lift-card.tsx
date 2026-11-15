@@ -1,5 +1,6 @@
 "use client";
 
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { predictionDetail } from "@/components/history/predicted-one-rep-max-stat";
 import type { DprBlockLiftRow } from "@/lib/db/schema";
 import {
@@ -27,7 +28,16 @@ import { StatusPill } from "./status-pill";
 const LOG_LIMIT = 12;
 
 /** One focused lift on /progression (issue #214): progress, next call, chart, log. */
-export function LiftCard({ context, lift }: { context: DprContext; lift: DprBlockLiftRow }) {
+export function LiftCard({
+  context,
+  lift,
+  portal = false,
+}: {
+  context: DprContext;
+  lift: DprBlockLiftRow;
+  /** On the desktop portal the name links to its exercise page (issue #796). */
+  portal?: boolean;
+}) {
   const exercise = context.exercises.get(lift.exerciseId);
   const units = context.settings.units;
   const goal = liftGoal(lift);
@@ -55,7 +65,17 @@ export function LiftCard({ context, lift }: { context: DprContext; lift: DprBloc
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-300 px-4 py-3 dark:border-zinc-700">
       <div className="flex items-start justify-between gap-2">
         <h3 className="min-w-0 text-base font-semibold">
-          {exercise ? exerciseDisplayName(exercise) : "Exercise"}
+          {exercise ? (
+            <ExerciseNameButton
+              exerciseId={lift.exerciseId}
+              userId={context.block.userId}
+              portal={portal}
+            >
+              {exerciseDisplayName(exercise)}
+            </ExerciseNameButton>
+          ) : (
+            "Exercise"
+          )}
         </h3>
         {progress.status && <StatusPill status={progress.status} />}
       </div>

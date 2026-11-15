@@ -1,7 +1,8 @@
 "use client";
 
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import type { DprBlockRow, ExerciseRow } from "@/lib/db/schema";
-import type { DprBlockRecapSummary, DprLiftRecap } from "@jim/core";
+import { type DprBlockRecapSummary, type DprLiftRecap, exerciseDisplayName } from "@jim/core";
 import { CircleCheck, CircleX } from "lucide-react";
 import { formatDate, formatWeight } from "./labels";
 
@@ -22,6 +23,7 @@ export function BlockRecap({
   onNextBlock,
   busy = false,
   title = "Block complete",
+  portal = false,
 }: {
   block: DprBlockRow;
   recaps: readonly DprLiftRecap[];
@@ -33,6 +35,8 @@ export function BlockRecap({
   onNextBlock?: () => void;
   busy?: boolean;
   title?: string;
+  /** On the desktop portal names link to their exercise pages (issue #796). */
+  portal?: boolean;
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -50,7 +54,11 @@ export function BlockRecap({
           <li key={recap.exerciseId} className="flex flex-col gap-1 py-3">
             <div className="flex items-center justify-between gap-2">
               <span className="min-w-0 truncate text-base font-medium">
-                {exercises.get(recap.exerciseId)?.name ?? "Exercise"}
+                <RecapExerciseName
+                  exercise={exercises.get(recap.exerciseId)}
+                  userId={block.userId}
+                  portal={portal}
+                />
               </span>
               {recap.hitGoal !== null && (
                 <span className="flex shrink-0 items-center gap-1 text-xs font-medium">
@@ -114,5 +122,27 @@ export function BlockRecap({
         </div>
       )}
     </section>
+  );
+}
+
+function RecapExerciseName({
+  exercise,
+  userId,
+  portal,
+}: {
+  exercise: ExerciseRow | undefined;
+  userId: string;
+  portal: boolean;
+}) {
+  if (!exercise) return "Exercise";
+  return (
+    <ExerciseNameButton
+      exerciseId={exercise.id}
+      userId={userId}
+      portal={portal}
+      className="truncate"
+    >
+      {exerciseDisplayName(exercise)}
+    </ExerciseNameButton>
   );
 }

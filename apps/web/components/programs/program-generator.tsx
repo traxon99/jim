@@ -1,8 +1,9 @@
 "use client";
 
 import { EXPERIENCE_LABELS } from "@/components/dpr/labels";
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { BackLink } from "@/components/page-header";
-import { db } from "@/lib/db/schema";
+import { type ExerciseRow, db } from "@/lib/db/schema";
 import { currentBlock } from "@/lib/dpr/block";
 import { generateProgramFromDb, saveGeneratedProgram } from "@/lib/programs/generate";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
@@ -21,6 +22,7 @@ import {
   PROGRAM_GOALS,
   type ProgramGoal,
   type ProgramQuestionnaire,
+  exerciseDisplayName,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
@@ -215,7 +217,11 @@ export function ProgramGenerator({ userId }: { userId: string }) {
                 {day.routine.items.map((item) => (
                   <li key={item.slug} className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="min-w-0 truncate">
-                      {exerciseBySlug.get(item.slug)?.name ?? item.slug}
+                      <GeneratedExerciseName
+                        exercise={exerciseBySlug.get(item.slug)}
+                        slug={item.slug}
+                        userId={userId}
+                      />
                     </span>
                     <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-500">
                       {formatTarget(item)}
@@ -428,5 +434,23 @@ export function ProgramGenerator({ userId }: { userId: string }) {
         {busy ? "Building…" : "Build program"}
       </button>
     </main>
+  );
+}
+
+/** A generated day's exercise: opens its card once the catalog row is on this device (issue #796). */
+function GeneratedExerciseName({
+  exercise,
+  slug,
+  userId,
+}: {
+  exercise: ExerciseRow | undefined;
+  slug: string;
+  userId: string;
+}) {
+  if (!exercise) return slug;
+  return (
+    <ExerciseNameButton exerciseId={exercise.id} userId={userId} className="truncate">
+      {exerciseDisplayName(exercise)}
+    </ExerciseNameButton>
   );
 }
