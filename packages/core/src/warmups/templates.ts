@@ -1,3 +1,5 @@
+import { type ExercisePreferenceMap, isPickable } from "../exercises/preference";
+
 export interface WarmupTemplateItem {
   slug: string;
   sets: number;
@@ -118,17 +120,20 @@ export interface InstantiatedWarmup {
  * Turns a template into the data for a new, user-owned warm-up routine,
  * resolving each slug against the exercise ids present locally. Sync
  * bookkeeping and the rest of the row shape are the call site's job (same
- * split as duplicateRoutine).
+ * split as duplicateRoutine). Exercises the user disliked (issue #795) are
+ * left out.
  */
 export function instantiateWarmupTemplate(
   template: WarmupTemplate,
   exerciseIdBySlug: ReadonlyMap<string, string>,
   generateId: () => string,
+  preferences?: ExercisePreferenceMap,
 ): InstantiatedWarmup {
   const items: InstantiatedWarmupItem[] = [];
   const missingSlugs: string[] = [];
 
   for (const entry of template.items) {
+    if (!isPickable(preferences, entry.slug)) continue;
     const exerciseId = exerciseIdBySlug.get(entry.slug);
     if (!exerciseId) {
       missingSlugs.push(entry.slug);

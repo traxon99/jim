@@ -591,7 +591,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "create_warmup",
     {
       title: "Create warm-up",
-      description: `Create a warm-up: a routine of kind "warmup" whose exercises run as the timed warm-up block before any routine it's linked to, and never count toward working volume or PRs. Either add a built-in template by key (see list_warmup_templates) or give a custom exercise list, each with sets and reps or seconds. attachTo links it to strength routines straight away (or use update_routine's warmup later).${PREVIEW_HINT}`,
+      description: `Create a warm-up: a routine of kind "warmup" whose exercises run as the timed warm-up block before any routine it's linked to, and never count toward working volume or PRs. Either add a built-in template by key (see list_warmup_templates) or give a custom exercise list, each with sets and reps or seconds. attachTo links it to strength routines straight away (or use update_routine's warmup later). A template leaves out exercises the user disliked.${PREFERENCE_HINT}${PREVIEW_HINT}`,
       inputSchema: {
         template: z.string().optional().describe("Built-in template key, e.g. full-body"),
         name: z.string().optional().describe("Required for a custom warm-up"),
