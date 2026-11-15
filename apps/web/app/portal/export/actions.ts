@@ -7,6 +7,7 @@ import {
   bodyMeasurements,
   dprBlockLifts,
   dprBlocks,
+  exercisePreferences,
   exercises,
   gyms,
   injuries,
@@ -49,6 +50,7 @@ export async function loadExportTables(): Promise<ExportTables> {
     const injuryRows = await tx.select().from(injuries);
     const checkinRows = await tx.select().from(painCheckins);
     const sickDayRows = await tx.select().from(sickDays);
+    const preferenceRows = await tx.select().from(exercisePreferences);
     // The exercises the history names, plus every custom one the user owns.
     const exerciseIds = [
       ...new Set([
@@ -82,6 +84,7 @@ export async function loadExportTables(): Promise<ExportTables> {
       injuries: injuryRows,
       painCheckins: checkinRows,
       sickDays: sickDayRows,
+      exercisePreferences: preferenceRows,
     };
   });
 }

@@ -505,6 +505,13 @@
       "when": 1794246273662,
       "tag": "0071_add_sick_days",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794781762133,
+      "tag": "0072_add_exercise_preferences",
+      "breakpoints": true
     }
   ]
 }

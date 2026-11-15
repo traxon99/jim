@@ -4,6 +4,7 @@ import {
   bodyMeasurements,
   dprBlockLifts,
   dprBlocks,
+  exercisePreferences,
   exercises,
   gyms,
   injuries,
@@ -230,6 +231,10 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
   sickDays: {
     table: sickDays,
     updatable: ["note"],
+  },
+  exercisePreferences: {
+    table: exercisePreferences,
+    updatable: ["preference"],
   },
 };
 

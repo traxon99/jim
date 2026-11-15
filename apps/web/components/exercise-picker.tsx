@@ -100,7 +100,13 @@ export function ExercisePicker({
   useEffect(() => setMounted(true), []);
   const portal = (content: ReactNode) => (mounted ? createPortal(content, document.body) : null);
   // The same search, filters and sections as the Exercises tab (#710).
-  const catalog = useExerciseCatalog({ userId, initialCategory, excludeExerciseIds, include });
+  const catalog = useExerciseCatalog({
+    userId,
+    initialCategory,
+    excludeExerciseIds,
+    include,
+    byPreference: true,
+  });
   const { query, deferredQuery, results, usage, yours, rest, restPage } = catalog;
   const { category } = catalog.filters;
   // Issue #169: create a missing exercise from here with the same form the
@@ -167,6 +173,7 @@ export function ExercisePicker({
             query={deferredQuery}
             used={usage.get(exercise.id)}
             gymNames={gymNames}
+            preference={catalog.preferences?.get(exercise.slug)}
           />
           {!replacing && (
             <span

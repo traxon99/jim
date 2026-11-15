@@ -1,6 +1,7 @@
 "use client";
 
 import { BodyMap, muscleSummary } from "@/components/exercises/body-map";
+import { ExercisePreferenceControl } from "@/components/exercises/exercise-preference-control";
 import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -210,6 +211,10 @@ export function ExerciseDetail({
                 </Link>
               )}
             </div>
+
+            {!isWarmup && !isCardio && (
+              <ExercisePreferenceControl userId={userId} slug={exercise.slug} />
+            )}
 
             {exercise.imageUrls.length > 0 && (
               <div className="flex gap-2 overflow-x-auto">

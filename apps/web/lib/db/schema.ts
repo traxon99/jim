@@ -3,6 +3,7 @@ import type {
   bodyMeasurements,
   dprBlockLifts,
   dprBlocks,
+  exercisePreferences,
   exercises,
   gyms,
   injuries,
@@ -60,6 +61,7 @@ export type GymRow = Omit<GymSelect, "latitude" | "longitude"> &
 export type InjuryRow = typeof injuries.$inferSelect;
 export type PainCheckinRow = typeof painCheckins.$inferSelect;
 export type SickDayRow = typeof sickDays.$inferSelect;
+export type ExercisePreferenceRow = typeof exercisePreferences.$inferSelect;
 
 export interface SyncTableRowMap {
   routines: RoutineRow;
@@ -78,6 +80,7 @@ export interface SyncTableRowMap {
   injuries: InjuryRow;
   painCheckins: PainCheckinRow;
   sickDays: SickDayRow;
+  exercisePreferences: ExercisePreferenceRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -167,6 +170,7 @@ export class JimDatabase extends Dexie {
   injuries!: EntityTable<InjuryRow, "id">;
   painCheckins!: EntityTable<PainCheckinRow, "id">;
   sickDays!: EntityTable<SickDayRow, "id">;
+  exercisePreferences!: EntityTable<ExercisePreferenceRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -205,6 +209,10 @@ export class JimDatabase extends Dexie {
     // Sick days (issue #779).
     this.version(6).stores({
       sickDays: "id, day",
+    });
+    // Exercise preferences (issue #795).
+    this.version(7).stores({
+      exercisePreferences: "id, exerciseSlug",
     });
   }
 }

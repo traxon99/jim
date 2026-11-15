@@ -2,6 +2,7 @@ import type {
   BodyMeasurementRow,
   DprBlockLiftRow,
   DprBlockRow,
+  ExercisePreferenceRow,
   ExerciseRow,
   GymRow,
   InjuryRow,
@@ -59,6 +60,8 @@ export interface ExportTables extends HistoryTables {
   painCheckins?: readonly PainCheckinRow[];
   /** Sick days (issue #779); private, but the user's own. */
   sickDays?: readonly SickDayRow[];
+  /** Exercise Like/Dislike, by slug (issue #795). */
+  exercisePreferences?: readonly ExercisePreferenceRow[];
   settings: SettingsRow | undefined;
 }
 
@@ -204,6 +207,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     injuries = [],
     painCheckins = [],
     sickDays = [],
+    exercisePreferences = [],
     settings,
   } = tables;
   const exerciseName = new Map(history.exercises.map((exercise) => [exercise.id, exercise.name]));
@@ -242,6 +246,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     injuries: live(injuries),
     painCheckins: live(painCheckins),
     sickDays: live(sickDays),
+    exercisePreferences: live(exercisePreferences),
   };
   return JSON.stringify(data, null, 2);
 }

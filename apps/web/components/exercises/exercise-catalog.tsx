@@ -4,21 +4,24 @@ import { Highlight } from "@/components/highlight";
 import { useIncrementalList } from "@/components/use-incremental-list";
 import { type ExerciseRow, db } from "@/lib/db/schema";
 import { EXERCISE_CATEGORY_TABS, exerciseMetaLine } from "@/lib/exercises/display";
+import { useExercisePreferences } from "@/lib/exercises/use-exercise-preferences";
 import { formatLastDone } from "@/lib/routines/last-done";
 import {
   type ExerciseCategory,
+  type ExercisePreference,
   type ExerciseSortKey,
   type ExerciseUsage,
   buildExerciseUsage,
   dedupeCatalogNames,
   exerciseDisplayName,
   filterExercises,
+  orderByPreference,
   preferOwnedExercises,
   searchExercises,
   sortExercisesByUsage,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 
 /**
@@ -44,6 +47,8 @@ interface CatalogOptions {
   excludeExerciseIds?: ReadonlySet<string>;
   /** Only exercises this keeps, e.g. swaps that spare an injury (issue #627). Keep it stable. */
   include?: ((exercise: ExerciseRow) => boolean) | null;
+  /** Liked exercises first and disliked ones last in each section (issue #795), for the picker. */
+  byPreference?: boolean;
 }
 
 export function useExerciseCatalog({
@@ -51,7 +56,9 @@ export function useExerciseCatalog({
   initialCategory = "all",
   excludeExerciseIds,
   include = null,
+  byPreference = false,
 }: CatalogOptions) {
+  const preferences = useExercisePreferences();
   // Dexie live query: re-renders whenever the local catalog changes (a pull
   // landing, a new custom exercise), with no network on the read path.
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
@@ -129,22 +136,32 @@ export function useExerciseCatalog({
   // Issue #330: exercises you've logged come first, most recent first, above
   // the untouched catalog, unless a search or another sort is in charge.
   const sectioned = deferredQuery.trim() === "" && sortKey === "name";
+  const ranked = byPreference && sectioned ? preferences : undefined;
   const yours = useMemo(
     () =>
       sectioned
-        ? results
-            .filter((exercise) => usage.has(exercise.id))
-            .sort(
-              (a, b) =>
-                (usage.get(b.id)?.lastPerformedAt.getTime() ?? 0) -
-                (usage.get(a.id)?.lastPerformedAt.getTime() ?? 0),
-            )
+        ? orderByPreference(
+            results
+              .filter((exercise) => usage.has(exercise.id))
+              .sort(
+                (a, b) =>
+                  (usage.get(b.id)?.lastPerformedAt.getTime() ?? 0) -
+                  (usage.get(a.id)?.lastPerformedAt.getTime() ?? 0),
+              ),
+            ranked,
+          )
         : [],
-    [sectioned, results, usage],
+    [sectioned, results, usage, ranked],
   );
   const rest = useMemo(
-    () => (sectioned ? results.filter((exercise) => !usage.has(exercise.id)) : results),
-    [sectioned, results, usage],
+    () =>
+      sectioned
+        ? orderByPreference(
+            results.filter((exercise) => !usage.has(exercise.id)),
+            ranked,
+          )
+        : results,
+    [sectioned, results, usage, ranked],
   );
   const restPage = useIncrementalList(
     rest,
@@ -172,6 +189,8 @@ export function useExerciseCatalog({
     },
     results,
     usage,
+    /** Slug → Like/Dislike (issue #795). */
+    preferences,
     yours,
     rest,
     restPage,
@@ -319,17 +338,23 @@ export function ExerciseCatalogRowContent({
   query,
   used,
   gymNames,
+  preference,
 }: {
   exercise: CatalogExercise;
   query: string;
   used: ExerciseUsage | undefined;
   gymNames: ReadonlyMap<string, string> | undefined;
+  /** Like / Dislike (issue #795): a thumb beside the name; a disliked row is dimmed. */
+  preference?: ExercisePreference;
 }) {
   return (
     <>
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span
+        className={`flex min-w-0 flex-1 flex-col gap-0.5 ${preference === "dislike" ? "opacity-50" : ""}`}
+      >
         <span className="text-base font-medium">
           <Highlight text={exerciseDisplayName(exercise)} query={query} />
+          {preference && <PreferenceBadge preference={preference} />}
         </span>
         <span className="text-xs text-zinc-500 dark:text-zinc-500">
           {exerciseMetaLine(exercise, gymNames)}
@@ -345,5 +370,23 @@ export function ExerciseCatalogRowContent({
         </span>
       )}
     </>
+  );
+}
+
+/** The thumb shown beside a liked or disliked exercise's name (issue #795). */
+export function PreferenceBadge({ preference }: { preference: ExercisePreference }) {
+  const Icon = preference === "like" ? ThumbsUp : ThumbsDown;
+  return (
+    <span
+      role="img"
+      aria-label={preference === "like" ? "Liked" : "Disliked"}
+      className={`ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-md align-[-3px] ${
+        preference === "like"
+          ? "bg-green-600/12 text-green-700 dark:bg-green-400/16 dark:text-green-400"
+          : "bg-orange-600/12 text-orange-700 dark:bg-orange-400/16 dark:text-orange-400"
+      }`}
+    >
+      <Icon className="h-3 w-3" strokeWidth={2.4} aria-hidden="true" />
+    </span>
   );
 }

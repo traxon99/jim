@@ -12,6 +12,7 @@ import { and, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
+import { carryPreference } from "./exercise-preferences.js";
 import { ExerciseNotFoundError } from "./resolve-exercise.js";
 
 export interface MergeExercisesInput {
@@ -24,7 +25,8 @@ export interface MergeExercisesInput {
 /**
  * Repoints every reference from `mergeId` to `keepId` (session_exercises,
  * routine_exercises, personal_records, PRP block lifts, injury exercise
- * rules) and archives `mergeId` rather than
+ * rules, and its Like/Dislike if the kept one has none, issue #795) and
+ * archives `mergeId` rather than
  * deleting it — historical sets keep their referent either way, since
  * `sets` never references `exercises` directly, only through
  * `session_exercises` (S4's "archive rather than delete" pattern).
@@ -174,6 +176,8 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
       repointedInjuryRules += 1;
     }
 
+    const carriedPreference = await carryPreference(tx, context.userId, merge.slug, keep.slug, now);
+
     await tx
       .update(exercises)
       .set({
@@ -192,6 +196,7 @@ export async function mergeExercises(context: UserContext, input: MergeExercises
       repointedPersonalRecords: repointedPersonalRecords.length,
       repointedBlockLifts,
       repointedInjuryRules,
+      carriedPreference,
       archived: { id: merge.id, name: merge.name },
     };
   });

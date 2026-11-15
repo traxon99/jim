@@ -52,6 +52,10 @@ import { deleteRoutine } from "./tools/delete-routine.js";
 import { deleteWorkout } from "./tools/delete-workout.js";
 import { dprStatus } from "./tools/dpr-status.js";
 import { exerciseHistory } from "./tools/exercise-history.js";
+import {
+  listExercisePreferences,
+  setExercisePreferenceTool,
+} from "./tools/exercise-preferences.js";
 import { getBodyMeasurements } from "./tools/get-body-measurements.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
@@ -115,6 +119,9 @@ function dryRunParam(defaultValue: boolean) {
 }
 
 const PREVIEW_HINT = " Preview with dry_run: true before committing.";
+// Exercise preference (issue #795): what the phone's smart workout and generator do too.
+const PREFERENCE_HINT =
+  " When choosing exercises, respect the user's preferences (list_exercise_preferences, or `preference` in search_exercises): favour liked ones and never pick a disliked one unless the user names it.";
 
 const repSchemeSchema = z.object({
   sets: z.number().int().positive(),
@@ -346,7 +353,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Search exercises",
       description:
-        "Search the exercise catalog by name/alias or machine make/model, muscle group, and/or equipment. Results include machine make/model, pulley type and gym when set.",
+        "Search the exercise catalog by name/alias or machine make/model, muscle group, and/or equipment. Results include machine make/model, pulley type, gym and the user's preference (like or dislike) when set.",
       inputSchema: {
         query: z.string().optional(),
         muscles: z.array(z.string()).optional(),
@@ -360,7 +367,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "create_routine",
     {
       title: "Create routine",
-      description: `Build a new strength routine with an ordered list of exercises and targets. For a warm-up, use create_warmup instead.${PREVIEW_HINT}`,
+      description: `Build a new strength routine with an ordered list of exercises and targets. For a warm-up, use create_warmup instead.${PREFERENCE_HINT}${PREVIEW_HINT}`,
       inputSchema: {
         name: z.string(),
         folder: z.string().optional(),
@@ -386,7 +393,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "update_routine",
     {
       title: "Update routine",
-      description: `Amend a routine or warm-up: its name/folder/notes, its linked warm-up and warm-up timer, and/or replace its entire exercise list (the result counts how many existing exercises were replaced).${PREVIEW_HINT}`,
+      description: `Amend a routine or warm-up: its name/folder/notes, its linked warm-up and warm-up timer, and/or replace its entire exercise list (the result counts how many existing exercises were replaced).${PREFERENCE_HINT}${PREVIEW_HINT}`,
       inputSchema: {
         routineId: z.string().describe("Routine id, or its exact name"),
         name: z.string().optional(),
@@ -527,6 +534,33 @@ export function createMcpServer(context: UserContext): McpServer {
       inputSchema: { keepId: z.string(), mergeId: z.string(), dry_run: dryRunParam(true) },
     },
     handle(({ dry_run, ...input }) => mergeExercises(context, { ...input, dryRun: dry_run })),
+  );
+
+  // Exercise preference (issue #795): Like / None / Dislike from the exercise sheet.
+  server.registerTool(
+    "list_exercise_preferences",
+    {
+      title: "List exercise preferences",
+      description:
+        "Read-only. The exercises the user liked and disliked. Smart workouts and the program generator favour liked ones and never pick disliked ones; do the same when building routines or programs. Exercises not listed have no preference.",
+      inputSchema: {},
+    },
+    handle(() => listExercisePreferences(context)),
+  );
+  server.registerTool(
+    "set_exercise_preference",
+    {
+      title: "Set exercise preference",
+      description: `Set the user's preference for an exercise, like the exercise sheet's Like / None / Dislike: "like" favours it, "dislike" stops Jim from picking it (the user can still add it), "none" clears it.${PREVIEW_HINT}`,
+      inputSchema: {
+        exercise: z.string().describe("Exercise id or name"),
+        preference: z.enum(["like", "dislike", "none"]),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) =>
+      setExercisePreferenceTool(context, { ...input, dryRun: dry_run }),
+    ),
   );
 
   server.registerTool(

@@ -1,5 +1,6 @@
 import type { ExperienceLevel } from "../dpr/goal";
 import type { Muscle } from "../exercises/muscles";
+import { type ExercisePreferenceMap, isPickable, orderByPreference } from "../exercises/preference";
 import type { ExerciseUsage } from "../exercises/usage";
 import type { ProgramTemplate, RoutineTemplate, RoutineTemplateItem } from "../explore/templates";
 import { exerciseCategoryOf } from "../warmups/category";
@@ -81,6 +82,8 @@ export interface GenerateProgramInput extends ProgramQuestionnaire {
   exercises: readonly GeneratorExercise[];
   /** From `buildExerciseUsage` — breaks fallback ties toward familiar exercises. */
   usage?: ReadonlyMap<string, ExerciseUsage>;
+  /** Slug → Like/Dislike (issue #795): liked lifts lead each slot, disliked ones are never picked. */
+  preferences?: ExercisePreferenceMap;
 }
 
 export interface GeneratedProgram {
@@ -646,13 +649,14 @@ export function generateProgram(input: GenerateProgramInput): GeneratedProgram {
       !exercise.isArchived &&
       exerciseCategoryOf(exercise) === "strength" &&
       !SKIPPED_LEVELS.has(exercise.level ?? "") &&
-      equipmentAllowed(exercise.equipment, allowed),
+      equipmentAllowed(exercise.equipment, allowed) &&
+      isPickable(input.preferences, exercise.slug),
   );
   const candidatesBySlot = new Map<SlotKey, GeneratorExercise[]>();
   const candidatesFor = (slot: SlotKey) => {
     let list = candidatesBySlot.get(slot);
     if (!list) {
-      list = slotCandidates(SLOTS[slot], eligible, usage);
+      list = orderByPreference(slotCandidates(SLOTS[slot], eligible, usage), input.preferences);
       candidatesBySlot.set(slot, list);
     }
     return list;

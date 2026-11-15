@@ -947,6 +947,38 @@ export const sickDays = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// exercise_preferences — the user's Like or Dislike on an exercise (issue
+// #795). Keyed by slug, not id, so it survives a copy-on-write clone
+// (ADR-008). Setting None tombstones the row; readers take the newest live
+// row per slug, in case two devices each wrote one offline.
+// ---------------------------------------------------------------------------
+
+export const exercisePreferenceEnum = pgEnum("exercise_preference", ["like", "dislike"]);
+
+export const exercisePreferences = pgTable(
+  "exercise_preferences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    exerciseSlug: text("exercise_slug").notNull(),
+    preference: exercisePreferenceEnum("preference").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("exercise_preferences", table.userId),
+    index("exercise_preferences_server_seq").on(table.serverSeq),
+    index("exercise_preferences_user_seq").on(table.userId, table.serverSeq),
+    index("exercise_preferences_user_slug").on(table.userId, table.exerciseSlug),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // scheduled_workouts — planned sessions written by the MCP server (S8's
 // `schedule_workout`). Deliberately its own table rather than a `sessions`
 // row with a future `startedAt`: the phone treats any `sessions` row with
