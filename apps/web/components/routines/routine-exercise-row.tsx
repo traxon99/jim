@@ -1,6 +1,7 @@
 "use client";
 
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
 import { useSortable } from "@dnd-kit/sortable";
@@ -12,6 +13,8 @@ import { ProgressionRuleEditor } from "./progression-rule-editor";
 interface Props {
   item: RoutineExerciseRowEntity;
   exerciseName: string;
+  /** For the exercise card the name opens (issue #796). */
+  userId: string;
   /** Warm-ups (issue #59) only take sets plus reps or a hold time. */
   warmup?: { timed: boolean } | null;
   /** Cardio (issue #423) takes sets, a time per set and rest; no reps, weight or progression. */
@@ -78,6 +81,7 @@ export function changedFields(
 export function RoutineExerciseRow({
   item,
   exerciseName,
+  userId,
   warmup = null,
   cardio = false,
   units,
@@ -163,7 +167,13 @@ export function RoutineExerciseRow({
           <span className="flex flex-col pt-2">
             <span className="flex items-center gap-2">
               {supersetLabel && <SupersetBadge label={supersetLabel} />}
-              <span className="text-base font-medium">{exerciseName}</span>
+              <ExerciseNameButton
+                exerciseId={item.exerciseId}
+                userId={userId}
+                className="text-base font-medium"
+              >
+                {exerciseName}
+              </ExerciseNameButton>
             </span>
             {warmup && (
               <span className="text-xs font-medium text-orange-700 dark:text-orange-400">

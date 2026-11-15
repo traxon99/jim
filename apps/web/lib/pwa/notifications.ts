@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Warm-up exercises can be liked or disliked too, and built-in warm-ups leave out the ones you dislike.";
+  "Tap an exercise name in a routine, a program, your workout summary or PRP to open its details.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

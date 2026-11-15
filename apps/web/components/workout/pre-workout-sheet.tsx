@@ -1,6 +1,7 @@
 "use client";
 
 import { CallMark } from "@/components/dpr/call-mark";
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { FloatingCard } from "@/components/floating-card";
 import { PainCheckin } from "@/components/injuries/pain-checkin";
 import { RoutineIcon } from "@/components/routines/routine-icon";
@@ -21,6 +22,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
 
 interface Props {
+  /** For the exercise card a row's name opens (issue #796). */
+  userId: string;
   /** Null for users without DPR: no targets or intensity pick (issue #282). */
   context: DprContext | null;
   routineId: string;
@@ -47,6 +50,7 @@ function formatWeight(n: number): string {
  * With an injury open, it hosts today's pain check-in (issue #627).
  */
 export function PreWorkoutSheet({
+  userId,
   context,
   routineId,
   routineName,
@@ -117,7 +121,13 @@ export function PreWorkoutSheet({
               return (
                 <li key={row.id} className="flex items-center justify-between gap-3 py-2 text-sm">
                   <span className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium">{row.name}</span>
+                    <ExerciseNameButton
+                      exerciseId={row.exerciseId}
+                      userId={userId}
+                      className="truncate font-medium"
+                    >
+                      {row.name}
+                    </ExerciseNameButton>
                     {row.plan && (
                       <span className="text-xs text-zinc-500 dark:text-zinc-500">{row.plan}</span>
                     )}
