@@ -1,5 +1,13 @@
-import { type ProgressionRule, uuidv7 } from "@jim/core";
-import { routineExercises, routines } from "@jim/db";
+import {
+  type OneOffLifetime,
+  type ProgressionRule,
+  oneOffFields,
+  oneOffsReplacedBy,
+  startedRoutineIds,
+  uuidv7,
+} from "@jim/core";
+import { type DbOrTx, routineExercises, routines, sessions } from "@jim/db";
+import { inArray, isNull, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { findWarmupRoutine, nextRoutineIcon } from "./find-routine.js";
@@ -32,6 +40,8 @@ export interface CreateRoutineInput {
   /** The warm-up timer's length for this routine; defaults to the warm-up's own. */
   warmupMinutes?: number;
   exercises: CreateRoutineExerciseInput[];
+  /** Makes it a one-off workout with this lifetime instead of a routine (issue #798). */
+  oneOff?: OneOffLifetime;
   /** Preview only: run every check and return the result, then roll back (#245). */
   dryRun?: boolean;
 }
@@ -41,6 +51,8 @@ export async function createRoutine(context: UserContext, input: CreateRoutineIn
     const now = new Date();
     const routineId = uuidv7();
     const warmup = input.warmup ? await findWarmupRoutine(tx, input.warmup) : null;
+    const lifetime = input.oneOff ? oneOffFields(input.oneOff, now) : null;
+    const replaced = input.oneOff ? await replaceOneOffs(tx, input.oneOff, now) : [];
 
     await tx.insert(routines).values({
       id: routineId,
@@ -52,6 +64,7 @@ export async function createRoutine(context: UserContext, input: CreateRoutineIn
       warmupRoutineId: warmup?.id ?? null,
       warmupMinutes: input.warmupMinutes ?? null,
       ...(await nextRoutineIcon(tx)),
+      ...lifetime,
       position: 0,
       updatedAt: now,
       deviceId: MCP_DEVICE_ID,
@@ -89,6 +102,48 @@ export async function createRoutine(context: UserContext, input: CreateRoutineIn
       name: input.name,
       warmup: warmup ? { id: warmup.id, name: warmup.name } : null,
       exercises: items,
+      ...(lifetime && {
+        oneOff: {
+          expiresAt: lifetime.oneOffExpiresAt?.toISOString() ?? null,
+          day: lifetime.oneOffDay,
+          replaced: replaced.map((r) => ({ id: r.id, name: r.name })),
+        },
+      }),
     };
   });
+}
+
+/**
+ * A new 24h or until-done one-off replaces older unstarted ones of those
+ * kinds (core `oneOffsReplacedBy`): they're tombstoned like a discard.
+ */
+async function replaceOneOffs(tx: DbOrTx, lifetime: OneOffLifetime, now: Date) {
+  const live = await tx.select().from(routines).where(isNull(routines.deletedAt));
+  const oneOffs = live.filter((routine) => routine.oneOff);
+  if (oneOffs.length === 0) return [];
+  const used = await tx
+    .select({
+      routineId: sessions.routineId,
+      endedAt: sessions.endedAt,
+      deletedAt: sessions.deletedAt,
+    })
+    .from(sessions)
+    .where(
+      inArray(
+        sessions.routineId,
+        oneOffs.map((routine) => routine.id),
+      ),
+    );
+  const ids = new Set(oneOffsReplacedBy(lifetime, oneOffs, startedRoutineIds(used)));
+  if (ids.size === 0) return [];
+  await tx
+    .update(routines)
+    .set({
+      deletedAt: now,
+      updatedAt: now,
+      deviceId: MCP_DEVICE_ID,
+      serverSeq: sql`nextval('sync_seq')`,
+    })
+    .where(inArray(routines.id, [...ids]));
+  return oneOffs.filter((routine) => ids.has(routine.id));
 }

@@ -120,6 +120,9 @@ export async function addSharedSnapshot(
     const routineId = routineIds[index] as string;
     const routine: RoutineRow = {
       id: routineId,
+      oneOff: false,
+      oneOffExpiresAt: null,
+      oneOffDay: null,
       userId,
       name: shared.name,
       notes: shared.notes,

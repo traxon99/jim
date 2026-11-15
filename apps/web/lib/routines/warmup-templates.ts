@@ -46,6 +46,9 @@ export async function addWarmupTemplate(
 
   const routineRow: RoutineRow = {
     ...routine,
+    oneOff: false,
+    oneOffExpiresAt: null,
+    oneOffDay: null,
     userId,
     position,
     folder: null,

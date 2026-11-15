@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Warm-up exercises can be liked or disliked too, and built-in warm-ups leave out the ones you dislike.";
+  "Workouts Claude makes just for today now wait on Lift and go away on their own once they're done or expire, without filling up your routines.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db/schema";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Hourglass } from "lucide-react";
 import { RoutineIcon } from "./routine-icon";
 
 /**
@@ -23,5 +24,7 @@ export function RoutineIconById({
     [routineId],
   );
   if (!routine) return null;
+  // A one-off workout (issue #798) shows its hourglass instead.
+  if (routine.oneOff) return <Hourglass className={className} strokeWidth={2} aria-hidden="true" />;
   return <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className={className} />;
 }

@@ -74,6 +74,7 @@ import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
 import { mergeExercises } from "./tools/merge-exercises.js";
+import { listOneOffWorkouts, saveOneOffAsRoutine } from "./tools/one-off.js";
 import { createProgram, deleteProgram, listPrograms, updateProgram } from "./tools/programs.js";
 import { scheduleDateSchema, scheduleWorkout } from "./tools/schedule-workout.js";
 import { cancelScheduledWorkout, listScheduledWorkouts } from "./tools/scheduled-workouts.js";
@@ -274,7 +275,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "List routines",
       description:
-        "Read-only. Every routine and warm-up you have, including ones never logged: id, name, folder, notes, kind (strength or warmup), the linked warm-up's id, exercise count, and when it was last performed. Use the id with get_routine, update_routine or schedule_workout.",
+        "Read-only. Every routine and warm-up you have, including ones never logged (one-off workouts are in list_one_off_workouts): id, name, folder, notes, kind (strength or warmup), the linked warm-up's id, exercise count, and when it was last performed. Use the id with get_routine, update_routine or schedule_workout.",
       inputSchema: {
         folder: z.string().optional().describe("Only routines in this folder (case-insensitive)"),
         query: z.string().optional().describe("Only routines whose name contains this text"),
@@ -367,7 +368,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "create_routine",
     {
       title: "Create routine",
-      description: `Build a new strength routine with an ordered list of exercises and targets. For a warm-up, use create_warmup instead.${PREFERENCE_HINT}${PREVIEW_HINT}`,
+      description: `Build a new strength routine with an ordered list of exercises and targets. For a warm-up, use create_warmup instead; for a workout the user wants just once, use create_one_off_workout.${PREFERENCE_HINT}${PREVIEW_HINT}`,
       inputSchema: {
         name: z.string(),
         folder: z.string().optional(),
@@ -387,6 +388,62 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => createRoutine(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "create_one_off_workout",
+    {
+      title: "Create one-off workout",
+      description: `Build a temporary workout for one session, like create_routine but kept out of the user's routine list and Plan. Use it for an AI-made workout the user asked for once ("give me a workout for today", "something easy for Saturday"); use create_routine when they want something to keep. It ends on its own when a workout from it is finished, or at its lifetime: "24h" (24 hours from now: for "now", "today" or "tonight"), a date YYYY-MM-DD (that calendar day in the user's timezone: for a named day like "Saturday"; it shows on the phone only that day), or "until_done" (no deadline: for "next time I'm at the gym"). Tell the user which lifetime you picked. A new "24h" or "until_done" one-off replaces an older unstarted one of those kinds. It can't be scheduled or put in a program; discard it with delete_routine, or keep it with save_one_off_as_routine.${PREFERENCE_HINT}${PREVIEW_HINT}`,
+      inputSchema: {
+        name: z.string(),
+        notes: z.string().optional(),
+        lifetime: z
+          .union([
+            z.enum(["24h", "until_done"]),
+            z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD"),
+          ])
+          .describe('"24h", "until_done", or a calendar day YYYY-MM-DD'),
+        warmup: z
+          .string()
+          .optional()
+          .describe("A warm-up routine (id or name) that runs before this workout"),
+        warmupMinutes: z.number().int().positive().optional(),
+        exercises: z.array(routineExerciseSchema),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, lifetime, ...input }) =>
+      createRoutine(context, {
+        ...input,
+        oneOff: lifetime === "24h" || lifetime === "until_done" ? lifetime : { day: lifetime },
+        dryRun: dry_run,
+      }),
+    ),
+  );
+
+  server.registerTool(
+    "list_one_off_workouts",
+    {
+      title: "List one-off workouts",
+      description:
+        "Read-only. The user's one-off workouts that haven't ended (not finished, discarded or past their lifetime): id, name, lifetime (24h, day or until_done), expiresAt or day, status (upcoming, live or in_progress) and exercise count. Use the id with get_routine, update_routine, delete_routine or save_one_off_as_routine.",
+      inputSchema: {},
+    },
+    handle(() => listOneOffWorkouts(context)),
+  );
+
+  server.registerTool(
+    "save_one_off_as_routine",
+    {
+      title: "Save one-off as routine",
+      description: `Keep a one-off workout as a normal routine, like the phone's "Save as routine": it joins the routine list and no longer expires.${PREVIEW_HINT}`,
+      inputSchema: {
+        routine: z.string().describe("One-off workout id, or its exact name"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => saveOneOffAsRoutine(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(

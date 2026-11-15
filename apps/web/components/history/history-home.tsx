@@ -14,7 +14,15 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useSickDays } from "@/lib/sick-days/use-sick-days";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart3, CalendarDays, ChevronRight, Dumbbell, Search, Trophy } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronRight,
+  Dumbbell,
+  Hourglass,
+  Search,
+  Trophy,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TrainingCalendarMonth } from "./training-calendar-month";
@@ -146,7 +154,15 @@ export function HistoryHome({ userId }: { userId: string }) {
           className="surface press flex flex-col px-3.5 pt-3 pb-2"
         >
           <div className="flex items-center gap-3">
-            {routine ? (
+            {routine?.oneOff ? (
+              // A one-off workout (issue #798): a dashed tile, like its Lift card.
+              <span
+                aria-hidden="true"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-zinc-900/35 text-zinc-500 dark:border-white/35 dark:text-zinc-400"
+              >
+                <Dumbbell className="h-4 w-4" strokeWidth={2} />
+              </span>
+            ) : routine ? (
               <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} />
             ) : (
               <span
@@ -161,6 +177,16 @@ export function HistoryHome({ userId }: { userId: string }) {
                 <span className="truncate text-[17px] leading-tight font-semibold tracking-[-0.018em]">
                   {session.name}
                 </span>
+                {routine?.oneOff && (
+                  <>
+                    <Hourglass
+                      className="h-[15px] w-[15px] shrink-0 text-zinc-500 dark:text-zinc-400"
+                      strokeWidth={2.1}
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">One-off workout</span>
+                  </>
+                )}
                 {session.prCount > 0 && (
                   <span className="flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 text-xs font-bold text-amber-800 dark:bg-amber-400/20 dark:text-amber-300">
                     <Trophy className="h-3 w-3" strokeWidth={2.4} aria-hidden="true" />

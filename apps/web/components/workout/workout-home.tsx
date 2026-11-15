@@ -24,6 +24,7 @@ import { Play, Plus, Thermometer, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { OneOffCards, useOneOffs } from "./one-off-cards";
 import { PreWorkoutSheet } from "./pre-workout-sheet";
 import { UpNextCard } from "./up-next-card";
 
@@ -84,6 +85,11 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const gyms = useGyms();
   const hasOpenInjury = useHasOpenInjury();
   const sickToday = useSickToday();
+  const oneOffs = useOneOffs();
+  const upcomingOneOffDays = useMemo(
+    () => new Set((oneOffs?.upcoming ?? []).flatMap((r) => (r.oneOffDay ? [r.oneOffDay] : []))),
+    [oneOffs],
+  );
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   // The week strip and up next lead Lift (#783); the up-next routine is left
   // out of "Other routines" below it.
@@ -140,7 +146,9 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const routineGroups = useMemo(
     () =>
       groupRoutinesByFolder(
-        (rawRoutines ?? []).filter((routine) => !routine.deletedAt && routine.id !== upNextId),
+        (rawRoutines ?? []).filter(
+          (routine) => !routine.deletedAt && !routine.oneOff && routine.id !== upNextId,
+        ),
       ),
     [rawRoutines, upNextId],
   );
@@ -219,6 +227,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
               mode={suggestion.program.mode}
               cycle={cycle}
               routinesById={routinesById}
+              oneOffDays={upcomingOneOffDays}
             />
           </div>
         )}
@@ -233,7 +242,14 @@ export function WorkoutHome({ userId }: { userId: string }) {
         {/* A sick day (issue #779) leads, but training still works the same:
           a sick day and a workout can share a day (#781). */}
         {sickToday && <SickTodayCard userId={userId} sick />}
-        <UpNextCard starting={starting} onStart={handleChooseRoutine} />
+        {/* Today's AI-made one-off leads (issue #798); the program's next
+          workout shrinks to a row under it. */}
+        <OneOffCards oneOffs={oneOffs} starting={starting} onStart={handleChooseRoutine} />
+        <UpNextCard
+          starting={starting}
+          onStart={handleChooseRoutine}
+          compact={(oneOffs?.live.length ?? 0) > 0}
+        />
 
         {/* The ways to start without a routine, one compact row (#783). */}
         <div className={`grid gap-2 ${sickToday === false ? "grid-cols-3" : "grid-cols-2"}`}>

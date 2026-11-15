@@ -1,6 +1,7 @@
 "use client";
 
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
+import { SECTION_LABEL } from "@/components/page-header";
 import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
@@ -10,12 +11,14 @@ import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import type { NextWorkout } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Layers, Moon } from "lucide-react";
+import { Layers, Moon, Play } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 interface Props {
   starting: boolean;
+  /** A one-off leads Lift today (issue #798): show the program's workout as one row. */
+  compact?: boolean;
   onStart: (routineId: string, routineName: string) => void;
 }
 
@@ -41,7 +44,7 @@ function heading(next: NextWorkout): string {
 }
 
 /** The active program's suggested workout, with a one-tap start. */
-export function UpNextCard({ starting, onStart }: Props) {
+export function UpNextCard({ starting, onStart, compact = false }: Props) {
   const suggestion = useNextWorkout();
   const routineId = suggestion?.routine?.id;
   const routineItems = useLiveQuery(
@@ -125,6 +128,53 @@ export function UpNextCard({ starting, onStart }: Props) {
         >
           Skip rest day
         </button>
+      </section>
+    );
+  }
+
+  if (compact) {
+    return (
+      <section aria-label="Suggested workout" className="flex flex-col gap-2">
+        <div className="-mb-1 flex items-center justify-between gap-2 px-1">
+          <h2 className={SECTION_LABEL}>{heading(next)}</h2>
+          <Link
+            href={`/routines/programs/${program.id}`}
+            className="flex min-h-11 min-w-0 items-center truncate text-[15px] font-medium text-accent"
+          >
+            {program.name}
+          </Link>
+        </div>
+        <div className="surface flex items-center gap-2 py-2 pr-3 pl-3.5">
+          <span className="flex min-h-11 min-w-0 flex-1 items-center gap-2">
+            <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} />
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-base font-semibold tracking-[-0.014em]">
+                {routine.name}
+              </span>
+              {exerciseCount !== undefined && (
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                  {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"}
+                </span>
+              )}
+            </span>
+          </span>
+          {dprContext && routineItems && (
+            <DprWorkoutBadge
+              context={dprContext}
+              calls={dprCallsForRoutine(dprContext, routineItems)}
+              routineName={routine.name}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => onStart(routine.id, routine.name)}
+            disabled={starting}
+            aria-label={`Start ${routine.name}`}
+            className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.06] disabled:opacity-50 dark:bg-white/10"
+          >
+            <Play className="ml-0.5 h-3.5 w-3.5 fill-current" strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
       </section>
     );
   }

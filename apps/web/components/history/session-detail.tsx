@@ -4,6 +4,7 @@ import { SessionSetRow } from "@/components/history/session-set-row";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { keepOneOff } from "@/components/workout/one-off-cards";
 import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { db } from "@/lib/db/schema";
@@ -17,6 +18,7 @@ import { showsRestStats, showsRpe, showsSetTimer } from "@/lib/settings/features
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
+import { BookmarkPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -26,6 +28,12 @@ export function SessionDetail({ id }: { id: string }) {
   const [deleting, setDeleting] = useState(false);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const session = useLiveQuery(async () => (await db.sessions.get(id)) ?? null, [id]);
+  // The one-off this workout came from, while it's still around to keep (#798).
+  const oneOff = useLiveQuery(async () => {
+    const routineId = session?.routineId;
+    const routine = routineId ? await db.routines.get(routineId) : undefined;
+    return routine?.oneOff && !routine.deletedAt ? routine : null;
+  }, [session?.routineId]);
   const rawSessionExercises = useLiveQuery(
     () => db.sessionExercises.where("sessionId").equals(id).toArray(),
     [id],
@@ -154,6 +162,17 @@ export function SessionDetail({ id }: { id: string }) {
               </span>
             </p>
           </div>
+          {oneOff && (
+            // Keep the one-off this workout came from (issue #798).
+            <button
+              type="button"
+              onClick={() => void keepOneOff(oneOff)}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+            >
+              <BookmarkPlus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              Save as routine
+            </button>
+          )}
           {session.endedAt && shareText && (
             <ShareWorkoutButton
               title={displayName ?? "Workout"}

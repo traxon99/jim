@@ -417,6 +417,16 @@ export const routines = pgTable(
     // packages/core's pickDefaultRoutineIcon instead of taking this default.
     iconShape: routineIconShapeEnum("icon_shape").notNull().default("square"),
     iconColor: routineIconColorEnum("icon_color").notNull().default("red"),
+    // A one-off (issue #798): a temporary workout, made almost always by the
+    // AI through the MCP, kept out of Plan and every routine list. It ends
+    // when a workout from it is finished, or at its deadline: a fixed instant
+    // (`oneOffExpiresAt`, the 24-hour kind) or the end of a calendar day in
+    // the phone's own timezone (`oneOffDay`). Neither set = until done.
+    // Saving it as a routine clears all three. Expiry is decided on read
+    // (packages/core routines/one-off.ts); nothing deletes the row.
+    oneOff: boolean("one_off").notNull().default(false),
+    oneOffExpiresAt: timestamp("one_off_expires_at", { withTimezone: true }),
+    oneOffDay: date("one_off_day"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     // Sync bookkeeping (S3): last-write-wins tie-broken on (updatedAt, deviceId)
     // per ADR-003; deletedAt is a tombstone rather than a real DELETE, so a

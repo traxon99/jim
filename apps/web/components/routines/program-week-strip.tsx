@@ -4,7 +4,13 @@ import type { RoutineRow } from "@/lib/db/schema";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import { useToday } from "@/lib/pwa/use-today";
-import { type CycleDay, type ProgramCycle, type ProgramMode, programCycle } from "@jim/core";
+import {
+  type CycleDay,
+  type ProgramCycle,
+  type ProgramMode,
+  dayKey,
+  programCycle,
+} from "@jim/core";
 import { Check, Moon } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -44,12 +50,16 @@ export function ProgramWeekStrip({
   mode,
   cycle,
   routinesById,
+  oneOffDays,
 }: {
   programId: string;
   mode: ProgramMode;
   cycle: ProgramCycle;
   routinesById: Map<string, RoutineRow>;
+  /** Later days (YYYY-MM-DD) with a one-off workout waiting (issue #798): a dashed circle. */
+  oneOffDays?: ReadonlySet<string>;
 }) {
+  const today = useToday();
   const todayRef = useRef<HTMLLIElement>(null);
   const todayIndex = cycle.todayIndex;
   useEffect(() => {
@@ -70,6 +80,16 @@ export function ProgramWeekStrip({
         const isToday = day.state === "today";
         const done = day.state === "past" && mode === "sequence";
         const stateText = isToday ? "today" : day.state === "past" ? "earlier" : "coming up";
+        // Only a weekly cycle maps its days to dates around today.
+        const oneOff =
+          mode === "weekly" &&
+          todayIndex >= 0 &&
+          index > todayIndex &&
+          oneOffDays?.has(
+            dayKey(
+              new Date(today.getFullYear(), today.getMonth(), today.getDate() + index - todayIndex),
+            ),
+          ) === true;
         return (
           <li
             // Days have no stable id of their own; the order is the identity.
@@ -86,7 +106,9 @@ export function ProgramWeekStrip({
                   ? "bg-accent text-accent-foreground"
                   : done
                     ? "bg-zinc-900/10 text-zinc-700 dark:bg-white/15 dark:text-zinc-200"
-                    : "border border-zinc-900/15 text-zinc-600 dark:border-white/20 dark:text-zinc-400"
+                    : oneOff
+                      ? "border-[1.5px] border-dashed border-zinc-900/45 text-zinc-800 dark:border-white/45 dark:text-zinc-200"
+                      : "border border-zinc-900/15 text-zinc-600 dark:border-white/20 dark:text-zinc-400"
               }`}
             >
               {done ? (

@@ -181,7 +181,8 @@ function PlanScreen({ userId }: { userId: string }) {
   const [linkCardOpen, setLinkCardOpen] = useState(false);
   // Dexie live query: re-renders whenever the local set of routines changes,
   // with no network on the read path (docs/ARCHITECTURE.md §1).
-  const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
+  // One-offs (issue #798) aren't routines: they live on Lift until they end.
+  const allRoutines = useLiveQuery(() => db.routines.filter((r) => !r.oneOff).toArray(), []);
   const allPrograms = useLiveQuery(() => db.programs.toArray(), []);
   const allRoutineExercises = useLiveQuery(() => db.routineExercises.toArray(), []);
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);

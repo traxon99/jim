@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
-import { findRoutine } from "./find-routine.js";
+import { findPlanRoutine } from "./find-routine.js";
 
 /**
  * A plain calendar day. The app shows a scheduled workout in the viewer's own
@@ -52,7 +52,7 @@ export interface ScheduleWorkoutInput {
 
 export async function scheduleWorkout(context: UserContext, input: ScheduleWorkoutInput) {
   return withUserWrite(context, input.dryRun ?? false, async (tx) => {
-    const routine = await findRoutine(tx, input.routineId);
+    const routine = await findPlanRoutine(tx, input.routineId);
 
     const scheduledFor = parseScheduleDate(input.date);
     const now = new Date();
