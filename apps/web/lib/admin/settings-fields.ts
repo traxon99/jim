@@ -1,12 +1,16 @@
 import type { SettingsPayload } from "@/lib/settings/server-settings";
-import { AUTO_END_OPTIONS } from "@jim/core";
+import {
+  AUTO_END_OPTIONS,
+  DEFAULT_INCREMENTS,
+  type EquipmentBucket,
+  normalizeDecimalInput,
+} from "@jim/core";
 
 /**
  * The settings the admin user page edits (issue #807), grouped like the app's
  * Settings screens. Each field saves on its own through the same validator as
- * PATCH /api/settings. Left out: the phone-reported time zone, DPR equipment
- * increments and the dismissed-prompt / onboarding stamps, which the app
- * manages itself.
+ * PATCH /api/settings. Left out: the phone-reported time zone and the
+ * dismissed-prompt / onboarding stamps, which the app manages itself.
  */
 export type SettingsField =
   | { key: keyof SettingsPayload; label: string; kind: "toggle" }
@@ -18,12 +22,29 @@ export type SettingsField =
     }
   | { key: keyof SettingsPayload; label: string; kind: "number"; integer?: boolean }
   | { key: keyof SettingsPayload; label: string; kind: "text"; placeholder?: string }
-  | { key: "availablePlates"; label: string; kind: "plates" };
+  | { key: "availablePlates"; label: string; kind: "plates" }
+  | { key: "dprEquipmentIncrements"; label: string; kind: "step"; bucket: EquipmentBucket };
 
 export interface SettingsGroup {
   id: string;
   label: string;
   fields: SettingsField[];
+}
+
+/** The PRP weight steps, as Settings → Advanced → PRP lists them. */
+const STEP_LABELS: Record<EquipmentBucket, string> = {
+  barbell: "Barbell",
+  "ez-bar": "EZ bar",
+  dumbbell: "Dumbbell",
+  machine: "Machine",
+  cable: "Cable",
+  kettlebell: "Kettlebell",
+  other: "Other",
+};
+
+/** A field's own id: the settings key, or the key plus bucket for a weight step. */
+export function fieldId(field: SettingsField): string {
+  return field.kind === "step" ? `${field.key}:${field.bucket}` : field.key;
 }
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -112,6 +133,14 @@ export const ADMIN_SETTINGS_GROUPS: SettingsGroup[] = [
       },
       { key: "dprDefaultRepLow", label: "Rep range low", kind: "number", integer: true },
       { key: "dprDefaultRepHigh", label: "Rep range high", kind: "number", integer: true },
+      ...(Object.entries(STEP_LABELS) as [EquipmentBucket, string][]).map(
+        ([bucket, label]): SettingsField => ({
+          key: "dprEquipmentIncrements",
+          label: `${label} step`,
+          kind: "step",
+          bucket,
+        }),
+      ),
     ],
   },
   {
@@ -192,11 +221,14 @@ export const ADMIN_SETTINGS_GROUPS: SettingsGroup[] = [
 /**
  * The patch one field's new raw value becomes, or null when it isn't a valid
  * value for that field (an empty number box, say). Nullable fields send null
- * for an empty box.
+ * for an empty box. Decimals take a comma or a point (#675). A weight step
+ * needs the current settings: it rewrites the whole overrides map, the way
+ * the app's PRP settings do.
  */
 export function fieldPatch(
   field: SettingsField,
   raw: string | boolean,
+  settings?: SettingsPayload,
 ): Record<string, unknown> | null {
   switch (field.kind) {
     case "toggle":
@@ -208,7 +240,7 @@ export function fieldPatch(
     case "number": {
       const text = String(raw).trim();
       if (text === "") return NULLABLE_NUMBERS.has(field.key) ? { [field.key]: null } : null;
-      const value = Number(text);
+      const value = Number(normalizeDecimalInput(text));
       if (!Number.isFinite(value)) return null;
       if (field.integer && !Number.isInteger(value)) return null;
       return { [field.key]: value };
@@ -218,14 +250,33 @@ export function fieldPatch(
       return { [field.key]: text === "" ? null : text };
     }
     case "plates": {
+      // "45, 25 10" or "1,25; 2,5": a comma followed by a space separates
+      // plates, a bare comma is a decimal comma.
       const plates = String(raw)
-        .split(/[,\s]+/)
+        .split(/\s*;\s*|,\s+|\s+/)
         .filter(Boolean)
-        .map(Number);
+        .map((plate) => Number(normalizeDecimalInput(plate)));
       if (plates.length === 0 || plates.some((plate) => !Number.isFinite(plate) || plate <= 0)) {
         return null;
       }
       return { availablePlates: plates };
+    }
+    case "step": {
+      if (!settings) return null;
+      const text = normalizeDecimalInput(String(raw).trim());
+      const value = Number(text);
+      if (text !== "" && (!Number.isFinite(value) || value <= 0)) return null;
+      const { units } = settings;
+      const next: Record<string, Record<string, number>> = {};
+      for (const [bucket, steps] of Object.entries(settings.dprEquipmentIncrements ?? {})) {
+        next[bucket] = { ...steps };
+      }
+      const steps = { ...next[field.bucket] };
+      if (text === "" || value === DEFAULT_INCREMENTS[field.bucket][units]) delete steps[units];
+      else steps[units] = value;
+      if (Object.keys(steps).length === 0) delete next[field.bucket];
+      else next[field.bucket] = steps;
+      return { dprEquipmentIncrements: next };
     }
   }
 }
@@ -239,6 +290,13 @@ export function fieldDisplayValue(
 ): string | boolean {
   const value = settings[field.key];
   if (field.kind === "toggle") return value === true;
+  if (field.kind === "step") {
+    const units = settings.units;
+    return String(
+      settings.dprEquipmentIncrements?.[field.bucket]?.[units] ??
+        DEFAULT_INCREMENTS[field.bucket][units],
+    );
+  }
   if (field.kind === "plates") return settings.availablePlates.map((p) => Number(p)).join(", ");
   if (value === null || value === undefined) return field.kind === "select" ? "null" : "";
   if (field.kind === "number") return String(Number(value));

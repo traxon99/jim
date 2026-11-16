@@ -1,12 +1,12 @@
 import { isValidSettingsPatch } from "@/lib/settings/server-settings";
 import { describe, expect, it } from "vitest";
-import { ADMIN_SETTINGS_GROUPS, fieldDisplayValue, fieldPatch } from "../settings-fields";
+import { ADMIN_SETTINGS_GROUPS, fieldDisplayValue, fieldId, fieldPatch } from "../settings-fields";
 
 const fields = ADMIN_SETTINGS_GROUPS.flatMap((group) => group.fields);
 
 describe("admin settings fields", () => {
   it("lists each setting once", () => {
-    const keys = fields.map((field) => field.key);
+    const keys = fields.map(fieldId);
     expect(new Set(keys).size).toBe(keys.length);
   });
 
@@ -37,6 +37,35 @@ describe("admin settings fields", () => {
     expect(fieldPatch(plates, "45, 25 10")).toEqual({ availablePlates: [45, 25, 10] });
     expect(fieldPatch(plates, "45, -5")).toBeNull();
     expect(isValidSettingsPatch(fieldPatch(plates, "45, 25"))).toBe(true);
+  });
+
+  it("takes a decimal comma in numbers and plates (#675)", () => {
+    const bar = fields.find((field) => field.key === "defaultBarWeight");
+    const plates = fields.find((field) => field.key === "availablePlates");
+    if (!bar || !plates) throw new Error("missing fields");
+    expect(fieldPatch(bar, "62,5")).toEqual({ defaultBarWeight: 62.5 });
+    expect(fieldPatch(plates, "1,25 2,5")).toEqual({ availablePlates: [1.25, 2.5] });
+    expect(fieldPatch(plates, "1,25; 2,5")).toEqual({ availablePlates: [1.25, 2.5] });
+  });
+
+  it("edits PRP weight steps in the account's units, keeping other overrides", () => {
+    const barbell = fields.find((field) => field.kind === "step" && field.bucket === "barbell");
+    if (!barbell) throw new Error("missing step field");
+    const settings = {
+      units: "kg",
+      dprEquipmentIncrements: { barbell: { lb: 5 }, dumbbell: { kg: 1 } },
+    } as never;
+    expect(fieldDisplayValue(barbell, settings)).toBe("1.25");
+    const patch = fieldPatch(barbell, "2,5", settings);
+    expect(patch).toEqual({
+      dprEquipmentIncrements: { barbell: { lb: 5, kg: 2.5 }, dumbbell: { kg: 1 } },
+    });
+    expect(isValidSettingsPatch(patch)).toBe(true);
+    expect(fieldPatch(barbell, "1.25", settings)).toEqual({
+      dprEquipmentIncrements: { barbell: { lb: 5 }, dumbbell: { kg: 1 } },
+    });
+    expect(fieldPatch(barbell, "-1", settings)).toBeNull();
+    expect(fieldPatch(barbell, "2", undefined)).toBeNull();
   });
 
   it("shows stored values in their controls", () => {

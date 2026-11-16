@@ -11,13 +11,14 @@ import {
   ADMIN_SETTINGS_GROUPS,
   type SettingsField,
   fieldDisplayValue,
+  fieldId,
   fieldPatch,
 } from "@/lib/admin/settings-fields";
 import type { AdminActionResult } from "@/lib/admin/user-actions";
 import type { AdminUserDetail } from "@/lib/admin/users-data";
 import type { SettingsPayload } from "@/lib/settings/server-settings";
-import { ACCOUNT_ROLE_LABELS, ASSIGNABLE_ROLES } from "@jim/core";
-import { useState } from "react";
+import { ACCOUNT_ROLE_LABELS, ASSIGNABLE_ROLES, normalizeDecimalInput } from "@jim/core";
+import { useEffect, useRef, useState } from "react";
 
 const CARD = "min-w-0 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800";
 const ROW =
@@ -92,7 +93,11 @@ function Toggle({
   );
 }
 
-/** Text or number that saves on blur, and only when it changed. */
+/**
+ * Text or number that saves on blur, and only when it changed. While it isn't
+ * focused it follows the stored value, so a saved value shows as the server
+ * normalised it (#519). Decimal boxes turn a typed comma into a point (#675).
+ */
 function BlurInput({
   label,
   value,
@@ -110,6 +115,12 @@ function BlurInput({
 }) {
   const [draft, setDraft] = useState(value);
   const [saved, setSaved] = useState(value);
+  const focused = useRef(false);
+  useEffect(() => {
+    if (focused.current) return;
+    setDraft(value);
+    setSaved(value);
+  }, [value]);
   return (
     <input
       aria-label={label}
@@ -117,8 +128,16 @@ function BlurInput({
       placeholder={placeholder}
       inputMode={inputMode}
       disabled={disabled}
-      onChange={(event) => setDraft(event.target.value)}
+      onFocus={() => {
+        focused.current = true;
+      }}
+      onChange={(event) =>
+        setDraft(
+          inputMode === "decimal" ? normalizeDecimalInput(event.target.value) : event.target.value,
+        )
+      }
       onBlur={async () => {
+        focused.current = false;
         if (draft === saved) return;
         if (await onCommit(draft)) setSaved(draft);
         else setDraft(saved);
@@ -144,12 +163,13 @@ export function AdminSettingsEditor({
   const { saving, errors, save } = useFieldSaves();
 
   async function commit(field: SettingsField, raw: string | boolean): Promise<boolean> {
-    const patch = fieldPatch(field, raw);
+    const id = fieldId(field);
+    const patch = fieldPatch(field, raw, values);
     if (!patch) {
-      await save(field.key, async () => ({ ok: false, error: "Invalid value" }));
+      await save(id, async () => ({ ok: false, error: "Invalid value" }));
       return false;
     }
-    const ok = await save(field.key, () => updateUserSettings(userId, patch));
+    const ok = await save(id, () => updateUserSettings(userId, patch));
     if (ok) setValues((current) => ({ ...current, ...(patch as Partial<SettingsPayload>) }));
     return ok;
   }
@@ -161,9 +181,10 @@ export function AdminSettingsEditor({
           <h2 className="mb-1 text-sm font-semibold">{group.label}</h2>
           {group.fields.map((field) => {
             const shown = fieldDisplayValue(field, values);
-            const busy = saving === field.key;
+            const id = fieldId(field);
+            const busy = saving === id;
             return (
-              <div key={field.key}>
+              <div key={id}>
                 <div className={ROW}>
                   <span className="min-w-0 truncate">{field.label}</span>
                   {field.kind === "toggle" ? (
@@ -193,14 +214,18 @@ export function AdminSettingsEditor({
                       value={String(shown)}
                       placeholder={field.kind === "text" ? field.placeholder : undefined}
                       inputMode={
-                        field.kind === "number" ? (field.integer ? "numeric" : "decimal") : "text"
+                        field.kind === "step" || (field.kind === "number" && !field.integer)
+                          ? "decimal"
+                          : field.kind === "number"
+                            ? "numeric"
+                            : "text"
                       }
                       disabled={busy}
                       onCommit={(next) => commit(field, next)}
                     />
                   )}
                 </div>
-                <FieldError message={errors[field.key]} />
+                <FieldError message={errors[id]} />
               </div>
             );
           })}

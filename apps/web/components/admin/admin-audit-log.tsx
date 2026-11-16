@@ -30,7 +30,16 @@ export function AdminAuditLog({ rows }: { rows: AuditRow[] }) {
                   </td>
                   <td className="py-2 pr-4">{row.actor ?? "—"}</td>
                   <td className="py-2 pr-4">
-                    {row.target ?? (row.targetUserId ? "—" : "Everyone")}
+                    {row.target && row.targetUserId ? (
+                      <Link
+                        href={`/admin/users/${row.targetUserId}`}
+                        className="underline-offset-2 hover:underline"
+                      >
+                        {row.target}
+                      </Link>
+                    ) : (
+                      (row.target ?? (row.targetUserId ? "—" : "Everyone"))
+                    )}
                   </td>
                   <td className="py-2 pr-4 font-mono text-xs">
                     {row.action}
