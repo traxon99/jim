@@ -2,12 +2,14 @@ import { ChevronLeft } from "@/components/icons/solar";
 import Link from "next/link";
 
 /**
- * Classes for a button or link floating in a PageHeader: a translucent pill
- * that reads over whatever is scrolling underneath. No backdrop blur, so the
- * button stays sharp on the phone (#720).
+ * Classes for a button or link floating in a PageHeader. No fill behind the
+ * icon (#800): several Solar icons draw their own frame, and a circle around
+ * them doubled it. A soft fill shows only while pressed, and iOS's scroll-edge
+ * blur keeps the icon readable over content. No backdrop blur, so the button
+ * stays sharp on the phone (#720). Still 44px to tap.
  */
 export const FLOATING_BUTTON =
-  "press flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-zinc-200/85 text-zinc-900 dark:bg-zinc-800/85 dark:text-zinc-100";
+  "press flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-transparent text-zinc-900 active:bg-zinc-200/70 dark:text-zinc-100 dark:active:bg-zinc-800/70";
 
 /**
  * A section's small uppercase label on the grouped page (#787), with its
