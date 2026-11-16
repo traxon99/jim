@@ -136,13 +136,9 @@ export function PortalExerciseDetailView({
   const pulley = exercise.pulleyType ? PULLEY_LABELS[exercise.pulleyType] : null;
   const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
   const shading = exerciseMuscleShading(exercise);
-  const tags = [
-    isWarmup ? "warm-up" : null,
-    isCardio ? "cardio" : null,
-    exercise.equipment,
-    ...exercise.primaryMuscles,
-    ...exercise.secondaryMuscles,
-  ].filter((tag): tag is string => Boolean(tag));
+  const tags = [isWarmup ? "warm-up" : null, isCardio ? "cardio" : null, exercise.equipment].filter(
+    (tag): tag is string => Boolean(tag),
+  );
 
   return (
     <div className="route-fade flex flex-col gap-6">

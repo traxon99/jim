@@ -175,13 +175,9 @@ export function ExerciseDetail({
   const canEdit = !onClose && (exercise.ownerId === null || exercise.ownerId === userId);
   const isWarmup = isWarmupExercise(exercise);
   const isCardio = isCardioExercise(exercise);
-  const tags = [
-    isWarmup ? "warm-up" : null,
-    isCardio ? "cardio" : null,
-    exercise.equipment,
-    ...exercise.primaryMuscles,
-    ...exercise.secondaryMuscles,
-  ].filter((tag): tag is string => Boolean(tag));
+  const tags = [isWarmup ? "warm-up" : null, isCardio ? "cardio" : null, exercise.equipment].filter(
+    (tag): tag is string => Boolean(tag),
+  );
   const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
   const shading = exerciseMuscleShading(exercise);
   // Rows synced before the column existed have no videoUrl at all.

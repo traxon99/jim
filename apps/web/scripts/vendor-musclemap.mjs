@@ -64,7 +64,6 @@ async function figure(file, view) {
   });
   return {
     viewBox: diagram.viewBox,
-    regionBox: { upper: diagram.regionBox.UPPER_BODY, lower: diagram.regionBox.LOWER_BODY },
     outline: diagram.outline.map((o) => round(o.d)),
     regions,
   };
@@ -94,8 +93,6 @@ export interface ArtRegion {
 
 export interface ArtFigure {
   viewBox: string;
-  /** Cropped viewBoxes for the upper and lower body views. */
-  regionBox: { upper: string; lower: string };
   outline: readonly string[];
   regions: readonly ArtRegion[];
 }
