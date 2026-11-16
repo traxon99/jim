@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Sets you add or delete now stay put after a reload, and a new lift carries your last weight down the rest of its sets.";
+  "A new body map on every exercise, zoomed to the upper or lower body when that's all it works.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

@@ -1,6 +1,6 @@
 "use client";
 
-import { BodyMap, muscleSummary } from "@/components/exercises/body-map";
+import { BodyMap, MuscleSwatches, muscleSummary } from "@/components/exercises/body-map";
 import { ExercisePreferenceControl } from "@/components/exercises/exercise-preference-control";
 import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
@@ -12,6 +12,7 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { showsRestStats } from "@/lib/settings/features";
 import {
   PULLEY_LABELS,
+  bodyMapView,
   computeCardioBests,
   deletedSessionExerciseIds,
   distanceUnitFor,
@@ -182,6 +183,7 @@ export function ExerciseDetail({
     ...exercise.secondaryMuscles,
   ].filter((tag): tag is string => Boolean(tag));
   const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
+  const shading = exerciseMuscleShading(exercise);
   // Rows synced before the column existed have no videoUrl at all.
   const demo = exerciseDemo({ name: exercise.name, videoUrl: exercise.videoUrl ?? null });
   const machine = machineName(exercise);
@@ -231,15 +233,16 @@ export function ExerciseDetail({
               <section>
                 <h2 className="text-sm font-semibold">Muscles worked</h2>
                 <BodyMap
-                  shading={exerciseMuscleShading(exercise)}
+                  shading={shading}
+                  view={bodyMapView(shading)}
                   label={muscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles)}
                   className="mt-2"
                 />
-                {exercise.secondaryMuscles.length > 0 && (
-                  <p className="mt-1 text-center text-xs text-zinc-500 dark:text-zinc-500">
-                    Darker: primary · lighter: secondary
-                  </p>
-                )}
+                <MuscleSwatches
+                  primary={exercise.primaryMuscles}
+                  secondary={exercise.secondaryMuscles}
+                  className="mt-2 justify-center"
+                />
               </section>
             )}
 

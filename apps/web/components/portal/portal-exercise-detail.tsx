@@ -1,6 +1,6 @@
 "use client";
 
-import { BodyMap, muscleSummary } from "@/components/exercises/body-map";
+import { BodyMap, MuscleSwatches, muscleSummary } from "@/components/exercises/body-map";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { ChevronLeft, ExternalLink, MapPin, Sparkles } from "@/components/icons/solar";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -10,6 +10,7 @@ import { setKindLabel, setNumberLabels } from "@/lib/sessions/set-kinds";
 import {
   PULLEY_LABELS,
   type PrKind,
+  bodyMapView,
   computeCardioBests,
   currentPersonalRecords,
   distanceUnitFor,
@@ -134,6 +135,7 @@ export function PortalExerciseDetailView({
   const machine = machineName(exercise);
   const pulley = exercise.pulleyType ? PULLEY_LABELS[exercise.pulleyType] : null;
   const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
+  const shading = exerciseMuscleShading(exercise);
   const tags = [
     isWarmup ? "warm-up" : null,
     isCardio ? "cardio" : null,
@@ -360,15 +362,15 @@ export function PortalExerciseDetailView({
             <section className="flex flex-col gap-2">
               <SectionHeading>Muscles worked</SectionHeading>
               <BodyMap
-                shading={exerciseMuscleShading(exercise)}
+                shading={shading}
+                view={bodyMapView(shading)}
                 label={muscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles)}
                 className="max-w-xs"
               />
-              {exercise.secondaryMuscles.length > 0 && (
-                <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                  Darker: primary · lighter: secondary
-                </p>
-              )}
+              <MuscleSwatches
+                primary={exercise.primaryMuscles}
+                secondary={exercise.secondaryMuscles}
+              />
             </section>
           )}
 
