@@ -1,4 +1,4 @@
-import { type DbOrTx, adminAudit } from "@jim/db";
+import { type DbOrTx, adminAudit } from "../index";
 
 export type AdminAuditEntry = {
   actorId: string | null;

@@ -1,14 +1,14 @@
 import { resetTestDb } from "@/lib/test/test-db";
 import { type Db, createDb } from "@jim/db";
-import type postgres from "postgres";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminSetRole,
   adminSetSignInDisabled,
   adminUpdateProfile,
   adminUpdateSettings,
-} from "../user-actions";
-import { listAdminUsers, loadAdminUser } from "../users-data";
+} from "@jim/db/admin";
+import { listAdminUsers, loadAdminUser } from "@jim/db/admin";
+import type postgres from "postgres";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const ADMIN = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const MAYA = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
@@ -105,14 +105,14 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("admin user actions (#807)", () 
   });
 
   it("lists and searches accounts", async () => {
-    const all = await listAdminUsers();
+    const all = await listAdminUsers(db);
     expect(all.rows.map((row) => row.email).sort()).toEqual([
       "admin@example.com",
       "maya@example.com",
       "theo@example.com",
     ]);
-    const found = await listAdminUsers({ query: "maya" });
+    const found = await listAdminUsers(db, { query: "maya" });
     expect(found.rows.map((row) => row.id)).toEqual([MAYA]);
-    expect((await listAdminUsers({ query: "%" })).rows).toHaveLength(0);
+    expect((await listAdminUsers(db, { query: "%" })).rows).toHaveLength(0);
   });
 });

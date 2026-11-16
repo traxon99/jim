@@ -1,9 +1,10 @@
 import { AdminAuditLog } from "@/components/admin/admin-audit-log";
-import { loadAuditLog } from "@/lib/admin/audit-data";
 import { requireAdmin } from "@/lib/admin/load-access";
+import { serviceDb } from "@/lib/db/user-scoped";
+import { loadAuditLog } from "@jim/db/admin";
 
 export default async function AdminAuditPage() {
   await requireAdmin();
-  const rows = await loadAuditLog();
+  const rows = await loadAuditLog(serviceDb());
   return <AdminAuditLog rows={rows} />;
 }

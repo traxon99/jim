@@ -1,4 +1,3 @@
-import type { ProfilePayload } from "@/lib/friends/types";
 import {
   bioError,
   displayNameError,
@@ -10,17 +9,14 @@ import {
 // Shared by PATCH /api/profile and the admin console (issue #807), so an
 // admin's edit is held to the same rules as the user's own.
 
-export type ProfilePatch = Partial<
-  Pick<
-    ProfilePayload,
-    | "avatar"
-    | "displayName"
-    | "bio"
-    | "shareWorkouts"
-    | "shareWorkoutDetails"
-    | "discoverableByFriendsOfFriends"
-  >
->;
+export type ProfilePatch = Partial<{
+  avatar: string | null;
+  displayName: string | null;
+  bio: string | null;
+  shareWorkouts: boolean;
+  shareWorkoutDetails: boolean;
+  discoverableByFriendsOfFriends: boolean;
+}>;
 
 /** Validates a patch, or returns why it can't be applied. */
 export function parseProfilePatch(body: unknown): ProfilePatch | string {

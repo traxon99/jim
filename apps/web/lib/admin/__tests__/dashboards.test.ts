@@ -1,15 +1,15 @@
-import { submitterTag } from "@/lib/feedback/submitter-tag";
 import { resetTestDb } from "@/lib/test/test-db";
 import { uuidv7 } from "@jim/core";
 import { type Db, createDb } from "@jim/db";
+import { submitterTag } from "@jim/db/admin";
+import { OVERVIEW_RANGES, TELEMETRY_RANGES, pickRange } from "@jim/db/admin";
+import { countNewFailureGroups, loadFailureDetail, loadFailures } from "@jim/db/admin";
+import { loadFeedback } from "@jim/db/admin";
+import { loadHealth } from "@jim/db/admin";
+import { loadOverview } from "@jim/db/admin";
+import { loadPerformance } from "@jim/db/admin";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { OVERVIEW_RANGES, TELEMETRY_RANGES, pickRange } from "../dashboard";
-import { countNewFailureGroups, loadFailureDetail, loadFailures } from "../failures-data";
-import { loadFeedback } from "../feedback-data";
-import { loadHealth } from "../health-data";
-import { loadOverview } from "../overview-data";
-import { loadPerformance } from "../performance-data";
 
 const MAYA = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const THEO = "cccccccc-cccc-cccc-cccc-cccccccccccc";
@@ -198,14 +198,20 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("admin dashboards (#810)", () =>
     const id = uuidv7(made);
     await owner`INSERT INTO sync_mutations (id, user_id, applied_at)
       VALUES (${id}, ${MAYA}, ${new Date(made + 30_000).toISOString()})`;
-    const health = await loadHealth(
-      db,
-      vi.fn(async () => new Response(null, { status: 503 })),
-    );
+    const health = await loadHealth(db, {
+      self: { name: "Web app", detail: "Vercel", state: "healthy" },
+      peer: { name: "jim-mcp", host: "Fly", origin: "https://mcp.example", path: "/healthz" },
+      deploy: { version: "1.0.0", commit: null, region: null, builtAt: null },
+      fetchImpl: vi.fn(async () => new Response(null, { status: 503 })),
+    });
     expect(health.syncLag?.samples).toBe(1);
     expect(Math.round((health.syncLag?.p50 ?? 0) / 1000)).toBe(30);
     expect(health.databaseBytes).toBeGreaterThan(0);
     expect(health.connections?.max).toBeGreaterThan(0);
     expect(health.services.find((service) => service.name === "Postgres")?.state).not.toBe("down");
+    expect(health.services.find((service) => service.name === "jim-mcp")).toMatchObject({
+      state: "down",
+      detail: "Fly · HTTP 503",
+    });
   });
 });

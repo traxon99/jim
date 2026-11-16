@@ -1,6 +1,5 @@
-import { serviceDb } from "@/lib/db/user-scoped";
-import type { DbOrTx } from "@jim/db";
 import { sql } from "drizzle-orm";
+import type { DbOrTx } from "../index";
 import {
   type DashboardRange,
   type VersionShare,
@@ -53,7 +52,7 @@ function asDayRows(rows: { day: string | Date; count: number | string }[]): DayR
  */
 export async function loadOverview(
   range: DashboardRange,
-  db: DbOrTx = serviceDb(),
+  db: DbOrTx,
   now = new Date(),
 ): Promise<OverviewData> {
   const dayCount = Math.round(range.hours / 24);

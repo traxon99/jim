@@ -1,8 +1,9 @@
 import { resetTestDb } from "@/lib/test/test-db";
 import { type Db, createDb } from "@jim/db";
+import { adminRequestAppUpdate, adminRequestLocalReset } from "@jim/db/admin";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { adminRequestAppUpdate, adminRequestLocalReset, sendRefreshPush } from "../force-refresh";
+import { sendRefreshPush } from "../refresh-push";
 
 const ADMIN = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const MAYA = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";

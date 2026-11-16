@@ -1,10 +1,10 @@
-import { type DashboardRange, TELEMETRY_RANGES } from "@/lib/admin/dashboard";
+import { type DashboardRange, TELEMETRY_RANGES } from "@jim/db/admin";
 import {
   FAILURE_SOURCES,
   type FailureSourceId,
   type FailuresData,
   failureSourceLabel,
-} from "@/lib/admin/failures-data";
+} from "@jim/db/admin";
 import Link from "next/link";
 import {
   AdminCard,

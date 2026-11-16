@@ -1,5 +1,5 @@
-import { formatBytes, formatDuration } from "@/lib/admin/dashboard";
-import { type HealthData, SERVICE_STATE_LABELS, type ServiceState } from "@/lib/admin/health-data";
+import { formatBytes, formatDuration } from "@jim/db/admin";
+import { type HealthData, SERVICE_STATE_LABELS, type ServiceState } from "@jim/db/admin";
 import {
   AdminCard,
   EmptyState,

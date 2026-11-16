@@ -31,6 +31,15 @@ export const READ_TOOLS = new Set([
   "get_settings",
   "list_friend_activity",
   "list_comments",
+  // Admin only (#811): listed for admins alone.
+  "admin_overview",
+  "admin_failures",
+  "admin_performance",
+  "admin_feedback",
+  "admin_health",
+  "admin_list_users",
+  "admin_get_user",
+  "admin_audit_log",
 ]);
 
 /** Tools that create, change or delete something, `dry_run` or not. */
@@ -69,6 +78,14 @@ export const WRITE_TOOLS = new Set([
   "react_to_comment",
   "react_to_workout",
   "delete_comment",
+  // Admin only (#811): listed for admins alone.
+  "admin_update_user_settings",
+  "admin_update_user_profile",
+  "admin_set_role",
+  "admin_set_sign_in",
+  "admin_send_password_reset",
+  "admin_request_app_update",
+  "admin_request_local_reset",
 ]);
 
 export const READ_ONLY_MESSAGE = "This token is read-only.";

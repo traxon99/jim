@@ -16,6 +16,7 @@ import { SupabaseOAuthProvider } from "./auth/provider.js";
 import type { UserContext } from "./context.js";
 import { getDb } from "./db.js";
 import { createMcpServer } from "./server.js";
+import { isAdmin } from "./tools/admin.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 // Must be the server's actual public HTTPS origin in any deployed
@@ -75,6 +76,8 @@ app.post(
       // Fails closed: a token whose scope didn't come through can only read.
       scope: isAccessTokenScope(extra?.scope) ? extra.scope : "read",
     };
+    // Admin tools are listed only for admins (#811); a failed lookup lists none.
+    context.isAdmin = await isAdmin(context.db, userId).catch(() => false);
 
     // A fresh server + transport per request (see server.ts) — simplest
     // correct thing for a stateless deployment, and cheap since tool

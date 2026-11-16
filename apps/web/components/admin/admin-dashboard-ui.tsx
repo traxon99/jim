@@ -1,4 +1,4 @@
-import type { DashboardRange, Rating } from "@/lib/admin/dashboard";
+import type { DashboardRange, Rating } from "@jim/db/admin";
 import Link from "next/link";
 
 /**

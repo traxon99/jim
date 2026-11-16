@@ -1,6 +1,6 @@
 import { Search } from "@/components/icons/solar";
-import type { AdminUserRow, AdminUserSort } from "@/lib/admin/users-data";
 import { ACCOUNT_ROLE_LABELS } from "@jim/core";
+import type { AdminUserRow, AdminUserSort } from "@jim/db/admin";
 import Link from "next/link";
 import { AdminUpdateEveryone } from "./admin-user-editor";
 import { LocalDateTime } from "./local-date-time";

@@ -39,6 +39,23 @@ import type { UserContext } from "./context.js";
 import { recordToolErrors } from "./telemetry.js";
 import { toolErrorMessage } from "./tool-error.js";
 import { guardWriteTools } from "./tool-scopes.js";
+import {
+  adminAuditLog,
+  adminFailures,
+  adminFeedback,
+  adminGetUser,
+  adminHealth,
+  adminListUsers,
+  adminOverview,
+  adminPerformance,
+  adminRequestReset,
+  adminRequestUpdate,
+  adminSendPasswordReset,
+  adminSetUserRole,
+  adminSetUserSignIn,
+  adminUpdateUserProfile,
+  adminUpdateUserSettings,
+} from "./tools/admin.js";
 import { deleteBodyMeasurement, logBodyMeasurement } from "./tools/body-measurements-write.js";
 import {
   addComment,
@@ -1339,5 +1356,212 @@ export function createMcpServer(context: UserContext): McpServer {
     handle(({ dry_run, ...input }) => updateSettings(context, { ...input, dryRun: dry_run })),
   );
 
+  if (context.isAdmin) registerAdminTools(server, context);
+
   return server;
+}
+
+const ADMIN_HINT =
+  " Admin only (the account's role is checked on every call). Runs across every account.";
+const USER_PARAM = z.string().describe("The account: its id, email or username");
+
+/**
+ * The admin console's tools (issue #811), one for each thing /admin can do.
+ * Listed only for an admin's session; each call checks the role again.
+ */
+function registerAdminTools(server: McpServer, context: UserContext) {
+  server.registerTool(
+    "admin_overview",
+    {
+      title: "Admin: overview",
+      description: `Usage across Jim: accounts that opened the app and that trained (DAU/WAU/MAU and over the range, with the previous range to compare), signups, workouts finished, a daily series of each, and the app version spread.${ADMIN_HINT}`,
+      inputSchema: { range: z.enum(["7d", "30d", "90d"]).optional().describe("Default 30d") },
+    },
+    handle((input) => adminOverview(context, input)),
+  );
+
+  server.registerTool(
+    "admin_failures",
+    {
+      title: "Admin: failures",
+      description: `Client errors, sync failures, server errors and MCP tool errors grouped by fingerprint, with events, accounts affected, version, first and last seen. Pass a fingerprint for one group's affected accounts, versions and latest occurrences with stacks.${ADMIN_HINT}`,
+      inputSchema: {
+        range: z.enum(["24h", "7d", "30d"]).optional().describe("Default 7d"),
+        source: z.enum(["client", "sync", "server", "mcp"]).optional(),
+        fingerprint: z.string().max(100).optional(),
+      },
+    },
+    handle((input) => adminFailures(context, input)),
+  );
+
+  server.registerTool(
+    "admin_performance",
+    {
+      title: "Admin: performance",
+      description: `p50 and p75 of each Web Vital (LCP, INP, CLS, TTFB, FCP) and the cold start to a usable Lift screen, by app version and overall, with sample counts. Milliseconds, except CLS.${ADMIN_HINT}`,
+      inputSchema: { range: z.enum(["24h", "7d", "30d"]).optional().describe("Default 7d") },
+    },
+    handle((input) => adminPerformance(context, input)),
+  );
+
+  server.registerTool(
+    "admin_feedback",
+    {
+      title: "Admin: feedback",
+      description: `In-app feedback filed as GitHub issues, newest first, with the submitting account where it can be matched. Read only.${ADMIN_HINT}`,
+      inputSchema: {
+        state: z.enum(["open", "closed", "all"]).optional().describe("Default open"),
+        type: z.enum(["bug", "enhancement", "question"]).optional(),
+      },
+    },
+    handle((input) => adminFeedback(context, input)),
+  );
+
+  server.registerTool(
+    "admin_health",
+    {
+      title: "Admin: health",
+      description: `Database size and connections, sync lag (p50/p95 over 24 h), the slowest queries, and whether the MCP server, web app, Postgres and the GitHub feedback token answer.${ADMIN_HINT}`,
+      inputSchema: {},
+    },
+    handle(() => adminHealth(context)),
+  );
+
+  server.registerTool(
+    "admin_list_users",
+    {
+      title: "Admin: list users",
+      description: `Accounts with role, joined, last active and workouts finished, searchable by email, username or name.${ADMIN_HINT}`,
+      inputSchema: {
+        query: z.string().optional(),
+        sort: z.enum(["active", "joined"]).optional().describe("Default active"),
+        limit: z.number().int().positive().max(200).optional(),
+      },
+    },
+    handle((input) => adminListUsers(context, input)),
+  );
+
+  server.registerTool(
+    "admin_get_user",
+    {
+      title: "Admin: get user",
+      description: `One account's facts (role, joined, last active, workouts, sign-in state, last update/reset requests), profile and every setting. No workout content.${ADMIN_HINT}`,
+      inputSchema: { user: USER_PARAM },
+    },
+    handle((input) => adminGetUser(context, input)),
+  );
+
+  server.registerTool(
+    "admin_audit_log",
+    {
+      title: "Admin: audit log",
+      description: `Every admin write, newest first: who, to whom, what changed and whether from the web or MCP.${ADMIN_HINT}`,
+      inputSchema: { limit: z.number().int().positive().max(500).optional() },
+    },
+    handle((input) => adminAuditLog(context, input)),
+  );
+
+  server.registerTool(
+    "admin_update_user_settings",
+    {
+      title: "Admin: update a user's settings",
+      description: `Changes another account's settings, with the same fields and rules as the user's own (the shape get_settings returns, e.g. units, weeklyWorkoutGoal, advancedFeatures, dprEnabled). Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: {
+        user: USER_PARAM,
+        settings: z.record(z.string(), z.unknown()).describe("The fields to change"),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) =>
+      adminUpdateUserSettings(context, { ...input, dryRun: dry_run }),
+    ),
+  );
+
+  server.registerTool(
+    "admin_update_user_profile",
+    {
+      title: "Admin: update a user's profile",
+      description: `Changes another account's username, display name, bio or sharing. The picture stays theirs. Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: {
+        user: USER_PARAM,
+        username: z.string().optional(),
+        displayName: z.string().nullable().optional(),
+        bio: z.string().nullable().optional(),
+        shareWorkouts: z.boolean().optional(),
+        shareWorkoutDetails: z.boolean().optional(),
+        discoverableByFriendsOfFriends: z.boolean().optional(),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, user, ...profile }) =>
+      adminUpdateUserProfile(context, {
+        user,
+        profile: Object.fromEntries(Object.entries(profile).filter(([, v]) => v !== undefined)),
+        dryRun: dry_run,
+      }),
+    ),
+  );
+
+  server.registerTool(
+    "admin_set_role",
+    {
+      title: "Admin: set a user's role",
+      description: `Sets an account to User or Coach. Admin is granted and removed by script only. Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: {
+        user: USER_PARAM,
+        role: z.enum(["user", "coach"]),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => adminSetUserRole(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "admin_set_sign_in",
+    {
+      title: "Admin: disable or enable sign-in",
+      description: `Disables an account's sign-in (ends its sessions, keeps its data) or enables it again. Not for admins or yourself. Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: {
+        user: USER_PARAM,
+        disabled: z.boolean(),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) => adminSetUserSignIn(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "admin_send_password_reset",
+    {
+      title: "Admin: send a password reset",
+      description: `Emails an account the same password reset link Forgot password sends. A dry run only names the address. Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: { user: USER_PARAM, dry_run: dryRunParam(true) },
+    },
+    handle(({ dry_run, ...input }) =>
+      adminSendPasswordReset(context, { ...input, dryRun: dry_run }),
+    ),
+  );
+
+  server.registerTool(
+    "admin_request_app_update",
+    {
+      title: "Admin: update app",
+      description: `Asks one account's phones (or every account's, with no user) to update the app: each reloads the next time it's in the background after its next sync. Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: {
+        user: USER_PARAM.optional().describe("The account; leave out for everyone"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) => adminRequestUpdate(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "admin_request_local_reset",
+    {
+      title: "Admin: reset local data",
+      description: `Asks one account's phones to wipe their local data and pull it fresh from the server, each once its unsynced changes have reached the server. Audited.${ADMIN_HINT}${PREVIEW_HINT}`,
+      inputSchema: { user: USER_PARAM, dry_run: dryRunParam(true) },
+    },
+    handle(({ dry_run, ...input }) => adminRequestReset(context, { ...input, dryRun: dry_run })),
+  );
 }

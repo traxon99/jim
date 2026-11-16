@@ -1,10 +1,10 @@
-import type { SettingsPayload } from "@/lib/settings/server-settings";
 import {
   AUTO_END_OPTIONS,
   DEFAULT_INCREMENTS,
   type EquipmentBucket,
   normalizeDecimalInput,
 } from "@jim/core";
+import type { SettingsPayload } from "@jim/db/admin";
 
 /**
  * The settings the admin user page edits (issue #807), grouped like the app's

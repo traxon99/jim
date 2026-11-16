@@ -11,6 +11,11 @@ export interface UserContext {
    * personal access tokens are `read_write`; leaving it out means that too.
    */
   scope?: AccessTokenScope;
+  /**
+   * Whether the account was an admin when the request came in (issue #811):
+   * decides only which tools are listed. Each admin tool checks again.
+   */
+  isAdmin?: boolean;
 }
 
 /** Runs `fn` inside an RLS-impersonated transaction for this request's user (ADR-005/006). */

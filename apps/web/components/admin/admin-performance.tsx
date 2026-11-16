@@ -4,14 +4,14 @@ import {
   TELEMETRY_RANGES,
   formatVital,
   rateMetric,
-} from "@/lib/admin/dashboard";
+} from "@jim/db/admin";
 import {
   METRIC_LABELS,
   type MetricStats,
   PERFORMANCE_METRICS,
   type PerformanceMetric,
   type VersionPerformance,
-} from "@/lib/admin/performance-data";
+} from "@jim/db/admin";
 import {
   AdminCard,
   EmptyState,

@@ -16,10 +16,10 @@ import {
   fieldId,
   fieldPatch,
 } from "@/lib/admin/settings-fields";
-import type { AdminActionResult } from "@/lib/admin/user-actions";
-import type { AdminUserDetail } from "@/lib/admin/users-data";
-import type { SettingsPayload } from "@/lib/settings/server-settings";
 import { ACCOUNT_ROLE_LABELS, ASSIGNABLE_ROLES, normalizeDecimalInput } from "@jim/core";
+import type { AdminActionResult } from "@jim/db/admin";
+import type { AdminUserDetail } from "@jim/db/admin";
+import type { SettingsPayload } from "@jim/db/admin";
 import { useEffect, useRef, useState } from "react";
 
 const CARD = "min-w-0 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800";

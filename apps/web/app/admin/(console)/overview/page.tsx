@@ -1,20 +1,22 @@
 import { AdminOverview } from "@/components/admin/admin-overview";
-import { OVERVIEW_RANGES, TELEMETRY_RANGES, pickRange } from "@/lib/admin/dashboard";
-import { loadFailures } from "@/lib/admin/failures-data";
-import { countOpenFeedback } from "@/lib/admin/feedback-data";
-import { loadSyncLagP50 } from "@/lib/admin/health-data";
 import { requireAdmin } from "@/lib/admin/load-access";
-import { loadOverview } from "@/lib/admin/overview-data";
-import { loadPerformance } from "@/lib/admin/performance-data";
+import { serviceDb } from "@/lib/db/user-scoped";
+import { OVERVIEW_RANGES, TELEMETRY_RANGES, pickRange } from "@jim/db/admin";
+import { loadFailures } from "@jim/db/admin";
+import { countOpenFeedback } from "@jim/db/admin";
+import { loadSyncLagP50 } from "@jim/db/admin";
+import { loadOverview } from "@jim/db/admin";
+import { loadPerformance } from "@jim/db/admin";
 
 export default async function AdminOverviewPage(props: PageProps<"/admin/overview">) {
   await requireAdmin();
   const range = pickRange(OVERVIEW_RANGES, (await props.searchParams).range, "30d");
+  const db = serviceDb();
   const [data, failures, performance, syncLagP50, openFeedback] = await Promise.all([
-    loadOverview(range),
-    loadFailures(pickRange(TELEMETRY_RANGES, "24h", "24h"), null),
-    loadPerformance(pickRange(TELEMETRY_RANGES, "7d", "7d")),
-    loadSyncLagP50(),
+    loadOverview(range, db),
+    loadFailures(pickRange(TELEMETRY_RANGES, "24h", "24h"), null, db),
+    loadPerformance(pickRange(TELEMETRY_RANGES, "7d", "7d"), db),
+    loadSyncLagP50(db),
     countOpenFeedback(),
   ]);
   return (

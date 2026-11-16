@@ -1,5 +1,4 @@
-import { describe, expect, it } from "vitest";
-import { parseSubmitterTag, submitterTag } from "../../feedback/submitter-tag";
+import { parseSubmitterTag, submitterTag } from "@jim/db/admin";
 import {
   OVERVIEW_RANGES,
   dayKeys,
@@ -10,7 +9,8 @@ import {
   pickRange,
   rateMetric,
   versionSpread,
-} from "../dashboard";
+} from "@jim/db/admin";
+import { describe, expect, it } from "vitest";
 
 describe("admin dashboard helpers (#810)", () => {
   it("picks a known range and falls back for anything else", () => {
