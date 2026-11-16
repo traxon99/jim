@@ -99,7 +99,12 @@ export function PortalWorkoutDetailView({
                     {exercise.supersetLabel}
                   </span>
                 )}
-                <span className="min-w-0 break-words">{exercise.exerciseName}</span>
+                <Link
+                  href={`/portal/exercises/${exercise.exerciseId}`}
+                  className="min-w-0 break-words underline-offset-4 hover:underline"
+                >
+                  {exercise.exerciseName}
+                </Link>
               </h2>
               {exercise.notes && (
                 <p className="allow-pwa-select text-xs text-zinc-500 dark:text-zinc-500">

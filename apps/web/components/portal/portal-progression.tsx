@@ -58,7 +58,7 @@ export function PortalProgression({ data }: { data: PortalProgressionData }) {
           />
           <div className="grid gap-4 lg:grid-cols-2">
             {view.blockLifts.map((lift) => (
-              <LiftCard key={lift.id} context={view.context} lift={lift} />
+              <LiftCard key={lift.id} context={view.context} lift={lift} portal />
             ))}
           </div>
           <VolumePlan context={view.context} />
@@ -73,6 +73,7 @@ export function PortalProgression({ data }: { data: PortalProgressionData }) {
             summary={view.recap.summary}
             exercises={exercises}
             units={data.settings.units}
+            portal
           />
           <p className="text-sm text-zinc-500 dark:text-zinc-500">
             Take a deload week or start the next block in Jim.
@@ -108,6 +109,7 @@ export function PortalProgression({ data }: { data: PortalProgressionData }) {
                       exercises={exercises}
                       units={data.settings.units}
                       title="Recap"
+                      portal
                     />
                   </div>
                 </details>

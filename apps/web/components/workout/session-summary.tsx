@@ -1,6 +1,7 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { Send } from "@/components/icons/solar";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
@@ -162,7 +163,13 @@ export function SessionSummary({ session, sessionExercises }: Props) {
             {exerciseRows.map((row) => (
               <li key={row.sessionExerciseId} className="flex flex-col gap-1 py-2">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 truncate font-medium">{row.exerciseName}</span>
+                  <ExerciseNameButton
+                    exerciseId={row.exerciseId}
+                    userId={session.userId}
+                    className="truncate font-medium"
+                  >
+                    {row.exerciseName}
+                  </ExerciseNameButton>
                   <span className="shrink-0 text-zinc-600 tabular-nums dark:text-zinc-400">
                     {row.setCount} {row.setCount === 1 ? "set" : "sets"} · {row.bestSet}
                   </span>
