@@ -1,6 +1,15 @@
 import { isSharePagePath } from "@/lib/sharing/public-share";
 
 export const PORTAL_PATH = "/portal";
+/** The admin console (issue #806): server-rendered like the portal, web only. */
+export const ADMIN_PATH = "/admin";
+
+/** The web areas that read from the server and never touch IndexedDB. */
+const WEB_AREAS = [PORTAL_PATH, ADMIN_PATH];
+
+function inWebArea(path: string): boolean {
+  return WEB_AREAS.some((area) => path === area || path.startsWith(`${area}/`));
+}
 
 /**
  * Password recovery pages. They only talk to Supabase Auth, never IndexedDB,
@@ -21,17 +30,17 @@ const ACCOUNT_RECOVERY_PATHS = [
  * it stays reachable from a desktop browser. Signing in on the way to it
  * (`/login?next=/portal`) is let through too; signing in on the way
  * anywhere else still hits the gate. So are password recovery (#444) and
- * share links (#638).
+ * share links (#638). The admin console (#806) is the same kind of page.
  */
 export function isInstallGateExempt(pathname: string, search: string): boolean {
-  if (pathname === PORTAL_PATH || pathname.startsWith(`${PORTAL_PATH}/`)) return true;
+  if (inWebArea(pathname)) return true;
   if (ACCOUNT_RECOVERY_PATHS.includes(pathname)) return true;
   // A share link's page only reads the link (#638). Adding it to your
   // routines, the one part that writes to IndexedDB, stays in the installed app.
   if (isSharePagePath(pathname)) return true;
   if (pathname === "/login" || pathname === "/signup") {
     const next = new URLSearchParams(search).get("next");
-    return next === PORTAL_PATH || (next?.startsWith(`${PORTAL_PATH}/`) ?? false);
+    return next != null && inWebArea(next);
   }
   return false;
 }

@@ -1,4 +1,5 @@
 import { PortalNav } from "@/components/portal/portal-nav";
+import { loadAdminAccess } from "@/lib/admin/load-access";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 // The Analysis gym map's (issue #462) Leaflet styles; the library itself
@@ -22,12 +23,19 @@ export default async function PortalLayout({ children }: LayoutProps<"/portal">)
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const email = typeof data?.claims.email === "string" ? data.claims.email : "";
+  // Admins get a link to /admin (#806); nobody else sees one. A failed role
+  // read only hides the link.
+  const isAdmin = data?.claims
+    ? await loadAdminAccess()
+        .then((access) => access.status !== "none")
+        .catch(() => false)
+    : false;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
       {/* The nav reads ?range= (useSearchParams), which needs a Suspense boundary. */}
       <Suspense fallback={null}>
-        <PortalNav email={email} />
+        <PortalNav email={email} isAdmin={isAdmin} />
       </Suspense>
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <div

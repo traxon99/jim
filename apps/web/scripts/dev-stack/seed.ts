@@ -69,7 +69,13 @@ export async function seedDevDatabase(databaseUrl: string) {
     await db.insert(users).values({ id: DEV_USER.id, email: DEV_USER.email }).onConflictDoNothing();
     await db
       .update(users)
-      .set({ onboardedAt: new Date(), timeZone: "America/Los_Angeles", bodyweight: "180" })
+      // An admin, so /admin can be seen locally (#806); the app looks the same.
+      .set({
+        onboardedAt: new Date(),
+        timeZone: "America/Los_Angeles",
+        bodyweight: "180",
+        role: "admin",
+      })
       .where(eq(users.id, DEV_USER.id));
 
     const context = { db, userId: DEV_USER.id, email: DEV_USER.email };

@@ -13,6 +13,14 @@ describe("isInstallGateExempt", () => {
     expect(isInstallGateExempt("/auth/confirmed", "next=%2F")).toBe(true);
   });
 
+  it("lets a desktop browser reach the admin console and its sign-in (#806)", () => {
+    expect(isInstallGateExempt("/admin", "")).toBe(true);
+    expect(isInstallGateExempt("/admin/audit", "")).toBe(true);
+    expect(isInstallGateExempt("/login", "next=/admin")).toBe(true);
+    expect(isInstallGateExempt("/admin-tools", "")).toBe(false);
+    expect(isInstallGateExempt("/login", "next=/administrator")).toBe(false);
+  });
+
   it("still gates the rest of the app", () => {
     expect(isInstallGateExempt("/routines", "")).toBe(false);
     expect(isInstallGateExempt("/share/not-a-link", "")).toBe(false);

@@ -1,4 +1,5 @@
 export * from "./access-tokens";
+export * from "./admin";
 export * from "./body";
 export * from "./cardio";
 export * from "./data-transfer";

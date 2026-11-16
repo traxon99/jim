@@ -24,9 +24,13 @@ function where(file: string, tag: OpeningTag) {
   return `${path.relative(repoRoot, file)}:${tag.line}`;
 }
 
-/** The phone app's screens; the desktop portal has no tap ripple or long-press menu. */
+/**
+ * The phone app's screens. The desktop web areas, the portal and the admin
+ * console (#806), have no tap ripple or long-press menu.
+ */
 const PWA_DIRS = ["app/(shell)", "components"];
-const isPortal = (file: string) => file.includes(`${path.sep}portal${path.sep}`);
+const isPortal = (file: string) =>
+  file.includes(`${path.sep}portal${path.sep}`) || file.includes(`${path.sep}admin${path.sep}`);
 
 describe("lesson guards", () => {
   it("positions buttons with absolute!, which beats the ripple's position: relative (#356, #493)", () => {
