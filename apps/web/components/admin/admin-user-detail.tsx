@@ -35,7 +35,7 @@ export function AdminUserDetailView({ user, isSelf }: { user: AdminUserDetail; i
         </div>
         <AdminUserActions userId={user.id} disabled={user.disabled} isSelf={isSelf} />
       </div>
-      <dl className="grid grid-cols-2 gap-4 rounded-xl border border-zinc-200 p-4 text-sm md:grid-cols-4 dark:border-zinc-800">
+      <dl className="grid grid-cols-2 gap-4 rounded-xl border border-zinc-200 p-4 text-sm md:grid-cols-3 xl:grid-cols-6 dark:border-zinc-800">
         <Fact label="Joined">
           <LocalDateTime iso={user.createdAt} dateOnly />
         </Fact>
@@ -44,6 +44,12 @@ export function AdminUserDetailView({ user, isSelf }: { user: AdminUserDetail; i
         </Fact>
         <Fact label="Workouts">{user.workouts}</Fact>
         <Fact label="Last 7 days">{user.workoutsLast7Days}</Fact>
+        <Fact label="Update requested">
+          {user.updateRequestedAt ? <LocalDateTime iso={user.updateRequestedAt} /> : "Never"}
+        </Fact>
+        <Fact label="Reset requested">
+          {user.resetRequestedAt ? <LocalDateTime iso={user.resetRequestedAt} /> : "Never"}
+        </Fact>
       </dl>
       <AdminProfileEditor user={user} isSelf={isSelf} />
       <AdminSettingsEditor userId={user.id} settings={user.settings} />

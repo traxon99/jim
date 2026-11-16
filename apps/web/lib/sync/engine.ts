@@ -178,6 +178,21 @@ async function restartCursorAfterSchemaUpgrade(database: JimDatabase): Promise<v
   });
 }
 
+type RemoteCommandsHandler = (commands: unknown) => void;
+let remoteCommandsHandler: RemoteCommandsHandler | null = null;
+
+/**
+ * Receives the force-refresh requests each pull carries (issue #808,
+ * lib/pwa/remote-commands.ts). Registered by the app shell, so the engine
+ * itself never wipes or reloads anything. Returns a cleanup.
+ */
+export function setRemoteCommandsHandler(handler: RemoteCommandsHandler): () => void {
+  remoteCommandsHandler = handler;
+  return () => {
+    if (remoteCommandsHandler === handler) remoteCommandsHandler = null;
+  };
+}
+
 /** Pulls everything changed since the local cursor, page by page (#489), and applies it to Dexie. */
 export async function pullChanges(
   database: JimDatabase = db,
@@ -205,6 +220,7 @@ export async function pullChanges(
       cursor: number;
       hasMore?: boolean;
       changes: Record<string, unknown[]>;
+      commands?: unknown;
     }>(response);
     if (!body) {
       await reportFailure(database);
@@ -214,6 +230,7 @@ export async function pullChanges(
       await applyPulledRows(database, tableName, rows);
     }
     await database.syncMeta.put({ ...meta, cursor: body.cursor });
+    if (body.commands) remoteCommandsHandler?.(body.commands);
     if (!body.hasMore || body.cursor <= meta.cursor) break;
   }
 

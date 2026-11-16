@@ -1,5 +1,10 @@
 "use server";
 
+import {
+  adminRequestAppUpdate,
+  adminRequestLocalReset,
+  sendRefreshPush,
+} from "@/lib/admin/force-refresh";
 import { requireAdmin } from "@/lib/admin/load-access";
 import {
   type AdminActionResult,
@@ -10,6 +15,7 @@ import {
   recordPasswordReset,
 } from "@/lib/admin/user-actions";
 import { serviceDb } from "@/lib/db/user-scoped";
+import { configureWebPush, webpush } from "@/lib/pwa/web-push-server";
 import { supabaseEnv } from "@/lib/supabase/env";
 import { users } from "@jim/db";
 import { createClient } from "@supabase/supabase-js";
@@ -90,4 +96,35 @@ export async function sendPasswordReset(userId: string): Promise<AdminActionResu
   if (error) return { ok: false, error: "Couldn't send the email. Try again later." };
   await recordPasswordReset(serviceDb(), { id: admin.userId }, userId);
   return done(userId, { ok: true });
+}
+
+/**
+ * "Update app" for one account, or for everyone when `userId` is null
+ * (issue #808): stamps the request, then sends the silent push.
+ */
+export async function requestAppUpdate(userId: string | null): Promise<AdminActionResult> {
+  const admin = await requireAdmin();
+  const db = serviceDb();
+  const result = await adminRequestAppUpdate(db, { id: admin.userId }, userId);
+  if (!result.ok) return result;
+  if (configureWebPush()) {
+    await sendRefreshPush(db, userId, (sub, payload) =>
+      webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload,
+        // One per device however often it's pressed; stale after an hour,
+        // when the next sync has picked the request up anyway.
+        { TTL: 60 * 60, topic: "jim-refresh", urgency: "normal" },
+      ),
+    ).catch((error: unknown) => console.error("[admin] refresh push failed:", error));
+  }
+  if (userId) return done(userId, result);
+  revalidatePath("/admin/users");
+  return result;
+}
+
+/** "Reset local data" for one account (issue #808). */
+export async function requestLocalReset(userId: string): Promise<AdminActionResult> {
+  const admin = await requireAdmin();
+  return done(userId, await adminRequestLocalReset(serviceDb(), { id: admin.userId }, userId));
 }

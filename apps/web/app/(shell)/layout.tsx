@@ -2,6 +2,7 @@ import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { ExercisesList } from "@/components/exercises/exercises-list";
 import { HistoryHome } from "@/components/history/history-home";
 import { HomeScreen } from "@/components/home/home-screen";
+import { ResetNotice } from "@/components/reset-notice";
 import { RoutinesList } from "@/components/routines/routines-list";
 import { SetupGate } from "@/components/setup/setup-gate";
 import { ShellScroller } from "@/components/shell-scroller";
@@ -64,7 +65,14 @@ export default async function ShellLayout({ children }: { children: React.ReactN
           <TabbedShell {...tabs}>{children}</TabbedShell>
         </div>
       </ShellScroller>
-      <BottomTabBar syncStatus={<SyncStatusIndicator />} />
+      <BottomTabBar
+        syncStatus={
+          <>
+            <ResetNotice />
+            <SyncStatusIndicator />
+          </>
+        }
+      />
     </div>
   );
 }
