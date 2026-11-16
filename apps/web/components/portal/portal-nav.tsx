@@ -12,6 +12,7 @@ import {
   History,
   type IconComponent,
   LayoutDashboard,
+  Lock,
   Medal,
   Scale,
   TrendingUp,
@@ -24,6 +25,7 @@ import {
   parseAnalysisRange,
   portalHref,
 } from "@/lib/portal/sections";
+import { ADMIN_PATH } from "@/lib/pwa/install-gate-exempt";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -48,7 +50,7 @@ const ICONS: Record<PortalSectionId, IconComponent> = {
  * tabs above the content below that. The row scrolls within itself so more
  * sections never widen the page (docs/PWA.md §3).
  */
-export function PortalNav({ email }: { email: string }) {
+export function PortalNav({ email, isAdmin = false }: { email: string; isAdmin?: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const active = activePortalSection(pathname);
@@ -99,6 +101,21 @@ export function PortalNav({ email }: { email: string }) {
             </li>
           );
         })}
+        {isAdmin && (
+          <li className="shrink-0 md:mt-4">
+            <Link
+              href={ADMIN_PATH}
+              className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              <Lock
+                className="hidden h-4 w-4 shrink-0 md:block"
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+              Admin
+            </Link>
+          </li>
+        )}
       </ul>
     </nav>
   );

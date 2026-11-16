@@ -1,4 +1,5 @@
 import {
+  ACCOUNT_ROLES,
   type InjuryExerciseRule,
   MUSCLES,
   POST_KINDS,
@@ -54,6 +55,10 @@ export const unitsEnum = pgEnum("units", ["lb", "kg"]);
 export const measurementUnitEnum = pgEnum("measurement_unit", ["lb", "kg", "in", "cm", "pct"]);
 
 export const colorSchemeEnum = pgEnum("color_scheme", ["system", "light", "dark"]);
+
+// An account's role (issue #806). "coach" has no powers yet; "admin" opens
+// /admin and the admin MCP tools. Mirrors @jim/core's ACCOUNT_ROLES.
+export const accountRoleEnum = pgEnum("account_role", [...ACCOUNT_ROLES]);
 
 export const accentColorEnum = pgEnum("accent_color", [
   "zinc",
@@ -189,6 +194,10 @@ export const users = pgTable(
       .notNull()
       .default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // The account's role (issue #806). A signed-in user can never change it:
+    // migration 0075's users_guard_role trigger rejects any insert or update
+    // of it made as the `authenticated` role. Admin is granted by script only.
+    role: accountRoleEnum("role").notNull().default("user"),
 
     // settings
     units: unitsEnum("units").notNull().default("lb"),
@@ -1507,5 +1516,34 @@ export const feedbackSubmissions = pgTable(
       to: authenticatedRole,
       withCheck: sql`${table.userId} = ${authUid}`,
     }),
+  ],
+).enableRLS();
+
+/**
+ * Every write an admin makes on someone's behalf (issue #806), from /admin
+ * and the admin MCP tools alike: who did it, to whom, what changed. Kept
+ * forever. RLS is on with no policies: only the server's own connection,
+ * after its admin check, reads or writes it.
+ */
+export const adminAudit = pgTable(
+  "admin_audit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    // Null for an action on every account (an "update app for everyone").
+    targetUserId: uuid("target_user_id").references(() => users.id, { onDelete: "set null" }),
+    // e.g. "settings.update", "role.set", "app.update".
+    action: text("action").notNull(),
+    // The setting or column touched, when the action has one.
+    field: text("field"),
+    oldValue: jsonb("old_value"),
+    newValue: jsonb("new_value"),
+    // "web" or "mcp".
+    via: text("via").notNull().default("web"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("admin_audit_created").on(table.createdAt),
+    index("admin_audit_target").on(table.targetUserId, table.createdAt),
   ],
 ).enableRLS();

@@ -19,6 +19,11 @@ const MESSAGES: Record<string, string> = {
   session_not_found: "This reset link has expired. Request a new one.",
   session_expired: "This reset link has expired. Request a new one.",
   email_address_invalid: "Enter a valid email address.",
+  // Admin TOTP (issue #806).
+  mfa_verification_failed: "Incorrect code. Try the newest one.",
+  mfa_challenge_expired: "That code expired. Enter the newest one.",
+  mfa_totp_enroll_not_enabled: "TOTP is off in Supabase Auth.",
+  mfa_verification_rejected: "Incorrect code. Try the newest one.",
 };
 
 /** Whether an error means the reset link's session is gone, so a new link is the fix. */

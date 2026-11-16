@@ -620,3 +620,37 @@ app's auth is Supabase sessions, not personal access tokens.
 
 **Rejected: direct Postgres or Supabase reads from Jackson OS.** That puts a standing database
 credential outside Jim and duplicates the core logic that computes volume, streaks and e1RM.
+
+## ADR-023 — Account roles and a web-only admin console
+
+**Status:** Accepted · 2026-11-16
+
+**Context.** Jackson needs a place to see platform health and act on other accounts (change
+settings, refresh an app) without impersonating anyone, and a role model that can grow a coach
+tier later (issue #805).
+
+**Decision.**
+
+- **Roles live in Postgres.** `users.role` is `user | coach | admin`, default `user`. The
+  `users_guard_role` trigger rejects any insert or update of `role` made as `authenticated` or
+  `anon`, so neither the app, the MCP server (both run as the user via `runAsUser`) nor PostgREST
+  can promote anyone. The role is read from Postgres on each admin request, not from the JWT, so a
+  demotion takes effect at once.
+- **Admin is script-only.** `pnpm --filter @jim/web admin grant-admin|revoke-admin|clear-mfa
+  <email>` runs on the migration role. The admin UI can only set User or Coach.
+- **`/admin` is a web area like the portal (ADR-015).** Server-rendered, no sync engine or
+  IndexedDB, exempt from the install gate. Not linked from the PWA; the portal nav shows an Admin
+  link to admins.
+- **TOTP for admin only.** Every admin page needs an `aal2` session (Supabase TOTP). The workout app
+  and portal keep password sign-in. Non-admins get a 404, so the area doesn't reveal itself.
+- **Admin reads and writes use the server's own connection, after the admin check.** RLS can't
+  express "an admin may read anyone", and an admin policy on every table would widen the blast
+  radius of a policy bug. Every admin write goes into `admin_audit` (RLS on, no policies) in the
+  same transaction.
+- **No training data.** Admins see account facts and counts, never workouts, and can't edit them.
+
+**Rejected: a role claim in `app_metadata`.** It goes stale until the token refreshes, and it puts
+the source of truth outside the database the guard trigger protects.
+
+**Rejected: impersonation ("view as").** It would expose training data and blur who did what in the
+audit log.
