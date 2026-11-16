@@ -217,6 +217,7 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
       </div>
 
       <ProgramProgress
+        userId={userId}
         routineIds={items.flatMap((item) => (item.routineId ? [item.routineId] : []))}
         since={program.activatedAt ?? program.createdAt}
       />

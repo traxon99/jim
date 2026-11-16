@@ -377,6 +377,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
 
         {preview && (
           <PreWorkoutSheet
+            userId={userId}
             context={dprContext}
             routineId={preview.id}
             routineName={preview.name}

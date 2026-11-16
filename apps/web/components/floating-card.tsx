@@ -17,6 +17,35 @@ interface Props {
   children: (close: () => void) => ReactNode;
 }
 
+/** Open cards, oldest first: only the top one answers Escape. */
+const openCards: symbol[] = [];
+
+let scrollLocks = 0;
+let unlockedOverflow = { html: "", body: "" };
+
+/**
+ * Locks the page's scroll and returns the unlock. Counted, so a card closing
+ * under another one can't unlock the page, nor restore "hidden" after both
+ * close (#796).
+ */
+function lockPageScroll(): () => void {
+  const html = document.documentElement;
+  const { body } = document;
+  if (scrollLocks === 0) {
+    unlockedOverflow = { html: html.style.overflow, body: body.style.overflow };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+  }
+  scrollLocks += 1;
+  return () => {
+    scrollLocks -= 1;
+    if (scrollLocks === 0) {
+      html.style.overflow = unlockedOverflow.html;
+      body.style.overflow = unlockedOverflow.body;
+    }
+  };
+}
+
 /**
  * A card floating centered over the blurred page (issue #278): the shell of
  * the pre-workout sheet and the DPR details card (issue #284). Tapping the
@@ -46,26 +75,27 @@ export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
     return () => clearTimeout(timer);
   }, [closing, onClose]);
 
+  // Cards can stack (an exercise card over the pre-workout sheet, #796):
+  // Escape closes only the top one, and the page unlocks when the last closes.
+  const [token] = useState(() => Symbol("floating-card"));
+  useEffect(() => {
+    openCards.push(token);
+    return () => {
+      const index = openCards.indexOf(token);
+      if (index >= 0) openCards.splice(index, 1);
+    };
+  }, [token]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") requestClose();
+      if (event.key === "Escape" && openCards.at(-1) === token) requestClose();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [requestClose]);
+  }, [requestClose, token]);
 
   // `fixed` doesn't stop the page underneath from scrolling (docs/PWA.md §2).
-  useEffect(() => {
-    const html = document.documentElement;
-    const { body } = document;
-    const previous = { html: html.style.overflow, body: body.style.overflow };
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    return () => {
-      html.style.overflow = previous.html;
-      body.style.overflow = previous.body;
-    };
-  }, []);
+  useEffect(() => lockPageScroll(), []);
 
   // Portals need the DOM, so the card appears once mounted (it's only ever
   // opened by a tap or a client-side route, so there's no visible delay).
