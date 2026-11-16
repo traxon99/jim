@@ -1,6 +1,6 @@
 /** Shapes /api/friends and /api/friends/workouts return (issue #35). */
 
-import type { PostKind, PrKind, ReactionKind, RoutineIconColor } from "@jim/core";
+import type { PostKind, PrKind, ReactionKind, RoutineIconColor, RoutineIconShape } from "@jim/core";
 
 /** One row in Home's activity list (#753). */
 export type ActivityKind = "workout_reaction" | "post_reaction" | "friend_request" | "comment";
@@ -17,6 +17,19 @@ export interface ActivityItem {
   postId: string | null;
   commentId: string | null;
   reactionKind: ReactionKind | null;
+  /** A comment row's text (#818). */
+  commentBody: string | null;
+  /** The workout's start and end, for the group's "Today · 50m" line (#818). */
+  sessionStartedAt: string | null;
+  sessionEndedAt: string | null;
+  /** The workout's routine icon, when it came from a routine (#818). */
+  routineIcon: { shape: RoutineIconShape; color: RoutineIconColor } | null;
+  /** The post it's on, when it's on a post (#818). */
+  postKind: PostKind | null;
+  postTitle: string | null;
+  postDetail: string | null;
+  /** Newer than the last time the bell was opened (#818). */
+  isNew: boolean;
 }
 
 export interface ActivityPayload {

@@ -69,6 +69,23 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("social activity and suggestions
     expect(unreadAfter[0]?.has_unread).toBe(false);
   });
 
+  it("returns comment text, workout details and which rows are new (#818)", async () => {
+    await commitAs(USER_B, (tx) => tx`SELECT add_comment(${sessionId}, NULL, 'big lift')`);
+
+    const rows = await asUser(admin, USER_A, (tx) => tx`SELECT * FROM list_activity()`);
+    const comment = rows.find((row) => row.kind === "comment");
+    expect(comment).toMatchObject({
+      comment_body: "big lift",
+      session_id: sessionId,
+      session_name: "Push",
+      is_new: true,
+    });
+    expect(comment?.session_started_at).toBeTruthy();
+    expect(comment?.session_ended_at).toBeTruthy();
+    const reaction = rows.find((row) => row.kind === "workout_reaction");
+    expect(reaction?.is_new).toBe(false);
+  });
+
   it("suggests friends of friends and remembers dismissals", async () => {
     const suggestions = await asUser(admin, USER_A, (tx) => tx`SELECT * FROM friend_suggestions()`);
     expect(suggestions).toMatchObject([{ user_id: USER_C, mutual_count: 1 }]);
