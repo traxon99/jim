@@ -1,10 +1,10 @@
 "use client";
 
+import { Monitor, Moon, Sun } from "@/components/icons/solar";
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Monitor, Moon, Sun } from "lucide-react";
 import { useState } from "react";
 
 const OPTIONS: { value: SettingsRow["colorScheme"]; label: string; Icon: typeof Monitor }[] = [

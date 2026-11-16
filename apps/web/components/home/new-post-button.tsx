@@ -2,12 +2,12 @@
 
 import { FloatingCard } from "@/components/floating-card";
 import { ComposePostCard } from "@/components/friends/post-to-friends-button";
+import { ChevronRight, Plus } from "@/components/icons/solar";
 import { FLOATING_BUTTON } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { type RecentWorkoutDraft, recentWorkoutDrafts } from "@/lib/friends/recent-workout-drafts";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight, Plus } from "lucide-react";
 import { useId, useState } from "react";
 
 /**

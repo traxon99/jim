@@ -1,7 +1,7 @@
 "use client";
 
+import { Thermometer } from "@/components/icons/solar";
 import { type TrainingDay, buildCalendarMonth, dateKey } from "@jim/core";
-import { Thermometer } from "lucide-react";
 import { useMemo } from "react";
 
 const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });

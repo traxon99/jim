@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, ChevronRight } from "@/components/icons/solar";
 import { bodyweightOnDate } from "@/lib/bodyweight/series";
 import { toTrendPoints } from "@/lib/portal/body-data";
 import { reviveRecordEntries } from "@/lib/portal/records-data";
@@ -13,7 +14,6 @@ import {
 import { STANDARD_LIFT_LABELS, STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileOn } from "@/lib/strength-standards/profile";
 import { STRENGTH_STANDARD_TIERS, ageAdjustmentFactor } from "@jim/core";
-import { Check, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PortalSectionHeader } from "./analysis-range";

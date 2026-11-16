@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
@@ -24,7 +25,6 @@ import {
   nextBlockBaselines,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { BlockEditor } from "./block-editor";

@@ -7,9 +7,9 @@ import {
   useExerciseCatalog,
 } from "@/components/exercises/exercise-catalog";
 import { ExerciseForm } from "@/components/exercises/exercise-form";
+import { Check, Plus } from "@/components/icons/solar";
 import { useGymNames } from "@/lib/exercises/display";
 import { type ExerciseCategory, type ExerciseMuscles, sparingSwapFilter } from "@jim/core";
-import { Check, Plus } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 

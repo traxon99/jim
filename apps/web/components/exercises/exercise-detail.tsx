@@ -4,6 +4,7 @@ import { BodyMap, muscleSummary } from "@/components/exercises/body-map";
 import { ExercisePreferenceControl } from "@/components/exercises/exercise-preference-control";
 import { FloatingCard } from "@/components/floating-card";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
+import { ExternalLink, MapPin, Pencil } from "@/components/icons/solar";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
 import { db } from "@/lib/db/schema";
 import { useToday } from "@/lib/pwa/use-today";
@@ -30,7 +31,6 @@ import {
   warmupFrequency,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ExternalLink, MapPin, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useMemo } from "react";

@@ -2,6 +2,7 @@
 
 import { Avatar } from "@/components/friends/avatar";
 import { FriendsSuggestionsSection } from "@/components/friends/friends-suggestions-section";
+import { Check, Search, UserMinus, UserPlus, UsersRound, X } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
   friendRequestMessage,
@@ -11,7 +12,6 @@ import {
 } from "@/lib/friends/client";
 import { useFriends } from "@/lib/friends/use-friends";
 import { normalizeUsername } from "@jim/core";
-import { Check, Search, UserMinus, UserPlus, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
 

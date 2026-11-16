@@ -1,7 +1,7 @@
 "use client";
 
+import { ChevronDown, CircleCheck, Flame } from "@/components/icons/solar";
 import { formatClock, warmupTimerState } from "@jim/core";
-import { ChevronDown, CircleCheck, Flame } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Props {

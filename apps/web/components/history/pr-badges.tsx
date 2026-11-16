@@ -1,3 +1,4 @@
+import { Medal, Sparkles } from "@/components/icons/solar";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import {
   type PersonalRecordSortKey,
@@ -5,7 +6,6 @@ import {
   type StrengthStandardTier,
   nextTier,
 } from "@jim/core";
-import { Medal, Sparkles } from "lucide-react";
 
 /**
  * Labels, badges and hints shared by the PWA's PR list and the portal's

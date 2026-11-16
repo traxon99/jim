@@ -1,8 +1,8 @@
 "use client";
 
+import { GripVertical } from "@/components/icons/solar";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { REORDER_ROW_PX, dropIndex, edgeScrollSpeed, moveId } from "@/lib/workout/reorder-drag";
-import { GripVertical } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { LongPressStart } from "./use-long-press";

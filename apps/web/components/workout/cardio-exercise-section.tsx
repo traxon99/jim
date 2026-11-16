@@ -2,6 +2,7 @@
 
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
+import { Check, X } from "@/components/icons/solar";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
 import { type LongPressStart, useLongPress } from "@/components/workout/use-long-press";
 import type {
@@ -27,7 +28,6 @@ import {
   resolveCurrentRows,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { PrBadge } from "./pr-badge";
 

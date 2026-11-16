@@ -1,5 +1,6 @@
 "use client";
 
+import { Layers } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { SharedSnapshotView } from "@/components/sharing/shared-snapshot-view";
@@ -7,7 +8,6 @@ import { isStandalone } from "@/lib/pwa/standalone";
 import { type Result, openShareLink, revokeShareLink, shareBackTarget } from "@/lib/sharing/client";
 import { addSharedSnapshot } from "@/lib/sharing/local";
 import type { OpenedShareLink } from "@/lib/sharing/types";
-import { Layers } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "@/components/icons/solar";
 import {
   STAT_RANGES,
   type StatRange,
@@ -14,7 +15,6 @@ import {
   revivePeriodSessions,
 } from "@/lib/portal/analysis-data";
 import { analysisRangeStart, summarizeTraining, weeklyVolumeTotals } from "@jim/core";
-import { Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";
 import { GymMap } from "./gym-map";

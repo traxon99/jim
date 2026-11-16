@@ -25,9 +25,9 @@ export function SettingsHome({
         <SettingsMenu />
         <SignOutButton />
         <p className="text-xs text-zinc-500 dark:text-zinc-500">Jim v{APP_VERSION}</p>
-        {/* Solar is CC BY 4.0, which asks for a credit (#788). */}
+        {/* Every icon is Solar, CC BY 4.0, which asks for a credit (#788, #800). */}
         <p className="-mt-3 text-xs text-zinc-500 dark:text-zinc-500">
-          Tab icons:{" "}
+          Icons:{" "}
           <a
             href="https://www.figma.com/community/file/1166831539721848736"
             target="_blank"

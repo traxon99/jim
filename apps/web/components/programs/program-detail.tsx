@@ -1,5 +1,6 @@
 "use client";
 
+import { Layers, Pencil } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { ShareLinkButton } from "@/components/sharing/share-link-button";
@@ -22,7 +23,6 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Layers, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";

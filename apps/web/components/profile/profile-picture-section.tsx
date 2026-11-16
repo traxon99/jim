@@ -1,11 +1,11 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
+import { Trash2 } from "@/components/icons/solar";
 import { photoToAvatar } from "@/lib/friends/avatar-image";
 import { fetchProfile, updateProfile } from "@/lib/friends/client";
 import type { ProfilePayload } from "@/lib/friends/types";
 import { refreshFriends } from "@/lib/friends/use-friends";
-import { Trash2 } from "lucide-react";
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 /**

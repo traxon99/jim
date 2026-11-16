@@ -11,6 +11,7 @@ import {
   tierBadgeLabel,
 } from "@/components/history/pr-badges";
 import { PrSparkline } from "@/components/history/pr-sparkline";
+import { Medal, Search, Sparkles } from "@/components/icons/solar";
 import { bodyweightOnDate } from "@/lib/bodyweight/series";
 import { buildPrGroups, filterPrGroups, prFilterOptions } from "@/lib/history/pr-groups";
 import { toTrendPoints } from "@/lib/portal/body-data";
@@ -27,7 +28,6 @@ import {
   personalRecordStats,
   recentPersonalRecords,
 } from "@jim/core";
-import { Medal, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader } from "./analysis-range";

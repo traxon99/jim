@@ -1,5 +1,6 @@
 "use client";
 
+import { Bandage } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { type InjuryRow, type PainCheckinRow, db } from "@/lib/db/schema";
 import {
@@ -13,7 +14,6 @@ import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
 import { DEFAULT_SETTINGS, showsInjuryRules } from "@/lib/settings";
 import { formatDayKey, injuryAreaLabel, latestPainByDay, todaysPain } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Bandage } from "lucide-react";
 import { useState } from "react";
 import { InjuryExerciseRules } from "./exercise-rules";
 import { HealedPrompt } from "./pain-checkin";

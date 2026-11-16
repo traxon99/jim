@@ -1,6 +1,6 @@
 "use client";
 
-import { Undo2 } from "lucide-react";
+import { Undo2 } from "@/components/icons/solar";
 import { useCallback, useEffect, useState } from "react";
 
 /** How long an Undo stays up after a delete (issue #318, #520). */

@@ -1,10 +1,10 @@
 "use client";
 
+import { TrendingUp } from "@/components/icons/solar";
 import { db } from "@/lib/db/schema";
 import { shouldShowDprPrompt } from "@/lib/dpr/block";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
-import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 

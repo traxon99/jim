@@ -1,6 +1,7 @@
 "use client";
 
 import { loadExportTables } from "@/app/portal/export/actions";
+import { Download } from "@/components/icons/solar";
 import {
   type ExportTables,
   bodyweightCsvFromTables,
@@ -9,7 +10,6 @@ import {
   jsonExportFromTables,
   strongCsvFromTables,
 } from "@/lib/data-transfer/export-build";
-import { Download } from "lucide-react";
 import { useRef, useState } from "react";
 import { PortalSectionHeader } from "./analysis-range";
 

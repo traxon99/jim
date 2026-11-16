@@ -1,10 +1,10 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
+import { UserPlus, X } from "@/components/icons/solar";
 import { fetchActivity, markActivitySeen } from "@/lib/friends/client";
 import type { ActivityItem } from "@/lib/friends/types";
 import { REACTION_EMOJI, REACTION_LABELS } from "@jim/core";
-import { UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";

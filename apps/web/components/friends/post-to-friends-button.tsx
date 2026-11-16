@@ -1,9 +1,9 @@
 "use client";
 
 import { FloatingCard } from "@/components/floating-card";
+import { Check, Send } from "@/components/icons/solar";
 import { createPost } from "@/lib/friends/client";
 import { POST_CAPTION_MAX_LENGTH, type PostDraft } from "@jim/core";
-import { Check, Send } from "lucide-react";
 import { type FormEvent, type ReactNode, useId, useState } from "react";
 
 type Shareable = Omit<PostDraft, "caption">;

@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  BarChart3,
+  CalendarDays,
+  ChevronRight,
+  Dumbbell,
+  Search,
+  Trophy,
+} from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
 import { RoutineIconTile } from "@/components/routines/routine-icon";
@@ -14,7 +22,6 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { useSickDays } from "@/lib/sick-days/use-sick-days";
 import { buildTrainingCalendar, dateKey, startOfMonth } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BarChart3, CalendarDays, ChevronRight, Dumbbell, Search, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TrainingCalendarMonth } from "./training-calendar-month";

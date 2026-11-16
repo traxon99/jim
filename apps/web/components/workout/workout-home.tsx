@@ -3,6 +3,7 @@
 import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
+import { Play, Plus, Thermometer, TrendingUp, Zap } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
 import { ProgramWeekStrip, useProgramCycle } from "@/components/routines/program-week-strip";
@@ -20,7 +21,6 @@ import { startEmptySession, startSessionFromRoutineId } from "@/lib/sessions/sta
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { type SessionIntensity, groupRoutinesByFolder } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Play, Plus, Thermometer, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -344,7 +344,8 @@ export function WorkoutHome({ userId }: { userId: string }) {
                         className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.06] disabled:opacity-50 dark:bg-white/10"
                       >
                         <Play
-                          className="ml-0.5 h-3.5 w-3.5 fill-current"
+                          className="ml-0.5 h-3.5 w-3.5"
+                          fill="currentColor"
                           strokeWidth={2}
                           aria-hidden="true"
                         />

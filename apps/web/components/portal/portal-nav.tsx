@@ -1,13 +1,6 @@
 "use client";
 
 import {
-  PORTAL_SECTIONS,
-  type PortalSectionId,
-  activePortalSection,
-  parseAnalysisRange,
-  portalHref,
-} from "@/lib/portal/sections";
-import {
   CalendarDays,
   ChartLine,
   ChevronLeft,
@@ -17,17 +10,24 @@ import {
   Flame,
   Footprints,
   History,
+  type IconComponent,
   LayoutDashboard,
-  type LucideIcon,
   Medal,
   Scale,
   TrendingUp,
   Trophy,
-} from "lucide-react";
+} from "@/components/icons/solar";
+import {
+  PORTAL_SECTIONS,
+  type PortalSectionId,
+  activePortalSection,
+  parseAnalysisRange,
+  portalHref,
+} from "@/lib/portal/sections";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-const ICONS: Record<PortalSectionId, LucideIcon> = {
+const ICONS: Record<PortalSectionId, IconComponent> = {
   overview: LayoutDashboard,
   workouts: History,
   calendar: CalendarDays,

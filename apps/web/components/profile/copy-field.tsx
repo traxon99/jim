@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
+import { Check, Copy } from "@/components/icons/solar";
 import { useState } from "react";
 
 /** A read-only value with a copy button, for URLs, commands and tokens in Settings. */

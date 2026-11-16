@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid3x3, Scale, Trophy } from "lucide-react";
+import { Grid3x3, Scale, Trophy } from "@/components/icons/solar";
 
 export type ProfileTab = "posts" | "records" | "body";
 

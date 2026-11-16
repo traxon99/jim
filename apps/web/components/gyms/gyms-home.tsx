@@ -1,5 +1,6 @@
 "use client";
 
+import { MapPin, Pencil, Star } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import type { GymRow } from "@/lib/db/schema";
@@ -16,7 +17,6 @@ import {
 import { runSyncCycle } from "@/lib/sync/engine";
 import { gymCoordinates } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { MapPin, Pencil, Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AddressField } from "./address-field";
 

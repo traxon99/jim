@@ -7,6 +7,7 @@ import {
   dayFillClass,
   intensityClass,
 } from "@/components/history/training-calendar-month";
+import { Flame } from "@/components/icons/solar";
 import {
   type CalendarPeriod,
   type PortalCalendarData,
@@ -24,7 +25,6 @@ import {
   painSuggestion,
   trainingStreak,
 } from "@jim/core";
-import { Flame } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIsClient } from "./use-is-client";
