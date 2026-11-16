@@ -156,6 +156,8 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
       "stickyNote",
       "restSeconds",
       "warmupSets",
+      "addedSets",
+      "skippedSetIndices",
     ],
   },
   personalRecords: {

@@ -142,6 +142,8 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       Boxes PRP fills keep its call's dashed outline until something is typed (#712).
 - [ ] Sets are append-only and sync is foreground-driven (`docs/DECISIONS.md`). Don't edit rows in
       place. A planned row must not reappear over a synced tombstone (#438).
+- [ ] A plan edit the lifter makes on purpose (an added set, a swiped-away row) is saved on the
+      workout's exercise row, never held only in component state, so a reload keeps it (#803).
 
 **Sync and the server**
 - [ ] Ids that set an order sort in creation order (`uuidv7()`); a supersede chain can fork, and

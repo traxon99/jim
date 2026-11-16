@@ -519,6 +519,13 @@
       "when": 1794785703981,
       "tag": "0073_add_one_off_routines",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794795305716,
+      "tag": "0074_add_session_exercise_set_plan",
+      "breakpoints": true
     }
   ]
 }

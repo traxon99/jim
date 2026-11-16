@@ -563,6 +563,58 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("POST /api/sync/push", () => {
     expect(row?.gym_id).toBe(gymId);
   });
 
+  it("saves a workout exercise's added and swiped-away set rows (issue #803)", async () => {
+    const sessionId = uuidv7();
+    const sessionExerciseId = uuidv7();
+    const now = Date.now();
+    const sessionExercise = (at: number, plan: object) => ({
+      id: uuidv7(),
+      table: "sessionExercises",
+      entity: {
+        id: sessionExerciseId,
+        sessionId,
+        exerciseId,
+        position: 0,
+        supersetGroup: null,
+        notes: null,
+        ...plan,
+        updatedAt: new Date(at).toISOString(),
+        deviceId: "device-a",
+        deletedAt: null,
+      },
+    });
+    const body = await (
+      await push([
+        {
+          id: uuidv7(),
+          table: "sessions",
+          entity: {
+            id: sessionId,
+            routineId: null,
+            name: null,
+            endedAt: null,
+            notes: null,
+            bodyweight: null,
+            intensity: null,
+            deviceId: "device-a",
+            updatedAt: new Date(now).toISOString(),
+            deletedAt: null,
+          },
+        },
+        sessionExercise(now, { addedSets: 2, skippedSetIndices: [1, 3] }),
+      ])
+    ).json();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual(["applied", "applied"]);
+    const [saved] = await admin<{ added_sets: number; skipped_set_indices: number[] }[]>`
+      SELECT added_sets, skipped_set_indices FROM session_exercises WHERE id = ${sessionExerciseId}`;
+    expect(saved).toEqual({ added_sets: 2, skipped_set_indices: [1, 3] });
+
+    await push([sessionExercise(now + 1000, { addedSets: 2, skippedSetIndices: null })]);
+    const [cleared] = await admin<{ skipped_set_indices: number[] | null }[]>`
+      SELECT skipped_set_indices FROM session_exercises WHERE id = ${sessionExerciseId}`;
+    expect(cleared?.skipped_set_indices).toBeNull();
+  });
+
   it("logs a full workout (session + session_exercise + set) in one batch", async () => {
     const sessionId = uuidv7();
     const sessionExerciseId = uuidv7();

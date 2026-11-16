@@ -86,6 +86,24 @@ describe("prefillWeightForSet", () => {
   it("ignores the fallback for sets after the first, which have nothing to fall back on", () => {
     expect(prefillWeightForSet(1, undefined, 145)).toBe("");
   });
+
+  it("carries the earlier set's weight into a later set with no history at its position", () => {
+    expect(prefillWeightForSet(1, undefined, null, "155")).toBe("155");
+    expect(prefillWeightForSet(3, undefined, 145, "155")).toBe("155");
+  });
+
+  it("prefers last time's weight at that position over the earlier set's", () => {
+    const previousSet2 = { ...previous, setIndex: 1, weight: 145 };
+    expect(prefillWeightForSet(1, previousSet2, null, "155")).toBe("145");
+  });
+
+  it("keeps a bodyweight set from last time blank rather than carrying a weight", () => {
+    expect(prefillWeightForSet(1, { ...previous, weight: null }, null, "155")).toBe("");
+  });
+
+  it("never carries into the first set", () => {
+    expect(prefillWeightForSet(0, undefined, null, "155")).toBe("");
+  });
 });
 
 describe("plannedSetRowCount", () => {
