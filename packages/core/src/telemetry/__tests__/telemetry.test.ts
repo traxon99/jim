@@ -4,6 +4,7 @@ import {
   normalizeErrorMessage,
   parseTelemetryBatch,
   telemetryFingerprint,
+  telemetryRoute,
   topStackFrame,
 } from "..";
 
@@ -25,6 +26,23 @@ describe("telemetry (#809)", () => {
     expect(events?.[1]).toMatchObject({ kind: "vital", name: "LCP", value: 1234.5 });
     expect(parseTelemetryBatch({})).toBeNull();
     expect(parseTelemetryBatch(null)).toBeNull();
+  });
+
+  it("drops values no real load could have, and ids in paths", () => {
+    const events = parseTelemetryBatch({
+      events: [
+        { kind: "vital", name: "LCP", value: 1e12 },
+        { kind: "vital", name: "CLS", value: -1 },
+        {
+          kind: "vital",
+          name: "CLS",
+          value: 0.1,
+          path: "/share/3f2a1b9c-1111-4222-8333-944445555666?x=1",
+        },
+      ],
+    });
+    expect(events).toEqual([{ kind: "vital", name: "CLS", value: 0.1, path: "/share/:id" }]);
+    expect(telemetryRoute("/workout/3f2a1b9c-1111-4222-8333-944445555666")).toBe("/workout/:id");
   });
 
   it("caps a batch", () => {

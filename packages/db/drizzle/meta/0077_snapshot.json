@@ -1,5 +1,5 @@
 {
-  "id": "58bd7e1e-8202-423b-8692-e3e1b8cc18a9",
+  "id": "4a163ade-4b8b-4f53-b9ec-f3924afaf95f",
   "prevId": "42a4b3fd-46d7-45fd-918b-8d916bb8cbe6",
   "version": "7",
   "dialect": "postgresql",
@@ -5215,15 +5215,7 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {
-        "telemetry_events_insert_own": {
-          "name": "telemetry_events_insert_own",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": ["authenticated"],
-          "withCheck": "\"telemetry_events\".\"user_id\" = (select auth.uid())"
-        }
-      },
+      "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": true
     },

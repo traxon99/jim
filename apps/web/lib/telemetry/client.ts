@@ -1,5 +1,5 @@
 import { APP_VERSION } from "@/lib/version";
-import { type ClientTelemetryEvent, TELEMETRY_MAX_BATCH } from "@jim/core";
+import { type ClientTelemetryEvent, TELEMETRY_MAX_BATCH, telemetryRoute } from "@jim/core";
 
 /**
  * The phone's side of self-hosted telemetry (issue #809). Events queue in
@@ -34,9 +34,7 @@ function defaultSender(url: string, body: string): boolean {
 let send: Sender = defaultSender;
 
 /** The path with ids taken out, so one screen groups as one: /workout/:id. */
-export function routeOf(pathname: string): string {
-  return pathname.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ":id");
-}
+export const routeOf = telemetryRoute;
 
 /** Queues one event. Safe to call anywhere, including before the app has started. */
 export function reportTelemetry(event: Omit<ClientTelemetryEvent, "appVersion" | "path">): void {

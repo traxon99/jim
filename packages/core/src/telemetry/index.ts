@@ -32,6 +32,17 @@ export interface ClientTelemetryEvent {
   detail?: Record<string, unknown>;
 }
 
+/** Largest believable value: CLS is unitless, everything else is milliseconds. */
+const MAX_VALUE = { CLS: 100, default: 600_000 };
+
+/** The path with ids taken out, so one screen groups as one (/workout/:id) and no share-link id is kept. */
+export function telemetryRoute(pathname: string): string {
+  return (pathname.split("?")[0] ?? "").replace(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    ":id",
+  );
+}
+
 function clip(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
@@ -53,8 +64,14 @@ export function parseTelemetryBatch(body: unknown): ClientTelemetryEvent[] | nul
     if (!CLIENT_TELEMETRY_KINDS.includes(event.kind as ClientTelemetryKind)) continue;
     const name = clip(event.name, LIMITS.name);
     if (!name) continue;
+    const max = event.name === "CLS" ? MAX_VALUE.CLS : MAX_VALUE.default;
     const value =
-      typeof event.value === "number" && Number.isFinite(event.value) ? event.value : undefined;
+      typeof event.value === "number" &&
+      Number.isFinite(event.value) &&
+      event.value >= 0 &&
+      event.value <= max
+        ? event.value
+        : undefined;
     if ((event.kind === "vital" || event.kind === "cold_start") && value === undefined) continue;
     let detail: Record<string, unknown> | undefined;
     if (typeof event.detail === "object" && event.detail !== null && !Array.isArray(event.detail)) {
@@ -67,7 +84,10 @@ export function parseTelemetryBatch(body: unknown): ClientTelemetryEvent[] | nul
       message: clip(event.message, LIMITS.message),
       stack: clip(event.stack, LIMITS.stack),
       value,
-      path: clip(event.path, LIMITS.path),
+      path: clip(
+        typeof event.path === "string" ? telemetryRoute(event.path) : undefined,
+        LIMITS.path,
+      ),
       appVersion: clip(event.appVersion, LIMITS.appVersion),
       detail,
     });

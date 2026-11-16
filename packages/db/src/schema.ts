@@ -1558,8 +1558,9 @@ export const adminAudit = pgTable(
 // telemetry_events — self-hosted telemetry for the admin console (issue
 // #809): client errors, sync failures, Web Vitals, cold starts, server 5xx
 // and MCP tool errors. Kept 30 days (see apps/web/lib/telemetry/server.ts).
-// A signed-in user may only add rows tagged with their own id; nothing reads
-// them except the server's own connection (the admin dashboards).
+// RLS is on with no policies: only the server's own connection reads or
+// writes it, so every row has passed POST /api/telemetry's checks or was
+// recorded by the server itself.
 // ---------------------------------------------------------------------------
 export const telemetryEvents = pgTable(
   "telemetry_events",
@@ -1585,10 +1586,5 @@ export const telemetryEvents = pgTable(
     index("telemetry_events_kind_created").on(table.kind, table.createdAt),
     index("telemetry_events_fingerprint").on(table.fingerprint, table.createdAt),
     index("telemetry_events_created").on(table.createdAt),
-    pgPolicy("telemetry_events_insert_own", {
-      for: "insert",
-      to: authenticatedRole,
-      withCheck: sql`${table.userId} = ${authUid}`,
-    }),
   ],
 ).enableRLS();

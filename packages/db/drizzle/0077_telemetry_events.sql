@@ -16,5 +16,4 @@ ALTER TABLE "telemetry_events" ENABLE ROW LEVEL SECURITY;--> statement-breakpoin
 ALTER TABLE "telemetry_events" ADD CONSTRAINT "telemetry_events_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "telemetry_events_kind_created" ON "telemetry_events" USING btree ("kind","created_at");--> statement-breakpoint
 CREATE INDEX "telemetry_events_fingerprint" ON "telemetry_events" USING btree ("fingerprint","created_at");--> statement-breakpoint
-CREATE INDEX "telemetry_events_created" ON "telemetry_events" USING btree ("created_at");--> statement-breakpoint
-CREATE POLICY "telemetry_events_insert_own" ON "telemetry_events" AS PERMISSIVE FOR INSERT TO "authenticated" WITH CHECK ("telemetry_events"."user_id" = (select auth.uid()));
+CREATE INDEX "telemetry_events_created" ON "telemetry_events" USING btree ("created_at");

@@ -2,14 +2,15 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { telemetryFingerprint } from "@jim/core";
 import { telemetryEvents } from "@jim/db";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type UserContext, withUser } from "./context.js";
+import type { UserContext } from "./context.js";
 
 /**
  * MCP tool errors for the admin Failures page (issue #809). Only unexpected
  * failures count: a tool's own message ("No routine matches …") is an answer,
  * not a failure. tool-error.ts hands each unexpected error to the tool call
  * it happened in through this store; the wrapper below records it once the
- * call is over, as the calling user (RLS lets a user add only their own rows).
+ * call is over, on the server's own connection (the table has no user
+ * policies), tagged with the calling user.
  */
 const failures = new AsyncLocalStorage<unknown[]>();
 
@@ -24,19 +25,18 @@ export async function recordToolFailure(
   error: unknown,
 ): Promise<void> {
   const err = error instanceof Error ? error : new Error(String(error));
-  // Drizzle puts the SQL and its params in the message; keep the cause's.
-  const cause = err.cause instanceof Error ? err.cause : null;
-  const message = (cause?.message || err.message || "(no message)").slice(0, 1000);
-  await withUser(context, (tx) =>
-    tx.insert(telemetryEvents).values({
-      userId: context.userId,
-      kind: "mcp_error",
-      name: tool,
-      message,
-      fingerprint: telemetryFingerprint("mcp_error", tool, message, err.stack),
-      detail: { errorName: (cause ?? err).name },
-    }),
-  );
+  // Drizzle puts the SQL and its params (the user's values) in its message
+  // and stack; only the driver's cause is kept.
+  const kept = err.cause instanceof Error ? err.cause : err;
+  const message = (kept.message || "(no message)").slice(0, 1000);
+  await context.db.insert(telemetryEvents).values({
+    userId: context.userId,
+    kind: "mcp_error",
+    name: tool,
+    message,
+    fingerprint: telemetryFingerprint("mcp_error", tool, message, kept.stack),
+    detail: { errorName: kept.name },
+  });
 }
 
 /** Records every unexpected failure of every tool this server registers. */
