@@ -25,6 +25,7 @@ import { pickReaction, settleReaction } from "@/lib/friends/format";
 import { timeAgo } from "@/lib/friends/post-media";
 import type { ActivityItem, FeedComment } from "@/lib/friends/types";
 import { useFriends } from "@/lib/friends/use-friends";
+import { useToday } from "@/lib/pwa/use-today";
 import { formatMinutes } from "@/lib/home/stats";
 import { type LogGuard, createLogGuard } from "@/lib/workout/log-guard";
 import {
@@ -36,7 +37,6 @@ import {
   commentError,
   normalizeComment,
 } from "@jim/core";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -64,8 +64,8 @@ function groupHref(group: ActivityGroup): string {
     : `/home?focus=${group.target.postId}`;
 }
 
-function groupMeta(group: ActivityGroup): string {
-  const day = dayLabel(group.at);
+function groupMeta(group: ActivityGroup, today: Date): string {
+  const day = dayLabel(group.at, today);
   if (group.durationMinutes !== null && group.durationMinutes > 0) {
     return `${day} · ${formatMinutes(group.durationMinutes)}`;
   }
@@ -440,6 +440,8 @@ function Tally({ group }: { group: ActivityGroup }) {
 }
 
 function GroupCard({ group, onOpen }: { group: ActivityGroup; onOpen: () => void }) {
+  // Re-renders "Today" into "Yesterday" when iOS resumes the app the next day (#523).
+  const today = useToday();
   const people = peopleLine(group.reactions.map((r) => r.actorUsername));
   const faces = group.reactions
     .filter((r, i, all) => all.findIndex((o) => o.actorUserId === r.actorUserId) === i)
@@ -464,7 +466,7 @@ function GroupCard({ group, onOpen }: { group: ActivityGroup; onOpen: () => void
           <span className="block truncate text-base font-semibold tracking-[-0.02em]">
             {group.title}
           </span>
-          <span className="block truncate text-[13px] text-zinc-500">{groupMeta(group)}</span>
+          <span className="block truncate text-[13px] text-zinc-500">{groupMeta(group, today)}</span>
         </span>
         <ChevronRight
           className="h-[18px] w-[18px] shrink-0 text-zinc-300 dark:text-zinc-600"
@@ -547,6 +549,7 @@ function GroupDetail({
   keyboardOpen: boolean;
   onOpen: () => void;
 }) {
+  const today = useToday();
   const [filter, setFilter] = useState<Filter>("all");
   const [thread, setThread] = useState<Thread>({ status: "loading" });
   const [draft, setDraft] = useState("");
@@ -672,7 +675,7 @@ function GroupDetail({
             <span className="block truncate text-xl font-bold tracking-[-0.025em]">
               {group.title}
             </span>
-            <span className="block truncate text-sm text-zinc-500">{groupMeta(group)}</span>
+            <span className="block truncate text-sm text-zinc-500">{groupMeta(group, today)}</span>
           </span>
         </button>
 
