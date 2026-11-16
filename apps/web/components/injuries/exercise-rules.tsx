@@ -2,6 +2,7 @@
 
 import { ExercisePicker } from "@/components/exercise-picker";
 import { FloatingCard } from "@/components/floating-card";
+import { Plus } from "@/components/icons/solar";
 import { type InjuryRow, db } from "@/lib/db/schema";
 import { removeExerciseRule, setExerciseRule } from "@/lib/injuries";
 import {
@@ -20,7 +21,6 @@ import {
   ruleTakesLimits,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 
 const EFFECT_DETAILS: Record<InjuryRuleEffect, string> = {

@@ -1,9 +1,9 @@
 "use client";
 
+import { Bell, CircleUserRound } from "@/components/icons/solar";
 import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { fetchActivity } from "@/lib/friends/client";
 import { useFriends } from "@/lib/friends/use-friends";
-import { Bell, CircleUserRound } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { ActivitySheet } from "./activity-sheet";

@@ -2,6 +2,7 @@
 
 import { ExercisePicker } from "@/components/exercise-picker";
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
+import { Flame, Pencil, Play } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { ShareLinkButton } from "@/components/sharing/share-link-button";
@@ -49,7 +50,6 @@ import {
   uuidv7,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Flame, Pencil, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
@@ -358,7 +358,7 @@ export function RoutineDetail({
               disabled={starting || items.length === 0}
               className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-lg font-semibold text-accent-foreground disabled:opacity-50"
             >
-              <Play className="h-5 w-5 fill-current" strokeWidth={2} aria-hidden="true" />
+              <Play className="h-5 w-5" fill="currentColor" strokeWidth={2} aria-hidden="true" />
               Start routine
             </button>
           )}

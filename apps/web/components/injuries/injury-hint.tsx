@@ -1,5 +1,6 @@
 "use client";
 
+import { Bandage, X } from "@/components/icons/solar";
 import {
   INJURY_SUGGESTION_LABELS,
   type InjuryExerciseRule,
@@ -9,7 +10,6 @@ import {
   describeInjuryRule,
   painSuggestion,
 } from "@jim/core";
-import { Bandage, X } from "lucide-react";
 import { useState } from "react";
 
 /** How an open injury touches one exercise in a workout (issue #627). */

@@ -1,5 +1,3 @@
-import { dprBadge } from "@/lib/dpr/calls";
-import type { DprCall } from "@jim/core";
 import {
   ArrowDown,
   ArrowDownRight,
@@ -7,10 +5,12 @@ import {
   ArrowUp,
   CircleHelp,
   Feather,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@/components/icons/solar";
+import { dprBadge } from "@/lib/dpr/calls";
+import type { DprCall } from "@jim/core";
 
-const ICONS: Record<DprCall, LucideIcon> = {
+const ICONS: Record<DprCall, IconComponent> = {
   increase: ArrowUp,
   hold: ArrowRight,
   deload: ArrowDown,

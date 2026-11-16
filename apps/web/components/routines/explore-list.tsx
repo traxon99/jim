@@ -1,6 +1,14 @@
 "use client";
 
 import { EXPERIENCE_LABELS, PRESET_LABELS } from "@/components/dpr/labels";
+import {
+  ChevronDown,
+  ChevronRight,
+  Dumbbell,
+  Flame,
+  Layers,
+  Sparkles,
+} from "@/components/icons/solar";
 import { SWITCH_CLASS } from "@/components/switch-class";
 import { db } from "@/lib/db/schema";
 import { currentBlock } from "@/lib/dpr/block";
@@ -18,7 +26,6 @@ import {
   isWarmupRoutine,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronDown, ChevronRight, Dumbbell, Flame, Layers, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";

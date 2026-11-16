@@ -1,11 +1,11 @@
 "use client";
 
+import { ChevronRight } from "@/components/icons/solar";
 import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { DprSettings } from "./dpr-settings";

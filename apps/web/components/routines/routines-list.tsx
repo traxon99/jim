@@ -1,14 +1,6 @@
 "use client";
 
 import { Highlight } from "@/components/highlight";
-import { LoadingText } from "@/components/loading-text";
-import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
-import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
-import { type RoutineRow, db } from "@/lib/db/schema";
-import { type LibraryFolder, libraryFolders, splitWarmups } from "@/lib/routines/library";
-import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { exerciseDisplayName, isWarmupRoutine, searchRoutines } from "@jim/core";
-import { useLiveQuery } from "dexie-react-hooks";
 import {
   ChevronRight,
   Flame,
@@ -18,7 +10,15 @@ import {
   Search,
   Sparkles,
   TriangleAlert,
-} from "lucide-react";
+} from "@/components/icons/solar";
+import { LoadingText } from "@/components/loading-text";
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
+import { OpenShareLinkCard } from "@/components/sharing/open-share-link-card";
+import { type RoutineRow, db } from "@/lib/db/schema";
+import { type LibraryFolder, libraryFolders, splitWarmups } from "@/lib/routines/library";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { exerciseDisplayName, isWarmupRoutine, searchRoutines } from "@jim/core";
+import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";

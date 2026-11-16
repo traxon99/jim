@@ -1,6 +1,7 @@
 "use client";
 
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
+import { ChevronRight } from "@/components/icons/solar";
 import { PainPicker } from "@/components/injuries/pain-picker";
 import {
   TRACKED_MEASUREMENT_KINDS,
@@ -13,7 +14,6 @@ import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { formatDayKey, injuryAreaLabel, todaysPain } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 const MEASUREMENT_LABELS: Record<(typeof TRACKED_MEASUREMENT_KINDS)[number], string> = {

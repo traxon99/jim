@@ -1,5 +1,6 @@
 "use client";
 
+import { BookmarkPlus, Hourglass, Play, X } from "@/components/icons/solar";
 import { SECTION_LABEL } from "@/components/page-header";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
 import { mutate } from "@/lib/db/mutate";
@@ -15,7 +16,6 @@ import {
   oneOffTimeLeft,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookmarkPlus, Hourglass, Play, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const TICK_MS = 60_000;
@@ -210,7 +210,7 @@ function OneOffCard({
           disabled={starting}
           className="press flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-full bg-zinc-900 px-4 text-[17px] font-semibold tracking-[-0.015em] text-white disabled:opacity-50 dark:bg-white dark:text-zinc-900"
         >
-          <Play className="h-3.5 w-3.5 fill-current" strokeWidth={2} aria-hidden="true" />
+          <Play className="h-3.5 w-3.5" fill="currentColor" strokeWidth={2} aria-hidden="true" />
           Start
         </button>
         <button
@@ -333,7 +333,8 @@ export function OneOffCards({
                   className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.06] disabled:opacity-50 dark:bg-white/10"
                 >
                   <Play
-                    className="ml-0.5 h-3.5 w-3.5 fill-current"
+                    className="ml-0.5 h-3.5 w-3.5"
+                    fill="currentColor"
                     strokeWidth={2}
                     aria-hidden="true"
                   />

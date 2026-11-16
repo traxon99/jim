@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/friends/avatar";
+import { Lock, Pencil, Send, Settings, UserPlus } from "@/components/icons/solar";
 import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { ProfileBodyTab } from "@/components/profile/profile-body-tab";
 import { ProfileLiftHighlights } from "@/components/profile/profile-lift-highlights";
@@ -16,7 +17,6 @@ import { ownLiftHighlights } from "@/lib/profile/lift-highlights";
 import { useOwnProfileHeader } from "@/lib/profile/own-stats";
 import { profileTilesFromOwnPosts } from "@/lib/profile/post-tiles";
 import { useToday } from "@/lib/pwa/use-today";
-import { Lock, Pencil, Send, Settings, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";

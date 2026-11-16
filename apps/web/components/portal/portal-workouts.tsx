@@ -1,9 +1,9 @@
 "use client";
 
 import { Highlight } from "@/components/highlight";
+import { ChevronLeft, ChevronRight, Search } from "@/components/icons/solar";
 import { formatMinutes } from "@/lib/home/stats";
 import { type PortalWorkoutRow, workoutMatchesSearch } from "@/lib/portal/workouts-data";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader } from "./analysis-range";

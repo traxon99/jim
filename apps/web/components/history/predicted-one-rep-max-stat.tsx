@@ -1,5 +1,5 @@
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from "@/components/icons/solar";
 import type { PredictedOneRepMax } from "@jim/core";
-import { ArrowDownRight, ArrowRight, ArrowUpRight } from "lucide-react";
 
 const CONFIDENCE_LABEL = { low: "low confidence", medium: "medium confidence", high: "" } as const;
 

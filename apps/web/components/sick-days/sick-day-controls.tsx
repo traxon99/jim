@@ -1,11 +1,11 @@
 "use client";
 
+import { Thermometer } from "@/components/icons/solar";
 import { type SickDayRow, db } from "@/lib/db/schema";
 import { useTodayKey } from "@/lib/injuries/use-injuries";
 import { markSickDay, unmarkSickDay } from "@/lib/sick-days";
 import { useLogGuard } from "@/lib/workout/log-guard";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Thermometer } from "lucide-react";
 import { useCallback, useState } from "react";
 
 /** The live sick-day row for `day`, null when it isn't sick, undefined while loading. */

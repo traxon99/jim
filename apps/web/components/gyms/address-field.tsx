@@ -1,9 +1,9 @@
 "use client";
 
 import { Highlight } from "@/components/highlight";
+import { Check, MapPin } from "@/components/icons/solar";
 import { GYM_ADDRESS_MAX } from "@/lib/gyms";
 import { PLACE_QUERY_MIN, type Place, cleanPlaceQuery, placeLabel } from "@jim/core";
-import { Check, MapPin } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 
 /** How long typing has to pause before the address is looked up. */

@@ -1,6 +1,7 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
+import { Download, Upload } from "@/components/icons/solar";
 import {
   buildJsonExport,
   buildStrongCsvExport,
@@ -18,7 +19,6 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type WeightUnit, WorkoutCsvError, exerciseDisplayName } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Download, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 const FORMAT_LABEL = { strong: "Strong", hevy: "Hevy" } as const;

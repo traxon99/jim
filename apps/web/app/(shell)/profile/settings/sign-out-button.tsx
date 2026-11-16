@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut } from "@/components/icons/solar";
 import {
   clearAuthCookies,
   clearCachedPages,
@@ -7,7 +8,6 @@ import {
   flushOutboxBeforeSignOut,
 } from "@/lib/auth/sign-out";
 import { createClient } from "@/lib/supabase/client";
-import { LogOut } from "lucide-react";
 import { useState } from "react";
 
 export function SignOutButton() {

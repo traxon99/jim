@@ -7,11 +7,11 @@ import {
   ExerciseCatalogRowContent,
   useExerciseCatalog,
 } from "@/components/exercises/exercise-catalog";
+import { Plus } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import { PlanNav } from "@/components/routines/plan-nav";
 import { useGymNames } from "@/lib/exercises/display";
-import { Plus } from "lucide-react";
 import Link from "next/link";
 
 export function ExercisesList({ userId }: { userId: string }) {

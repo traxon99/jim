@@ -1,11 +1,17 @@
 "use client";
 
+import {
+  BarChart3,
+  ChevronRight,
+  type IconComponent,
+  LineChart,
+  Trophy,
+} from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
-import { BarChart3, ChevronRight, LineChart, type LucideIcon, Trophy } from "lucide-react";
 import Link from "next/link";
 import { TrainingStats } from "./training-stats";
 
-const LINKS: readonly { href: string; label: string; detail: string; Icon: LucideIcon }[] = [
+const LINKS: readonly { href: string; label: string; detail: string; Icon: IconComponent }[] = [
   { href: "/history/prs", label: "PRs", detail: "Your best lifts", Icon: Trophy },
   { href: "/history/volume", label: "Volume", detail: "Sets per muscle by week", Icon: BarChart3 },
   { href: "/portal", label: "Analysis", detail: "Charts and trends", Icon: LineChart },

@@ -1,12 +1,5 @@
 import type { ExerciseAction } from "@/components/exercise-actions-menu";
 import {
-  type SupersetChange,
-  type SupersetItem,
-  leaveSuperset,
-  supersetBlocks,
-  supersetLinks,
-} from "@jim/core";
-import {
   ArrowUpDown,
   Eye,
   Pencil,
@@ -15,7 +8,14 @@ import {
   Undo2,
   Unlink,
   X,
-} from "lucide-react";
+} from "@/components/icons/solar";
+import {
+  type SupersetChange,
+  type SupersetItem,
+  leaveSuperset,
+  supersetBlocks,
+  supersetLinks,
+} from "@jim/core";
 
 /**
  * The superset entries for the ⋯ menu of the exercise at `index` (issues

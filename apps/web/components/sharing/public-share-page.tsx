@@ -1,8 +1,8 @@
+import { Layers } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { SharedSnapshotView } from "@/components/sharing/shared-snapshot-view";
 import type { SharePreview } from "@/lib/sharing/preview";
 import { shareSummaryStats } from "@jim/core";
-import { Layers } from "lucide-react";
 
 /**
  * A share link opened by someone who isn't signed in (issue #638): the

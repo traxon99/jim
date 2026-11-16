@@ -1,8 +1,8 @@
 "use client";
 
+import { ChevronDown } from "@/components/icons/solar";
 import type { SetRow } from "@/lib/db/schema";
 import { SET_KINDS, type SetKind, setKindLabel } from "@/lib/sessions/set-kinds";
-import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface Props {

@@ -1,7 +1,7 @@
 "use client";
 
+import { Trash2 } from "@/components/icons/solar";
 import { swipeDeletes, swipeIntent, swipeOffset } from "@/lib/workout/swipe-to-delete";
-import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 /** How long the row takes to slide away (or back) once the finger lifts. */

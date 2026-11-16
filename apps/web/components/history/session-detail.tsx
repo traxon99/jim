@@ -1,6 +1,7 @@
 "use client";
 
 import { SessionSetRow } from "@/components/history/session-set-row";
+import { BookmarkPlus } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
@@ -18,7 +19,6 @@ import { showsRestStats, showsRpe, showsSetTimer } from "@/lib/settings/features
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookmarkPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";

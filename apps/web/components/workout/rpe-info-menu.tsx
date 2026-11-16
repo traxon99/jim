@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/icons/solar";
 import { useEffect, useRef, useState } from "react";
 
 const RPE_LEVELS = [

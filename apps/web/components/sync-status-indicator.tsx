@@ -1,11 +1,11 @@
 "use client";
 
+import { RotateCw } from "@/components/icons/solar";
 import { db } from "@/lib/db/schema";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { syncIndicator } from "@/lib/sync/indicator";
 import { getSyncStatus, subscribeSyncStatus } from "@/lib/sync/status";
 import { useLiveQuery } from "dexie-react-hooks";
-import { RotateCw } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";

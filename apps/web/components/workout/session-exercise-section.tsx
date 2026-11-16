@@ -3,6 +3,7 @@
 import { CallMark } from "@/components/dpr/call-mark";
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
+import { Check, Diff, File, Pin, RotateCcw, Timer } from "@/components/icons/solar";
 import { type ExerciseInjury, InjuryHint, InjuryIcon } from "@/components/injuries/injury-hint";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
@@ -74,7 +75,6 @@ import {
   warmupRamp,
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Check, Diff, File, Pin, RotateCcw, Timer } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { RestDialog, StickyNoteDialog, formatRest } from "./exercise-settings-dialogs";
 import { SessionSetTable } from "./session-set-table";

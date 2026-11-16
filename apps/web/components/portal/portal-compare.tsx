@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownRight, ArrowUpRight, X } from "@/components/icons/solar";
 import type { PortalTrainingData } from "@/lib/portal/analysis-data";
 import {
   MAX_COMPARE_LIFTS,
@@ -10,7 +11,6 @@ import {
   parseLiftsParam,
 } from "@/lib/portal/compare-data";
 import { DEFAULT_ANALYSIS_RANGE } from "@jim/core";
-import { ArrowDownRight, ArrowUpRight, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { PortalSectionHeader, useAnalysisRange } from "./analysis-range";

@@ -1,8 +1,8 @@
 "use client";
 
+import { X } from "@/components/icons/solar";
 import { SharedLinksSection } from "@/components/profile/shared-links-section";
 import { SharingSection } from "@/components/profile/sharing-section";
-import { X } from "lucide-react";
 import { useEffect } from "react";
 
 /**

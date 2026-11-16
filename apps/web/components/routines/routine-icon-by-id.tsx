@@ -1,8 +1,8 @@
 "use client";
 
+import { Hourglass } from "@/components/icons/solar";
 import { db } from "@/lib/db/schema";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Hourglass } from "lucide-react";
 import { RoutineIcon } from "./routine-icon";
 
 /**

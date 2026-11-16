@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/icons/solar";
 import { useState } from "react";
 
 interface Props {

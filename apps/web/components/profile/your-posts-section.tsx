@@ -1,9 +1,9 @@
 "use client";
 
 import { POST_KIND_ICONS } from "@/components/friends/post-kind-icons";
+import { Trash2 } from "@/components/icons/solar";
 import { deletePost, fetchOwnPosts } from "@/lib/friends/client";
 import type { OwnPost } from "@/lib/friends/types";
-import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 /**

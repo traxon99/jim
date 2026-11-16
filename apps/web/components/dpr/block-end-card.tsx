@@ -1,8 +1,8 @@
 "use client";
 
+import { Flag } from "@/components/icons/solar";
 import type { DprContext } from "@/lib/dpr/calls";
 import { blockHasEnded } from "@jim/core";
-import { Flag } from "lucide-react";
 import Link from "next/link";
 
 /**

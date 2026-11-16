@@ -1,8 +1,8 @@
 "use client";
 
+import { Trash2 } from "@/components/icons/solar";
 import { UndoBar } from "@/components/undo-bar";
 import { normalizeDecimalInput } from "@jim/core";
-import { Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 /**

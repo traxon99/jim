@@ -1,10 +1,10 @@
 "use client";
 
+import { Check } from "@/components/icons/solar";
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import type { SetKind } from "@/lib/sessions/set-kinds";
 import { type SetField, formatSetValue, setFieldEditPatch } from "@/lib/workout/set-field-edit";
 import { normalizeDecimalInput } from "@jim/core";
-import { Check } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PrBadge } from "./pr-badge";
 import { SetKindMenu } from "./set-kind-menu";

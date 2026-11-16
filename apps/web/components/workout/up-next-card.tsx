@@ -1,6 +1,7 @@
 "use client";
 
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
+import { Layers, Moon, Play } from "@/components/icons/solar";
 import { SECTION_LABEL } from "@/components/page-header";
 import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
@@ -11,7 +12,6 @@ import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { WEEKDAY_NAMES } from "@/lib/programs/weekdays";
 import type { NextWorkout } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Layers, Moon, Play } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -172,7 +172,12 @@ export function UpNextCard({ starting, onStart, compact = false }: Props) {
             aria-label={`Start ${routine.name}`}
             className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.06] disabled:opacity-50 dark:bg-white/10"
           >
-            <Play className="ml-0.5 h-3.5 w-3.5 fill-current" strokeWidth={2} aria-hidden="true" />
+            <Play
+              className="ml-0.5 h-3.5 w-3.5"
+              fill="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            />
           </button>
         </div>
       </section>

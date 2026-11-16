@@ -1,6 +1,7 @@
 "use client";
 
 import { CallMark, CallMarkCounts } from "@/components/dpr/call-mark";
+import { ArrowRight, Flag } from "@/components/icons/solar";
 import {
   type DprCallInfo,
   type DprContext,
@@ -13,7 +14,6 @@ import {
 } from "@/lib/dpr/calls";
 import { type PrpPopoverPlacement, prpPopoverPlacement } from "@/lib/dpr/popover-placement";
 import { exerciseDisplayName } from "@jim/core";
-import { ArrowRight, Flag } from "lucide-react";
 import {
   type RefObject,
   useCallback,

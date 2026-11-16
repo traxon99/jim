@@ -2,6 +2,7 @@
 
 import { Avatar } from "@/components/friends/avatar";
 import { FeedPost } from "@/components/home/feed-post";
+import { BarChart2, Bell, Check, Ellipsis } from "@/components/icons/solar";
 import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { ProfileLiftHighlights } from "@/components/profile/profile-lift-highlights";
 import { ProfilePostsGrid } from "@/components/profile/profile-posts-grid";
@@ -32,7 +33,6 @@ import { profileTilesFromFeed } from "@/lib/profile/post-tiles";
 import { useToday } from "@/lib/pwa/use-today";
 import { trainingStreak, weeklyStreakTarget } from "@jim/core";
 import type { ReactionKind } from "@jim/core";
-import { BarChart2, Bell, Check, Ellipsis } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 

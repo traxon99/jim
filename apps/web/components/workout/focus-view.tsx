@@ -1,7 +1,7 @@
 "use client";
 
+import { Check, ChevronLeft, ChevronRight, X } from "@/components/icons/solar";
 import { type FocusExerciseCandidate, isFocusExerciseComplete } from "@jim/core";
-import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { type ReactNode, useEffect, useRef } from "react";
 
 export interface FocusViewExercise extends FocusExerciseCandidate {

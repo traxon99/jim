@@ -1,9 +1,9 @@
 "use client";
 
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
+import { CircleCheck, CircleX } from "@/components/icons/solar";
 import type { DprBlockRow, ExerciseRow } from "@/lib/db/schema";
 import { type DprBlockRecapSummary, type DprLiftRecap, exerciseDisplayName } from "@jim/core";
-import { CircleCheck, CircleX } from "lucide-react";
 import { formatDate, formatWeight } from "./labels";
 
 function pct(change: number | null): string {

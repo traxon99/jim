@@ -1,20 +1,20 @@
-import type { SettingsScreen } from "@/lib/settings/menu";
-import { SETTINGS_GROUPS } from "@/lib/settings/menu";
 import {
   Bell,
   ChevronRight,
   Dumbbell,
-  type LucideIcon,
+  type IconComponent,
   MapPin,
   MessageSquare,
   Palette,
   SlidersHorizontal,
   Sparkles,
   UserRound,
-} from "lucide-react";
+} from "@/components/icons/solar";
+import type { SettingsScreen } from "@/lib/settings/menu";
+import { SETTINGS_GROUPS } from "@/lib/settings/menu";
 import Link from "next/link";
 
-const ICONS: Record<SettingsScreen["key"], LucideIcon> = {
+const ICONS: Record<SettingsScreen["key"], IconComponent> = {
   account: UserRound,
   workout: Dumbbell,
   gyms: MapPin,
