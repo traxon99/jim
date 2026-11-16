@@ -147,7 +147,15 @@ export async function GET(request: Request) {
           })
           .from(users)
           .where(eq(users.id, userId));
-        await recordOpen(tx, userId, version);
+        // Only once the account row exists (it's created lazily), and in a
+        // savepoint: an admin usage count must never fail a sync.
+        if (account) {
+          await tx
+            .transaction((sp) => recordOpen(sp, userId, version))
+            .catch((error: unknown) => {
+              console.error("[sync] recording the open failed:", error);
+            });
+        }
         const commands = account
           ? {
               userId: account.userId,

@@ -16,11 +16,18 @@ function extraOf(detail: unknown): string | null {
 }
 
 /** One failure group (issue #810): who hit it, on which versions, and its latest stacks. */
-export function AdminFailureDetail({ detail }: { detail: FailureDetail }) {
+export function AdminFailureDetail({
+  detail,
+  backHref,
+}: {
+  detail: FailureDetail;
+  /** The list with the filters it was opened from. */
+  backHref: string;
+}) {
   return (
     <>
       <Link
-        href="/admin/failures"
+        href={backHref}
         className="-ml-1 flex min-h-11 items-center gap-1 self-start pr-3 text-sm font-medium text-zinc-500"
       >
         <ChevronLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
@@ -38,7 +45,7 @@ export function AdminFailureDetail({ detail }: { detail: FailureDetail }) {
       </div>
       <dl className="grid grid-cols-2 gap-4 rounded-2xl border border-zinc-200 bg-white p-4 text-sm md:grid-cols-4 dark:border-zinc-800 dark:bg-zinc-900">
         <Fact label="Events">{detail.events}</Fact>
-        <Fact label="Users">{detail.users.length}</Fact>
+        <Fact label="Users">{detail.userCount}</Fact>
         <Fact label="First seen">
           <LocalDateTime iso={detail.firstSeenAt} />
         </Fact>

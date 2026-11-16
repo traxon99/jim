@@ -97,6 +97,35 @@ export function AdminOverview({
           </AdminCard>
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <AdminCard title="Active users">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-zinc-500">
+                  <th className="pb-2 text-left font-normal">
+                    <span className="sr-only">Measure</span>
+                  </th>
+                  <th className="pb-2 text-right font-normal">DAU</th>
+                  <th className="pb-2 text-right font-normal">WAU</th>
+                  <th className="pb-2 text-right font-normal">MAU</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(
+                  [
+                    ["Opened", data.actives.opened],
+                    ["Trained", data.actives.trained],
+                  ] as const
+                ).map(([label, counts]) => (
+                  <tr key={label} className="border-t border-zinc-200 dark:border-zinc-800">
+                    <td className="py-2">{label}</td>
+                    <td className="py-2 text-right tabular-nums">{NUMBER.format(counts.day)}</td>
+                    <td className="py-2 text-right tabular-nums">{NUMBER.format(counts.week)}</td>
+                    <td className="py-2 text-right tabular-nums">{NUMBER.format(counts.month)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </AdminCard>
           <AdminCard title="App versions" aside="Last 7 days">
             {data.versions.length === 0 ? (
               <p className="text-sm text-zinc-500">No opens yet</p>

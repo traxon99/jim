@@ -9,6 +9,7 @@ import {
   StatusPill,
 } from "./admin-dashboard-ui";
 import { LocalDateTime } from "./local-date-time";
+import { RelativeTime } from "./relative-time";
 
 const NUMBER = new Intl.NumberFormat("en-US");
 
@@ -47,7 +48,16 @@ export function AdminHealth({ health }: { health: HealthData }) {
         <KpiTile
           label="Deployed"
           value={<span className="font-mono text-xl md:text-2xl">{health.deploy.version}</span>}
-          note={health.deploy.commit ?? undefined}
+          note={
+            health.deploy.builtAt ? (
+              <>
+                <RelativeTime iso={health.deploy.builtAt} />
+                {health.deploy.commit ? ` · ${health.deploy.commit}` : ""}
+              </>
+            ) : (
+              (health.deploy.commit ?? undefined)
+            )
+          }
         />
       </KpiGrid>
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">

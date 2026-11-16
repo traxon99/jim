@@ -105,7 +105,13 @@ export function AdminFailures({
                   >
                     <td className="max-w-md py-2.5 pr-4">
                       <Link
-                        href={`/admin/failures/${encodeURIComponent(group.fingerprint)}`}
+                        href={dashboardHref(
+                          `/admin/failures/${encodeURIComponent(group.fingerprint)}`,
+                          {
+                            source,
+                            range: rangeParam,
+                          },
+                        )}
                         className="block min-w-0 underline-offset-2 hover:underline"
                       >
                         <span className="block truncate font-mono text-[13px]">

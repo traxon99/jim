@@ -25,6 +25,11 @@ export interface OverviewData {
   dailyOpened: number[];
   dailyTrained: number[];
   dailyWorkouts: number[];
+  /** Distinct accounts over the last day, 7 days and 30 days, whatever the range. */
+  actives: {
+    opened: { day: number; week: number; month: number };
+    trained: { day: number; week: number; month: number };
+  };
   /** The version each account opened last, over the last 7 days. */
   versions: VersionShare[];
 }
@@ -80,6 +85,28 @@ export async function loadOverview(
           WHERE deleted_at IS NULL AND ended_at > ${prevStart} AND ended_at <= ${start}) AS workouts_prev
     `),
   );
+  const [active] = rowsOf(
+    await db.execute<Record<string, number | string>>(sql`
+      SELECT
+        (SELECT count(DISTINCT user_id) FROM app_opens
+          WHERE day >= (${nowIso}::timestamptz AT TIME ZONE 'utc')::date) AS opened_day,
+        (SELECT count(DISTINCT user_id) FROM app_opens
+          WHERE day > (${nowIso}::timestamptz - interval '7 days')::date) AS opened_week,
+        (SELECT count(DISTINCT user_id) FROM app_opens
+          WHERE day > (${nowIso}::timestamptz - interval '30 days')::date) AS opened_month,
+        (SELECT count(DISTINCT user_id) FROM sets WHERE deleted_at IS NULL
+          AND completed_at > ${nowIso}::timestamptz - interval '1 day') AS trained_day,
+        (SELECT count(DISTINCT user_id) FROM sets WHERE deleted_at IS NULL
+          AND completed_at > ${nowIso}::timestamptz - interval '7 days') AS trained_week,
+        (SELECT count(DISTINCT user_id) FROM sets WHERE deleted_at IS NULL
+          AND completed_at > ${nowIso}::timestamptz - interval '30 days') AS trained_month
+    `),
+  );
+  const actives = (prefix: "opened" | "trained") => ({
+    day: Number(active?.[`${prefix}_day`] ?? 0),
+    week: Number(active?.[`${prefix}_week`] ?? 0),
+    month: Number(active?.[`${prefix}_month`] ?? 0),
+  });
   const kpi = (name: string): OverviewKpi => ({
     current: Number(kpis?.[name] ?? 0),
     previous: Number(kpis?.[`${name}_prev`] ?? 0),
@@ -132,6 +159,7 @@ export async function loadOverview(
     dailyOpened: fillDays(days, opened),
     dailyTrained: fillDays(days, trained),
     dailyWorkouts: fillDays(days, workouts),
+    actives: { opened: actives("opened"), trained: actives("trained") },
     versions: versionSpread(versions),
   };
 }

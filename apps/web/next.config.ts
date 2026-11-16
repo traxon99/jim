@@ -7,6 +7,8 @@ export default async function config(): Promise<NextConfig> {
     env: {
       // Shown on Profile and attached to feedback — see lib/version/resolve.ts.
       NEXT_PUBLIC_APP_VERSION: await resolveAppVersion({ base: versionBase, cwd: process.cwd() }),
+      // When this build ran, for the admin Health page's last deploy (#810).
+      JIM_BUILT_AT: new Date().toISOString(),
     },
     experimental: {
       // The (shell) pages are all dynamic (auth check reads cookies), so by

@@ -207,6 +207,8 @@ export interface FailureDetail {
   name: string;
   message: string | null;
   events: number;
+  /** Every account that hit it; `users` lists the top 50. */
+  userCount: number;
   firstSeenAt: string;
   lastSeenAt: string;
   users: { id: string; label: string; events: number }[];
@@ -243,8 +245,13 @@ export async function loadFailureDetail(
   if (!latest) return null;
 
   const [summary] = [
-    ...(await db.execute<{ events: number; first_seen: Date | string; last_seen: Date | string }>(
-      sql`SELECT count(*)::int AS events, min(created_at) AS first_seen, max(created_at) AS last_seen
+    ...(await db.execute<{
+      events: number;
+      users: number;
+      first_seen: Date | string;
+      last_seen: Date | string;
+    }>(
+      sql`SELECT count(*)::int AS events, count(DISTINCT user_id)::int AS users, min(created_at) AS first_seen, max(created_at) AS last_seen
         FROM telemetry_events WHERE fingerprint = ${fingerprint}`,
     )),
   ];
@@ -270,6 +277,7 @@ export async function loadFailureDetail(
     name: latest.name,
     message: latest.message,
     events: Number(summary?.events ?? recent.length),
+    userCount: Number(summary?.users ?? 0),
     firstSeenAt: iso(summary?.first_seen ?? latest.created_at),
     lastSeenAt: iso(summary?.last_seen ?? latest.created_at),
     users: users.map((row) => ({ id: row.id, label: row.label, events: Number(row.events) })),

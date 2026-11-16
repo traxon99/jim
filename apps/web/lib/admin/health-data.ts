@@ -32,7 +32,7 @@ export interface HealthData {
   connections: { used: number; max: number } | null;
   /** Phone-to-server time of each change synced in the last 24 h. */
   syncLag: { p50: number; p95: number; samples: number } | null;
-  deploy: { version: string; commit: string | null; region: string | null };
+  deploy: { version: string; commit: string | null; region: string | null; builtAt: string | null };
   /** Null when pg_stat_statements isn't installed or readable. */
   slowQueries: SlowQuery[] | null;
   services: ServiceStatus[];
@@ -179,6 +179,7 @@ export async function loadHealth(
       version: APP_VERSION,
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
       region,
+      builtAt: process.env.JIM_BUILT_AT ?? null,
     },
     slowQueries,
     services,

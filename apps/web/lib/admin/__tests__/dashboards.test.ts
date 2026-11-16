@@ -91,6 +91,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("admin dashboards (#810)", () =>
     expect(overview.days).toHaveLength(7);
     expect(overview.days.at(-1)).toBe("2026-11-16");
     expect(overview.dailyOpened).toEqual([0, 0, 0, 1, 0, 1, 1]);
+    expect(overview.actives.opened).toEqual({ day: 1, week: 2, month: 2 });
+    // Her one set was exactly a day ago, so it falls just outside today.
+    expect(overview.actives.trained).toEqual({ day: 0, week: 1, month: 1 });
     expect(overview.dailyTrained).toEqual([0, 0, 0, 0, 0, 1, 0]);
     expect(overview.dailyWorkouts).toEqual([0, 0, 0, 0, 0, 1, 0]);
     // Each account counts once, on the version it opened last.
@@ -120,6 +123,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("admin dashboards (#810)", () =>
   it("opens one group with its users and occurrences", async () => {
     const detail = await loadFailureDetail("old-group", db);
     expect(detail?.events).toBe(3);
+    expect(detail?.userCount).toBe(2);
     expect(detail?.users.map((user) => user.label)).toEqual(["maya", "theo"]);
     expect(detail?.recent).toHaveLength(3);
     expect(await loadFailureDetail("missing", db)).toBeNull();
