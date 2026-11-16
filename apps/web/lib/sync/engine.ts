@@ -1,5 +1,7 @@
 import { type JimDatabase, type SyncMetaRow, db } from "../db/schema";
 import { reportTelemetry } from "../telemetry/client";
+import { APP_VERSION } from "../version";
+import { APP_VERSION_HEADER } from "./app-version-header";
 import { applyPulledRows } from "./apply-pulled-rows";
 import { getSyncStatus, setSyncStatus } from "./status";
 
@@ -218,6 +220,7 @@ export async function pullChanges(
     try {
       response = await fetchImpl(`/api/sync/pull?since=${meta.cursor}`, {
         signal: requestTimeout(),
+        headers: { [APP_VERSION_HEADER]: APP_VERSION },
       });
     } catch {
       await reportFailure(database, { unreachable: true });

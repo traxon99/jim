@@ -140,6 +140,11 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("offline logging, then reconnect
     expect(sessionExercise).toBeDefined();
     const sets = await admin`SELECT id FROM sets WHERE session_exercise_id = ${sessionExerciseId}`;
     expect(sets).toHaveLength(3);
+    // The pull marks today as a day this account opened the app (#810).
+    const opens = await admin<{ app_version: string | null }[]>`
+      SELECT app_version FROM app_opens WHERE user_id = ${USER_A}`;
+    expect(opens).toHaveLength(1);
+    expect(opens[0]?.app_version).toBeTruthy();
 
     await offlineDb.delete();
   });

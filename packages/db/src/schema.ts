@@ -1588,3 +1588,26 @@ export const telemetryEvents = pgTable(
     index("telemetry_events_created").on(table.createdAt),
   ],
 ).enableRLS();
+
+// ---------------------------------------------------------------------------
+// app_opens — one row per account per UTC day the app synced (issue #810):
+// the admin Overview's "opened" active users and its app version spread.
+// Written by GET /api/sync/pull as the user, at most once an hour or when
+// the version changes.
+// ---------------------------------------------------------------------------
+export const appOpens = pgTable(
+  "app_opens",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    day: date("day").notNull(),
+    appVersion: text("app_version"),
+    lastOpenedAt: timestamp("last_opened_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.day] }),
+    index("app_opens_day").on(table.day),
+    ...ownRowPolicies("app_opens", table.userId),
+  ],
+).enableRLS();

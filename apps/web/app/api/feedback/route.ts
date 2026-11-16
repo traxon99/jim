@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { claimFeedbackSlot } from "@/lib/feedback/rate-limit";
+import { submitterTag } from "@/lib/feedback/submitter-tag";
 import { createClient } from "@/lib/supabase/server";
 import { APP_VERSION } from "@/lib/version";
 import { NextResponse } from "next/server";
@@ -18,15 +18,6 @@ type FeedbackType = keyof typeof FEEDBACK_TYPE_LABELS;
 
 function isFeedbackType(value: unknown): value is FeedbackType {
   return typeof value === "string" && value in FEEDBACK_TYPE_LABELS;
-}
-
-/**
- * A short, stable tag for the submitter (issue #504). The issue tracker may
- * be public, so it carries this instead of the user's email; the maintainer
- * can match it to an account by hashing the user id the same way.
- */
-function submitterTag(userId: string): string {
-  return createHash("sha256").update(userId).digest("hex").slice(0, 12);
 }
 
 export async function POST(request: Request) {
