@@ -316,6 +316,10 @@ export function DataSection({ userId }: { userId: string }) {
           onClose={() => setRemapping(null)}
         />
       )}
+      {/* Telemetry disclosure (issue #809). */}
+      <p className="text-xs text-zinc-500 dark:text-zinc-500">
+        Error and load-time reports include your account and are kept 30 days.
+      </p>
     </div>
   );
 }

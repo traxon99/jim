@@ -1,4 +1,5 @@
 import { DrizzleQueryError } from "drizzle-orm";
+import { noteUnexpectedToolError } from "./telemetry.js";
 
 export const GENERIC_TOOL_ERROR = "Something went wrong on the server. Nothing was changed.";
 
@@ -24,5 +25,6 @@ export function isDatabaseError(error: unknown): boolean {
 export function toolErrorMessage(error: unknown): string {
   if (error instanceof Error && !isDatabaseError(error)) return error.message;
   console.error("MCP tool failed:", error);
+  noteUnexpectedToolError(error);
   return GENERIC_TOOL_ERROR;
 }

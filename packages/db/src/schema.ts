@@ -1553,3 +1553,38 @@ export const adminAudit = pgTable(
     index("admin_audit_target").on(table.targetUserId, table.createdAt),
   ],
 ).enableRLS();
+
+// ---------------------------------------------------------------------------
+// telemetry_events — self-hosted telemetry for the admin console (issue
+// #809): client errors, sync failures, Web Vitals, cold starts, server 5xx
+// and MCP tool errors. Kept 30 days (see apps/web/lib/telemetry/server.ts).
+// RLS is on with no policies: only the server's own connection reads or
+// writes it, so every row has passed POST /api/telemetry's checks or was
+// recorded by the server itself.
+// ---------------------------------------------------------------------------
+export const telemetryEvents = pgTable(
+  "telemetry_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Null for server errors that aren't tied to a signed-in request.
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    // "error" | "sync_failure" | "vital" | "cold_start" | "server_error" | "mcp_error"
+    kind: text("kind").notNull(),
+    // The error's name, the vital (LCP, INP, CLS, TTFB, FCP), or the MCP tool.
+    name: text("name").notNull(),
+    message: text("message"),
+    // Groups the same failure across users (lib/telemetry/fingerprint.ts).
+    fingerprint: text("fingerprint"),
+    // A vital's or cold start's value (ms, or unitless for CLS).
+    value: doublePrecision("value"),
+    appVersion: text("app_version"),
+    path: text("path"),
+    detail: jsonb("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("telemetry_events_kind_created").on(table.kind, table.createdAt),
+    index("telemetry_events_fingerprint").on(table.fingerprint, table.createdAt),
+    index("telemetry_events_created").on(table.createdAt),
+  ],
+).enableRLS();

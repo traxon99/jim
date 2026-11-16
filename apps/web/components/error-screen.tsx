@@ -2,6 +2,7 @@
 
 import { revealBootNow } from "@/lib/boot/gate";
 import { submitFeedback } from "@/lib/feedback/submit";
+import { flushTelemetry, reportClientError } from "@/lib/telemetry/client";
 import { APP_VERSION } from "@/lib/version";
 import { useEffect, useState } from "react";
 
@@ -35,6 +36,13 @@ export function ErrorScreen({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
     console.error(error);
     revealBootNow();
+    // The admin Failures page (issue #809). Sent now: the next tap is
+    // likely Reload.
+    reportClientError(error, {
+      source: "error-boundary",
+      ...(error.digest ? { digest: error.digest } : {}),
+    });
+    flushTelemetry();
   }, [error]);
 
   async function sendFeedback() {
