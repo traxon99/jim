@@ -25,8 +25,8 @@ import { pickReaction, settleReaction } from "@/lib/friends/format";
 import { timeAgo } from "@/lib/friends/post-media";
 import type { ActivityItem, FeedComment } from "@/lib/friends/types";
 import { useFriends } from "@/lib/friends/use-friends";
-import { useToday } from "@/lib/pwa/use-today";
 import { formatMinutes } from "@/lib/home/stats";
+import { useToday } from "@/lib/pwa/use-today";
 import { type LogGuard, createLogGuard } from "@/lib/workout/log-guard";
 import {
   COMMENT_MAX_LENGTH,
@@ -466,7 +466,9 @@ function GroupCard({ group, onOpen }: { group: ActivityGroup; onOpen: () => void
           <span className="block truncate text-base font-semibold tracking-[-0.02em]">
             {group.title}
           </span>
-          <span className="block truncate text-[13px] text-zinc-500">{groupMeta(group, today)}</span>
+          <span className="block truncate text-[13px] text-zinc-500">
+            {groupMeta(group, today)}
+          </span>
         </span>
         <ChevronRight
           className="h-[18px] w-[18px] shrink-0 text-zinc-300 dark:text-zinc-600"
