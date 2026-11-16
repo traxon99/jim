@@ -3,7 +3,12 @@
 import {
   ChevronLeft,
   ClipboardList,
+  HeartPulse,
   type IconComponent,
+  LayoutDashboard,
+  MessageSquare,
+  Timer,
+  TriangleAlert,
   UsersRound,
 } from "@/components/icons/solar";
 import { ADMIN_SECTIONS, type AdminSectionId, activeAdminSection } from "@/lib/admin/sections";
@@ -12,7 +17,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ICONS: Record<AdminSectionId, IconComponent> = {
+  overview: LayoutDashboard,
   users: UsersRound,
+  failures: TriangleAlert,
+  performance: Timer,
+  feedback: MessageSquare,
+  health: HeartPulse,
   audit: ClipboardList,
 };
 
@@ -20,7 +30,7 @@ const ICONS: Record<AdminSectionId, IconComponent> = {
  * The /admin sidebar (issue #806), shaped like the portal's: a sidebar from
  * `md` up, a row of tabs that scrolls within itself below that.
  */
-export function AdminNav({ email }: { email: string }) {
+export function AdminNav({ email, newFailures = 0 }: { email: string; newFailures?: number }) {
   const pathname = usePathname();
   const active = activeAdminSection(pathname);
 
@@ -53,7 +63,7 @@ export function AdminNav({ email }: { email: string }) {
                 aria-current={current ? "page" : undefined}
                 className={`flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium ${
                   current
-                    ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
+                    ? "bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100"
                     : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
                 }`}
               >
@@ -63,6 +73,11 @@ export function AdminNav({ email }: { email: string }) {
                   aria-hidden="true"
                 />
                 {section.label}
+                {section.id === "failures" && newFailures > 0 && (
+                  <span className="ml-auto pl-2 text-xs font-medium text-red-700 dark:text-red-400">
+                    {newFailures} new
+                  </span>
+                )}
               </Link>
             </li>
           );

@@ -201,6 +201,7 @@ describe("pullChanges", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=0", {
       signal: expect.any(AbortSignal),
+      headers: { "x-jim-version": expect.any(String) },
     });
     const stored = await testDb.routines.get("r1");
     expect(stored?.name).toBe("From server");
@@ -246,6 +247,7 @@ describe("pullChanges", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7", {
       signal: expect.any(AbortSignal),
+      headers: { "x-jim-version": expect.any(String) },
     });
   });
 
@@ -276,6 +278,7 @@ describe("pullChanges", () => {
 
     expect(fetchMock).toHaveBeenCalledWith("/api/sync/pull?since=7", {
       signal: expect.any(AbortSignal),
+      headers: { "x-jim-version": expect.any(String) },
     });
   });
 
