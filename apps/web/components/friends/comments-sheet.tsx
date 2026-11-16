@@ -417,7 +417,7 @@ export function CommentBody({
  * so the sheet's input sits right above it (docs/PWA.md §2). 0 when the
  * keyboard is down or `visualViewport` isn't there.
  */
-function useKeyboardInset(): number {
+export function useKeyboardInset(): number {
   const [inset, setInset] = useState(0);
   useEffect(() => {
     const viewport = window.visualViewport;

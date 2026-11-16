@@ -1,6 +1,7 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { ActivityItem } from "@/lib/friends/types";
+import type { PostKind, RoutineIconColor, RoutineIconShape } from "@jim/core";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -16,6 +17,19 @@ interface ActivityRow extends Record<string, unknown> {
   post_id: string | null;
   comment_id: string | null;
   reaction_kind: ActivityItem["reactionKind"];
+  comment_body: string | null;
+  session_started_at: Date | string | null;
+  session_ended_at: Date | string | null;
+  routine_icon_shape: RoutineIconShape | null;
+  routine_icon_color: RoutineIconColor | null;
+  post_kind: PostKind | null;
+  post_title: string | null;
+  post_detail: string | null;
+  is_new: boolean;
+}
+
+function iso(value: Date | string | null): string | null {
+  return value === null ? null : new Date(value).toISOString();
 }
 
 function mapRow(row: ActivityRow): ActivityItem {
@@ -31,6 +45,17 @@ function mapRow(row: ActivityRow): ActivityItem {
     postId: row.post_id,
     commentId: row.comment_id,
     reactionKind: row.reaction_kind,
+    commentBody: row.comment_body,
+    sessionStartedAt: iso(row.session_started_at),
+    sessionEndedAt: iso(row.session_ended_at),
+    routineIcon:
+      row.routine_icon_shape && row.routine_icon_color
+        ? { shape: row.routine_icon_shape, color: row.routine_icon_color }
+        : null,
+    postKind: row.post_kind,
+    postTitle: row.post_title,
+    postDetail: row.post_detail,
+    isNew: row.is_new,
   };
 }
 
@@ -41,7 +66,7 @@ export async function GET() {
       const [unreadRow] = await tx.execute<{ has_unread: boolean }>(
         sql`SELECT activity_has_unread() AS has_unread`,
       );
-      const rows = await tx.execute<ActivityRow>(sql`SELECT * FROM list_activity(50)`);
+      const rows = await tx.execute<ActivityRow>(sql`SELECT * FROM list_activity(100)`);
       return {
         unread: unreadRow?.has_unread ?? false,
         items: rows.map(mapRow),
