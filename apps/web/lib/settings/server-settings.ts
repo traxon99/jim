@@ -1,0 +1,352 @@
+import { isValidAutoEndMinutes, isValidTimeZone, isValidWeeklyWorkoutGoal } from "@jim/core";
+import type { users } from "@jim/db";
+
+/**
+ * The settings a user (or an admin on their behalf, issue #807) can read and
+ * change: the payload shape, its validator and the column patch it becomes.
+ * Shared by PATCH /api/settings and the admin console so both accept exactly
+ * the same values.
+ */
+
+const UNITS = new Set(["lb", "kg"]);
+const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
+const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose", "pink"]);
+const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
+const CARD_STYLES = new Set(["plain", "glass"]);
+const SEXES = new Set(["male", "female"]);
+const DPR_AGGRESSIVENESS = new Set(["conservative", "moderate", "aggressive"]);
+const DPR_EXPERIENCE = new Set(["novice", "intermediate", "advanced"]);
+const DPR_EQUIPMENT_BUCKETS = new Set([
+  "barbell",
+  "ez-bar",
+  "dumbbell",
+  "machine",
+  "cable",
+  "kettlebell",
+  "other",
+]);
+const BIRTHDATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export interface SettingsPayload {
+  units: "lb" | "kg";
+  defaultBarWeight: string;
+  availablePlates: string[];
+  defaultRestSeconds: number;
+  weekStart: number;
+  weeklyWorkoutGoal: number;
+  colorScheme: "system" | "light" | "dark";
+  accentColor: "zinc" | "blue" | "green" | "purple" | "orange" | "rose" | "pink";
+  fontFamily: "sans" | "serif" | "mono";
+  cardStyle: "plain" | "glass";
+  showPaceTracker: boolean;
+  advancedFeatures: boolean;
+  showRpe: boolean;
+  showStrengthHints: boolean;
+  showSetTypes: boolean;
+  showRestStats: boolean;
+  showSetTimer: boolean;
+  showInjuryRules: boolean;
+  injuriesAffectPrp: boolean;
+  showInjuryHints: boolean;
+  autoEndWorkoutMinutes: number | null;
+  pushRestTimer: boolean;
+  pushWorkoutReminders: boolean;
+  pushWhatsNew: boolean;
+  pushWhatsNewEveryDeploy: boolean;
+  sex: "male" | "female" | null;
+  birthdate: string | null;
+  heightCm: string | null;
+  bodyweight: string | null;
+  dprEnabled: boolean;
+  dprAggressiveness: "conservative" | "moderate" | "aggressive";
+  dprExperience: "novice" | "intermediate" | "advanced" | null;
+  dprEquipmentIncrements: Record<string, Record<string, number>>;
+  dprDefaultRepLow: number;
+  dprDefaultRepHigh: number;
+  dprPromptDismissedAt: string | null;
+  onboardedAt: string | null;
+  /** The phone's IANA zone (issue #511); the server's week math uses it. */
+  timeZone: string | null;
+}
+
+export function toSettingsPayload(row: typeof users.$inferSelect): SettingsPayload {
+  return {
+    units: row.units,
+    defaultBarWeight: row.defaultBarWeight,
+    availablePlates: row.availablePlates,
+    defaultRestSeconds: row.defaultRestSeconds,
+    weekStart: row.weekStart,
+    weeklyWorkoutGoal: row.weeklyWorkoutGoal,
+    colorScheme: row.colorScheme,
+    accentColor: row.accentColor,
+    fontFamily: row.fontFamily,
+    cardStyle: row.cardStyle,
+    showPaceTracker: row.showPaceTracker,
+    advancedFeatures: row.advancedFeatures,
+    showRpe: row.showRpe,
+    showStrengthHints: row.showStrengthHints,
+    showSetTypes: row.showSetTypes,
+    showRestStats: row.showRestStats,
+    showSetTimer: row.showSetTimer,
+    showInjuryRules: row.showInjuryRules,
+    injuriesAffectPrp: row.injuriesAffectPrp,
+    showInjuryHints: row.showInjuryHints,
+    autoEndWorkoutMinutes: row.autoEndWorkoutMinutes,
+    pushRestTimer: row.pushRestTimer,
+    pushWorkoutReminders: row.pushWorkoutReminders,
+    pushWhatsNew: row.pushWhatsNew,
+    pushWhatsNewEveryDeploy: row.pushWhatsNewEveryDeploy,
+    sex: row.sex,
+    birthdate: row.birthdate,
+    heightCm: row.heightCm,
+    bodyweight: row.bodyweight,
+    dprEnabled: row.dprEnabled,
+    dprAggressiveness: row.dprAggressiveness,
+    dprExperience: row.dprExperience,
+    dprEquipmentIncrements: row.dprEquipmentIncrements,
+    dprDefaultRepLow: row.dprDefaultRepLow,
+    dprDefaultRepHigh: row.dprDefaultRepHigh,
+    dprPromptDismissedAt: row.dprPromptDismissedAt?.toISOString() ?? null,
+    onboardedAt: row.onboardedAt?.toISOString() ?? null,
+    timeZone: row.timeZone,
+  };
+}
+
+export function isValidSettingsPatch(body: unknown): body is Partial<SettingsPayload> {
+  if (typeof body !== "object" || body === null) return false;
+  const candidate = body as Record<string, unknown>;
+
+  if ("units" in candidate && !UNITS.has(candidate.units as string)) return false;
+  if ("defaultBarWeight" in candidate) {
+    const n = Number(candidate.defaultBarWeight);
+    if (!Number.isFinite(n) || n <= 0) return false;
+  }
+  if ("availablePlates" in candidate) {
+    if (!Array.isArray(candidate.availablePlates) || candidate.availablePlates.length === 0) {
+      return false;
+    }
+    // Accepts numeric strings too — that's the shape the client's own cached
+    // settings row uses (Postgres numeric round-trips as a string), and
+    // rejecting it was how the old profile form's Save hit "Invalid settings
+    // payload".
+    const allPositive = candidate.availablePlates.every((p) => {
+      if (typeof p !== "number" && typeof p !== "string") return false;
+      const n = Number(p);
+      return p !== "" && Number.isFinite(n) && n > 0;
+    });
+    if (!allPositive) return false;
+  }
+  if ("defaultRestSeconds" in candidate) {
+    const n = candidate.defaultRestSeconds;
+    if (typeof n !== "number" || !Number.isInteger(n) || n < 0) return false;
+  }
+  if ("weekStart" in candidate) {
+    const n = candidate.weekStart;
+    if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > 6) return false;
+  }
+  if ("weeklyWorkoutGoal" in candidate && !isValidWeeklyWorkoutGoal(candidate.weeklyWorkoutGoal)) {
+    return false;
+  }
+  if ("colorScheme" in candidate && !COLOR_SCHEMES.has(candidate.colorScheme as string)) {
+    return false;
+  }
+  if ("accentColor" in candidate && !ACCENT_COLORS.has(candidate.accentColor as string)) {
+    return false;
+  }
+  if ("fontFamily" in candidate && !FONT_FAMILIES.has(candidate.fontFamily as string)) {
+    return false;
+  }
+  if ("cardStyle" in candidate && !CARD_STYLES.has(candidate.cardStyle as string)) {
+    return false;
+  }
+  if ("showPaceTracker" in candidate && typeof candidate.showPaceTracker !== "boolean") {
+    return false;
+  }
+  if ("advancedFeatures" in candidate && typeof candidate.advancedFeatures !== "boolean") {
+    return false;
+  }
+  if ("showRpe" in candidate && typeof candidate.showRpe !== "boolean") {
+    return false;
+  }
+  if ("showStrengthHints" in candidate && typeof candidate.showStrengthHints !== "boolean") {
+    return false;
+  }
+  if ("showSetTypes" in candidate && typeof candidate.showSetTypes !== "boolean") {
+    return false;
+  }
+  if ("showRestStats" in candidate && typeof candidate.showRestStats !== "boolean") {
+    return false;
+  }
+  if ("showSetTimer" in candidate && typeof candidate.showSetTimer !== "boolean") {
+    return false;
+  }
+  if ("showInjuryRules" in candidate && typeof candidate.showInjuryRules !== "boolean") {
+    return false;
+  }
+  if ("injuriesAffectPrp" in candidate && typeof candidate.injuriesAffectPrp !== "boolean") {
+    return false;
+  }
+  if ("showInjuryHints" in candidate && typeof candidate.showInjuryHints !== "boolean") {
+    return false;
+  }
+  for (const key of [
+    "pushRestTimer",
+    "pushWorkoutReminders",
+    "pushWhatsNew",
+    "pushWhatsNewEveryDeploy",
+  ] as const) {
+    if (key in candidate && typeof candidate[key] !== "boolean") return false;
+  }
+  if (
+    "autoEndWorkoutMinutes" in candidate &&
+    !isValidAutoEndMinutes(candidate.autoEndWorkoutMinutes)
+  ) {
+    return false;
+  }
+  if ("sex" in candidate && candidate.sex !== null && !SEXES.has(candidate.sex as string)) {
+    return false;
+  }
+  if (
+    "birthdate" in candidate &&
+    candidate.birthdate !== null &&
+    (typeof candidate.birthdate !== "string" || !BIRTHDATE_PATTERN.test(candidate.birthdate))
+  ) {
+    return false;
+  }
+  if ("heightCm" in candidate && candidate.heightCm !== null) {
+    const n = Number(candidate.heightCm);
+    if (!Number.isFinite(n) || n <= 0) return false;
+  }
+  if ("bodyweight" in candidate && candidate.bodyweight !== null) {
+    const n = Number(candidate.bodyweight);
+    if (!Number.isFinite(n) || n <= 0) return false;
+  }
+  if ("dprEnabled" in candidate && typeof candidate.dprEnabled !== "boolean") return false;
+  if (
+    "dprAggressiveness" in candidate &&
+    !DPR_AGGRESSIVENESS.has(candidate.dprAggressiveness as string)
+  ) {
+    return false;
+  }
+  if (
+    "dprExperience" in candidate &&
+    candidate.dprExperience !== null &&
+    !DPR_EXPERIENCE.has(candidate.dprExperience as string)
+  ) {
+    return false;
+  }
+  if (
+    "dprEquipmentIncrements" in candidate &&
+    !isValidIncrements(candidate.dprEquipmentIncrements)
+  ) {
+    return false;
+  }
+  for (const key of ["dprDefaultRepLow", "dprDefaultRepHigh"] as const) {
+    if (key in candidate) {
+      const n = candidate[key];
+      if (typeof n !== "number" || !Number.isInteger(n) || n < 1 || n > 100) return false;
+    }
+  }
+  if (
+    typeof candidate.dprDefaultRepLow === "number" &&
+    typeof candidate.dprDefaultRepHigh === "number" &&
+    candidate.dprDefaultRepLow > candidate.dprDefaultRepHigh
+  ) {
+    return false;
+  }
+  if ("dprPromptDismissedAt" in candidate && candidate.dprPromptDismissedAt !== null) {
+    const value = candidate.dprPromptDismissedAt;
+    if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return false;
+  }
+  if ("onboardedAt" in candidate && candidate.onboardedAt !== null) {
+    const value = candidate.onboardedAt;
+    if (typeof value !== "string" || Number.isNaN(Date.parse(value))) return false;
+  }
+  if (
+    "timeZone" in candidate &&
+    (typeof candidate.timeZone !== "string" || !isValidTimeZone(candidate.timeZone))
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** `{ [bucket]: { lb?: n, kg?: n } }` with known buckets and positive steps. */
+function isValidIncrements(value: unknown): value is Record<string, Record<string, number>> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  for (const [bucket, steps] of Object.entries(value)) {
+    if (!DPR_EQUIPMENT_BUCKETS.has(bucket)) return false;
+    if (typeof steps !== "object" || steps === null || Array.isArray(steps)) return false;
+    for (const [unit, step] of Object.entries(steps)) {
+      if (unit !== "lb" && unit !== "kg") return false;
+      if (typeof step !== "number" || !Number.isFinite(step) || step <= 0) return false;
+    }
+  }
+  return true;
+}
+
+/** The `users` columns a validated settings patch writes. */
+export function toSettingsColumns(
+  body: Partial<SettingsPayload>,
+): Partial<typeof users.$inferInsert> {
+  const patch: Partial<typeof users.$inferInsert> = {};
+  if (body.units !== undefined) patch.units = body.units;
+  if (body.defaultBarWeight !== undefined) {
+    patch.defaultBarWeight = String(body.defaultBarWeight);
+  }
+  if (body.availablePlates !== undefined) {
+    patch.availablePlates = body.availablePlates.map(String);
+  }
+  if (body.defaultRestSeconds !== undefined) patch.defaultRestSeconds = body.defaultRestSeconds;
+  if (body.weekStart !== undefined) patch.weekStart = body.weekStart;
+  if (body.weeklyWorkoutGoal !== undefined) patch.weeklyWorkoutGoal = body.weeklyWorkoutGoal;
+  if (body.timeZone !== undefined) patch.timeZone = body.timeZone;
+  if (body.colorScheme !== undefined) patch.colorScheme = body.colorScheme;
+  if (body.accentColor !== undefined) patch.accentColor = body.accentColor;
+  if (body.fontFamily !== undefined) patch.fontFamily = body.fontFamily;
+  if (body.cardStyle !== undefined) patch.cardStyle = body.cardStyle;
+  if (body.showPaceTracker !== undefined) patch.showPaceTracker = body.showPaceTracker;
+  if (body.advancedFeatures !== undefined) patch.advancedFeatures = body.advancedFeatures;
+  if (body.showRpe !== undefined) patch.showRpe = body.showRpe;
+  if (body.showStrengthHints !== undefined) patch.showStrengthHints = body.showStrengthHints;
+  if (body.showSetTypes !== undefined) patch.showSetTypes = body.showSetTypes;
+  if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
+  if (body.showSetTimer !== undefined) patch.showSetTimer = body.showSetTimer;
+  if (body.showInjuryRules !== undefined) patch.showInjuryRules = body.showInjuryRules;
+  if (body.injuriesAffectPrp !== undefined) patch.injuriesAffectPrp = body.injuriesAffectPrp;
+  if (body.showInjuryHints !== undefined) patch.showInjuryHints = body.showInjuryHints;
+  if (body.pushRestTimer !== undefined) patch.pushRestTimer = body.pushRestTimer;
+  if (body.pushWorkoutReminders !== undefined)
+    patch.pushWorkoutReminders = body.pushWorkoutReminders;
+  if (body.pushWhatsNew !== undefined) patch.pushWhatsNew = body.pushWhatsNew;
+  if (body.pushWhatsNewEveryDeploy !== undefined)
+    patch.pushWhatsNewEveryDeploy = body.pushWhatsNewEveryDeploy;
+  if (body.autoEndWorkoutMinutes !== undefined) {
+    patch.autoEndWorkoutMinutes = body.autoEndWorkoutMinutes;
+  }
+  if (body.sex !== undefined) patch.sex = body.sex;
+  if (body.birthdate !== undefined) patch.birthdate = body.birthdate;
+  if (body.heightCm !== undefined) {
+    patch.heightCm = body.heightCm === null ? null : String(body.heightCm);
+  }
+  if (body.bodyweight !== undefined) {
+    patch.bodyweight = body.bodyweight === null ? null : String(body.bodyweight);
+  }
+  if (body.dprEnabled !== undefined) patch.dprEnabled = body.dprEnabled;
+  if (body.dprAggressiveness !== undefined) patch.dprAggressiveness = body.dprAggressiveness;
+  if (body.dprExperience !== undefined) patch.dprExperience = body.dprExperience;
+  if (body.dprEquipmentIncrements !== undefined) {
+    patch.dprEquipmentIncrements = body.dprEquipmentIncrements;
+  }
+  if (body.dprDefaultRepLow !== undefined) patch.dprDefaultRepLow = body.dprDefaultRepLow;
+  if (body.dprDefaultRepHigh !== undefined) patch.dprDefaultRepHigh = body.dprDefaultRepHigh;
+  if (body.dprPromptDismissedAt !== undefined) {
+    patch.dprPromptDismissedAt =
+      body.dprPromptDismissedAt === null ? null : new Date(body.dprPromptDismissedAt);
+  }
+  if (body.onboardedAt !== undefined) {
+    patch.onboardedAt = body.onboardedAt === null ? null : new Date(body.onboardedAt);
+  }
+
+  return patch;
+}

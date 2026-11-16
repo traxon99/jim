@@ -2,13 +2,7 @@ import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { ProfilePayload } from "@/lib/friends/types";
-import {
-  bioError,
-  displayNameError,
-  isValidAvatar,
-  normalizeBio,
-  normalizeDisplayName,
-} from "@jim/core";
+import { parseProfilePatch } from "@/lib/profile/profile-patch";
 import { users } from "@jim/db";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -42,61 +36,6 @@ export async function GET() {
   }
 }
 
-type ProfilePatch = Partial<
-  Pick<
-    ProfilePayload,
-    | "avatar"
-    | "displayName"
-    | "bio"
-    | "shareWorkouts"
-    | "shareWorkoutDetails"
-    | "discoverableByFriendsOfFriends"
-  >
->;
-
-/** Validates a patch, or returns why it can't be applied. */
-function parsePatch(body: unknown): ProfilePatch | string {
-  if (typeof body !== "object" || body === null) return "Invalid profile update";
-  const candidate = body as Record<string, unknown>;
-  const patch: ProfilePatch = {};
-  if ("avatar" in candidate) {
-    if (candidate.avatar !== null && !isValidAvatar(candidate.avatar)) {
-      return "That picture can't be used — try a different photo";
-    }
-    patch.avatar = candidate.avatar;
-  }
-  if ("displayName" in candidate) {
-    if (candidate.displayName !== null && typeof candidate.displayName !== "string") {
-      return "Invalid profile update";
-    }
-    const name =
-      candidate.displayName === null ? null : normalizeDisplayName(candidate.displayName);
-    const invalid = name === null || name === "" ? null : displayNameError(name);
-    if (invalid) return invalid;
-    patch.displayName = name === "" ? null : name;
-  }
-  if ("bio" in candidate) {
-    if (candidate.bio !== null && typeof candidate.bio !== "string") {
-      return "Invalid profile update";
-    }
-    const bio = candidate.bio === null ? null : normalizeBio(candidate.bio);
-    const invalid = bio === null || bio === "" ? null : bioError(bio);
-    if (invalid) return invalid;
-    patch.bio = bio === "" ? null : bio;
-  }
-  for (const key of [
-    "shareWorkouts",
-    "shareWorkoutDetails",
-    "discoverableByFriendsOfFriends",
-  ] as const) {
-    if (key in candidate) {
-      if (typeof candidate[key] !== "boolean") return "Invalid profile update";
-      patch[key] = candidate[key];
-    }
-  }
-  return Object.keys(patch).length === 0 ? "Invalid profile update" : patch;
-}
-
 /** Changes any of `{ avatar, shareWorkouts, shareWorkoutDetails }`; `avatar: null` removes it. */
 export async function PATCH(request: Request) {
   let body: unknown;
@@ -105,7 +44,7 @@ export async function PATCH(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
-  const patch = parsePatch(body);
+  const patch = parseProfilePatch(body);
   if (typeof patch === "string") return NextResponse.json({ error: patch }, { status: 400 });
 
   try {

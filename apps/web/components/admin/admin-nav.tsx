@@ -1,12 +1,18 @@
 "use client";
 
-import { ChevronLeft, ClipboardList, type IconComponent } from "@/components/icons/solar";
+import {
+  ChevronLeft,
+  ClipboardList,
+  type IconComponent,
+  UsersRound,
+} from "@/components/icons/solar";
 import { ADMIN_SECTIONS, type AdminSectionId, activeAdminSection } from "@/lib/admin/sections";
 import { PORTAL_PATH } from "@/lib/pwa/install-gate-exempt";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ICONS: Record<AdminSectionId, IconComponent> = {
+  users: UsersRound,
   audit: ClipboardList,
 };
 
