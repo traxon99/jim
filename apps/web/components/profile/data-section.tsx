@@ -318,7 +318,8 @@ export function DataSection({ userId }: { userId: string }) {
       )}
       {/* Telemetry disclosure (issue #809). */}
       <p className="text-xs text-zinc-500 dark:text-zinc-500">
-        Error and load-time reports include your account and are kept 30 days.
+        Error and load-time reports include your account and are kept 30 days. Each day you open the
+        app is recorded with its version.
       </p>
     </div>
   );

@@ -1,8 +1,10 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { APP_VERSION_HEADER } from "@/lib/sync/app-version-header";
 import type { SyncTable } from "@jim/core";
 import {
   type DbOrTx,
+  appOpens,
   bodyMeasurements,
   dprBlockLifts,
   dprBlocks,
@@ -23,7 +25,7 @@ import {
   sickDays,
   users,
 } from "@jim/db";
-import { eq, gt } from "drizzle-orm";
+import { eq, gt, sql } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
 
@@ -71,8 +73,26 @@ async function pullTable(
 
 const seqOf = (row: unknown) => (row as { serverSeq: number }).serverSeq;
 
+/**
+ * Marks today as a day this account opened the app (issue #810), for the
+ * admin Overview's "opened" users and version spread. At most one write an
+ * hour, or when the version changes, however often the phone pulls.
+ */
+async function recordOpen(tx: DbOrTx, userId: string, version: string | null) {
+  await tx
+    .insert(appOpens)
+    .values({ userId, day: sql`(now() at time zone 'utc')::date`, appVersion: version })
+    .onConflictDoUpdate({
+      target: [appOpens.userId, appOpens.day],
+      set: { appVersion: sql`excluded.app_version`, lastOpenedAt: sql`now()` },
+      setWhere: sql`${appOpens.appVersion} IS DISTINCT FROM excluded.app_version
+        OR ${appOpens.lastOpenedAt} < now() - interval '1 hour'`,
+    });
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const version = request.headers.get(APP_VERSION_HEADER)?.slice(0, 50) || null;
   const sinceParam = url.searchParams.get("since") ?? "0";
   const since = Number(sinceParam);
   if (!Number.isInteger(since) || since < 0) {
@@ -127,6 +147,7 @@ export async function GET(request: Request) {
           })
           .from(users)
           .where(eq(users.id, userId));
+        await recordOpen(tx, userId, version);
         const commands = account
           ? {
               userId: account.userId,
