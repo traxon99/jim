@@ -685,6 +685,10 @@ export const sessionExercises = pgTable(
     restSeconds: integer("rest_seconds"),
     // Warm-up sets added from the ⋯ menu, planned ahead of the working sets.
     warmupSets: integer("warmup_sets"),
+    // Working sets added past the plan with "+ Add Set" (issue #803), and
+    // planned rows swiped away, by set index. Saved so a reload keeps them.
+    addedSets: integer("added_sets"),
+    skippedSetIndices: integer("skipped_set_indices").array(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

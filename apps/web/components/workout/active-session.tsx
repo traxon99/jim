@@ -456,6 +456,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       stickyNote: null,
       restSeconds: null,
       warmupSets: null,
+      addedSets: null,
+      skippedSetIndices: null,
       updatedAt: new Date(),
       deviceId,
     });

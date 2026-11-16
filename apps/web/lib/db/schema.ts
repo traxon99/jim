@@ -33,7 +33,14 @@ type SessionSelect = typeof sessions.$inferSelect;
  * machine details: rows cached before the column existed don't carry it.
  */
 export type SessionRow = Omit<SessionSelect, "gymId"> & Partial<Pick<SessionSelect, "gymId">>;
-export type SessionExerciseRow = typeof sessionExercises.$inferSelect;
+type SessionExerciseSelect = typeof sessionExercises.$inferSelect;
+/**
+ * The set plan's edits (issue #803) are optional here, like an exercise's
+ * machine details: rows cached before the columns existed don't carry them.
+ */
+type SessionExercisePlanFields = "addedSets" | "skippedSetIndices";
+export type SessionExerciseRow = Omit<SessionExerciseSelect, SessionExercisePlanFields> &
+  Partial<Pick<SessionExerciseSelect, SessionExercisePlanFields>>;
 export type SetRow = typeof sets.$inferSelect;
 export type PersonalRecordRow = typeof personalRecords.$inferSelect;
 export type BodyMeasurementRow = typeof bodyMeasurements.$inferSelect;

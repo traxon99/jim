@@ -41,16 +41,20 @@ export function splitPreviousSets(sets: readonly PreviousSet[]): PreviousSetsByK
  * weight at this same position, when there is one. With no prior set at all
  * — the exercise's very first time being logged — `fallbackWeight` (a
  * routine's progressive-overload target for the top set, when configured)
- * fills the same role for set index 0 only; later sets in a brand-new
- * exercise have nothing to fall back on and stay blank.
+ * fills the same role for set index 0 only. A later set with no prior set
+ * at its position takes `earlierWeight` instead (issue #803): the weight of
+ * the set before it, logged today or still to log, so a brand-new exercise
+ * or an extra set carries the last weight down the rest of the rows.
  */
 export function prefillWeightForSet(
   index: number,
   previous: PreviousSet | undefined,
   fallbackWeight?: number | null,
+  earlierWeight?: string,
 ): string {
   if (previous?.weight != null) return String(previous.weight);
   if (index === 0 && fallbackWeight != null) return String(fallbackWeight);
+  if (previous === undefined && index > 0) return earlierWeight ?? "";
   return "";
 }
 

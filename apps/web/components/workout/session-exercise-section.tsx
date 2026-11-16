@@ -182,11 +182,14 @@ export function SessionExerciseSection({
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // The tombstone of the set just deleted, while its Undo is offered (issue #318).
   const undoableDelete = useUndoable<SetRowEntity>();
-  // Planned rows swiped away (issue #350), by set index. They're only a
-  // plan, so dropping one is kept to this screen rather than saved.
-  const [skippedIndices, setSkippedIndices] = useState<ReadonlySet<number>>(new Set());
-  // Sets added past the plan with "+ Add Set", also kept to this screen.
-  const [addedSets, setAddedSets] = useState(0);
+  // Planned rows swiped away (issue #350), by set index, and sets added
+  // past the plan with "+ Add Set". Both are saved on the workout's exercise
+  // so a reload keeps them (issue #803).
+  const skippedIndices = useMemo<ReadonlySet<number>>(
+    () => new Set(item.skippedSetIndices ?? []),
+    [item.skippedSetIndices],
+  );
+  const addedSets = item.addedSets ?? 0;
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
 
@@ -355,8 +358,21 @@ export function SessionExerciseSection({
     return (
       ruleWeightPlaceholder(rule, draftFor(index).kind) ??
       dprWeightPlaceholder(dpr, draftFor(index).kind, { ordinal, count: workingTarget }) ??
-      prefillWeightForSet(ordinal, previousFor(index), targetWeight)
+      prefillWeightForSet(ordinal, previousFor(index), targetWeight, earlierWeightFor(index))
     );
+  }
+  // The weight of the working row before this one (issue #803): its logged
+  // set's, else what's typed in it, else its own suggestion, so a weight
+  // logged or typed today carries down rows with no history of their own.
+  function earlierWeightFor(index: number): string {
+    for (let earlier = index - 1; earlier >= 0; earlier -= 1) {
+      if (kindAt(earlier) === "warmup") continue;
+      const logged = loggedByIndex.get(earlier);
+      if (logged) return logged.weight == null ? "" : String(Number(logged.weight));
+      if (skippedIndices.has(earlier) || deletedWarmups.has(earlier)) continue;
+      return draftFor(earlier).weight || suggestedWeightFor(earlier);
+    }
+    return "";
   }
   // PRP's own suggestion, not a custom rule's or last time's: the box gets
   // the call's dashed outline until something is typed in it (issue #712).
@@ -526,8 +542,18 @@ export function SessionExerciseSection({
     if (prs) setPrsBySetId((map) => new Map(map).set(restored.id, prs));
   }
 
+  // The plan edits read the row fresh, so two quick taps both count.
+  async function savePlan(
+    patch: (row: SessionExerciseRow) => Pick<SessionExerciseRow, "addedSets" | "skippedSetIndices">,
+  ) {
+    const row = (await db.sessionExercises.get(item.id)) ?? item;
+    await saveItem(patch(row));
+  }
+
   function skipPlannedRow(index: number) {
-    setSkippedIndices((current) => new Set(current).add(index));
+    void savePlan((row) => ({
+      skippedSetIndices: [...new Set([...(row.skippedSetIndices ?? []), index])],
+    }));
     setDraftOverrides((current) => {
       if (!current.has(index)) return current;
       const next = new Map(current);
@@ -539,21 +565,19 @@ export function SessionExerciseSection({
   // "+ Add Set" brings back the first planned row swiped away, if any,
   // else plans one more working set past the program's.
   function addSet() {
-    if (skippedIndices.size === 0) {
-      setAddedSets((count) => count + 1);
-      return;
-    }
-    setSkippedIndices((current) => {
-      const next = new Set(current);
-      next.delete(Math.min(...current));
-      return next;
+    void savePlan((row) => {
+      const skipped = row.skippedSetIndices ?? [];
+      if (skipped.length === 0) return { addedSets: (row.addedSets ?? 0) + 1 };
+      const first = Math.min(...skipped);
+      return { skippedSetIndices: skipped.filter((index) => index !== first) };
     });
   }
 
   async function saveItem(patch: Partial<SessionExerciseRow>) {
     const deviceId = await getDeviceId();
+    const current = (await db.sessionExercises.get(item.id)) ?? item;
     await mutate("sessionExercises", {
-      ...item,
+      ...current,
       ...patch,
       updatedAt: new Date(),
       deviceId,
@@ -578,8 +602,10 @@ export function SessionExerciseSection({
 
   async function toggleWarmups() {
     setDraftOverrides(new Map());
-    setSkippedIndices(new Set());
-    await saveItem({ warmupSets: warmupCount > 0 ? null : WARMUP_RAMP_SET_COUNT });
+    await saveItem({
+      warmupSets: warmupCount > 0 ? null : WARMUP_RAMP_SET_COUNT,
+      skippedSetIndices: null,
+    });
   }
 
   // This section's own ⋯ entries (issue #271) come first, in the order the
