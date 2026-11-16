@@ -88,6 +88,27 @@ ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
   );
 }
 
+export interface CodeFormOptions {
+  codeId: string;
+  error?: string;
+}
+
+/** The second sign-in step for an account with an authenticator app set up. */
+export function codeFormPage({ codeId, error }: CodeFormOptions): string {
+  return page(
+    "Authenticator code",
+    `
+<h1>Enter your authenticator code</h1>
+${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
+<form method="POST" action="/login/code">
+  <input type="hidden" name="code_id" value="${escapeHtml(codeId)}">
+  <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required autofocus autocomplete="one-time-code">
+  <button type="submit">Continue</button>
+</form>
+`,
+  );
+}
+
 export function errorPage(message: string): string {
   return page("Error", `<h1>Sign-in failed</h1><p class="error">${escapeHtml(message)}</p>`);
 }

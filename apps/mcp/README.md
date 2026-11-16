@@ -92,3 +92,6 @@ To bring up the official server:
 3. Set `NEXT_PUBLIC_MCP_URL` = the same origin in the web app's Vercel env and
    redeploy it. Settings → Advanced → Connect Claude then shows the server URL and the
    `claude mcp add` command.
+4. For the admin tools, set `JIM_WEB_URL` = the web app's origin (password reset links and the
+   web health probe), and `GITHUB_FEEDBACK_REPO` + `GITHUB_FEEDBACK_TOKEN` (the same values as
+   the web app) for `admin_feedback`.

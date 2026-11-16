@@ -1,7 +1,9 @@
 import { isAdminRole } from "@jim/core";
-import { type DbOrTx, adminAudit, users } from "@jim/db";
+import { type DbOrTx, users } from "@jim/db";
 import {
   type AdminActionResult,
+  type AdminActor,
+  type AdminAuditEntry,
   type FailureSourceId,
   type FeedbackStateId,
   type FeedbackTypeId,
@@ -27,7 +29,7 @@ import {
   recordPasswordReset,
 } from "@jim/db/admin";
 import { createClient } from "@supabase/supabase-js";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 
 /**
@@ -36,13 +38,21 @@ import type { UserContext } from "../context.js";
  * an admin's session, and every call checks the role again here, so a role
  * taken away mid-session stops working at once. They run on the server's
  * own connection (like /admin), never on /v1, and every write is audited
- * with `via: "mcp"`.
+ * with `via: "mcp"`. Like /admin they need a TOTP (aal2) sign-in, so only
+ * an OAuth session that passed the code gets them, never a personal access
+ * token.
  */
 
 export const ADMIN_ONLY_MESSAGE = "Admins only.";
+export const ADMIN_MFA_MESSAGE =
+  "Admin tools need a sign-in with your authenticator code. Reconnect jim from your MCP client.";
 
-/** Throws unless the caller's account is an admin right now. */
+/**
+ * Throws unless the caller's account is an admin right now, signed in with
+ * TOTP like /admin (ADR-023). A personal access token never qualifies.
+ */
 export async function requireAdmin(context: UserContext): Promise<void> {
+  if (context.aal !== "aal2") throw new Error(ADMIN_MFA_MESSAGE);
   const [row] = await context.db
     .select({ role: users.role })
     .from(users)
@@ -176,63 +186,53 @@ export async function adminAuditLog(context: UserContext, input: { limit?: numbe
 // ---------------------------------------------------------------------------
 
 class DryRunRollback extends Error {
-  constructor(readonly result: AdminActionResult) {
+  constructor() {
     super("dry run rolled back");
   }
 }
 
-/** What a write changed, read back from the audit rows it wrote. */
-async function changesBy(tx: DbOrTx, actorId: string) {
-  return tx
-    .select({
-      action: adminAudit.action,
-      targetUserId: adminAudit.targetUserId,
-      field: adminAudit.field,
-      oldValue: adminAudit.oldValue,
-      newValue: adminAudit.newValue,
-    })
-    .from(adminAudit)
-    .where(
-      and(
-        eq(adminAudit.actorId, actorId),
-        eq(adminAudit.via, "mcp"),
-        // now() is this transaction's start, so only its own rows match.
-        gte(adminAudit.createdAt, sql`now()`),
-      ),
-    );
-}
+type AdminChange = {
+  action: string;
+  targetUserId: string | null;
+  field: string | null;
+  oldValue: unknown;
+  newValue: unknown;
+};
 
 /**
  * Runs one shared admin write in a transaction and answers with the audit
- * rows it wrote. A dry run does the same work and rolls it back, so its
- * preview can't drift from the real call.
+ * rows it wrote, collected as they're recorded. A dry run does the same work
+ * and rolls it back, so its preview can't drift from the real call.
  */
 async function adminWrite(
   context: UserContext,
   dryRun: boolean,
-  write: (tx: DbOrTx) => Promise<AdminActionResult>,
+  write: (tx: DbOrTx, actor: AdminActor) => Promise<AdminActionResult>,
 ) {
   await requireAdmin(context);
-  let preview: Awaited<ReturnType<typeof changesBy>> = [];
+  const sink: AdminAuditEntry[] = [];
+  const changes = (): AdminChange[] =>
+    sink.map((entry) => ({
+      action: entry.action,
+      targetUserId: entry.targetUserId,
+      field: entry.field ?? null,
+      oldValue: entry.oldValue ?? null,
+      newValue: entry.newValue ?? null,
+    }));
   try {
-    const changes = await context.db.transaction(async (tx) => {
-      const result = await write(tx);
+    await context.db.transaction(async (tx) => {
+      const result = await write(tx, { id: context.userId, via: "mcp", sink });
       if (!result.ok) throw new Error(result.error);
-      const written = await changesBy(tx, context.userId);
-      if (dryRun) {
-        preview = written;
-        throw new DryRunRollback(result);
-      }
-      return written;
+      if (dryRun) throw new DryRunRollback();
     });
-    return { dryRun: false, changes };
+    return { dryRun: false, changes: changes() };
   } catch (error) {
-    if (error instanceof DryRunRollback) return { dryRun: true, changes: preview };
+    if (error instanceof DryRunRollback) return { dryRun: true, changes: changes() };
     throw error;
   }
 }
 
-const actor = (context: UserContext) => ({ id: context.userId, via: "mcp" as const });
+const actor = (context: UserContext): AdminActor => ({ id: context.userId, via: "mcp" });
 
 export async function adminUpdateUserSettings(
   context: UserContext,
@@ -240,8 +240,8 @@ export async function adminUpdateUserSettings(
 ) {
   await requireAdmin(context);
   const account = await resolveAccount(context.db, input.user);
-  return adminWrite(context, input.dryRun, (tx) =>
-    adminUpdateSettings(tx, actor(context), account.id, input.settings),
+  return adminWrite(context, input.dryRun, (tx, by) =>
+    adminUpdateSettings(tx, by, account.id, input.settings),
   );
 }
 
@@ -251,8 +251,8 @@ export async function adminUpdateUserProfile(
 ) {
   await requireAdmin(context);
   const account = await resolveAccount(context.db, input.user);
-  return adminWrite(context, input.dryRun, (tx) =>
-    adminUpdateProfile(tx, actor(context), account.id, input.profile),
+  return adminWrite(context, input.dryRun, (tx, by) =>
+    adminUpdateProfile(tx, by, account.id, input.profile),
   );
 }
 
@@ -262,8 +262,8 @@ export async function adminSetUserRole(
 ) {
   await requireAdmin(context);
   const account = await resolveAccount(context.db, input.user);
-  return adminWrite(context, input.dryRun, (tx) =>
-    adminSetRole(tx, actor(context), account.id, input.role),
+  return adminWrite(context, input.dryRun, (tx, by) =>
+    adminSetRole(tx, by, account.id, input.role),
   );
 }
 
@@ -273,8 +273,8 @@ export async function adminSetUserSignIn(
 ) {
   await requireAdmin(context);
   const account = await resolveAccount(context.db, input.user);
-  return adminWrite(context, input.dryRun, (tx) =>
-    adminSetSignInDisabled(tx, actor(context), account.id, input.disabled),
+  return adminWrite(context, input.dryRun, (tx, by) =>
+    adminSetSignInDisabled(tx, by, account.id, input.disabled),
   );
 }
 
@@ -284,8 +284,8 @@ export async function adminRequestUpdate(
 ) {
   await requireAdmin(context);
   const account = input.user ? await resolveAccount(context.db, input.user) : null;
-  return adminWrite(context, input.dryRun, (tx) =>
-    adminRequestAppUpdate(tx, actor(context), account?.id ?? null),
+  return adminWrite(context, input.dryRun, (tx, by) =>
+    adminRequestAppUpdate(tx, by, account?.id ?? null),
   );
 }
 
@@ -295,9 +295,7 @@ export async function adminRequestReset(
 ) {
   await requireAdmin(context);
   const account = await resolveAccount(context.db, input.user);
-  return adminWrite(context, input.dryRun, (tx) =>
-    adminRequestLocalReset(tx, actor(context), account.id),
-  );
+  return adminWrite(context, input.dryRun, (tx, by) => adminRequestLocalReset(tx, by, account.id));
 }
 
 /**

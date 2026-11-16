@@ -6,6 +6,7 @@ import type { UserContext } from "../../context.js";
 import { createMcpServer } from "../../server.js";
 import { USER_A, USER_B, resetTestDb, testContext } from "../../test/test-db.js";
 import {
+  ADMIN_MFA_MESSAGE,
   ADMIN_ONLY_MESSAGE,
   adminAuditLog,
   adminFeedback,
@@ -31,8 +32,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP admin tools (#811)", () => 
     owner = await resetTestDb();
     await owner`UPDATE users SET role = 'admin' WHERE id = ${USER_A}`;
     await owner`UPDATE users SET username = 'bee' WHERE id = ${USER_B}`;
-    admin = testContext(USER_A);
-    user = testContext(USER_B);
+    admin = { ...testContext(USER_A), aal: "aal2" };
+    user = { ...testContext(USER_B), aal: "aal2" };
   }, 30_000);
 
   afterAll(async () => {
@@ -53,6 +54,13 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP admin tools (#811)", () => 
     await expect(
       adminUpdateUserSettings(user, { user: USER_A, settings: { units: "kg" }, dryRun: false }),
     ).rejects.toThrow(ADMIN_ONLY_MESSAGE);
+
+    // Without the authenticator code (a password-only sign-in or a personal
+    // access token), even an admin is refused.
+    await expect(adminOverview({ ...admin, aal: "aal1" }, {})).rejects.toThrow(ADMIN_MFA_MESSAGE);
+    await expect(adminOverview({ ...admin, aal: undefined }, {})).rejects.toThrow(
+      ADMIN_MFA_MESSAGE,
+    );
 
     // Listed as an admin, then demoted by script: the next call is refused.
     const server = createMcpServer({ ...admin, isAdmin: true });

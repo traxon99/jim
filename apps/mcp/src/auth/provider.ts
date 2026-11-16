@@ -113,13 +113,14 @@ export class SupabaseOAuthProvider implements OAuthServerProvider {
       throw new InvalidTokenError("access token is invalid or expired");
     }
 
-    const { sub, email, exp } = data.claims;
+    const { sub, email, exp, aal } = data.claims;
     return {
       token,
       clientId: "supabase", // not meaningful here: every client shares the same Supabase-backed grant
       scopes: [],
       expiresAt: exp,
-      extra: { userId: sub, email: email ?? "", scope: "read_write" },
+      // aal2 only when the sign-in passed the authenticator code (login-routes.ts).
+      extra: { userId: sub, email: email ?? "", scope: "read_write", aal: aal ?? "aal1" },
     };
   }
 

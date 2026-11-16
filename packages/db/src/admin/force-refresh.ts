@@ -28,6 +28,7 @@ export async function adminRequestAppUpdate(
       action: "app.update",
       newValue: userId ? undefined : { accounts: updated.length },
       via: actor.via,
+      sink: actor.sink,
     });
     return { ok: true };
   });
@@ -54,6 +55,7 @@ export async function adminRequestLocalReset(
       targetUserId: userId,
       action: "app.reset_local_data",
       via: actor.via,
+      sink: actor.sink,
     });
     return { ok: true };
   });

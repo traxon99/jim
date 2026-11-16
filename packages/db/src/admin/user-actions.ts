@@ -1,7 +1,7 @@
 import { isAssignableRole, normalizeUsername, usernameError } from "@jim/core";
 import { eq, sql } from "drizzle-orm";
 import { type DbOrTx, users } from "../index";
-import { recordAdminAction } from "./audit";
+import { type AdminAuditEntry, recordAdminAction } from "./audit";
 import { parseProfilePatch } from "./profile-patch";
 import {
   type SettingsPayload,
@@ -21,6 +21,8 @@ export type AdminActionResult = { ok: true } | { ok: false; error: string };
 export interface AdminActor {
   id: string;
   via?: "web" | "mcp";
+  /** Collects every audit row this actor's writes record, for a caller that reports them. */
+  sink?: AdminAuditEntry[];
 }
 
 const UNIQUE_VIOLATION = "23505";
@@ -62,6 +64,7 @@ export async function adminUpdateSettings(
         oldValue: oldPayload[key],
         newValue: newPayload[key],
         via: actor.via,
+        sink: actor.sink,
       });
     }
     return { ok: true };
@@ -112,6 +115,7 @@ export async function adminUpdateProfile(
           oldValue: old,
           newValue: value,
           via: actor.via,
+          sink: actor.sink,
         });
       }
       return { ok: true } as const;
@@ -146,6 +150,7 @@ export async function adminSetRole(
       oldValue: before.role,
       newValue: role,
       via: actor.via,
+      sink: actor.sink,
     });
     return { ok: true };
   });
@@ -181,6 +186,7 @@ export async function adminSetSignInDisabled(
       targetUserId: userId,
       action: disabled ? "signin.disable" : "signin.enable",
       via: actor.via,
+      sink: actor.sink,
     });
     return { ok: true };
   });
@@ -197,6 +203,7 @@ export async function recordPasswordReset(
     targetUserId: userId,
     action: "password.reset_email",
     via: actor.via,
+    sink: actor.sink,
   });
 }
 

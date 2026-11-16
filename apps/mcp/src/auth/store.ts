@@ -80,5 +80,18 @@ export class ExpiringStore<V extends { createdAt: number }> {
   }
 }
 
+/**
+ * A password sign-in waiting for its authenticator code (ADR-023): the
+ * account has TOTP set up, so the session only goes to the client once the
+ * code steps it up to aal2.
+ */
+export interface PendingCode {
+  authorization: PendingAuthorization;
+  accessToken: string;
+  refreshToken: string;
+  createdAt: number;
+}
+
+export const pendingCodes = new ExpiringStore<PendingCode>(PENDING_TTL_MS);
 export const pendingAuthorizations = new ExpiringStore<PendingAuthorization>(PENDING_TTL_MS);
 export const issuedAuthorizationCodes = new ExpiringStore<IssuedAuthorizationCode>(CODE_TTL_MS);
