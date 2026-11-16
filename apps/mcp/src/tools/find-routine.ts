@@ -42,6 +42,20 @@ export async function findRoutine(tx: DbOrTx, key: string): Promise<RoutineRow> 
   return routine;
 }
 
+/**
+ * `findRoutine`, but a one-off (issue #798) won't do: it's outside your plan,
+ * so it can't go in a program or on the schedule.
+ */
+export async function findPlanRoutine(tx: DbOrTx, key: string): Promise<RoutineRow> {
+  const routine = await findRoutine(tx, key);
+  if (routine.oneOff) {
+    throw new RoutineLookupError(
+      `"${routine.name}" is a one-off workout, which can't be scheduled or put in a program. Save it as a routine first with save_one_off_as_routine.`,
+    );
+  }
+  return routine;
+}
+
 /** `findRoutine`, but only a warm-up routine (`kind: "warmup"`) will do. */
 export async function findWarmupRoutine(tx: DbOrTx, key: string): Promise<RoutineRow> {
   const routine = await findRoutine(tx, key);
@@ -58,6 +72,7 @@ export async function nextRoutineIcon(tx: DbOrTx) {
   const existing = await tx.select().from(routines).where(isNull(routines.deletedAt));
   return pickDefaultRoutineIcon(
     existing
+      .filter((r) => !r.oneOff)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
       .map((r) => ({ iconShape: r.iconShape, iconColor: r.iconColor })),
   );

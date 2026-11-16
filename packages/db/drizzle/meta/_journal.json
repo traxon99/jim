@@ -512,6 +512,13 @@
       "when": 1794781762133,
       "tag": "0072_add_exercise_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794785703981,
+      "tag": "0073_add_one_off_routines",
+      "breakpoints": true
     }
   ]
 }

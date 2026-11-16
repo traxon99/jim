@@ -43,6 +43,13 @@ export async function getRoutine(context: UserContext, input: GetRoutineInput) {
       kind: routine.kind,
       warmupRoutineId: routine.warmupRoutineId,
       warmupMinutes: routine.warmupMinutes,
+      // A one-off workout (issue #798): when it ends on its own.
+      ...(routine.oneOff && {
+        oneOff: {
+          expiresAt: routine.oneOffExpiresAt?.toISOString() ?? null,
+          day: routine.oneOffDay,
+        },
+      }),
       exercises: items.map((item) => {
         const entry: CreateRoutineExerciseInput & { exerciseName: string | null } = {
           exercise: item.exerciseId,

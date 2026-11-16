@@ -118,6 +118,10 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
       "warmupMinutes",
       "iconShape",
       "iconColor",
+      // Save as routine clears these (issue #798).
+      "oneOff",
+      "oneOffExpiresAt",
+      "oneOffDay",
     ],
   },
   routineExercises: {

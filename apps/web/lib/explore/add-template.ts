@@ -65,6 +65,9 @@ export async function addRoutineTemplate(
 
   const routineRow: RoutineRow = {
     ...routine,
+    oneOff: false,
+    oneOffExpiresAt: null,
+    oneOffDay: null,
     userId,
     position: existingRoutines.length,
     folder: options.folder ?? null,

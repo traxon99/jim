@@ -15,6 +15,7 @@ export const READ_TOOLS = new Set([
   "get_body_measurements",
   "list_routines",
   "get_routine",
+  "list_one_off_workouts",
   "dpr_status",
   "volume_report",
   "weekly_summary",
@@ -35,6 +36,8 @@ export const READ_TOOLS = new Set([
 /** Tools that create, change or delete something, `dry_run` or not. */
 export const WRITE_TOOLS = new Set([
   "create_routine",
+  "create_one_off_workout",
+  "save_one_off_as_routine",
   "update_routine",
   "schedule_workout",
   "log_past_workout",

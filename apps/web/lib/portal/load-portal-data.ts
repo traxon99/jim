@@ -630,7 +630,8 @@ export async function loadPlansData(): Promise<PortalPlansData> {
       .select({ units: users.units, weekStart: users.weekStart })
       .from(users)
       .where(eq(users.id, userId));
-    const routineRows = await tx.select().from(routines);
+    // One-offs (issue #798) aren't routines, so the Routines section skips them.
+    const routineRows = (await tx.select().from(routines)).filter((routine) => !routine.oneOff);
     const routineExerciseRows = await tx.select().from(routineExercises);
     const programRows = await tx.select().from(programs);
     const programRoutineRows = await tx.select().from(programRoutines);

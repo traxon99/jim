@@ -7,7 +7,8 @@ import type { SyncTable } from "./types";
  * writing to Dexie). Keeping one list means the two can't drift apart.
  */
 export const SYNC_DATE_FIELDS: Record<SyncTable, readonly string[]> = {
-  routines: ["createdAt", "updatedAt", "deletedAt"],
+  // oneOffDay is a calendar day (YYYY-MM-DD), not a timestamp.
+  routines: ["oneOffExpiresAt", "createdAt", "updatedAt", "deletedAt"],
   routineExercises: ["updatedAt", "deletedAt"],
   sessions: ["startedAt", "endedAt", "updatedAt", "deletedAt"],
   sessionExercises: ["updatedAt", "deletedAt"],

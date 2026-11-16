@@ -84,7 +84,7 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
   const iconInitialized = useRef(false);
   const seededFrom = useRef<string | null>(null);
 
-  const allRoutines = useLiveQuery(() => db.routines.toArray(), []);
+  const allRoutines = useLiveQuery(() => db.routines.filter((r) => !r.oneOff).toArray(), []);
   const warmupRoutines = useMemo(
     () =>
       (allRoutines ?? [])
@@ -175,6 +175,9 @@ export function RoutineForm({ userId, mode, routineId, initialKind = "strength" 
       const position = await db.routines.count();
       entity = {
         id: uuidv7(),
+        oneOff: false,
+        oneOffExpiresAt: null,
+        oneOffDay: null,
         userId,
         name,
         notes: notes.trim() || null,

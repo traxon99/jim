@@ -4,7 +4,7 @@ import { and, asc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser, withUserWrite } from "../context.js";
 import { MCP_DEVICE_ID } from "./create-routine.js";
-import { findRoutine } from "./find-routine.js";
+import { findPlanRoutine } from "./find-routine.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -126,7 +126,7 @@ async function writeEntries(
     if (mode === "weekly" && (entry.weekday == null || entry.weekday < 0 || entry.weekday > 6)) {
       throw new Error("Every entry in a weekly program needs a weekday from 0 (Sunday) to 6.");
     }
-    const routine = entry.routine ? await findRoutine(tx, entry.routine) : null;
+    const routine = entry.routine ? await findPlanRoutine(tx, entry.routine) : null;
     if (routine?.kind === "warmup") {
       throw new Error(
         `"${routine.name}" is a warm-up. Link it to a routine with update_routine's warmup instead.`,

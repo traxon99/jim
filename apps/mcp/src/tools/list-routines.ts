@@ -1,5 +1,5 @@
 import { routineExercises, routines, sessions } from "@jim/db";
-import { and, asc, count, inArray, isNotNull, isNull, max } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, max } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 
@@ -18,7 +18,8 @@ export async function listRoutines(context: UserContext, input: ListRoutinesInpu
     const rows = await tx
       .select()
       .from(routines)
-      .where(isNull(routines.deletedAt))
+      // One-offs (issue #798) aren't routines: list_one_off_workouts has them.
+      .where(and(isNull(routines.deletedAt), eq(routines.oneOff, false)))
       .orderBy(asc(routines.position), asc(routines.name));
 
     const folder = input.folder?.trim().toLowerCase();

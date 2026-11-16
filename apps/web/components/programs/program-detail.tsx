@@ -37,7 +37,8 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
     () => db.programRoutines.where("programId").equals(id).toArray(),
     [id],
   );
-  const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
+  // A one-off (issue #798) can't go in a program.
+  const rawRoutines = useLiveQuery(() => db.routines.filter((r) => !r.oneOff).toArray(), []);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const suggestion = useNextWorkout(id);
 

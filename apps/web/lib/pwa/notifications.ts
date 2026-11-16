@@ -27,7 +27,8 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE = "Fresh icons throughout the app.";
+export const LATEST_RELEASE_NOTE =
+  "Workouts Claude makes just for today now wait on Lift and go away on their own once they're done or expire, without filling up your routines.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
