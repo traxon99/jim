@@ -1,11 +1,12 @@
-export type AdminSectionId = "audit";
+export type AdminSectionId = "users" | "audit";
 
 /**
  * The /admin sidebar (issue #805), in nav order. Sections join this list as
- * they ship: Overview, Users, Failures, Performance, Feedback and Health
- * follow in #807–#810.
+ * they ship: Overview, Failures, Performance, Feedback and Health
+ * follow in #808–#810.
  */
 export const ADMIN_SECTIONS: readonly { id: AdminSectionId; label: string; href: string }[] = [
+  { id: "users", label: "Users", href: "/admin/users" },
   { id: "audit", label: "Audit log", href: "/admin/audit" },
 ];
 

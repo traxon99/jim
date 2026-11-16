@@ -1,4 +1,5 @@
 import { type AuditRow, formatAuditValue } from "@/lib/admin/audit-data";
+import Link from "next/link";
 import { LocalDateTime } from "./local-date-time";
 
 /** The admin audit log (issue #806): every admin write, newest first. */
