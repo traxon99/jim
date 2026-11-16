@@ -404,4 +404,25 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
     expect(pages).toBe(3);
     expect(seen).toEqual(routineIds);
   });
+
+  it("carries the account's force-refresh requests (#808)", async () => {
+    claimsSub = USER_A;
+    const before = await (await pull()).json();
+    expect(before.commands).toEqual({
+      userId: USER_A,
+      updateRequestedAt: null,
+      resetRequestedAt: null,
+    });
+    await admin`UPDATE users SET update_requested_at = '2026-11-16T12:00:00Z' WHERE id = ${USER_A}`;
+    const after = await (await pull()).json();
+    expect(after.commands.updateRequestedAt).toBe("2026-11-16T12:00:00.000Z");
+    claimsSub = USER_B;
+    const other = await (await pull()).json();
+    expect(other.commands).toEqual({
+      userId: USER_B,
+      updateRequestedAt: null,
+      resetRequestedAt: null,
+    });
+    claimsSub = USER_A;
+  });
 });

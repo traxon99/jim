@@ -21,8 +21,9 @@ import {
   sessions,
   sets,
   sickDays,
+  users,
 } from "@jim/db";
-import { gt } from "drizzle-orm";
+import { eq, gt } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
 
@@ -85,7 +86,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await withUserDb(
-      async (tx) => {
+      async (tx, userId) => {
         const changes: Record<string, unknown[]> = {};
         // The new cursor is the highest server_seq this user actually saw —
         // not the sequence's own current value, which could include rows from
@@ -116,7 +117,25 @@ export async function GET(request: Request) {
           for (const row of rows) cursor = Math.max(cursor, seqOf(row));
         }
 
-        return { cursor, hasMore, changes };
+        // Force refresh (issue #808): the latest admin requests for this
+        // account, which each device compares with the last one it acted on.
+        const [account] = await tx
+          .select({
+            userId: users.id,
+            updateRequestedAt: users.updateRequestedAt,
+            resetRequestedAt: users.resetRequestedAt,
+          })
+          .from(users)
+          .where(eq(users.id, userId));
+        const commands = account
+          ? {
+              userId: account.userId,
+              updateRequestedAt: account.updateRequestedAt?.toISOString() ?? null,
+              resetRequestedAt: account.resetRequestedAt?.toISOString() ?? null,
+            }
+          : null;
+
+        return { cursor, hasMore, changes, commands };
       },
       { exclusive: true },
     );

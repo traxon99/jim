@@ -198,6 +198,12 @@ export const users = pgTable(
     // migration 0075's users_guard_role trigger rejects any insert or update
     // of it made as the `authenticated` role. Admin is granted by script only.
     role: accountRoleEnum("role").notNull().default("user"),
+    // Force refresh (issue #808): when an admin last asked this account's
+    // phones to update the app, or to wipe and re-pull their local data.
+    // Delivered on the next sync pull; each device remembers the last one it
+    // acted on (apps/web/lib/pwa/remote-commands.ts).
+    updateRequestedAt: timestamp("update_requested_at", { withTimezone: true }),
+    resetRequestedAt: timestamp("reset_requested_at", { withTimezone: true }),
 
     // settings
     units: unitsEnum("units").notNull().default("lb"),

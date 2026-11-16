@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  requestAppUpdate,
+  requestLocalReset,
   sendPasswordReset,
   setSignInDisabled,
   setUserRole,
@@ -365,6 +367,36 @@ export function AdminUserActions({
           disabled={busy !== null}
           onClick={() =>
             run(
+              "update",
+              "Update the app on this account's phones? Each one reloads the next time it's in the background.",
+              () => requestAppUpdate(userId),
+              "Update requested",
+            )
+          }
+          className={BUTTON}
+        >
+          Update app
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() =>
+            run(
+              "wipe",
+              "Reset local data on this account's phones? Each one waits until its changes have synced, then pulls everything fresh.",
+              () => requestLocalReset(userId),
+              "Reset requested",
+            )
+          }
+          className={BUTTON}
+        >
+          Reset local data
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() =>
+            run(
               "reset",
               "Email this account a password reset link?",
               () => sendPasswordReset(userId),
@@ -402,6 +434,43 @@ export function AdminUserActions({
         >
           {message.text}
         </p>
+      )}
+    </div>
+  );
+}
+
+/** "Update app" for every account (issue #808), on the Users list. */
+export function AdminUpdateEveryone() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  async function run() {
+    if (busy || !window.confirm("Update the app on every account's phones?")) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const result = await requestAppUpdate(null);
+      setMessage(
+        result.ok
+          ? { text: "Update requested for everyone", error: false }
+          : { text: result.error, error: true },
+      );
+    } catch {
+      setMessage({ text: "Something went wrong. Try again.", error: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button type="button" disabled={busy} onClick={() => void run()} className={BUTTON}>
+        Update app for everyone
+      </button>
+      {message && (
+        <output
+          className={`text-xs ${message.error ? "text-red-600 dark:text-red-400" : "text-zinc-500"}`}
+        >
+          {message.text}
+        </output>
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { Search } from "@/components/icons/solar";
 import type { AdminUserRow, AdminUserSort } from "@/lib/admin/users-data";
 import { ACCOUNT_ROLE_LABELS } from "@jim/core";
 import Link from "next/link";
+import { AdminUpdateEveryone } from "./admin-user-editor";
 import { LocalDateTime } from "./local-date-time";
 
 const SORTS: { id: AdminUserSort; label: string }[] = [
@@ -33,6 +34,9 @@ export function AdminUsersList({
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Users</h1>
+        <AdminUpdateEveryone />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <nav
           aria-label="Sort"
           className="flex rounded-xl border border-zinc-200 p-1 dark:border-zinc-800"

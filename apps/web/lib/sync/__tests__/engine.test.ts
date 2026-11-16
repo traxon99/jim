@@ -6,6 +6,7 @@ import {
   drainOutbox,
   pullChanges,
   runSyncCycle,
+  setRemoteCommandsHandler,
 } from "../engine";
 import { getSyncStatus } from "../status";
 
@@ -171,6 +172,22 @@ describe("drainOutbox", () => {
 });
 
 describe("pullChanges", () => {
+  it("hands the pull's force-refresh requests to the registered handler (#808)", async () => {
+    const commands = {
+      userId: "u",
+      updateRequestedAt: "2026-11-16T10:00:00.000Z",
+      resetRequestedAt: null,
+    };
+    const handler = vi.fn();
+    const stop = setRemoteCommandsHandler(handler);
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ cursor: 1, changes: {}, commands }));
+    await pullChanges(testDb, fetchMock);
+    stop();
+    await pullChanges(testDb, fetchMock);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith(commands);
+  });
+
   it("applies a pulled row and advances the cursor", async () => {
     const pulled = routine({ id: "r1", name: "From server" });
     const fetchMock = vi.fn().mockResolvedValue(

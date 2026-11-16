@@ -24,6 +24,9 @@ export interface AdminUserDetail extends AdminUserRow {
   discoverableByFriendsOfFriends: boolean;
   workoutsLast7Days: number;
   disabled: boolean;
+  /** The last force-refresh requests (issue #808). */
+  updateRequestedAt: string | null;
+  resetRequestedAt: string | null;
   settings: SettingsPayload;
 }
 
@@ -129,6 +132,8 @@ export async function loadAdminUser(
     shareWorkoutDetails: row.shareWorkoutDetails,
     discoverableByFriendsOfFriends: row.discoverableByFriendsOfFriends,
     disabled: bannedUntil !== null && Date.parse(bannedUntil) > Date.now(),
+    updateRequestedAt: row.updateRequestedAt?.toISOString() ?? null,
+    resetRequestedAt: row.resetRequestedAt?.toISOString() ?? null,
     settings: toSettingsPayload(row),
   };
 }

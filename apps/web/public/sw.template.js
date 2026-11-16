@@ -104,15 +104,29 @@ self.addEventListener("push", (event) => {
           tag: message.tag,
           data: { url: message.url || "/" },
         })
-        .then(() => (message.tag === "jim-rest-timer" ? dismissIfJimIsOpen(message.tag) : null)),
+        .then(() => {
+          if (message.tag === "jim-rest-timer") return dismissIfJimIsOpen(message.tag);
+          // An admin's "Update app" (issue #808) is meant to be silent, but
+          // every push must show a notification, so close it straight away.
+          if (message.tag === "jim-refresh") return closeNotifications(message.tag);
+          return null;
+        }),
       // A release push means a new sw.js is (or is about to be) live. Checking
       // now lets the new version download and precache in the background, so
       // it's already there when the user opens Jim. A failure here (offline,
       // deploy not aliased yet) is harmless; the normal on-open check still runs.
-      message.tag === "jim-release" ? self.registration.update().catch(() => {}) : null,
+      message.tag === "jim-release" || message.tag === "jim-refresh"
+        ? self.registration.update().catch(() => {})
+        : null,
     ]),
   );
 });
+
+function closeNotifications(tag) {
+  return self.registration.getNotifications({ tag }).then((shown) => {
+    for (const notification of shown) notification.close();
+  });
+}
 
 // "Rest complete" while Jim is on screen: the in-app timer already showed it,
 // so the banner dropping over the app is noise (#682). The push still had to

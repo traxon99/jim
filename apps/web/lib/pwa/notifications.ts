@@ -83,6 +83,15 @@ export function releasePushMessage(releaseNote: string = LATEST_RELEASE_NOTE): P
 }
 
 /**
+ * An admin's "Update app" (issue #808). The service worker checks for a new
+ * version and closes this straight away (public/sw.template.js); the phone
+ * reloads on its next sync once it's in the background.
+ */
+export function refreshPushMessage(): PushMessage {
+  return { title: "Jim", body: "Updating Jim", url: "/", tag: "jim-refresh" };
+}
+
+/**
  * Shown when the rest timer finishes. Normally sent as a real Web Push at the
  * rest's end instant, scheduled through QStash (app/api/push/rest-timer,
  * docs/DECISIONS.md ADR-014), because iOS suspends a backgrounded page's JS

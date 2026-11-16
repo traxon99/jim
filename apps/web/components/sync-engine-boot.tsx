@@ -2,8 +2,9 @@
 
 import { trackBootPromise } from "@/lib/boot/ready";
 import { db } from "@/lib/db/schema";
+import { applyRemoteCommands, isRemoteCommands } from "@/lib/pwa/remote-commands";
 import { refreshSettings } from "@/lib/settings";
-import { startSyncEngine } from "@/lib/sync/engine";
+import { setRemoteCommandsHandler, startSyncEngine } from "@/lib/sync/engine";
 import { useEffect } from "react";
 
 /**
@@ -15,6 +16,18 @@ const BOOT_NETWORK_CAP_MS = 5000;
 
 /** Mounts the sync engine's foreground triggers for the lifetime of the shell. */
 export function SyncEngineBoot() {
+  // An admin's "Update app" / "Reset local data" (issue #808) arrives with
+  // a pull. Registered before the engine starts, so the boot pull sees it.
+  useEffect(
+    () =>
+      setRemoteCommandsHandler((commands) => {
+        if (!isRemoteCommands(commands)) return;
+        applyRemoteCommands(commands).catch((error: unknown) =>
+          console.error("[sync] remote command failed:", error),
+        );
+      }),
+    [],
+  );
   // The boot splash holds until the first sync cycle lands, so the app opens
   // on fresh data instead of re-rendering under the user a moment later.
   // Only on a first open with nothing local: when this phone already has
