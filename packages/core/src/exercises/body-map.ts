@@ -34,3 +34,31 @@ export function heatmapShading(
   }
   return shading as MuscleShading;
 }
+
+/** Which part of the body the map shows: all of it, or a crop. */
+export type BodyMapView = "full" | "upper" | "lower";
+
+const LOWER_BODY = new Set<string>([
+  "glutes",
+  "quadriceps",
+  "hamstrings",
+  "calves",
+  "adductors",
+  "abductors",
+]);
+
+/**
+ * Crop to the upper or lower body when every shaded muscle sits there, so a
+ * curl or a calf raise fills the map instead of shading a corner of it.
+ * Anything spanning both halves (a deadlift) keeps the whole body.
+ */
+export function bodyMapView(shading: MuscleShading): BodyMapView {
+  const shaded = Object.entries(shading)
+    .filter(([, strength]) => (strength ?? 0) > 0)
+    .map(([muscle]) => muscle);
+  if (shaded.length === 0) return "full";
+  const lower = shaded.filter((muscle) => LOWER_BODY.has(muscle)).length;
+  if (lower === shaded.length) return "lower";
+  if (lower === 0) return "upper";
+  return "full";
+}
