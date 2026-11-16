@@ -22,7 +22,7 @@ async function connect(context: UserContext) {
 // Listing tools never touches the database, so this runs without TEST_DATABASE_URL.
 describe("token scopes on MCP tools (#736)", () => {
   it("classifies every registered tool as exactly one of read or write", async () => {
-    const { client, close } = await connect({} as UserContext);
+    const { client, close } = await connect({ isAdmin: true } as UserContext);
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name);
     for (const name of names) {
@@ -33,12 +33,25 @@ describe("token scopes on MCP tools (#736)", () => {
     await close();
   });
 
+  it("lists the admin tools to admins only (#811)", async () => {
+    const user = await connect({} as UserContext);
+    const names = (await user.client.listTools()).tools.map((tool) => tool.name);
+    expect(names.filter((name) => name.startsWith("admin_"))).toEqual([]);
+    await user.close();
+    const admin = await connect({ isAdmin: true } as UserContext);
+    const adminNames = (await admin.client.listTools()).tools.map((tool) => tool.name);
+    expect(adminNames).toContain("admin_overview");
+    expect(adminNames).toContain("admin_set_sign_in");
+    await admin.close();
+  });
+
   it("refuses every write tool to a read token before touching the database", async () => {
     // No db on the context: a handler that reached it would throw a different error.
     const { client, close } = await connect({
       userId: "u",
       email: "",
       scope: "read",
+      isAdmin: true,
     } as UserContext);
     for (const args of [
       { sessionId: "s", dry_run: true },

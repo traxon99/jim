@@ -621,7 +621,7 @@ app's auth is Supabase sessions, not personal access tokens.
 **Rejected: direct Postgres or Supabase reads from Jackson OS.** That puts a standing database
 credential outside Jim and duplicates the core logic that computes volume, streaks and e1RM.
 
-## ADR-023 — Account roles and a web-only admin console
+## ADR-023 — Account roles and an admin console
 
 **Status:** Accepted · 2026-11-16
 
@@ -648,6 +648,10 @@ tier later (issue #805).
   radius of a policy bug. Every admin write goes into `admin_audit` (RLS on, no policies) in the
   same transaction.
 - **No training data.** Admins see account facts and counts, never workouts, and can't edit them.
+- **The MCP admin tools (#811) hold the same TOTP bar.** The MCP sign-in asks an account with an
+  authenticator app for its code, so the OAuth session it issues is `aal2`. Admin tools are listed
+  and run only for an admin on an `aal2` session; personal access tokens carry no MFA state and
+  never get them. Writes are audited with `via: "mcp"`.
 
 **Rejected: a role claim in `app_metadata`.** It goes stale until the token refreshes, and it puts
 the source of truth outside the database the guard trigger protects.

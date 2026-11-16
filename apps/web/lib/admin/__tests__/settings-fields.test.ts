@@ -1,4 +1,4 @@
-import { isValidSettingsPatch } from "@/lib/settings/server-settings";
+import { isValidSettingsPatch } from "@jim/db/admin";
 import { describe, expect, it } from "vitest";
 import { ADMIN_SETTINGS_GROUPS, fieldDisplayValue, fieldId, fieldPatch } from "../settings-fields";
 

@@ -16,6 +16,7 @@ import { SupabaseOAuthProvider } from "./auth/provider.js";
 import type { UserContext } from "./context.js";
 import { getDb } from "./db.js";
 import { createMcpServer } from "./server.js";
+import { isAdmin } from "./tools/admin.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 // Must be the server's actual public HTTPS origin in any deployed
@@ -58,7 +59,7 @@ app.post(
   requireBearerAuth({ verifier: provider, resourceMetadataUrl }),
   async (req, res) => {
     const extra = req.auth?.extra as
-      | { userId?: unknown; email?: unknown; scope?: unknown }
+      | { userId?: unknown; email?: unknown; scope?: unknown; aal?: unknown }
       | undefined;
     const userId = typeof extra?.userId === "string" ? extra.userId : undefined;
     if (!userId) {
@@ -74,7 +75,12 @@ app.post(
       email: typeof extra?.email === "string" ? extra.email : "",
       // Fails closed: a token whose scope didn't come through can only read.
       scope: isAccessTokenScope(extra?.scope) ? extra.scope : "read",
+      aal: extra?.aal === "aal2" ? "aal2" : "aal1",
     };
+    // Admin tools are listed only for admins signed in with TOTP (#811,
+    // ADR-023); a failed lookup lists none.
+    context.isAdmin =
+      context.aal === "aal2" && (await isAdmin(context.db, userId).catch(() => false));
 
     // A fresh server + transport per request (see server.ts) — simplest
     // correct thing for a stateless deployment, and cheap since tool

@@ -1,7 +1,5 @@
-import { serviceDb } from "@/lib/db/user-scoped";
-import { APP_VERSION } from "@/lib/version";
-import type { DbOrTx } from "@jim/db";
 import { sql } from "drizzle-orm";
+import type { DbOrTx } from "../index";
 import { checkFeedbackToken } from "./feedback-data";
 
 export type ServiceState = "healthy" | "degraded" | "down" | "not_configured";
@@ -51,27 +49,45 @@ async function attempt<T>(load: () => Promise<T>): Promise<T | null> {
   }
 }
 
-/** The MCP server's own liveness probe, timed. */
-async function probeMcp(fetchImpl: typeof fetch): Promise<ServiceStatus> {
-  const origin = process.env.NEXT_PUBLIC_MCP_URL;
-  if (!origin) return { name: "jim-mcp", detail: "Fly", state: "not_configured" };
+/** Another of Jim's services, probed at `origin` + `path` and timed. */
+export interface HealthPeer {
+  name: string;
+  /** Where it runs, shown before the timing ("Fly", "Vercel"). */
+  host: string;
+  /** Null when this deploy doesn't know where it is. */
+  origin: string | null;
+  /** Its liveness route; the MCP server's is /healthz, the web app's /api/healthz. */
+  path: string;
+}
+
+async function probe(peer: HealthPeer, fetchImpl: typeof fetch): Promise<ServiceStatus> {
+  if (!peer.origin) return { name: peer.name, detail: peer.host, state: "not_configured" };
   const started = Date.now();
   try {
-    const response = await fetchImpl(new URL("/healthz", origin), {
-      cache: "no-store",
+    const response = await fetchImpl(new URL(peer.path, peer.origin), {
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
     const ms = Date.now() - started;
-    if (!response.ok)
-      return { name: "jim-mcp", detail: `Fly · HTTP ${response.status}`, state: "down" };
+    if (!response.ok) {
+      return { name: peer.name, detail: `${peer.host} · HTTP ${response.status}`, state: "down" };
+    }
     return {
-      name: "jim-mcp",
-      detail: `Fly · ${ms} ms`,
+      name: peer.name,
+      detail: `${peer.host} · ${ms} ms`,
       state: ms > SLOW_MS ? "degraded" : "healthy",
     };
   } catch {
-    return { name: "jim-mcp", detail: "Fly · no answer", state: "down" };
+    return { name: peer.name, detail: `${peer.host} · no answer`, state: "down" };
   }
+}
+
+export interface HealthOptions {
+  /** The service answering this request, healthy by being here. */
+  self: ServiceStatus;
+  /** The other service to probe. */
+  peer: HealthPeer;
+  deploy: HealthData["deploy"];
+  fetchImpl?: typeof fetch;
 }
 
 /**
@@ -79,10 +95,8 @@ async function probeMcp(fetchImpl: typeof fetch): Promise<ServiceStatus> {
  * (a missing extension, a slow GitHub) leaves the rest of the page. Only
  * called after requireAdmin().
  */
-export async function loadHealth(
-  db: DbOrTx = serviceDb(),
-  fetchImpl: typeof fetch = fetch,
-): Promise<HealthData> {
+export async function loadHealth(db: DbOrTx, options: HealthOptions): Promise<HealthData> {
+  const fetchImpl = options.fetchImpl ?? fetch;
   const dbStarted = Date.now();
   const databaseBytes = await attempt(async () => {
     const [row] = [
@@ -152,12 +166,13 @@ export async function loadHealth(
     }));
   });
 
-  const [mcp, feedback] = await Promise.all([probeMcp(fetchImpl), checkFeedbackToken(fetchImpl)]);
-  const region = process.env.VERCEL_REGION ?? null;
+  const [peer, feedback] = await Promise.all([
+    probe(options.peer, fetchImpl),
+    checkFeedbackToken(fetchImpl),
+  ]);
   const services: ServiceStatus[] = [
-    // This page rendering is the web app answering.
-    { name: "Web app", detail: region ? `Vercel · ${region}` : "Vercel", state: "healthy" },
-    mcp,
+    options.self,
+    peer,
     {
       name: "Postgres",
       detail: databaseBytes === null ? "Supabase · no answer" : `Supabase · ${dbMs} ms`,
@@ -175,19 +190,14 @@ export async function loadHealth(
     databaseBytes,
     connections,
     syncLag,
-    deploy: {
-      version: APP_VERSION,
-      commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
-      region,
-      builtAt: process.env.JIM_BUILT_AT ?? null,
-    },
+    deploy: options.deploy,
     slowQueries,
     services,
   };
 }
 
 /** The p50 sync lag over the last day, for the Overview's "Right now". */
-export async function loadSyncLagP50(db: DbOrTx = serviceDb()): Promise<number | null> {
+export async function loadSyncLagP50(db: DbOrTx): Promise<number | null> {
   return attempt(async () => {
     const [row] = [
       ...(await db.execute<{ p50: number | null }>(sql`

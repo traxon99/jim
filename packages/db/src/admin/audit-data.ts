@@ -1,7 +1,6 @@
-import { serviceDb } from "@/lib/db/user-scoped";
-import { adminAudit, users } from "@jim/db";
 import { desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { type DbOrTx, adminAudit, users } from "../index";
 
 export type AuditRow = {
   id: string;
@@ -22,10 +21,10 @@ export const AUDIT_PAGE_SIZE = 200;
  * The newest admin actions, with who did them and to whom. Only called after
  * requireAdmin(): this reads every account's rows on the server's connection.
  */
-export async function loadAuditLog(limit = AUDIT_PAGE_SIZE): Promise<AuditRow[]> {
+export async function loadAuditLog(db: DbOrTx, limit = AUDIT_PAGE_SIZE): Promise<AuditRow[]> {
   const actor = alias(users, "actor");
   const target = alias(users, "target");
-  const rows = await serviceDb()
+  const rows = await db
     .select({
       id: adminAudit.id,
       createdAt: adminAudit.createdAt,

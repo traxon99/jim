@@ -1,6 +1,6 @@
 import { ChevronLeft } from "@/components/icons/solar";
-import type { AdminUserDetail } from "@/lib/admin/users-data";
 import { ACCOUNT_ROLE_LABELS } from "@jim/core";
+import type { AdminUserDetail } from "@jim/db/admin";
 import Link from "next/link";
 import { AdminProfileEditor, AdminSettingsEditor, AdminUserActions } from "./admin-user-editor";
 import { LocalDateTime } from "./local-date-time";

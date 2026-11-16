@@ -1,5 +1,5 @@
 import { ChevronLeft } from "@/components/icons/solar";
-import { type FailureDetail, failureSourceLabel } from "@/lib/admin/failures-data";
+import { type FailureDetail, failureSourceLabel } from "@jim/db/admin";
 import Link from "next/link";
 import { AdminCard, Chip } from "./admin-dashboard-ui";
 import { LocalDateTime } from "./local-date-time";

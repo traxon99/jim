@@ -1,6 +1,5 @@
-import { serviceDb } from "@/lib/db/user-scoped";
-import { parseSubmitterTag, submitterTag } from "@/lib/feedback/submitter-tag";
-import { type DbOrTx, users } from "@jim/db";
+import { type DbOrTx, users } from "../index";
+import { parseSubmitterTag, submitterTag } from "./submitter-tag";
 
 /** The feedback types the in-app form files, by their GitHub label. */
 export const FEEDBACK_TYPES = [
@@ -67,7 +66,7 @@ function feedbackConfig(): { repo: string; token: string } | null {
   return repo && token ? { repo, token } : null;
 }
 
-function gitHubHeaders(token: string): HeadersInit {
+function gitHubHeaders(token: string): Record<string, string> {
   return {
     accept: "application/vnd.github+json",
     authorization: `Bearer ${token}`,
@@ -114,7 +113,7 @@ async function accountsByTag(db: DbOrTx): Promise<Map<string, { id: string; labe
  */
 export async function loadFeedback(
   filters: { state: FeedbackStateId; type: FeedbackTypeId | null },
-  db: DbOrTx = serviceDb(),
+  db: DbOrTx,
   fetchImpl: typeof fetch = fetch,
 ): Promise<FeedbackResult> {
   const config = feedbackConfig();
@@ -131,7 +130,7 @@ export async function loadFeedback(
       `https://api.github.com/repos/${config.repo}/issues?${params}`,
       {
         headers: gitHubHeaders(config.token),
-        cache: "no-store",
+
         signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
       },
     );
@@ -155,7 +154,7 @@ export async function countOpenFeedback(fetchImpl: typeof fetch = fetch): Promis
       `https://api.github.com/repos/${config.repo}/issues?labels=feedback&state=open&per_page=100`,
       {
         headers: gitHubHeaders(config.token),
-        cache: "no-store",
+
         signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
       },
     );
@@ -176,7 +175,7 @@ export async function checkFeedbackToken(
   try {
     const response = await fetchImpl(`https://api.github.com/repos/${config.repo}`, {
       headers: gitHubHeaders(config.token),
-      cache: "no-store",
+
       signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
     });
     return response.ok ? "ok" : "failing";

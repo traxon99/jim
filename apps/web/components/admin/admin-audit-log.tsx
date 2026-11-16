@@ -1,4 +1,4 @@
-import { type AuditRow, formatAuditValue } from "@/lib/admin/audit-data";
+import { type AuditRow, formatAuditValue } from "@jim/db/admin";
 import Link from "next/link";
 import { LocalDateTime } from "./local-date-time";
 

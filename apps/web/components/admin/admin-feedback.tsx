@@ -5,7 +5,7 @@ import {
   type FeedbackResult,
   type FeedbackStateId,
   type FeedbackTypeId,
-} from "@/lib/admin/feedback-data";
+} from "@jim/db/admin";
 import Link from "next/link";
 import { AdminCard, Chip, EmptyState, LinkTabs, dashboardHref } from "./admin-dashboard-ui";
 import { RelativeTime } from "./relative-time";

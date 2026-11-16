@@ -1,5 +1,5 @@
 import { isValidAutoEndMinutes, isValidTimeZone, isValidWeeklyWorkoutGoal } from "@jim/core";
-import type { users } from "@jim/db";
+import type { users } from "../index";
 
 /**
  * The settings a user (or an admin on their behalf, issue #807) can read and

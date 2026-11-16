@@ -1,8 +1,7 @@
-import { serviceDb } from "@/lib/db/user-scoped";
-import { type SettingsPayload, toSettingsPayload } from "@/lib/settings/server-settings";
 import type { AccountRole } from "@jim/core";
-import { type DbOrTx, users } from "@jim/db";
 import { eq, sql } from "drizzle-orm";
+import { type DbOrTx, users } from "../index";
+import { type SettingsPayload, toSettingsPayload } from "./settings";
 
 /** One row of the admin Users list (issue #807): account facts, no training content. */
 export interface AdminUserRow {
@@ -49,6 +48,7 @@ export function likePattern(term: string): string {
  * after requireAdmin(): this reads every account on the server's connection.
  */
 export async function listAdminUsers(
+  db: DbOrTx,
   options: { query?: string; sort?: AdminUserSort; limit?: number } = {},
 ): Promise<{ rows: AdminUserRow[]; hasMore: boolean }> {
   const limit = options.limit ?? ADMIN_USERS_PAGE_SIZE;
@@ -62,7 +62,7 @@ export async function listAdminUsers(
       ? sql`users.created_at DESC`
       : sql`last_active_at DESC NULLS LAST, users.created_at DESC`;
 
-  const result = await serviceDb().execute<{
+  const result = await db.execute<{
     id: string;
     email: string;
     username: string | null;
@@ -93,10 +93,7 @@ export async function listAdminUsers(
 }
 
 /** One account for its admin page, or null when there's no such account. */
-export async function loadAdminUser(
-  userId: string,
-  db: DbOrTx = serviceDb(),
-): Promise<AdminUserDetail | null> {
+export async function loadAdminUser(userId: string, db: DbOrTx): Promise<AdminUserDetail | null> {
   const [row] = await db.select().from(users).where(eq(users.id, userId));
   if (!row) return null;
   const [stats] = [

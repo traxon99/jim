@@ -1,6 +1,5 @@
-import { serviceDb } from "@/lib/db/user-scoped";
-import type { DbOrTx } from "@jim/db";
 import { sql } from "drizzle-orm";
+import type { DbOrTx } from "../index";
 import { type DashboardRange, dayKeys } from "./dashboard";
 
 /** Where a failure came from, as the Failures filter names it. */
@@ -73,7 +72,7 @@ function iso(value: Date | string): string {
 export async function loadFailures(
   range: DashboardRange,
   source: FailureSourceId | null,
-  db: DbOrTx = serviceDb(),
+  db: DbOrTx,
   now = new Date(),
 ): Promise<FailuresData> {
   const nowIso = now.toISOString();
@@ -177,7 +176,7 @@ function hourKeys(now: Date): string[] {
 }
 
 /** How many failure groups first appeared in the last day, for the nav badge. */
-export async function countNewFailureGroups(db: DbOrTx = serviceDb()): Promise<number> {
+export async function countNewFailureGroups(db: DbOrTx): Promise<number> {
   const [row] = [
     ...(await db.execute<{ count: number }>(sql`
       SELECT count(*)::int AS count FROM (
@@ -219,7 +218,7 @@ export interface FailureDetail {
 /** One failure group over the whole retention window, or null when there's none. */
 export async function loadFailureDetail(
   fingerprint: string,
-  db: DbOrTx = serviceDb(),
+  db: DbOrTx,
 ): Promise<FailureDetail | null> {
   const recent = [
     ...(await db.execute<{

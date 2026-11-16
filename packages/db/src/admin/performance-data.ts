@@ -1,7 +1,6 @@
-import { serviceDb } from "@/lib/db/user-scoped";
 import { TELEMETRY_VITALS } from "@jim/core";
-import type { DbOrTx } from "@jim/db";
 import { sql } from "drizzle-orm";
+import type { DbOrTx } from "../index";
 import type { DashboardRange } from "./dashboard";
 
 /** The metrics the Performance page shows, in column order. */
@@ -39,7 +38,7 @@ export const PERFORMANCE_VERSIONS = 6;
  */
 export async function loadPerformance(
   range: DashboardRange,
-  db: DbOrTx = serviceDb(),
+  db: DbOrTx,
   now = new Date(),
 ): Promise<{ all: VersionPerformance; versions: VersionPerformance[] }> {
   const start = sql`(${now.toISOString()}::timestamptz - (${range.hours} * interval '1 hour'))`;

@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
 import express, { type Router } from "express";
 import { rateLimit } from "express-rate-limit";
-import { errorPage, loginFormPage } from "./pages.js";
-import { issuedAuthorizationCodes, pendingAuthorizations } from "./store.js";
+import { codeFormPage, errorPage, loginFormPage } from "./pages.js";
+import {
+  type PendingAuthorization,
+  issuedAuthorizationCodes,
+  pendingAuthorizations,
+  pendingCodes,
+} from "./store.js";
 import { createSignInClient } from "./supabase.js";
 
 const EXPIRED_MESSAGE =
@@ -48,17 +53,9 @@ export function loginRoutes(): Router {
     );
   });
 
-  const loginLimiter = rateLimit({
-    windowMs: LOGIN_WINDOW_MS,
-    limit: LOGIN_ATTEMPTS_PER_WINDOW,
-    standardHeaders: "draft-8",
-    legacyHeaders: false,
-    handler: (_req, res) => {
-      res
-        .status(429)
-        .send(errorPage("Too many sign-in attempts. Wait a few minutes and try again."));
-    },
-  });
+  // Password guesses and code guesses are limited separately.
+  const loginLimiter = attemptLimiter();
+  const codeLimiter = attemptLimiter();
 
   router.post("/login", loginLimiter, async (req, res) => {
     const loginId = typeof req.body?.login === "string" ? req.body.login : undefined;
@@ -83,10 +80,8 @@ export function loginRoutes(): Router {
       return;
     }
 
-    const { data, error } = await createSignInClient().auth.signInWithPassword({
-      email,
-      password,
-    });
+    const client = createSignInClient();
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error || !data.session) {
       res.status(401).send(form("Incorrect email or password."));
       return;
@@ -99,23 +94,101 @@ export function loginRoutes(): Router {
       return;
     }
 
-    const code = randomUUID();
-    issuedAuthorizationCodes.set(code, {
-      clientId: authorization.client.client_id,
-      redirectUri: authorization.params.redirectUri,
-      codeChallenge: authorization.params.codeChallenge,
-      supabaseAccessToken: data.session.access_token,
-      supabaseRefreshToken: data.session.refresh_token,
-      createdAt: Date.now(),
+    // An account with an authenticator app set up must pass its code too,
+    // as /admin does (ADR-023): only then is the session aal2.
+    const { data: level } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (level?.nextLevel === "aal2" && level.currentLevel !== "aal2") {
+      const codeId = randomUUID();
+      pendingCodes.set(codeId, {
+        authorization,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        createdAt: Date.now(),
+      });
+      res.send(codeFormPage({ codeId }));
+      return;
+    }
+
+    finish(res, authorization, data.session);
+  });
+
+  router.post("/login/code", codeLimiter, async (req, res) => {
+    const codeId = typeof req.body?.code_id === "string" ? req.body.code_id : undefined;
+    const code = typeof req.body?.code === "string" ? req.body.code.replace(/\s/g, "") : "";
+    const pending = codeId ? pendingCodes.peek(codeId) : undefined;
+    if (!pending) {
+      res.status(400).send(errorPage(EXPIRED_MESSAGE));
+      return;
+    }
+    const retry = (message: string) =>
+      res.status(401).send(codeFormPage({ codeId: codeId as string, error: message }));
+    if (!/^\d{6}$/.test(code)) {
+      retry("Enter the 6-digit code from your authenticator app.");
+      return;
+    }
+
+    const client = createSignInClient();
+    const { error: sessionError } = await client.auth.setSession({
+      access_token: pending.accessToken,
+      refresh_token: pending.refreshToken,
     });
+    const { data: factors } = sessionError ? { data: null } : await client.auth.mfa.listFactors();
+    const factor = factors?.totp.find((candidate) => candidate.status === "verified");
+    if (!factor) {
+      pendingCodes.take(codeId as string);
+      res.status(400).send(errorPage(EXPIRED_MESSAGE));
+      return;
+    }
+    const { data: verified, error } = await client.auth.mfa.challengeAndVerify({
+      factorId: factor.id,
+      code,
+    });
+    if (error || !verified) {
+      retry("That code didn't work. Try the current one.");
+      return;
+    }
 
-    const redirect = new URL(authorization.params.redirectUri);
-    redirect.searchParams.set("code", code);
-    if (authorization.params.state) redirect.searchParams.set("state", authorization.params.state);
-
-    // 303 so the browser follows with a GET, whatever the client's redirect_uri serves.
-    res.redirect(303, redirect.href);
+    pendingCodes.take(codeId as string);
+    finish(res, pending.authorization, verified);
   });
 
   return router;
+}
+
+function attemptLimiter() {
+  return rateLimit({
+    windowMs: LOGIN_WINDOW_MS,
+    limit: LOGIN_ATTEMPTS_PER_WINDOW,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    handler: (_req, res) => {
+      res
+        .status(429)
+        .send(errorPage("Too many sign-in attempts. Wait a few minutes and try again."));
+    },
+  });
+}
+
+/** Hands the client an authorization code for the session and sends the browser back. */
+function finish(
+  res: express.Response,
+  authorization: PendingAuthorization,
+  session: { access_token: string; refresh_token: string },
+): void {
+  const code = randomUUID();
+  issuedAuthorizationCodes.set(code, {
+    clientId: authorization.client.client_id,
+    redirectUri: authorization.params.redirectUri,
+    codeChallenge: authorization.params.codeChallenge,
+    supabaseAccessToken: session.access_token,
+    supabaseRefreshToken: session.refresh_token,
+    createdAt: Date.now(),
+  });
+
+  const redirect = new URL(authorization.params.redirectUri);
+  redirect.searchParams.set("code", code);
+  if (authorization.params.state) redirect.searchParams.set("state", authorization.params.state);
+
+  // 303 so the browser follows with a GET, whatever the client's redirect_uri serves.
+  res.redirect(303, redirect.href);
 }

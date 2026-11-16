@@ -1,12 +1,13 @@
 import { AdminNav } from "@/components/admin/admin-nav";
-import { countNewFailureGroups } from "@/lib/admin/failures-data";
 import { requireAdmin } from "@/lib/admin/load-access";
+import { serviceDb } from "@/lib/db/user-scoped";
+import { countNewFailureGroups } from "@jim/db/admin";
 
 /** Every admin section: admin role and a TOTP-verified (aal2) session. */
 export default async function AdminConsoleLayout({ children }: { children: React.ReactNode }) {
   const { email } = await requireAdmin();
   // A badge is a nicety: a failed count must not take the console down.
-  const newFailures = await countNewFailureGroups().catch(() => 0);
+  const newFailures = await countNewFailureGroups(serviceDb()).catch(() => 0);
   return (
     <div className="flex min-h-0 flex-1 flex-col md:flex-row">
       <AdminNav email={email} newFailures={newFailures} />

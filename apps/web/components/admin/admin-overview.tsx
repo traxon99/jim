@@ -6,8 +6,8 @@ import {
   formatVital,
   percentChange,
   rateMetric,
-} from "@/lib/admin/dashboard";
-import type { OverviewData, OverviewKpi } from "@/lib/admin/overview-data";
+} from "@jim/db/admin";
+import type { OverviewData, OverviewKpi } from "@jim/db/admin";
 import Link from "next/link";
 import {
   AdminCard,

@@ -1,8 +1,8 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { claimFeedbackSlot } from "@/lib/feedback/rate-limit";
-import { submitterTag } from "@/lib/feedback/submitter-tag";
 import { createClient } from "@/lib/supabase/server";
 import { APP_VERSION } from "@/lib/version";
+import { submitterTag } from "@jim/db/admin";
 import { NextResponse } from "next/server";
 
 const MAX_MESSAGE_LENGTH = 4000;

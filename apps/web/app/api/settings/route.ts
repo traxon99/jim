@@ -1,12 +1,8 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
-import {
-  isValidSettingsPatch,
-  toSettingsColumns,
-  toSettingsPayload,
-} from "@/lib/settings/server-settings";
 import { users } from "@jim/db";
+import { isValidSettingsPatch, toSettingsColumns, toSettingsPayload } from "@jim/db/admin";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 

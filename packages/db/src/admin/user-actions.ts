@@ -1,14 +1,14 @@
-import { parseProfilePatch } from "@/lib/profile/profile-patch";
+import { isAssignableRole, normalizeUsername, usernameError } from "@jim/core";
+import { eq, sql } from "drizzle-orm";
+import { type DbOrTx, users } from "../index";
+import { type AdminAuditEntry, recordAdminAction } from "./audit";
+import { parseProfilePatch } from "./profile-patch";
 import {
   type SettingsPayload,
   isValidSettingsPatch,
   toSettingsColumns,
   toSettingsPayload,
-} from "@/lib/settings/server-settings";
-import { isAssignableRole, normalizeUsername, usernameError } from "@jim/core";
-import { type Db, type DbOrTx, users } from "@jim/db";
-import { eq, sql } from "drizzle-orm";
-import { recordAdminAction } from "./audit";
+} from "./settings";
 
 /**
  * What an admin can do to another account (issue #807). Each runs on the
@@ -21,6 +21,8 @@ export type AdminActionResult = { ok: true } | { ok: false; error: string };
 export interface AdminActor {
   id: string;
   via?: "web" | "mcp";
+  /** Collects every audit row this actor's writes record, for a caller that reports them. */
+  sink?: AdminAuditEntry[];
 }
 
 const UNIQUE_VIOLATION = "23505";
@@ -34,7 +36,7 @@ async function loadRow(tx: DbOrTx, userId: string) {
 
 /** Applies a settings patch (the same shape and rules as PATCH /api/settings). */
 export async function adminUpdateSettings(
-  db: Db,
+  db: DbOrTx,
   actor: AdminActor,
   userId: string,
   body: unknown,
@@ -62,6 +64,7 @@ export async function adminUpdateSettings(
         oldValue: oldPayload[key],
         newValue: newPayload[key],
         via: actor.via,
+        sink: actor.sink,
       });
     }
     return { ok: true };
@@ -70,7 +73,7 @@ export async function adminUpdateSettings(
 
 /** Username, display name, bio and sharing. The picture stays the user's own. */
 export async function adminUpdateProfile(
-  db: Db,
+  db: DbOrTx,
   actor: AdminActor,
   userId: string,
   body: unknown,
@@ -112,6 +115,7 @@ export async function adminUpdateProfile(
           oldValue: old,
           newValue: value,
           via: actor.via,
+          sink: actor.sink,
         });
       }
       return { ok: true } as const;
@@ -124,7 +128,7 @@ export async function adminUpdateProfile(
 
 /** User or Coach only. Admin is granted and taken away by script (ADR-023). */
 export async function adminSetRole(
-  db: Db,
+  db: DbOrTx,
   actor: AdminActor,
   userId: string,
   role: unknown,
@@ -146,6 +150,7 @@ export async function adminSetRole(
       oldValue: before.role,
       newValue: role,
       via: actor.via,
+      sink: actor.sink,
     });
     return { ok: true };
   });
@@ -156,7 +161,7 @@ export async function adminSetRole(
  * (no new sign-ins or token refreshes) and ends its sessions; its data stays.
  */
 export async function adminSetSignInDisabled(
-  db: Db,
+  db: DbOrTx,
   actor: AdminActor,
   userId: string,
   disabled: boolean,
@@ -181,6 +186,7 @@ export async function adminSetSignInDisabled(
       targetUserId: userId,
       action: disabled ? "signin.disable" : "signin.enable",
       via: actor.via,
+      sink: actor.sink,
     });
     return { ok: true };
   });
@@ -188,7 +194,7 @@ export async function adminSetSignInDisabled(
 
 /** Records a password reset email sent by an admin; the sending is the caller's. */
 export async function recordPasswordReset(
-  db: Db,
+  db: DbOrTx,
   actor: AdminActor,
   userId: string,
 ): Promise<void> {
@@ -197,6 +203,7 @@ export async function recordPasswordReset(
     targetUserId: userId,
     action: "password.reset_email",
     via: actor.via,
+    sink: actor.sink,
   });
 }
 

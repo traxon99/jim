@@ -1,4 +1,4 @@
-import { type DbOrTx, adminAudit } from "@jim/db";
+import { type DbOrTx, adminAudit } from "../index";
 
 export type AdminAuditEntry = {
   actorId: string | null;
@@ -8,6 +8,8 @@ export type AdminAuditEntry = {
   oldValue?: unknown;
   newValue?: unknown;
   via?: "web" | "mcp" | "script";
+  /** Receives a copy of the entry once it's written, so a caller can report it. */
+  sink?: AdminAuditEntry[];
 };
 
 /**
@@ -24,4 +26,8 @@ export async function recordAdminAction(tx: DbOrTx, entry: AdminAuditEntry): Pro
     newValue: entry.newValue === undefined ? null : entry.newValue,
     via: entry.via ?? "web",
   });
+  if (entry.sink) {
+    const { sink, ...written } = entry;
+    sink.push(written);
+  }
 }

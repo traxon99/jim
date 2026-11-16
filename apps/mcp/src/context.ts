@@ -11,6 +11,17 @@ export interface UserContext {
    * personal access tokens are `read_write`; leaving it out means that too.
    */
   scope?: AccessTokenScope;
+  /**
+   * Whether the account was an admin when the request came in (issue #811):
+   * decides only which tools are listed. Each admin tool checks again.
+   */
+  isAdmin?: boolean;
+  /**
+   * The sign-in's assurance level: "aal2" only for an OAuth session that
+   * passed the authenticator code. Personal access tokens carry none, so
+   * they never reach the admin tools (ADR-023).
+   */
+  aal?: "aal1" | "aal2";
 }
 
 /** Runs `fn` inside an RLS-impersonated transaction for this request's user (ADR-005/006). */

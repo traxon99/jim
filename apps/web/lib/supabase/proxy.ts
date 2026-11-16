@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   "/auth/confirm",
   "/auth/confirmed",
   "/auth/auth-code-error",
+  // The MCP server's health probe of the web app (#811).
+  "/api/healthz",
   // QStash's server-to-server callbacks: no cookie, authenticated by their
   // request signature instead (app/api/push/rest-timer/fire/route.ts).
   "/api/push/rest-timer/fire",

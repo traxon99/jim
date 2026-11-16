@@ -2,8 +2,8 @@ import { unauthenticated } from "@/lib/api/route-helpers";
 import { ensureUserRow } from "@/lib/db/ensure-user-row";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
 import type { ProfilePayload } from "@/lib/friends/types";
-import { parseProfilePatch } from "@/lib/profile/profile-patch";
 import { users } from "@jim/db";
+import { parseProfilePatch } from "@jim/db/admin";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
