@@ -1,5 +1,6 @@
 export * from "./access-tokens";
 export * from "./admin";
+export * from "./telemetry";
 export * from "./body";
 export * from "./cardio";
 export * from "./data-transfer";

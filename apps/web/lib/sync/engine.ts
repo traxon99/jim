@@ -1,4 +1,5 @@
 import { type JimDatabase, type SyncMetaRow, db } from "../db/schema";
+import { reportTelemetry } from "../telemetry/client";
 import { applyPulledRows } from "./apply-pulled-rows";
 import { getSyncStatus, setSyncStatus } from "./status";
 
@@ -35,6 +36,17 @@ async function reportFailure(
   if (failure.unreachable) {
     setSyncStatus({ kind: "offline", count });
     return;
+  }
+  // No signal and a signed-out session are expected; anything else is a
+  // failure for the admin Failures page (issue #809).
+  if (failure.response?.status !== 401) {
+    const status = failure.response?.status;
+    reportTelemetry({
+      kind: "sync_failure",
+      name: status ? `HTTP ${status}` : "Unreadable response",
+      message: failure.response ? new URL(failure.response.url || "/", "http://x").pathname : "",
+      detail: { queued: count },
+    });
   }
   setSyncStatus(
     failure.response?.status === 401 ? { kind: "signed-out", count } : { kind: "error", count },

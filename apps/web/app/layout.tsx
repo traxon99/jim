@@ -6,6 +6,7 @@ import { PwaChrome } from "@/components/pwa-chrome";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
 import { RippleEffect } from "@/components/ripple-effect";
 import { StatusBarScrim } from "@/components/status-bar-scrim";
+import { TelemetryReporter } from "@/components/telemetry-reporter";
 import { COLD_OPEN_SCRIPT } from "@/lib/boot/cold-open";
 import { COLOR_SCHEME_SCRIPT } from "@/lib/boot/color-scheme";
 import { INSTALL_PROMPT_SCRIPT } from "@/lib/pwa/install-prompt";
@@ -99,6 +100,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex h-lvh flex-col">
         <LoadingScreen />
         <RegisterServiceWorker />
+        <TelemetryReporter />
         <PwaChrome />
         <RippleEffect />
         <ColorSchemeEffect />
