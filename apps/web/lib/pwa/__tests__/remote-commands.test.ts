@@ -17,7 +17,9 @@ function commands(update: string | null, reset: string | null, userId = USER): R
   return { userId, updateRequestedAt: update, resetRequestedAt: reset };
 }
 
-function fakeDeps(options: { handled?: object; hidden?: boolean; outbox?: number } = {}) {
+function fakeDeps(
+  options: { handled?: object; hidden?: boolean; outbox?: number; reachable?: boolean } = {},
+) {
   const store = new Map<string, string>();
   if (options.handled) store.set("jim-remote-commands", JSON.stringify(options.handled));
   const listeners = new Set<() => void>();
@@ -36,6 +38,7 @@ function fakeDeps(options: { handled?: object; hidden?: boolean; outbox?: number
     checkForUpdate: vi.fn(async () => {}),
     reload: vi.fn(),
     outboxCount: vi.fn(async () => outbox),
+    serverReachable: vi.fn(async () => options.reachable ?? true),
     wipe: vi.fn(async () => {}),
   };
   return {
@@ -136,6 +139,30 @@ describe("remote commands (#808)", () => {
     await done;
     expect(fake.raw.wipe).not.toHaveBeenCalled();
     expect(fake.handled().reset).toBeNull();
+  });
+
+  it("reset waits while the server can't be reached, so the phone is never left empty", async () => {
+    const fake = fakeDeps({
+      handled: { userId: USER, update: null, reset: null },
+      hidden: true,
+      reachable: false,
+    });
+    await applyRemoteCommands(commands(null, T1), undefined, fake.deps);
+    expect(fake.raw.wipe).not.toHaveBeenCalled();
+    expect(fake.raw.reload).not.toHaveBeenCalled();
+    expect(fake.handled().reset).toBeNull();
+  });
+
+  it("a reset held back by unsynced changes doesn't hold back an update", async () => {
+    const fake = fakeDeps({
+      handled: { userId: USER, update: null, reset: null },
+      hidden: true,
+      outbox: 1,
+    });
+    await applyRemoteCommands(commands(T2, T1), undefined, fake.deps);
+    expect(fake.raw.wipe).not.toHaveBeenCalled();
+    expect(fake.raw.reload).toHaveBeenCalledTimes(1);
+    expect(fake.handled()).toEqual({ userId: USER, update: T2, reset: null });
   });
 
   it("the reset notice shows once", () => {

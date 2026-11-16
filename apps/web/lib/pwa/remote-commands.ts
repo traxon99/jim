@@ -1,4 +1,4 @@
-import { clearCachedPages, clearLocalData } from "@/lib/auth/sign-out";
+import { clearLocalData } from "@/lib/auth/sign-out";
 import { type JimDatabase, db } from "@/lib/db/schema";
 
 /**
@@ -63,8 +63,12 @@ export interface RemoteCommandDeps {
   checkForUpdate: () => Promise<unknown>;
   reload: () => void;
   outboxCount: () => Promise<number>;
+  /** Whether the server answers now, so a wiped phone can pull straight back. */
+  serverReachable: () => Promise<boolean>;
   wipe: () => Promise<void>;
 }
+
+const REACHABLE_TIMEOUT_MS = 5000;
 
 function browserDeps(database: JimDatabase): RemoteCommandDeps {
   return {
@@ -76,10 +80,20 @@ function browserDeps(database: JimDatabase): RemoteCommandDeps {
     },
     reload: () => window.location.reload(),
     outboxCount: () => database.outbox.count(),
-    wipe: async () => {
-      await clearLocalData(database);
-      await clearCachedPages();
+    serverReachable: async () => {
+      if (!navigator.onLine) return false;
+      try {
+        const response = await fetch("/api/settings", {
+          signal: AbortSignal.timeout(REACHABLE_TIMEOUT_MS),
+        });
+        return response.ok;
+      } catch {
+        return false;
+      }
     },
+    // The cached pages stay: they're this same account's, and they're what
+    // the reload opens on if the signal drops right after.
+    wipe: () => clearLocalData(database),
   };
 }
 
@@ -130,9 +144,9 @@ function whenAway(doc: RemoteCommandDeps["doc"], job: () => Promise<void>): Prom
  *   app is in the background, so even a phone already on the latest build
  *   restarts its JS.
  * - Reset local data: only once every local change has reached the server
- *   (the outbox is empty), and only in the background. It wipes IndexedDB
- *   and the cached pages and reloads, which pulls everything fresh. With
- *   changes still queued it waits for a later pull.
+ *   (the outbox is empty), the server answers, and the app is in the
+ *   background. It wipes IndexedDB and reloads, which pulls everything
+ *   fresh. Otherwise it waits for a later pull.
  */
 export async function applyRemoteCommands(
   commands: RemoteCommands,
@@ -151,27 +165,34 @@ export async function applyRemoteCommands(
   }
   if (!handled) return;
 
-  if (pending.reset) {
-    if ((await deps.outboxCount()) > 0) return;
+  if (pending.reset && (await deps.outboxCount()) === 0) {
     await whenAway(deps.doc, async () => {
-      // Something may have been logged since the pull.
+      // Each check can take a moment, and iOS may freeze the app between
+      // them: never wipe with a change queued, without a server to pull back
+      // from, or once the user is looking again (#507). Any of those leaves
+      // the reset for a later pull.
       if ((await deps.outboxCount()) > 0) return;
+      if (!(await deps.serverReachable())) return;
+      if (deps.doc.visibilityState !== "hidden") return;
+      await deps.wipe();
       writeHandled(deps.storage, {
         ...handled,
+        // The reload applies any pending update too.
         update: commands.updateRequestedAt ?? handled.update,
         reset: commands.resetRequestedAt,
       });
       try {
         deps.storage.setItem(RESET_NOTICE_KEY, "1");
       } catch {
-        // The notice is a nicety; the reset still runs.
+        // The notice is a nicety; the reset still ran.
       }
-      await deps.wipe();
       deps.reload();
     });
     return;
   }
 
+  // Also when a reset is still waiting on unsynced changes: one change the
+  // server keeps refusing must not hold back every later update.
   if (pending.update) {
     writeHandled(deps.storage, { ...handled, update: commands.updateRequestedAt });
     await deps.checkForUpdate().catch(() => {});
