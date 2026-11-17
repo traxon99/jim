@@ -330,6 +330,23 @@ body {
   }
 }
 
+/* Anchored dropdown menus (Lift's Log menu, #823): grow from the trigger and
+   shrink back to it, 20% quicker out (ANIMATION.md rules 2, 10-12, 15). */
+.menu-popover {
+  animation: prp-popover-in 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.menu-popover[data-closing="true"] {
+  animation: prp-popover-out 160ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-popover,
+  .menu-popover[data-closing="true"] {
+    animation: prp-popover-fade 150ms ease-out;
+  }
+}
+
 /* Double-tap a post to heart it: a big heart pops over the picture and fades. */
 .heart-burst {
   animation: heart-burst 800ms ease-out forwards;

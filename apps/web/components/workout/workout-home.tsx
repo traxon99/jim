@@ -3,12 +3,12 @@
 import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
-import { Play, Plus, Thermometer, TrendingUp, Zap } from "@/components/icons/solar";
+import { Pencil, Play, Plus, TrendingUp, Zap } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
 import { ProgramWeekStrip, useProgramCycle } from "@/components/routines/program-week-strip";
 import { RoutineIconTile } from "@/components/routines/routine-icon";
-import { SickDayChip, SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-controls";
+import { SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-controls";
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
@@ -24,12 +24,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { LogMenu } from "./log-menu";
 import { OneOffCards, useOneOffs } from "./one-off-cards";
 import { PreWorkoutSheet } from "./pre-workout-sheet";
 import { UpNextCard } from "./up-next-card";
 
 /**
- * Empty, Smart and Sick day share one row on Lift (#783) as tiles: a colored
+ * Empty, Smart and Log share one row on Lift (#783, #823) as tiles: a colored
  * icon over the label and a one-line hint (#787).
  */
 const TILE =
@@ -252,7 +253,7 @@ export function WorkoutHome({ userId }: { userId: string }) {
         />
 
         {/* The ways to start without a routine, one compact row (#783). */}
-        <div className={`grid gap-2 ${sickToday === false ? "grid-cols-3" : "grid-cols-2"}`}>
+        <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => void handleStartEmpty()}
@@ -281,20 +282,20 @@ export function WorkoutHome({ userId }: { userId: string }) {
               hint="Built for today"
             />
           </button>
-          {sickToday === false && (
-            <SickDayChip
-              userId={userId}
-              className={TILE}
-              content={
-                <QuickTile
-                  icon={<Thermometer className="h-[17px] w-[17px]" strokeWidth={2.2} />}
-                  tint="bg-cyan-600"
-                  label="Sick day"
-                  hint="Keeps your streak"
-                />
-              }
-            />
-          )}
+          {/* Weight, injury status and sick day (#823), replacing the Sick day tile. */}
+          <LogMenu
+            userId={userId}
+            sickToday={sickToday}
+            className={TILE}
+            content={
+              <QuickTile
+                icon={<Pencil className="h-[17px] w-[17px]" strokeWidth={2.2} />}
+                tint="bg-cyan-600"
+                label="Log"
+                hint="Weight, injury, sick"
+              />
+            }
+          />
         </div>
 
         {/* Your routines (issue #329); with a program, the up-next one is
