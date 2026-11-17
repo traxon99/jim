@@ -28,9 +28,12 @@ const geistMono = Geist_Mono({
 });
 
 // The "serif" font choice (Profile > Appearance > Font, components/profile/font-family-section.tsx).
+// Not preloaded: few pick it, and a preload is fetched on every cold open
+// whether the page uses the font or not. Chosen, it loads with the page CSS.
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair-display",
   subsets: ["latin"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
