@@ -35,16 +35,31 @@ export function TelemetryReporter() {
   useEffect(() => {
     if (document.documentElement.dataset.boot !== "cold") return;
     if (window.location.pathname !== LIFT_PATH) return;
-    const report = () =>
+    // A cold open the user switched away from (or locked the phone on)
+    // before it was on screen measures their time away, not the app: the
+    // clock keeps running while iOS has the page in the background. Same rule
+    // as LCP, which web-vitals drops once the page has been hidden.
+    let hidden = document.visibilityState === "hidden";
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") hidden = true;
+    };
+    const report = () => {
+      if (hidden) return;
       reportTelemetry({ kind: "cold_start", name: "lift", value: performance.now() });
+    };
     if (isBootRevealed()) {
       report();
       return;
     }
-    const stop = subscribeBootRevealed(() => {
+    document.addEventListener("visibilitychange", onVisibility);
+    const stopReveal = subscribeBootRevealed(() => {
       stop();
       report();
     });
+    function stop() {
+      stopReveal();
+      document.removeEventListener("visibilitychange", onVisibility);
+    }
     return stop;
   }, []);
 
