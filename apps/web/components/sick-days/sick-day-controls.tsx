@@ -23,7 +23,7 @@ function useSickDayRow(day: string): SickDayRow | null | undefined {
  * Marks or unmarks one day (issue #779). One write at a time; the busy flag
  * clears on every exit path, and a failure shows beside the control.
  */
-function useSickDayAction(userId: string, day: string) {
+export function useSickDayAction(userId: string, day: string) {
   const row = useSickDayRow(day);
   const today = useTodayKey();
   // Held until the live row re-renders, not just until the write resolves,
@@ -99,46 +99,9 @@ export function useSickToday(): boolean | undefined {
 /**
  * The Workout tab's sick-day card (issue #779): while today is marked sick
  * it sits above the up-next card, since a sick day can still hold a workout
- * (#781); otherwise it's a quiet "Feeling sick?" link.
+ * (#781); otherwise it's a quiet "Feeling sick?" link. Lift's Log menu
+ * (#823) is the other way to mark today.
  */
-/** Lift's compact "Sick day" chip, beside Empty and Smart (#783). */
-export function SickDayChip({
-  userId,
-  className,
-  content,
-}: {
-  userId: string;
-  className: string;
-  /** Replaces the icon and label, e.g. Lift's quick-action tile (#787). */
-  content?: React.ReactNode;
-}) {
-  const today = useTodayKey();
-  const { busy, error, set } = useSickDayAction(userId, today);
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void set(true)}
-        aria-label="Take a sick day"
-        className={className}
-      >
-        {content ?? (
-          <>
-            <Thermometer className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden="true" />
-            Sick day
-          </>
-        )}
-      </button>
-      {error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-500">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
 export function SickTodayCard({ userId, sick }: { userId: string; sick: boolean }) {
   const today = useTodayKey();
   const { busy, error, set } = useSickDayAction(userId, today);
