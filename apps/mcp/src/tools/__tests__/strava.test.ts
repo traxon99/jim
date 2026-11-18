@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { UserContext } from "../../context.js";
 import { USER_A, USER_B, resetTestDb, testContext } from "../../test/test-db.js";
 import { logPastWorkout } from "../log-past-workout.js";
-import { getStravaStatus, postWorkoutToStrava } from "../strava.js";
+import { getStravaStatus, postWorkoutToStrava, setStravaAutoPost } from "../strava.js";
 import { upsertExercise } from "../upsert-exercise.js";
 
 const published: { url: string; headers: Record<string, string>; body: unknown }[] = [];
@@ -142,5 +142,34 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("Strava tools (#836)", () => {
     await expect(postWorkoutToStrava(context, { workoutId: logged.id })).rejects.toThrow(
       /isn't connected/,
     );
+  });
+
+  it("leaves a failed queue retryable when QStash is down", async () => {
+    await connect(false);
+    const logged = await logPastWorkout(context, workout);
+    vi.stubGlobal("fetch", async () => new Response("no", { status: 500 }));
+    await expect(
+      postWorkoutToStrava(context, { workoutId: logged.id, dryRun: false }),
+    ).rejects.toThrow(/Couldn't queue/);
+    expect((await admin`SELECT status FROM strava_activities`)[0]?.status).toBe("failed");
+
+    vi.stubGlobal("fetch", async () => new Response("{}", { status: 200 }));
+    const retried = await postWorkoutToStrava(context, { workoutId: logged.id, dryRun: false });
+    expect(retried.queued).toBe(true);
+    expect((await admin`SELECT status FROM strava_activities`)[0]?.status).toBe("queued");
+  });
+
+  it("switches auto-post, previewing without writing", async () => {
+    await expect(setStravaAutoPost(context, { autoPost: false })).rejects.toThrow(
+      /isn't connected/,
+    );
+    await connect(true);
+    expect(await setStravaAutoPost(context, { autoPost: false, dryRun: true })).toMatchObject({
+      previous: true,
+      dryRun: true,
+    });
+    expect((await admin`SELECT auto_post FROM strava_connections`)[0]?.auto_post).toBe(true);
+    await setStravaAutoPost(context, { autoPost: false });
+    expect((await admin`SELECT auto_post FROM strava_connections`)[0]?.auto_post).toBe(false);
   });
 });

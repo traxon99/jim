@@ -446,7 +446,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("Strava sync", () => {
       await connect();
       await finishedSession(SESSION);
       await queue(SESSION);
-      await admin`UPDATE strava_activities SET status = 'failed', error = 'x'`;
+      await admin`UPDATE strava_activities SET status = 'failed', error = 'x', attempts = 9`;
       const retry = await retryRoute.POST(
         new Request(`${ORIGIN}/api/strava/retry`, {
           method: "POST",
@@ -456,7 +456,10 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("Strava sync", () => {
       expect(retry.status).toBe(204);
       expect(published).toHaveLength(1);
       expect(published[0]?.body).toEqual({ userId: USER_A, sessionId: SESSION });
-      expect((await admin`SELECT status FROM strava_activities`)[0]?.status).toBe("queued");
+      expect((await admin`SELECT status, attempts FROM strava_activities`)[0]).toMatchObject({
+        status: "queued",
+        attempts: 0,
+      });
       // Only a failed post can be retried.
       const again = await retryRoute.POST(
         new Request(`${ORIGIN}/api/strava/retry`, {
