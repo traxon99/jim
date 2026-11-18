@@ -6,7 +6,14 @@ import type { ProfilePayload } from "@/lib/friends/types";
 import { useEffect, useState } from "react";
 
 type SharingPatch = Partial<
-  Pick<ProfilePayload, "shareWorkouts" | "shareWorkoutDetails" | "discoverableByFriendsOfFriends">
+  Pick<
+    ProfilePayload,
+    | "shareWorkouts"
+    | "shareWorkoutDetails"
+    | "discoverableByFriendsOfFriends"
+    | "shareLeaderboards"
+    | "shareRelativeStrength"
+  >
 >;
 
 /**
@@ -42,6 +49,9 @@ export function SharingSection() {
   }
 
   const shareWorkouts = profile?.shareWorkouts ?? true;
+  // Leaderboards need workout sharing too (issue #837), so these dim with it.
+  const shareLeaderboards = profile?.shareLeaderboards ?? true;
+  const onLeaderboards = shareWorkouts && shareLeaderboards;
 
   return (
     <div className="flex w-full flex-col gap-1 text-left">
@@ -73,6 +83,38 @@ export function SharingSection() {
           checked={profile?.shareWorkoutDetails ?? true}
           disabled={profile === null || !shareWorkouts}
           onChange={(event) => void save({ shareWorkoutDetails: event.target.checked })}
+          className={SWITCH_CLASS}
+        />
+      </label>
+      <label
+        className={`flex min-h-11 items-center justify-between gap-3 text-xs font-medium ${
+          shareWorkouts ? "" : "opacity-50"
+        }`}
+      >
+        Show me on friends' leaderboards
+        <input
+          type="checkbox"
+          role="switch"
+          aria-checked={shareLeaderboards}
+          checked={shareLeaderboards}
+          disabled={profile === null || !shareWorkouts}
+          onChange={(event) => void save({ shareLeaderboards: event.target.checked })}
+          className={SWITCH_CLASS}
+        />
+      </label>
+      <label
+        className={`flex min-h-11 items-center justify-between gap-3 text-xs font-medium ${
+          onLeaderboards ? "" : "opacity-50"
+        }`}
+      >
+        Show my strength relative to bodyweight
+        <input
+          type="checkbox"
+          role="switch"
+          aria-checked={profile?.shareRelativeStrength ?? false}
+          checked={profile?.shareRelativeStrength ?? false}
+          disabled={profile === null || !onLeaderboards}
+          onChange={(event) => void save({ shareRelativeStrength: event.target.checked })}
           className={SWITCH_CLASS}
         />
       </label>

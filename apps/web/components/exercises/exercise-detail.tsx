@@ -3,6 +3,7 @@
 import { BodyMap, MuscleSwatches, muscleSummary } from "@/components/exercises/body-map";
 import { ExercisePreferenceControl } from "@/components/exercises/exercise-preference-control";
 import { FloatingCard } from "@/components/floating-card";
+import { LiftLeaderboard } from "@/components/friends/lift-leaderboard";
 import { OneRepMaxChart } from "@/components/history/one-rep-max-chart";
 import { ExternalLink, MapPin, Pencil } from "@/components/icons/solar";
 import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line";
@@ -382,6 +383,15 @@ export function ExerciseDetail({
                   />
                 </div>
               </section>
+            )}
+
+            {!isWarmup && !isCardio && exercise.trackingType === "weight_reps" && (
+              <LiftLeaderboard
+                slug={exercise.slug}
+                machineBrand={exercise.machineBrand}
+                machineModel={exercise.machineModel}
+                gym={gym ?? null}
+              />
             )}
 
             <section>

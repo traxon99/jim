@@ -1,6 +1,14 @@
 /** Shapes /api/friends and /api/friends/workouts return (issue #35). */
 
-import type { PostKind, PrKind, ReactionKind, RoutineIconColor, RoutineIconShape } from "@jim/core";
+import type {
+  LeaderboardMachine,
+  LeaderboardRow,
+  PostKind,
+  PrKind,
+  ReactionKind,
+  RoutineIconColor,
+  RoutineIconShape,
+} from "@jim/core";
 
 /** One row in Home's activity list (#753). */
 export type ActivityKind = "workout_reaction" | "post_reaction" | "friend_request" | "comment";
@@ -156,6 +164,26 @@ export interface ProfilePayload {
   shareWorkoutDetails: boolean;
   /** Whether you can show up in friends-of-friends suggestions (#754). */
   discoverableByFriendsOfFriends: boolean;
+  /** Whether you're on friends' per-lift leaderboards (issue #837). */
+  shareLeaderboards: boolean;
+  /** Whether friends see best e1RM over bodyweight (never the bodyweight). */
+  shareRelativeStrength: boolean;
+}
+
+/** One lift's board (issue #837): weights are already in the viewer's units. */
+export interface LeaderboardPayload {
+  units: "lb" | "kg";
+  rows: LeaderboardRow[];
+}
+
+/** A lift you share with at least one friend (issue #837). */
+export interface LeaderboardLift {
+  slug: string;
+  name: string;
+  /** Set for a machine exercise: boards only match the same machine at the same gym. */
+  machine: LeaderboardMachine | null;
+  /** You plus the friends on it. */
+  participants: number;
 }
 
 export interface ProfileLiftHighlight {

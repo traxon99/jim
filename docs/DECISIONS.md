@@ -430,6 +430,15 @@ functions are the only way to change it. They're executable by `authenticated` o
   turned sharing off. Posts are shared one at a time on purpose, so they show either way. These
   live on `/api/profile`, not the IndexedDB-cached settings row, like the username.
 
+- **Leaderboards** (issue #837) follow it as well. Migration 0080's `friend_lift_leaderboard(slug,
+  machine)` and `friend_leaderboard_lifts()` rank you and your accepted friends from
+  `personal_records`, the same cache the PR page reads, so a friend's e1RM matches their own PR
+  page. Lifts match on catalog slug (a clone keeps its seed's); a machine exercise also needs the
+  same make and model and a pinned gym within 150 m. A participant needs `users.share_leaderboards`
+  (default on) and `share_workouts`; `share_relative_strength` (default off) adds best e1RM over
+  bodyweight, computed inside the function so the bodyweight never leaves it. All three live on
+  `/api/profile`. The MCP stays own-user (ADR-006): no tool reads a friend's board.
+
 **Rejected: friend-aware RLS on `sessions`/`session_exercises`/`sets`.** Simpler SQL, but every pull
 would need an explicit `user_id = me` filter, and forgetting it anywhere (the pull route, the MCP
 server, the portal) silently merges someone else's training into yours.

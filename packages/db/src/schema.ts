@@ -186,6 +186,12 @@ export const users = pgTable(
     // so they show either way. Read by friend_workouts() (migration 0031).
     shareWorkouts: boolean("share_workouts").notNull().default(true),
     shareWorkoutDetails: boolean("share_workout_details").notNull().default(true),
+    // Friend leaderboards (issue #837). Being on friends' per-lift boards needs
+    // this and share_workouts. Relative strength (best e1RM over bodyweight) is
+    // opt-in on its own; the bodyweight itself is never shared. Read by
+    // friend_lift_leaderboard() (migration 0080).
+    shareLeaderboards: boolean("share_leaderboards").notNull().default(true),
+    shareRelativeStrength: boolean("share_relative_strength").notNull().default(false),
     // When the user last opened the Home activity list (#753). Null means every
     // item counts as unread until they open it once.
     lastSeenActivityAt: timestamp("last_seen_activity_at", { withTimezone: true }),
