@@ -9,8 +9,8 @@ interface PushedMutation {
 }
 
 /**
- * The photos a push just deleted (issue #835): applied progress-photo
- * mutations that carry a tombstone. The objects' paths are rebuilt from the
+ * The photos a push just deleted (issue #835): applied (or already-applied)
+ * progress-photo mutations that carry a tombstone. The objects' paths are rebuilt from the
  * verified user and the photo id rather than read from the payload, so a
  * client can't point the removal at another path.
  */
@@ -20,7 +20,12 @@ export function deletedPhotoIds(
 ): string[] {
   const ids: string[] = [];
   mutations.forEach((mutation, index) => {
-    if (mutation.table !== "progressPhotos" || statuses[index] !== "applied") return;
+    // "duplicate" too: a retry of a push that committed but never finished
+    // removing the objects. Removing an object that is already gone is harmless.
+    const status = statuses[index];
+    if (mutation.table !== "progressPhotos" || (status !== "applied" && status !== "duplicate")) {
+      return;
+    }
     if (!mutation.entity.deletedAt) return;
     const id = mutation.entity.id;
     if (typeof id === "string" && UUID.test(id)) ids.push(id);

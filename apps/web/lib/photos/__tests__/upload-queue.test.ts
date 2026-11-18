@@ -19,17 +19,32 @@ afterEach(async () => {
 /** A Storage double that records uploads and fails on demand. */
 function fakeStorage() {
   const stored = new Map<string, number>();
-  const state = { failNext: 0, failPath: null as string | null, calls: [] as string[] };
+  const state = {
+    failNext: 0,
+    failPath: null as string | null,
+    /** No HTTP status: the request never got an answer. */
+    offline: false,
+    calls: [] as string[],
+    removed: [] as string[],
+    /** Runs while an upload is in flight, to act on the row mid-upload. */
+    duringUpload: null as null | (() => Promise<void>),
+  };
   const storage: PhotoStorage = {
     async upload(path) {
       state.calls.push(path);
+      await state.duringUpload?.();
+      if (state.offline) return { error: { message: "Failed to fetch" } };
       if (state.failNext > 0 || state.failPath === path) {
         state.failNext = Math.max(0, state.failNext - 1);
-        return { error: { message: "Failed to fetch" } };
+        return { error: { message: "Internal error", status: 500 } };
       }
-      if (stored.has(path)) return { error: { message: "The resource already exists" } };
+      if (stored.has(path))
+        return { error: { message: "The resource already exists", status: 409 } };
       stored.set(path, (stored.get(path) ?? 0) + 1);
       return { error: null };
+    },
+    async remove(paths) {
+      state.removed.push(...paths);
     },
     async signedUrl() {
       return null;
@@ -141,6 +156,42 @@ describe("progress photo upload queue", () => {
     for (let i = 0; i < MAX_UPLOAD_FAILURES; i++) await drainPhotoUploads(database, storage);
 
     expect((await database.photoUploads.get(row.id))?.failures).toBe(MAX_UPLOAD_FAILURES);
+  });
+
+  it("treats no signal as offline: the photo stays pending and nothing counts against it", async () => {
+    const row = await saveProgressPhoto(
+      { userId: USER, photo: photo(), takenOn: "2026-03-10" },
+      database,
+    );
+    const { storage, state } = fakeStorage();
+    state.offline = true;
+
+    for (let i = 0; i < MAX_UPLOAD_FAILURES + 2; i++) {
+      expect((await drainPhotoUploads(database, storage)).failed).toBe(true);
+    }
+
+    expect((await database.photoUploads.get(row.id))?.failures).toBe(0);
+  });
+
+  it("does not write over a delete made while the bytes were uploading", async () => {
+    const row = await saveProgressPhoto(
+      { userId: USER, photo: photo(), takenOn: "2026-03-10" },
+      database,
+    );
+    const { storage, state } = fakeStorage();
+    state.duringUpload = async () => {
+      state.duringUpload = null;
+      await deleteProgressPhoto(row, database);
+    };
+
+    const result = await drainPhotoUploads(database, storage);
+
+    expect(result.uploaded).toBe(0);
+    expect((await database.progressPhotos.get(row.id))?.deletedAt).toBeInstanceOf(Date);
+    expect((await database.progressPhotos.get(row.id))?.uploadedAt).toBeNull();
+    expect(await database.photoUploads.count()).toBe(0);
+    // Objects that landed after the tombstone are removed again.
+    expect(state.removed.sort()).toEqual([row.originalPath, row.thumbPath].sort());
   });
 
   it("drops the queued bytes of a photo deleted before it uploaded", async () => {

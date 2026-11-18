@@ -1,5 +1,5 @@
 import { type JimDatabase, type ProgressPhotoRow, db } from "@/lib/db/schema";
-import { type PhotoStorage, supabasePhotoStorage } from "./storage";
+import { PHOTO_REQUEST_TIMEOUT_MS, type PhotoStorage, supabasePhotoStorage } from "./storage";
 
 /**
  * Where photo bytes live on this phone (issue #835):
@@ -37,7 +37,7 @@ export function planEviction(entries: readonly CacheEntry[], maxBytes: number): 
 async function download(storage: PhotoStorage, path: string): Promise<Blob> {
   const url = await storage.signedUrl(path);
   if (!url) throw new Error("Couldn't reach that photo");
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(PHOTO_REQUEST_TIMEOUT_MS) });
   if (!response.ok) throw new Error("Couldn't load that photo");
   return response.blob();
 }
