@@ -36,6 +36,7 @@ describe("isTabActive", () => {
     expect(isTabActive("/home", "/profile/settings")).toBe(true);
     expect(isTabActive("/home", "/friends")).toBe(true);
     expect(isTabActive("/home", "/friends/maya")).toBe(true);
+    expect(isTabActive("/home", "/leaderboards")).toBe(true);
     expect(isTabActive("/workout", "/profile")).toBe(false);
   });
 });

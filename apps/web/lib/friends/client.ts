@@ -1,5 +1,5 @@
 import { type Result, apiRequest } from "@/lib/api/client";
-import type { PostDraft, ReactionKind } from "@jim/core";
+import type { LeaderboardMachine, PostDraft, ReactionKind } from "@jim/core";
 import type { WeekRingPerson } from "@jim/core";
 import type {
   ActivityPayload,
@@ -12,6 +12,8 @@ import type {
   FriendSuggestion,
   FriendWorkout,
   FriendsPayload,
+  LeaderboardLift,
+  LeaderboardPayload,
   OwnPost,
   ProfilePayload,
   ReceivedReaction,
@@ -127,6 +129,35 @@ export async function fetchFriendRecords(
     fetchImpl,
   );
   return result.ok ? { ok: true, value: result.value.records } : result;
+}
+
+/** One lift's board: you and your friends who share it (issue #837). */
+export function fetchLeaderboard(
+  slug: string,
+  machine: LeaderboardMachine | null = null,
+  fetchImpl: typeof fetch = fetch,
+) {
+  const params = new URLSearchParams({ slug });
+  if (machine) params.set("machine", JSON.stringify(machine));
+  return apiRequest<LeaderboardPayload>(
+    `/api/friends/leaderboard?${params.toString()}`,
+    undefined,
+    "Couldn't load the leaderboard",
+    fetchImpl,
+  );
+}
+
+/** The lifts you and at least one friend have both logged (issue #837). */
+export async function fetchLeaderboardLifts(
+  fetchImpl: typeof fetch = fetch,
+): Promise<Result<LeaderboardLift[]>> {
+  const result = await apiRequest<{ lifts: LeaderboardLift[] }>(
+    "/api/friends/leaderboards",
+    undefined,
+    "Couldn't load the leaderboards",
+    fetchImpl,
+  );
+  return result.ok ? { ok: true, value: result.value.lifts } : result;
 }
 
 export function fetchProfile(fetchImpl: typeof fetch = fetch) {

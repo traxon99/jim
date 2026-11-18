@@ -62,7 +62,36 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
       shareWorkouts: true,
       shareWorkoutDetails: true,
       discoverableByFriendsOfFriends: true,
+      shareLeaderboards: true,
+      shareRelativeStrength: false,
     });
+  });
+
+  it("saves the leaderboard switches and rejects a non-boolean (#837)", async () => {
+    signInAs(USER_B, "bob@example.com");
+    const ok = await profile.PATCH(
+      jsonRequest(
+        "PATCH",
+        { shareLeaderboards: false, shareRelativeStrength: true },
+        "/api/profile",
+      ),
+    );
+    expect(await ok.json()).toMatchObject({
+      shareLeaderboards: false,
+      shareRelativeStrength: true,
+    });
+    const bad = await profile.PATCH(
+      jsonRequest("PATCH", { shareLeaderboards: "no" }, "/api/profile"),
+    );
+    expect(bad.status).toBe(400);
+    // Put it back for the tests that follow.
+    await profile.PATCH(
+      jsonRequest(
+        "PATCH",
+        { shareLeaderboards: true, shareRelativeStrength: false },
+        "/api/profile",
+      ),
+    );
   });
 
   it("saves a picture and rejects anything that isn't a small image", async () => {
@@ -88,6 +117,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("/api/posts and /api/profile", (
       shareWorkouts: true,
       shareWorkoutDetails: true,
       discoverableByFriendsOfFriends: true,
+      shareLeaderboards: true,
+      shareRelativeStrength: false,
     });
 
     signInAs(USER_A, "alice@example.com");
