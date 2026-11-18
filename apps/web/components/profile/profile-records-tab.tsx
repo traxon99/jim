@@ -2,6 +2,7 @@
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { PR_KIND_LABELS, formatPrValue } from "@/components/history/pr-badges";
+import { AchievementShareButton } from "@/components/share-card/achievement-share-button";
 import type { FriendRecordRow } from "@/lib/friends/types";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { useMemo } from "react";
@@ -31,11 +32,17 @@ function OwnRecordsTab() {
           <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-500">Achievements</h3>
           <ul className="grid grid-cols-4 gap-2">
             {earned.map((achievement) => (
-              <li key={achievement.id} className="flex flex-col items-center gap-1">
-                <AchievementBadge achievement={achievement} size="md" />
-                <span className="line-clamp-2 text-center text-[10px] leading-tight">
-                  {achievement.title}
-                </span>
+              <li key={achievement.id}>
+                {/* Tapping an earned badge opens its share image (issue #838). */}
+                <AchievementShareButton
+                  achievement={achievement}
+                  className="flex w-full flex-col items-center gap-1 rounded-lg"
+                >
+                  <AchievementBadge achievement={achievement} size="md" />
+                  <span className="line-clamp-2 text-center text-[10px] leading-tight">
+                    {achievement.title}
+                  </span>
+                </AchievementShareButton>
               </li>
             ))}
           </ul>

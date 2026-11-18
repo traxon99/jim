@@ -26,6 +26,7 @@ function exercise(overrides: Partial<SessionDetailExercise> = {}): SessionDetail
     exerciseId: "ex-1",
     exerciseName: "Barbell Bench Press",
     isWarmup: false,
+    isCardio: false,
     notes: null,
     sets: [set()],
     ...overrides,

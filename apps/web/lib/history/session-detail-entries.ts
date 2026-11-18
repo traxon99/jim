@@ -2,6 +2,7 @@ import type { ExerciseRow, PersonalRecordRow, SessionExerciseRow, SetRow } from 
 import {
   type PrKind,
   exerciseDisplayName,
+  isCardioExercise,
   isVisiblePr,
   isWarmupExercise,
   repsAtWeightExerciseIds,
@@ -32,6 +33,8 @@ export interface SessionDetailExercise {
   exerciseName: string;
   /** A warm-up exercise (jumping jacks, arm circles), not training. */
   isWarmup: boolean;
+  /** A cardio exercise: distance and time rather than weight and reps. */
+  isCardio: boolean;
   notes: string | null;
   sets: SessionDetailSet[];
 }
@@ -55,6 +58,10 @@ export function buildSessionDetailExercises(
   );
   const warmupExerciseIds = new Set(
     exercises.filter((exercise) => isWarmupExercise(exercise)).map((exercise) => exercise.id),
+  );
+
+  const cardioExerciseIds = new Set(
+    exercises.filter((exercise) => isCardioExercise(exercise)).map((exercise) => exercise.id),
   );
 
   const resolvedSets = resolveCurrentRows(sets).filter((set) => !set.deletedAt);
@@ -90,6 +97,7 @@ export function buildSessionDetailExercises(
       exerciseId: sessionExercise.exerciseId,
       exerciseName: exerciseNames.get(sessionExercise.exerciseId) ?? "Unknown exercise",
       isWarmup: warmupExerciseIds.has(sessionExercise.exerciseId),
+      isCardio: cardioExerciseIds.has(sessionExercise.exerciseId),
       notes: sessionExercise.notes,
       sets: (setsBySessionExercise.get(sessionExercise.id) ?? [])
         .sort((a, b) => a.setIndex - b.setIndex)
