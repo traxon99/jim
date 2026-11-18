@@ -31,6 +31,8 @@ import type { ReactNode } from "react";
 const WIDTH = 1080;
 const PAD = 84;
 const INNER = WIDTH - PAD * 2;
+/** Space kept clear at the bottom of every card for the Jim mark and username. */
+const FOOTER_RESERVE = 148;
 
 /** Name of the embedded card font; falls back to the system font when none loaded. */
 export const CARD_FONT_FAMILY = "JimCard, -apple-system, 'Helvetica Neue', Arial, sans-serif";
@@ -228,12 +230,18 @@ function WorkoutCard({ model, size }: { model: ShareCardModel; size: ShareCardSi
 
   const titleY = story ? 330 : 210;
   const tilesTop = story ? 430 : 290;
-  const columns = story ? 2 : model.tiles.length > 4 ? 3 : model.tiles.length || 1;
-  const tileHeight = story ? 190 : 132;
+  // Five tiles (a record and bodyweight on) take two rows rather than three.
+  const crowded = model.tiles.length > 4;
+  const columns = story ? (crowded ? 3 : 2) : crowded ? 3 : model.tiles.length || 1;
+  const tileHeight = story ? 190 : crowded ? 100 : 132;
   const tileRows = Math.ceil(model.tiles.length / columns);
   const tilesBottom = tilesTop + tileRows * tileHeight + (tileRows - 1) * 24;
-  const listTop = tilesBottom + (story ? 96 : 72);
-  const rowHeight = story ? 120 : 66;
+  const listTop = tilesBottom + (story ? 96 : crowded ? 56 : 72);
+  // The list never runs into the footer: rows squeeze to what's left above it.
+  const height = SHARE_CARD_DIMENSIONS[size].height;
+  const slots = model.exercises.length + (model.moreExercises > 0 ? 1 : 0);
+  const room = height - FOOTER_RESERVE - listTop;
+  const rowHeight = Math.min(story ? 120 : 66, slots > 0 ? room / slots : 120);
   const nameSize = story ? 46 : 32;
 
   return (

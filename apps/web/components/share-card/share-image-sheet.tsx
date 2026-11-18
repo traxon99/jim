@@ -13,7 +13,7 @@ import {
   type ShareCardSize,
   shareCardModel,
 } from "@jim/core";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 const SIZE_LABELS: Record<ShareCardSize, string> = { story: "Story", square: "Square" };
 
@@ -41,6 +41,8 @@ export function ShareImageSheet({ build, title, text, onClose, ...key }: ShareIm
   const [fontCss, setFontCss] = useState<string | null>(null);
   const [image, setImage] = useState<Blob | null>(null);
   const [sharing, setSharing] = useState(false);
+  // State lags a fast double tap by a render; the ref stops the second one.
+  const sharingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const source = useMemo(() => (extras ? build(extras) : null), [extras, build]);
@@ -87,7 +89,8 @@ export function ShareImageSheet({ build, title, text, onClose, ...key }: ShareIm
     <FloatingCard labelledBy={titleId} onClose={onClose}>
       {(close) => {
         async function handleShare() {
-          if (!image || sharing) return;
+          if (!image || sharingRef.current) return;
+          sharingRef.current = true;
           setSharing(true);
           setError(null);
           try {
@@ -96,6 +99,7 @@ export function ShareImageSheet({ build, title, text, onClose, ...key }: ShareIm
           } catch {
             setError("Couldn't share the image. Try again.");
           } finally {
+            sharingRef.current = false;
             setSharing(false);
           }
         }
