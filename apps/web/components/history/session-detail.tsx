@@ -5,6 +5,7 @@ import { BookmarkPlus } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { ShareImageButton } from "@/components/share-card/share-image-button";
 import { keepOneOff } from "@/components/workout/one-off-cards";
 import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
@@ -17,6 +18,7 @@ import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { showsRestStats, showsRpe, showsSetTimer } from "@/lib/settings/features";
+import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { useStravaActivities, useStravaConnection } from "@/lib/strava/use-strava";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import {
@@ -28,7 +30,7 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export function SessionDetail({ id }: { id: string }) {
   const router = useRouter();
@@ -124,6 +126,23 @@ export function SessionDetail({ id }: { id: string }) {
     [session, summary, displayName, settings.units, groups],
   );
 
+  const buildWorkoutCard = useCallback(
+    (extras: CardExtras) => ({
+      kind: "workout" as const,
+      input: workoutCardInput(
+        {
+          name: displayName,
+          startedAt: session?.startedAt ?? new Date(0),
+          endedAt: session?.endedAt ?? null,
+          units: settings.units,
+          groups,
+        },
+        extras,
+      ),
+    }),
+    [displayName, session?.startedAt, session?.endedAt, settings.units, groups],
+  );
+
   if (session === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center">
@@ -194,11 +213,21 @@ export function SessionDetail({ id }: { id: string }) {
             </button>
           )}
           {session.endedAt && shareText && (
-            <ShareWorkoutButton
-              title={displayName ?? "Workout"}
-              text={shareText}
-              className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-            />
+            <div className="flex shrink-0 flex-wrap justify-end gap-2">
+              <ShareWorkoutButton
+                title={displayName ?? "Workout"}
+                text={shareText}
+                className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+              />
+              <ShareImageButton
+                build={buildWorkoutCard}
+                title={displayName ?? "Workout"}
+                text={shareText}
+                routineId={session.routineId}
+                on={session.startedAt}
+                className="min-h-11 shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+              />
+            </div>
           )}
         </div>
 
