@@ -575,6 +575,13 @@
       "when": 1795042470536,
       "tag": "0081_add_strava",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795043000038,
+      "tag": "0082_progress_photos",
+      "breakpoints": true
     }
   ]
 }

@@ -83,6 +83,48 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET /api/sync/pull", () => {
     expect(body.cursor).toBeGreaterThan(0);
   });
 
+  it("returns a progress photo to its owner only (issue #835)", async () => {
+    const photoId = uuidv7();
+    const now = new Date().toISOString();
+    await push([
+      {
+        id: uuidv7(),
+        table: "progressPhotos",
+        entity: {
+          id: photoId,
+          takenOn: "2026-03-10",
+          takenAt: now,
+          pose: "front",
+          note: null,
+          sessionId: null,
+          bodyMeasurementId: null,
+          width: 1536,
+          height: 2048,
+          thumbPath: `${USER_A}/${photoId}/thumb.jpg`,
+          originalPath: `${USER_A}/${photoId}/original.jpg`,
+          uploadedAt: null,
+          updatedAt: now,
+          deviceId: "device-a",
+          deletedAt: null,
+        },
+      },
+    ]);
+
+    const own = await (await pull(0)).json();
+    expect(own.changes.progressPhotos.map((row: { id: string }) => row.id)).toContain(photoId);
+    expect(
+      own.changes.progressPhotos.find((row: { id: string }) => row.id === photoId),
+    ).toMatchObject({
+      takenOn: "2026-03-10",
+      pose: "front",
+      width: 1536,
+    });
+
+    claimsSub = USER_B;
+    const other = await (await pull(0)).json();
+    expect(other.changes.progressPhotos).toEqual([]);
+  });
+
   it("returns nothing new for a cursor already at the high-water mark", async () => {
     const first = await (await pull(0)).json();
     const second = await (await pull(first.cursor)).json();

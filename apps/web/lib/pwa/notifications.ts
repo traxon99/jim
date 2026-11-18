@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Share a finished workout, a PR or an achievement as an image card for your story or feed.";
+  "Progress photos: add them under Profile → Body, then compare two to four side by side with your bodyweight.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

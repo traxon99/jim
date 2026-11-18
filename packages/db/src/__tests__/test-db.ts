@@ -24,6 +24,7 @@ export async function resetTestDb() {
   await admin.unsafe("DROP SCHEMA IF EXISTS public CASCADE");
   await admin.unsafe("CREATE SCHEMA public");
   await admin.unsafe("DROP SCHEMA IF EXISTS auth CASCADE");
+  await admin.unsafe("DROP SCHEMA IF EXISTS storage CASCADE");
   // Drizzle's own migration-tracking schema — drop it too, or a reset that
   // wipes `public` but leaves migrations marked "already applied" comes back empty.
   await admin.unsafe("DROP SCHEMA IF EXISTS drizzle CASCADE");

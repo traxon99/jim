@@ -28,7 +28,7 @@ let unlockedOverflow = { html: "", body: "" };
  * under another one can't unlock the page, nor restore "hidden" after both
  * close (#796).
  */
-function lockPageScroll(): () => void {
+export function lockPageScroll(): () => void {
   const html = document.documentElement;
   const { body } = document;
   if (scrollLocks === 0) {

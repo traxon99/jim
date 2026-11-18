@@ -21,6 +21,7 @@ export const SYNC_TABLES = [
   "painCheckins",
   "sickDays",
   "exercisePreferences",
+  "progressPhotos",
 ] as const;
 
 export type SyncTable = (typeof SYNC_TABLES)[number];
