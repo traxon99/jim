@@ -17,6 +17,10 @@ const PUBLIC_PATHS = [
   // request signature instead (app/api/push/rest-timer/fire/route.ts).
   "/api/push/rest-timer/fire",
   "/api/push/workout-idle/fire",
+  // Strava's webhook (handshake and deauthorization events) and the QStash
+  // callback that posts a workout: no cookie (issue #836).
+  "/api/strava/webhook",
+  "/api/strava/post",
 ];
 
 /**

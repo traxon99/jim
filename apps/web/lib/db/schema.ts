@@ -29,10 +29,13 @@ export type RoutineRow = typeof routines.$inferSelect;
 export type RoutineExerciseRow = typeof routineExercises.$inferSelect;
 type SessionSelect = typeof sessions.$inferSelect;
 /**
- * The session's gym (issue #454) is optional here, like an exercise's
- * machine details: rows cached before the column existed don't carry it.
+ * The session's gym (issue #454) and Strava choice (issue #836) are optional
+ * here, like an exercise's machine details: rows cached before the columns
+ * existed don't carry them.
  */
-export type SessionRow = Omit<SessionSelect, "gymId"> & Partial<Pick<SessionSelect, "gymId">>;
+type SessionOptionalFields = "gymId" | "stravaPost";
+export type SessionRow = Omit<SessionSelect, SessionOptionalFields> &
+  Partial<Pick<SessionSelect, SessionOptionalFields>>;
 type SessionExerciseSelect = typeof sessionExercises.$inferSelect;
 /**
  * The set plan's edits (issue #803) are optional here, like an exercise's

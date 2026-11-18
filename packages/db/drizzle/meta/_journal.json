@@ -568,6 +568,13 @@
       "when": 1795041260058,
       "tag": "0080_friend_leaderboards",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1795042470536,
+      "tag": "0081_add_strava",
+      "breakpoints": true
     }
   ]
 }

@@ -668,6 +668,9 @@ export const sessions = pgTable(
     // A tombstoned gym leaves gymId pointing at it; readers treat a deleted
     // gym as none.
     gymId: uuid("gym_id").references((): AnyPgColumn => gyms.id, { onDelete: "set null" }),
+    // Whether this workout goes to Strava (issue #836): null follows the
+    // Settings switch, false skips it, true posts it even with auto-post off.
+    stravaPost: boolean("strava_post"),
     deviceId: text("device_id").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -1615,5 +1618,58 @@ export const appOpens = pgTable(
     primaryKey({ columns: [table.userId, table.day] }),
     index("app_opens_day").on(table.day),
     ...ownRowPolicies("app_opens", table.userId),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// strava_connections — a user's Strava link (issue #836). RLS is on with no
+// policies, so the app and PostgREST can't read it: the OAuth tokens are
+// server-only. The routes reach it with the server's own connection after the
+// signed-in user check (ADR-023). Tokens are AES-256-GCM encrypted under
+// STRAVA_TOKEN_KEY.
+// ---------------------------------------------------------------------------
+export const stravaConnections = pgTable("strava_connections", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  athleteId: text("athlete_id").notNull(),
+  athleteName: text("athlete_name"),
+  accessTokenEnc: text("access_token_enc").notNull(),
+  refreshTokenEnc: text("refresh_token_enc").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  scope: text("scope"),
+  autoPost: boolean("auto_post").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
+
+// ---------------------------------------------------------------------------
+// strava_activities — one row per workout sent to Strava (issue #836), the
+// idempotency record: the post callback claims the row (queued|failed →
+// posting) in one statement and only calls Strava when the claim succeeds
+// and no activity id is stored. Server-only like strava_connections. The row
+// outlives a deleted workout, so a restore never posts it twice.
+// ---------------------------------------------------------------------------
+export const stravaActivities = pgTable(
+  "strava_activities",
+  {
+    sessionId: uuid("session_id")
+      .primaryKey()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // "queued" | "posting" | "posted" | "failed"
+    status: text("status").notNull().default("queued"),
+    stravaActivityId: text("strava_activity_id"),
+    error: text("error"),
+    attempts: integer("attempts").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("strava_activities_user").on(table.userId),
+    check(
+      "strava_activities_status_check",
+      sql`${table.status} IN ('queued', 'posting', 'posted', 'failed')`,
+    ),
   ],
 ).enableRLS();
