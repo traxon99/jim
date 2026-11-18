@@ -16,6 +16,8 @@ export type ProfilePatch = Partial<{
   shareWorkouts: boolean;
   shareWorkoutDetails: boolean;
   discoverableByFriendsOfFriends: boolean;
+  shareLeaderboards: boolean;
+  shareRelativeStrength: boolean;
 }>;
 
 /** Validates a patch, or returns why it can't be applied. */
@@ -52,6 +54,8 @@ export function parseProfilePatch(body: unknown): ProfilePatch | string {
     "shareWorkouts",
     "shareWorkoutDetails",
     "discoverableByFriendsOfFriends",
+    "shareLeaderboards",
+    "shareRelativeStrength",
   ] as const) {
     if (key in candidate) {
       if (typeof candidate[key] !== "boolean") return "Invalid profile update";

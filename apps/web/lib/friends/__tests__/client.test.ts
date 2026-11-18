@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createPost,
+  fetchLeaderboard,
+  fetchLeaderboardLifts,
   friendRequestMessage,
   sendFriendRequest,
   toggleReaction,
@@ -78,6 +80,28 @@ describe("friends client", () => {
   it("surfaces the server's error message", async () => {
     const result = await updateUsername("bob", respond(409, { error: "That username is taken" }));
     expect(result).toEqual({ ok: false, error: "That username is taken" });
+  });
+
+  it("asks for a lift's board by slug, with the machine when it has one", async () => {
+    const fetchImpl = respond(200, { units: "lb", rows: [] });
+    await fetchLeaderboard("bench-press", null, fetchImpl);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/friends/leaderboard?slug=bench-press",
+      expect.anything(),
+    );
+
+    const machine = { brand: "Rogue", model: "X", latitude: 40, longitude: -75 };
+    await fetchLeaderboard("leg-press", machine, fetchImpl);
+    const url = (fetchImpl as unknown as { mock: { calls: string[][] } }).mock.calls[1]?.[0] ?? "";
+    expect(new URL(`http://x${url}`).searchParams.get("machine")).toBe(JSON.stringify(machine));
+  });
+
+  it("unwraps the shared lifts", async () => {
+    const lift = { slug: "squat", name: "Squat", machine: null, participants: 3 };
+    expect(await fetchLeaderboardLifts(respond(200, { lifts: [lift] }))).toEqual({
+      ok: true,
+      value: [lift],
+    });
   });
 
   it("says so when offline", async () => {

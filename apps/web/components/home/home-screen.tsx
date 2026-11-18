@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CircleUserRound } from "@/components/icons/solar";
+import { Bell, CircleUserRound, Trophy } from "@/components/icons/solar";
 import { FLOATING_BUTTON, PageHeader } from "@/components/page-header";
 import { fetchActivity } from "@/lib/friends/client";
 import { useFriends } from "@/lib/friends/use-friends";
@@ -50,6 +50,14 @@ export function HomeScreen() {
         actions={
           <>
             <NewPostButton />
+            <Link
+              href="/leaderboards"
+              aria-label="Leaderboards"
+              data-ripple
+              className={FLOATING_BUTTON}
+            >
+              <Trophy className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+            </Link>
             <span className="relative flex">
               <button
                 type="button"

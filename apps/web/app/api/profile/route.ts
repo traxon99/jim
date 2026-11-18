@@ -21,6 +21,8 @@ function toPayload(row: typeof users.$inferSelect): ProfilePayload {
     shareWorkouts: row.shareWorkouts,
     shareWorkoutDetails: row.shareWorkoutDetails,
     discoverableByFriendsOfFriends: row.discoverableByFriendsOfFriends,
+    shareLeaderboards: row.shareLeaderboards,
+    shareRelativeStrength: row.shareRelativeStrength,
   };
 }
 

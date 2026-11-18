@@ -17,13 +17,13 @@ export type BarTab = (typeof BAR_TABS)[number];
 /**
  * Screens that aren't tabs themselves but are reached from one, so that
  * tab stays highlighted while they're open. Profile (and its settings)
- * and the friends list live behind the buttons in Friends' header, PRP
+ * the friends list and leaderboards live behind the buttons in Friends' header, PRP
  * Progress behind Lift's, and Exercises is a segment of Plan (#783).
  */
 const NESTED_UNDER: Partial<Record<BaseTab, readonly string[]>> = {
   "/workout": ["/progression"],
   "/routines": ["/exercises"],
-  "/home": ["/profile", "/friends"],
+  "/home": ["/profile", "/friends", "/leaderboards"],
 };
 
 /** Friend profile pages keep Home highlighted (issue #751). */
