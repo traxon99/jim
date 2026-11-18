@@ -5,6 +5,8 @@ import { ExerciseNameButton } from "@/components/exercises/exercise-name-button"
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
 import { Send } from "@/components/icons/solar";
 import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { AchievementShareButton } from "@/components/share-card/achievement-share-button";
+import { ShareImageButton } from "@/components/share-card/share-image-button";
 import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
@@ -15,6 +17,7 @@ import { buildSessionDetailExercises } from "@/lib/history/session-detail-entrie
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { showsRestStats, showsSetTimer } from "@/lib/settings/features";
+import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import {
@@ -27,7 +30,7 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 interface Props {
   session: SessionRow;
@@ -115,6 +118,23 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     () =>
       achievementData ? achievementsEarnedInSession(achievementData.achievements, session.id) : [],
     [achievementData, session.id],
+  );
+
+  const buildWorkoutCard = useCallback(
+    (extras: CardExtras) => ({
+      kind: "workout" as const,
+      input: workoutCardInput(
+        {
+          name: session.name,
+          startedAt: session.startedAt,
+          endedAt: session.endedAt,
+          units: settings.units,
+          groups: exerciseGroups,
+        },
+        extras,
+      ),
+    }),
+    [session.name, session.startedAt, session.endedAt, settings.units, exerciseGroups],
   );
 
   const minutes = Math.round(summary.durationSeconds / 60);
@@ -217,6 +237,10 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                     {achievement.description}
                   </span>
                 </div>
+                <AchievementShareButton
+                  achievement={achievement}
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-zinc-500 dark:text-zinc-400"
+                />
                 <PostToFriendsButton
                   draft={achievementPostDraft(achievement)}
                   label={`Post ${achievement.title} to friends`}
@@ -237,10 +261,18 @@ export function SessionSummary({ session, sessionExercises }: Props) {
 
       <StravaPostRow session={session} mode="finish" />
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
         <ShareWorkoutButton
           title={session.name ?? "Workout"}
           text={shareText}
+          className="min-h-11 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+        />
+        <ShareImageButton
+          build={buildWorkoutCard}
+          title={session.name ?? "Workout"}
+          text={shareText}
+          routineId={session.routineId}
+          on={session.startedAt}
           className="min-h-11 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
         />
         <Link

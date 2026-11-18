@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "See where you rank against your friends on every lift: friend leaderboards are on each exercise page.";
+  "Share a finished workout, a PR or an achievement as an image card for your story or feed.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

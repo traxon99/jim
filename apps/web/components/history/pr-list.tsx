@@ -11,6 +11,7 @@ import {
   nextTierHint,
   tierBadgeLabel,
 } from "@/components/history/pr-badges";
+import { PrShareButton } from "@/components/history/pr-share-button";
 import { PrSparkline } from "@/components/history/pr-sparkline";
 import { predictionDetail } from "@/components/history/predicted-one-rep-max-stat";
 import { ChevronDown, Medal, SlidersHorizontal, Sparkles } from "@/components/icons/solar";
@@ -29,6 +30,7 @@ import { predictedOneRepMaxByExercise } from "@/lib/history/predicted-by-exercis
 import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { recordSetDetails } from "@/lib/share-card/pr-source";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
@@ -443,11 +445,29 @@ export function PrList() {
                               {PR_KIND_LABELS[record.kind]}
                               {isRecentPersonalRecord(record, now) && <NewBadge />}
                             </span>
-                            <span className="flex flex-col items-end">
-                              <span className="font-medium">{formatPrValue(record.value)}</span>
-                              <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                                {record.achievedAt.toLocaleDateString()}
+                            <span className="flex items-center gap-1">
+                              <span className="flex flex-col items-end">
+                                <span className="font-medium">{formatPrValue(record.value)}</span>
+                                <span className="text-xs text-zinc-500 dark:text-zinc-500">
+                                  {record.achievedAt.toLocaleDateString()}
+                                </span>
                               </span>
+                              <PrShareButton
+                                exerciseName={group.name}
+                                record={record}
+                                oneRepMax={
+                                  group.records.find((r) => r.kind === "1rm")?.value ?? null
+                                }
+                                standard={group.standard}
+                                units={settings.units}
+                                details={recordSetDetails(
+                                  record.id,
+                                  rawPersonalRecords,
+                                  rawSets,
+                                  rawSessionExercises,
+                                )}
+                                label={PR_KIND_LABELS[record.kind]}
+                              />
                             </span>
                           </li>
                         ))}
