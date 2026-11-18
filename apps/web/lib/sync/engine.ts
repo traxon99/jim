@@ -1,4 +1,6 @@
 import { type JimDatabase, type SyncMetaRow, db } from "../db/schema";
+import { cacheMissingThumbs } from "../photos/cache";
+import { MAX_UPLOAD_FAILURES, drainPhotoUploads } from "../photos/upload-queue";
 import { reportTelemetry } from "../telemetry/client";
 import { APP_VERSION } from "../version";
 import { APP_VERSION_HEADER } from "./app-version-header";
@@ -34,7 +36,7 @@ async function reportFailure(
   database: JimDatabase,
   failure: { response?: Response; unreachable?: boolean } = {},
 ): Promise<void> {
-  const count = await database.outbox.count();
+  const count = await pendingCount(database);
   if (failure.unreachable) {
     setSyncStatus({ kind: "offline", count });
     return;
@@ -84,16 +86,30 @@ async function readJson<T>(response: Response): Promise<T | null> {
 /** Server rejections after which a queued mutation reads as a sync error, not pending (#500). */
 export const MAX_PUSH_FAILURES = 3;
 
+/**
+ * Everything waiting to leave this phone: queued mutations plus photos whose
+ * bytes haven't reached Storage (issue #835).
+ */
+async function pendingCount(database: JimDatabase): Promise<number> {
+  return (await database.outbox.count()) + (await database.photoUploads.count());
+}
+
 async function refreshStatusFromOutbox(database: JimDatabase): Promise<void> {
-  const remaining = await database.outbox.count();
+  const remaining = await pendingCount(database);
   if (remaining === 0) {
     setSyncStatus({ kind: "synced" });
     return;
   }
-  const stuck = await database.outbox
+  const stuckMutations = await database.outbox
     .filter((entry) => (entry.failures ?? 0) >= MAX_PUSH_FAILURES)
     .count();
-  setSyncStatus({ kind: stuck > 0 ? "error" : "pending", count: remaining });
+  const stuckPhotos = await database.photoUploads
+    .filter((upload) => upload.failures >= MAX_UPLOAD_FAILURES)
+    .count();
+  setSyncStatus({
+    kind: stuckMutations + stuckPhotos > 0 ? "error" : "pending",
+    count: remaining,
+  });
 }
 
 /**
@@ -116,7 +132,7 @@ export async function drainOutbox(
 ): Promise<void> {
   const entries = await database.outbox.orderBy("id").toArray();
   if (entries.length === 0) {
-    setSyncStatus({ kind: "synced" });
+    await refreshStatusFromOutbox(database);
     return;
   }
 
@@ -253,12 +269,21 @@ export async function pullChanges(
 }
 
 async function runSyncCycleOnce(database: JimDatabase, fetchImpl: typeof fetch): Promise<void> {
+  // Photo bytes first: finishing an upload queues its `uploadedAt` write, which
+  // the push below then carries (issue #835). Never throws; a failed upload
+  // stays queued and shows in the status count.
+  await drainPhotoUploads(database).catch((error: unknown) => {
+    console.error("[sync] photo upload failed:", error);
+  });
   await drainOutbox(database, fetchImpl);
   // A signed-out push would only be refused again by the pull, and one that
   // couldn't reach the server would only wait out another timeout.
   const { kind } = getSyncStatus();
   if (kind === "signed-out" || kind === "offline") return;
   await pullChanges(database, fetchImpl);
+  await cacheMissingThumbs(database).catch((error: unknown) => {
+    console.error("[sync] photo thumbnails failed:", error);
+  });
 }
 
 interface CycleState {

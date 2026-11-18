@@ -28,7 +28,7 @@ export function SyncStatusIndicator() {
   );
   // Live, so a change saved with no signal counts up straight away (#665).
   const outboxCount = useLiveQuery(
-    () => db.outbox.count(),
+    async () => (await db.outbox.count()) + (await db.photoUploads.count()),
     [],
     "count" in status ? status.count : 0,
   );

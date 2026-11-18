@@ -714,3 +714,33 @@ API has no per-set fields, can't delete an activity, and needs OAuth tokens that
 
 **Rejected: posting from the phone.** The tokens would have to live in IndexedDB, and a workout finished
 offline would only post when the app is next opened.
+## ADR-025 — Progress photos are private and live in Storage, not Postgres
+
+**Status:** Accepted · 2026-11-18
+
+**Context.** Lifters want progress photos next to their bodyweight (issue #835). Photos are the most
+sensitive thing Jim stores, and the first thing that is binary and large.
+
+**Decision.**
+
+- **Metadata syncs; bytes don't.** `progress_photos` is an ordinary own-row, last-write-wins synced
+  table (ADR-005). The image bytes go to a private Supabase Storage bucket, `progress-photos`,
+  under `<user_id>/<photo_id>/…`, with `select`/`insert`/`delete` policies that check the first path
+  segment against `auth.uid()`. No public URLs; reads use short-lived signed URLs.
+- **Blobs get their own queue.** The mutation outbox holds small JSON rows, so pending photo bytes
+  wait in a separate Dexie table drained on the same foreground triggers (ADR-002). The row's
+  `uploaded_at` is written only after both objects land, and an upload that finds its object already
+  stored counts as done.
+- **Strip metadata on the phone.** The photo is re-encoded through a canvas before upload, which
+  drops EXIF (location, camera). Only the capture date is read first, to pre-fill the day.
+- **Never shared.** No friend function, post, share snapshot or card, MCP tool or `/v1` endpoint reads
+  the table, and a guard test fails CI if one starts to. They are in the JSON export and the Export
+  photos zip, and the account's Storage prefix is removed by the admin deletion script.
+- **No service role in the app.** The push route removes a deleted photo's objects as the signed-in
+  user, over the same delete policy. Only the admin script, run by hand, holds the service-role key.
+
+**Rejected: bytes in Postgres.** It would balloon the database and the sync pull, and Postgres has no
+signed-URL story.
+
+**Rejected: public bucket with unguessable names.** A leaked URL would stay valid forever; "no other
+user can fetch it even with a guessed URL" needs the policy, not obscurity.

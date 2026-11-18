@@ -16,6 +16,7 @@ import {
   personalRecords,
   programRoutines,
   programs,
+  progressPhotos,
   routineExercises,
   routines,
   scheduledWorkouts,
@@ -51,6 +52,7 @@ const PULL_TABLES: Record<SyncTable | "scheduledWorkouts", PgTable & { serverSeq
   painCheckins: painCheckins,
   sickDays: sickDays,
   exercisePreferences: exercisePreferences,
+  progressPhotos: progressPhotos,
   scheduledWorkouts: scheduledWorkouts,
 };
 

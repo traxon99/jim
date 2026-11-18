@@ -985,6 +985,53 @@ export const sickDays = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// progress_photos — metadata for a private progress photo (issue #835). The
+// image bytes live in the private `progress-photos` Storage bucket under
+// `<user_id>/<photo_id>/{thumb,original}.jpg` (migration 0082 creates the
+// bucket and its policies); `uploaded_at` is set only once both objects are
+// stored. `taken_on` is the user's local day. A tombstone makes the push
+// route remove both objects. Last-write-wins like other low-volume rows.
+// Never read by a friend function, post, share, the MCP or /v1.
+// ---------------------------------------------------------------------------
+
+export const progressPhotos = pgTable(
+  "progress_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    takenOn: date("taken_on").notNull(),
+    takenAt: timestamp("taken_at", { withTimezone: true }).notNull().defaultNow(),
+    pose: text("pose"),
+    note: text("note"),
+    sessionId: uuid("session_id").references(() => sessions.id, { onDelete: "set null" }),
+    bodyMeasurementId: uuid("body_measurement_id").references(() => bodyMeasurements.id, {
+      onDelete: "set null",
+    }),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    thumbPath: text("thumb_path").notNull(),
+    originalPath: text("original_path").notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("progress_photos", table.userId),
+    index("progress_photos_server_seq").on(table.serverSeq),
+    index("progress_photos_user_seq").on(table.userId, table.serverSeq),
+    index("progress_photos_user_day").on(table.userId, table.takenOn),
+    check(
+      "progress_photos_pose_valid",
+      sql`${table.pose} IS NULL OR ${table.pose} IN ('front', 'side', 'back', 'other')`,
+    ),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // exercise_preferences — the user's Like or Dislike on an exercise (issue
 // #795). Keyed by slug, not id, so it survives a copy-on-write clone
 // (ADR-008). Setting None tombstones the row; readers take the newest live

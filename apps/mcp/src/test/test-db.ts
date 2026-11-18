@@ -37,6 +37,7 @@ export async function resetTestDb() {
   await admin.unsafe("DROP SCHEMA IF EXISTS public CASCADE");
   await admin.unsafe("CREATE SCHEMA public");
   await admin.unsafe("DROP SCHEMA IF EXISTS auth CASCADE");
+  await admin.unsafe("DROP SCHEMA IF EXISTS storage CASCADE");
   await admin.unsafe("DROP SCHEMA IF EXISTS drizzle CASCADE");
   await admin.unsafe(BOOTSTRAP_SQL);
   await migrate(drizzle(admin), { migrationsFolder: MIGRATIONS_FOLDER });

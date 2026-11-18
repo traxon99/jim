@@ -3,6 +3,7 @@
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
 import { ChevronRight } from "@/components/icons/solar";
 import { PainPicker } from "@/components/injuries/pain-picker";
+import { PhotoStrip } from "@/components/photos/photo-strip";
 import {
   TRACKED_MEASUREMENT_KINDS,
   bodyweightSeries,
@@ -83,6 +84,17 @@ export function ProfileBodyTab() {
           </ul>
         </section>
       )}
+
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">Photos</h3>
+          <Link href="/profile/photos" className="flex items-center gap-1 text-sm font-medium">
+            All
+            <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          </Link>
+        </div>
+        <PhotoStrip />
+      </section>
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
