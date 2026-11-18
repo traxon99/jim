@@ -1,9 +1,9 @@
 "use client";
 
 import { ChartTooltip, formatTooltipDate } from "@/components/charts/chart-tooltip";
-import { trailingAverage } from "@/lib/bodyweight/series";
 import { clientXToViewBox, nearestIndexByX } from "@/lib/charts/chart-hover";
 import type { TrendPoint } from "@/lib/portal/body-data";
+import { type WeightUnit, bodyweightRange, trailingAverage } from "@jim/core";
 import { type KeyboardEvent, type MouseEvent, useState } from "react";
 
 /** Wide for the desktop portal; compact for the phone's Profile screens. */
@@ -29,6 +29,8 @@ function withUnit(text: string, unit: string): string {
  * (issue #468). With `trendDays` the line is that trailing average and the
  * dots are the raw entries; without it the line joins the entries, which
  * suits measurements taken weeks apart. A single entry draws as one dot.
+ * With `rangeUnit` too (bodyweight, issue #825) the trend is a shaded likely
+ * range, scale error plus water swing, with the average dashed through it.
  */
 export function TrendChart({
   points,
@@ -38,6 +40,7 @@ export function TrendChart({
   emptyText,
   format = formatValue,
   size = "wide",
+  rangeUnit = null,
 }: {
   points: readonly TrendPoint[];
   label: string;
@@ -47,6 +50,8 @@ export function TrendChart({
   /** How a value reads, e.g. "25:07" for a time; numbers by default. */
   format?: (value: number) => string;
   size?: keyof typeof SIZES;
+  /** Shade bodyweight's likely range around the trend; needs `trendDays`. */
+  rangeUnit?: WeightUnit | null;
 }) {
   const { width: WIDTH, height: HEIGHT, padding: PADDING, fontSize, dot } = SIZES[size];
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -56,9 +61,11 @@ export function TrendChart({
   }
 
   const trend = trendDays ? trailingAverage(points, trendDays) : points.map((p) => p.value);
+  const range = trendDays && rangeUnit ? bodyweightRange(points, trendDays, rangeUnit) : null;
   const values = points.map((point) => point.value);
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
+  const extents = range ? [...values, ...range.flatMap((r) => [r.low, r.high])] : values;
+  const minValue = Math.min(...extents);
+  const maxValue = Math.max(...extents);
   const valueSpan = maxValue - minValue || 1;
   const times = points.map((point) => point.measuredAt.getTime());
   const minTime = Math.min(...times);
@@ -91,9 +98,12 @@ export function TrendChart({
   function describe(index: number): string {
     const point = points[index];
     if (!point) return "";
-    const average = trendDays
-      ? `, ${trendDays}-day average ${format(trend[index] ?? point.value)}`
-      : "";
+    const band = range?.[index];
+    const average = band
+      ? `, likely ${format(band.low)} to ${withUnit(format(band.high), unit)}`
+      : trendDays
+        ? `, ${trendDays}-day average ${format(trend[index] ?? point.value)}`
+        : "";
     return `${formatTooltipDate(point.measuredAt)}: ${withUnit(format(point.value), unit)}${average}`;
   }
 
@@ -103,6 +113,17 @@ export function TrendChart({
         `${index === 0 ? "M" : "L"}${x(point).toFixed(1)},${y(trend[index] ?? point.value).toFixed(1)}`,
     )
     .join(" ");
+  const bandPoints = range
+    ? [
+        ...points.map(
+          (point, i) => `${x(point).toFixed(1)},${y(range[i]?.high ?? point.value).toFixed(1)}`,
+        ),
+        ...points
+          .map((point, i) => `${x(point).toFixed(1)},${y(range[i]?.low ?? point.value).toFixed(1)}`)
+          .reverse(),
+      ].join(" ")
+    : null;
+  const activeBand = activeIndex == null ? undefined : range?.[activeIndex];
   const active = activeIndex == null ? undefined : points[activeIndex];
   const last = points.length - 1;
 
@@ -147,6 +168,9 @@ export function TrendChart({
               </g>
             ),
           )}
+          {bandPoints && points.length > 1 && (
+            <polygon points={bandPoints} fill="currentColor" fillOpacity={0.12} />
+          )}
           {points.map((point) => (
             <circle
               key={point.id}
@@ -162,7 +186,9 @@ export function TrendChart({
               d={path}
               fill="none"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={range ? 1.5 : 2}
+              strokeOpacity={range ? 0.6 : 1}
+              strokeDasharray={range ? "4 4" : undefined}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -192,10 +218,16 @@ export function TrendChart({
           <ChartTooltip xFraction={x(active) / WIDTH} yFraction={y(active.value) / HEIGHT}>
             <span className="font-semibold">{formatTooltipDate(active.measuredAt)}</span>
             <span className="tabular-nums">{withUnit(format(active.value), unit)}</span>
-            {trendDays && (
+            {activeBand ? (
               <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
-                {trendDays}-day avg {format(trend[activeIndex] ?? active.value)}
+                Likely {format(activeBand.low)}–{format(activeBand.high)}
               </span>
+            ) : (
+              trendDays && (
+                <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {trendDays}-day avg {format(trend[activeIndex] ?? active.value)}
+                </span>
+              )
             )}
           </ChartTooltip>
         )}
@@ -205,7 +237,11 @@ export function TrendChart({
         {points.length === 1 ? (
           <span>Log another to see a trend</span>
         ) : (
-          trendDays && <span className="min-w-0 truncate">Line: {trendDays}-day average</span>
+          trendDays && (
+            <span className="min-w-0 truncate">
+              {range ? "Band: likely weight" : `Line: ${trendDays}-day average`}
+            </span>
+          )
         )}
         {points.length > 1 && <span>{points[last]?.measuredAt.toLocaleDateString()}</span>}
       </div>

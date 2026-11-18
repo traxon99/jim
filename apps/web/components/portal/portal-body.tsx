@@ -101,6 +101,7 @@ export function PortalBody({ data }: { data: PortalBodyData }) {
                 label="Bodyweight"
                 unit={units}
                 trendDays={BODYWEIGHT_TREND_DAYS}
+                rangeUnit={units}
                 emptyText="No weigh-ins in this range."
               />
             )}

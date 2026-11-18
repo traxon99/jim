@@ -277,7 +277,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Get body measurements",
       description:
-        "Read-only. Bodyweight, body fat % and circumferences (neck, chest, waist, hips, arms, thighs, calves) logged over time, oldest first, grouped by kind with the latest value and the change across the range. Weights are in the user's units, lengths in inches (lb users) or centimetres (kg users).",
+        "Read-only. Bodyweight, body fat % and circumferences (neck, chest, waist, hips, arms, thighs, calves) logged over time, oldest first, grouped by kind with the latest value and the change across the range. Bodyweight also has `likely`: the 7-day average give or take scale error and water swing, the shaded range the phone's chart draws. Weights are in the user's units, lengths in inches (lb users) or centimetres (kg users).",
       inputSchema: {
         kinds: z.array(z.enum(MEASUREMENT_KINDS)).optional().describe("Only these kinds"),
         from: z

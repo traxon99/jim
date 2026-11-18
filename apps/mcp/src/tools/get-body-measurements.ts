@@ -1,7 +1,9 @@
 import {
+  BODYWEIGHT_TREND_DAYS,
   MEASUREMENT_KINDS,
   type MeasurementKind,
   type MeasurementUnit,
+  bodyweightRange,
   convertMeasurement,
   displayUnitFor,
   isMeasurementKind,
@@ -24,7 +26,15 @@ export interface MeasurementSeries {
   /** Latest minus the first entry in range; null with fewer than two. */
   change: number | null;
   entries: { id: string; value: number; measuredAt: string }[];
+  /**
+   * Bodyweight only (issue #825): the likely weight at the latest weigh-in,
+   * its 7-day average give or take scale error and water swing, as the
+   * phone's shaded band shows it. Null for other kinds and with no entries.
+   */
+  likely: { average: number; low: number; high: number } | null;
 }
+
+const round1 = (value: number) => Math.round(value * 10) / 10;
 
 /**
  * Read-only (issue #249): bodyweight, body fat and circumferences over
@@ -58,7 +68,7 @@ export async function getBodyMeasurements(
       if (value == null || !Number.isFinite(value)) continue;
       let series = byKind.get(row.kind);
       if (!series) {
-        series = { kind: row.kind, unit, latest: null, change: null, entries: [] };
+        series = { kind: row.kind, unit, latest: null, change: null, entries: [], likely: null };
         byKind.set(row.kind, series);
       }
       series.entries.push({ id: row.id, value, measuredAt: row.measuredAt.toISOString() });
@@ -74,6 +84,20 @@ export async function getBodyMeasurements(
         first && last && series.entries.length > 1
           ? Math.round((last.value - first.value) * 100) / 100
           : null;
+      if (kind === "bodyweight" && last) {
+        const points = series.entries.map((entry) => ({
+          measuredAt: new Date(entry.measuredAt),
+          value: entry.value,
+        }));
+        const band = bodyweightRange(points, BODYWEIGHT_TREND_DAYS, units).at(-1);
+        if (band) {
+          series.likely = {
+            average: round1(band.mid),
+            low: round1(band.low),
+            high: round1(band.high),
+          };
+        }
+      }
       return [series];
     });
     return { units, measurements };

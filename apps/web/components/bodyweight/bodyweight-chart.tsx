@@ -1,20 +1,20 @@
 import { TrendChart } from "@/components/charts/trend-chart";
 import type { MeasurementPoint } from "@/lib/bodyweight";
+import { BODYWEIGHT_TREND_DAYS, type WeightUnit } from "@jim/core";
 
-/** Weigh-ins swing a kilo or two day to day; the trend is the 7-day average. */
-export const BODYWEIGHT_TREND_DAYS = 7;
+export { BODYWEIGHT_TREND_DAYS };
 
 /**
- * Bodyweight over time (issue #377): each weigh-in as a dot, with the 7-day
- * average as the line, since that's what shows the real trend under daily
- * water-weight noise.
+ * Bodyweight over time (issue #377): each weigh-in as a dot, and the 7-day
+ * average as a shaded likely range (issue #825) covering scale error and the
+ * daily water swing, since no single weigh-in is your real weight.
  */
 export function BodyweightChart({
   points,
   unit,
 }: {
   points: readonly MeasurementPoint[];
-  unit: string;
+  unit: WeightUnit;
 }) {
   return (
     <TrendChart
@@ -22,6 +22,7 @@ export function BodyweightChart({
       label="Bodyweight"
       unit={unit}
       trendDays={BODYWEIGHT_TREND_DAYS}
+      rangeUnit={unit}
       emptyText="No weigh-ins in this range yet."
       size="compact"
     />

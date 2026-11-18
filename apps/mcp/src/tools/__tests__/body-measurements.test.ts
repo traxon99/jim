@@ -31,6 +31,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("get_body_measurements (#249)", 
     const [bodyweight, bodyFat, waist] = result.measurements;
     expect(bodyweight).toMatchObject({ unit: "lb", change: -3.63 });
     expect(bodyweight?.entries.map((e) => e.value)).toEqual([180, 176.37]);
+    // #825: one weigh-in in the week, so ±1% water swing with ±0.5 lb scale error.
+    expect(bodyweight?.likely).toEqual({ average: 176.4, low: 174.5, high: 178.2 });
+    expect(waist?.likely).toBeNull();
     expect(bodyFat).toMatchObject({ unit: "pct", latest: { value: 18.5 }, change: null });
     expect(waist).toMatchObject({ unit: "in", latest: { value: 32 } });
     expect(waist?.entries.map((e) => e.value)).toEqual([32.28, 32]);
