@@ -80,6 +80,7 @@ export const WRITE_TOOLS = new Set([
   "react_to_workout",
   "delete_comment",
   "post_workout_to_strava",
+  "set_strava_auto_post",
   // Admin only (#811): listed for admins alone.
   "admin_update_user_settings",
   "admin_update_user_profile",

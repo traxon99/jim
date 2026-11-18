@@ -73,7 +73,7 @@ export async function requeueFailedStravaPost(
 ): Promise<boolean> {
   const moved = await db
     .update(stravaActivities)
-    .set({ status: "queued", error: null, updatedAt: new Date() })
+    .set({ status: "queued", error: null, attempts: 0, updatedAt: new Date() })
     .where(
       and(
         eq(stravaActivities.sessionId, sessionId),

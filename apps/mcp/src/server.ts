@@ -99,7 +99,7 @@ import { cancelScheduledWorkout, listScheduledWorkouts } from "./tools/scheduled
 import { searchExercisesTool } from "./tools/search-exercises.js";
 import { getSettings, updateSettings } from "./tools/settings.js";
 import { listSickDays, markSickDays, unmarkSickDays } from "./tools/sick-days.js";
-import { getStravaStatus, postWorkoutToStrava } from "./tools/strava.js";
+import { getStravaStatus, postWorkoutToStrava, setStravaAutoPost } from "./tools/strava.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
@@ -1157,6 +1157,16 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => postWorkoutToStrava(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "set_strava_auto_post",
+    {
+      title: "Set Strava auto-post",
+      description: `Turn Settings' "Auto-post to Strava" on or off: whether each finished workout posts to Strava by itself. Needs Strava connected in the app. A workout can still be posted by hand with post_workout_to_strava.${PREVIEW_HINT}`,
+      inputSchema: { autoPost: z.boolean(), dry_run: dryRunParam(false) },
+    },
+    handle(({ dry_run, ...input }) => setStravaAutoPost(context, { ...input, dryRun: dry_run })),
   );
 
   // Friends' activity and comments (issues #746, #749): the Home feed and

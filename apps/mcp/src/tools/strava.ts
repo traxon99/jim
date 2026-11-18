@@ -176,10 +176,42 @@ export async function postWorkoutToStrava(
   ) {
     queued.push(input.workoutId);
   }
-  for (const id of queued) await publishPost(context.userId, id);
+  let publishFailed = false;
+  for (const id of queued) {
+    try {
+      await publishPost(context.userId, id);
+    } catch (error) {
+      // Left failed, so the phone offers Retry and a second call requeues it.
+      console.error("[strava] publishing a post failed:", error);
+      await markStravaFailed(context.db, id, "Couldn't queue the post");
+      publishFailed = true;
+    }
+  }
+  if (publishFailed) throw new Error("Couldn't queue the post to Strava. Try again shortly.");
   return {
     ...result,
     alreadyOnStrava: existing?.status === "posted",
     queued: queued.length > 0,
   };
+}
+
+/** The Settings switch "Auto-post to Strava": whether finished workouts post by themselves. */
+export async function setStravaAutoPost(
+  context: UserContext,
+  input: { autoPost: boolean; dryRun?: boolean },
+) {
+  const [connection] = await context.db
+    .select({ autoPost: stravaConnections.autoPost })
+    .from(stravaConnections)
+    .where(eq(stravaConnections.userId, context.userId));
+  if (!connection) {
+    throw new Error("Strava isn't connected. Connect it in the app: Settings → Account → Strava.");
+  }
+  if (!input.dryRun) {
+    await context.db
+      .update(stravaConnections)
+      .set({ autoPost: input.autoPost })
+      .where(eq(stravaConnections.userId, context.userId));
+  }
+  return { autoPost: input.autoPost, previous: connection.autoPost, dryRun: input.dryRun ?? false };
 }
