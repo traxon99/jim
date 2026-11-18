@@ -11,20 +11,21 @@ export interface DrainResult {
   uploaded: number;
   /** Photos still queued afterwards. */
   remaining: number;
-  /** Whether an attempt failed, which stops the drain until the next cycle. */
+  /** Whether an attempt failed or couldn't reach Storage, which stops the drain until the next cycle. */
   failed: boolean;
 }
 
-async function putObject(
-  storage: PhotoStorage,
-  path: string,
-  blob: Blob,
-): Promise<{ message: string } | null> {
+/** What an upload attempt came to: stored, refused by Storage, or never answered. */
+type PutResult = "stored" | "rejected" | "unreachable";
+
+async function putObject(storage: PhotoStorage, path: string, blob: Blob): Promise<PutResult> {
   try {
     const { error } = await storage.upload(path, blob);
-    return error && !isAlreadyStored(error) ? error : null;
-  } catch (error) {
-    return { message: error instanceof Error ? error.message : "Upload failed" };
+    if (!error || isAlreadyStored(error)) return "stored";
+    // No HTTP status means no answer (no signal, or a timeout): offline, not a failure (#665).
+    return error.status === undefined ? "unreachable" : "rejected";
+  } catch {
+    return "unreachable";
   }
 }
 
@@ -63,10 +64,13 @@ export async function drainPhotoUploads(
     ] as const;
     for (const step of steps) {
       if (current[step.done]) continue;
-      const error = await putObject(client, step.path, step.blob);
-      if (error) {
+      const result = await putObject(client, step.path, step.blob);
+      if (result !== "stored") {
         failed = true;
-        await database.photoUploads.update(upload.photoId, { failures: current.failures + 1 });
+        // Only a refusal counts against the photo; having no signal is the normal gym-basement case.
+        if (result === "rejected") {
+          await database.photoUploads.update(upload.photoId, { failures: current.failures + 1 });
+        }
         break;
       }
       current = { ...current, [step.done]: true };
@@ -74,11 +78,21 @@ export async function drainPhotoUploads(
     }
     if (failed) break;
 
+    // The user may have deleted the photo while its bytes were uploading: read
+    // the row again, so the upload never writes over the tombstone (#438).
+    const latest = await database.progressPhotos.get(upload.photoId);
+    if (!latest || latest.deletedAt) {
+      await database.photoUploads.delete(upload.photoId);
+      // The server removed (or will remove) the objects at the tombstone, which
+      // may have come before these landed; remove them here too. Best effort.
+      await client.remove([photo.thumbPath, photo.originalPath]).catch(() => {});
+      continue;
+    }
     const now = new Date();
-    if (!photo.uploadedAt) {
+    if (!latest.uploadedAt) {
       await mutate(
         "progressPhotos",
-        { ...photo, uploadedAt: now, updatedAt: now, deviceId: await getDeviceId(database) },
+        { ...latest, uploadedAt: now, updatedAt: now, deviceId: await getDeviceId(database) },
         database,
       );
     }

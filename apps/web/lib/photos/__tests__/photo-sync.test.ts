@@ -39,6 +39,7 @@ const routeFetch: typeof fetch = async (input, init) => {
 
 const storage: PhotoStorage = {
   upload: async () => ({ error: null }),
+  remove: async () => {},
   signedUrl: async () => null,
 };
 
@@ -159,6 +160,31 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("progress photos: sync and delet
     const [row] = await admin<{ deleted_at: string | null }[]>`
       SELECT deleted_at FROM progress_photos WHERE id = ${saved.id}`;
     expect(row?.deleted_at).not.toBeNull();
+  });
+
+  it("removes the objects again when a delete is retried as a duplicate", async () => {
+    const saved = await saveProgressPhoto(
+      { userId: USER_A, photo: photo(), takenOn: "2026-03-14" },
+      phone,
+    );
+    const now = new Date().toISOString();
+    const mutation = {
+      id: crypto.randomUUID(),
+      table: "progressPhotos",
+      entity: { ...saved, takenAt: now, updatedAt: now, deletedAt: now },
+    };
+    const send = () =>
+      push(
+        new Request("http://localhost/api/sync/push", {
+          method: "POST",
+          body: JSON.stringify({ mutations: [mutation] }),
+        }),
+      );
+    expect((await (await send()).json()).results[0].status).toBe("applied");
+    removed.length = 0; // the first removal is assumed to have failed
+
+    expect((await (await send()).json()).results[0].status).toBe("duplicate");
+    expect(removed).toHaveLength(1);
   });
 
   it("derives the removed paths from the signed-in user, never from the payload", async () => {

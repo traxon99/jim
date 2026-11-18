@@ -104,6 +104,7 @@ describe("progress photo export", () => {
     const progress: number[] = [];
     const storage: PhotoStorage = {
       upload: async () => ({ error: null }),
+      remove: async () => {},
       signedUrl: async () => null,
     };
 
