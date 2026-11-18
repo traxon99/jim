@@ -21,6 +21,7 @@ export * from "./sessions";
 export * from "./sharing";
 export * from "./sick-days";
 export * from "./social";
+export * from "./strava";
 export * from "./strength-standards";
 export * from "./supersets";
 export * from "./sync";

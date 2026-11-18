@@ -8,6 +8,7 @@ import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { keepOneOff } from "@/components/workout/one-off-cards";
 import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
+import { StravaPostRow } from "@/components/workout/strava-post-row";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
@@ -16,8 +17,14 @@ import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { showsRestStats, showsRpe, showsSetTimer } from "@/lib/settings/features";
+import { useStravaActivities, useStravaConnection } from "@/lib/strava/use-strava";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
-import { deriveUntitledSessionName, resolveCurrentRows, summarizeSession } from "@jim/core";
+import {
+  deriveUntitledSessionName,
+  resolveCurrentRows,
+  stravaActivityUrl,
+  summarizeSession,
+} from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,6 +33,15 @@ import { useMemo, useState } from "react";
 export function SessionDetail({ id }: { id: string }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  // A posted workout can't be deleted from Strava by Jim, so deleting it asks first (issue #836).
+  const [askingAboutStrava, setAskingAboutStrava] = useState(false);
+  const stravaConnection = useStravaConnection().load;
+  const { activities: stravaActivities } = useStravaActivities(
+    [id],
+    stravaConnection.status === "ready" && stravaConnection.connected,
+  );
+  const stravaActivityId =
+    stravaActivities?.[id]?.status === "posted" ? (stravaActivities[id]?.activityId ?? null) : null;
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const session = useLiveQuery(async () => (await db.sessions.get(id)) ?? null, [id]);
   // The one-off this workout came from, while it's still around to keep (#798).
@@ -129,7 +145,11 @@ export function SessionDetail({ id }: { id: string }) {
 
   async function handleDelete() {
     if (!session) return;
-    if (!confirm("Delete this workout? This can't be undone.")) return;
+    if (stravaActivityId && !askingAboutStrava) {
+      setAskingAboutStrava(true);
+      return;
+    }
+    if (!stravaActivityId && !confirm("Delete this workout? This can't be undone.")) return;
     setDeleting(true);
     try {
       await deleteSession(session);
@@ -248,14 +268,42 @@ export function SessionDetail({ id }: { id: string }) {
             ))}
         </div>
 
-        <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+        <div className="mt-4 flex flex-col gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+          {session.endedAt && <StravaPostRow session={session} mode="history" />}
+          {askingAboutStrava && stravaActivityId && (
+            <div
+              role="alert"
+              className="flex flex-col gap-2 rounded-lg border border-zinc-300 p-3 text-sm dark:border-zinc-700"
+            >
+              <p>
+                This workout is on Strava. Deleting it here leaves it there; remove it on Strava
+                too.
+              </p>
+              <a
+                href={stravaActivityUrl(stravaActivityId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-ripple
+                className="flex min-h-11 items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 font-medium dark:border-zinc-700"
+              >
+                Open on Strava
+              </a>
+              <button
+                type="button"
+                onClick={() => setAskingAboutStrava(false)}
+                className="min-h-11 rounded-lg px-4 py-2 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleDelete}
             disabled={deleting}
             className="min-h-11 w-full rounded-lg border border-red-300 px-4 py-3 text-base font-medium text-red-600 disabled:opacity-50 dark:border-red-900 dark:text-red-500"
           >
-            {deleting ? "Deleting…" : "Delete workout"}
+            {deleting ? "Deleting…" : askingAboutStrava ? "Delete anyway" : "Delete workout"}
           </button>
         </div>
       </div>

@@ -99,6 +99,7 @@ import { cancelScheduledWorkout, listScheduledWorkouts } from "./tools/scheduled
 import { searchExercisesTool } from "./tools/search-exercises.js";
 import { getSettings, updateSettings } from "./tools/settings.js";
 import { listSickDays, markSickDays, unmarkSickDays } from "./tools/sick-days.js";
+import { getStravaStatus, postWorkoutToStrava } from "./tools/strava.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
@@ -1129,6 +1130,33 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => unmarkSickDays(context, { ...input, dryRun: dry_run })),
+  );
+
+  // Strava sync (issue #836): connected in the app, since it needs Strava's own sign-in page.
+  server.registerTool(
+    "get_strava_status",
+    {
+      title: "Get Strava status",
+      description:
+        "Read-only. Whether the account is connected to Strava, as which athlete, and whether finished workouts post by themselves. Pass a workout id to see whether that workout is on Strava (status not_posted, queued, posting, posted or failed, with the activity link once posted).",
+      inputSchema: {
+        workoutId: z.string().uuid().optional().describe("A workout id from list_workouts"),
+      },
+    },
+    handle((input) => getStravaStatus(context, input)),
+  );
+  server.registerTool(
+    "post_workout_to_strava",
+    {
+      title: "Post workout to Strava",
+      description:
+        "Post one finished workout to Strava, like the History screen's Post to Strava: a Weight Training activity (or the matching cardio sport) with its exercises, working sets and PRs; warm-ups are left out. Needs Strava connected in the app, and a workout posts once. Strava's API can't delete an activity, so dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        workoutId: z.string().uuid().describe("A finished workout's id from list_workouts"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) => postWorkoutToStrava(context, { ...input, dryRun: dry_run })),
   );
 
   // Friends' activity and comments (issues #746, #749): the Home feed and

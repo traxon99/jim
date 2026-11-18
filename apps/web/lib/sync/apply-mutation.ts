@@ -143,7 +143,17 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
   },
   sessions: {
     table: sessions,
-    updatable: ["routineId", "name", "endedAt", "notes", "bodyweight", "intensity", "gymId"],
+    updatable: [
+      "routineId",
+      "name",
+      "endedAt",
+      "notes",
+      "bodyweight",
+      "intensity",
+      "gymId",
+      // Per-workout Strava choice (issue #836).
+      "stravaPost",
+    ],
   },
   sessionExercises: {
     table: sessionExercises,

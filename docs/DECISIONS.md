@@ -667,3 +667,50 @@ the source of truth outside the database the guard trigger protects.
 
 **Rejected: impersonation ("view as").** It would expose training data and blur who did what in the
 audit log.
+
+---
+
+## ADR-024 — Strava sync posts finished workouts from the server
+
+**Status:** Accepted · 2026-11-18
+
+**Context.** Lifters who also run or ride want Jim workouts on Strava (issue #836). Strava's create-activity
+API has no per-set fields, can't delete an activity, and needs OAuth tokens that must not reach the phone.
+
+**Decision.**
+
+- **Server-side OAuth.** `GET /api/strava/connect` redirects to Strava's sign-in with scope
+  `activity:write` and a signed `state` (user id, timestamp, HMAC); `/api/strava/callback` verifies it for the
+  signed-in user, exchanges the code and stores the connection. Jim never sees a Strava password.
+- **Tokens are server-only.** `strava_connections` and `strava_activities` have RLS on and **no
+  policies**, so the phone and PostgREST can't read them; routes reach them on the server's own connection
+  after the signed-in or signature check (the ADR-023 pattern). Tokens are AES-256-GCM under
+  `STRAVA_TOKEN_KEY`, refreshed on use within 5 minutes of expiry.
+- **Trigger.** After `/api/sync/push` commits (and after MCP `log_past_workout`), the server queues each
+  ended, undeleted session that should post: the user is connected, the Settings switch or the session's own
+  `sessions.strava_post` (null follows the switch, false skips, true posts) says so, and the workout ended after
+  the connection was made, so history from before connecting is never back-posted. A hand-picked workout
+  (`strava_post = true`) and one logged through Claude skip that date check. Publishing happens after the
+  commit and can never fail the sync.
+- **Idempotency.** `strava_activities` is keyed by session. The QStash callback (`/api/strava/post`, signed like
+  ADR-014's) claims the row `queued|failed → posting` in one statement and calls Strava only when the claim
+  succeeds, so retries, concurrent deliveries and double syncs post once. The row outlives a deleted workout,
+  so a restore never posts again. Posts are delayed 20 seconds so the finish screen's toggle can still skip one;
+  the callback re-reads the session and drops the row if it was turned off.
+- **Failures.** 429 and 5xx answer 503 so QStash backs off and retries; a 401 means access was revoked and
+  deletes the connection; anything else leaves the row `failed`, shown on the workout as "Couldn't post to
+  Strava" with Retry.
+- **Webhook.** `POST /api/strava/webhook` hears an athlete's deauthorization. Strava doesn't sign events, so
+  the event only prompts a check: the stored token is tried against Strava and the connection is deleted only
+  if Strava rejects it. `GET` is the subscription handshake (`STRAVA_WEBHOOK_VERIFY_TOKEN`). Create the
+  subscription once with `curl -X POST https://www.strava.com/api/v3/push_subscriptions -F client_id=… -F
+  client_secret=… -F callback_url=https://<app>/api/strava/webhook -F verify_token=<verify token>`.
+- **Payload.** `stravaActivityFor` in `@jim/core` is pure: WeightTraining, or the cardio sport when every
+  working exercise is cardio of one sport (Workout for mixed cardio), the workout's name, start and elapsed
+  time, one description line per exercise (working sets, 🏆 on PRs, warm-ups left out, capped under Strava's
+  limit). Nothing about injuries, sick days or bodyweight is sent.
+- **Deleting.** Strava's API can't delete an activity, so deleting a posted workout shows its Strava link
+  instead of offering to remove it there.
+
+**Rejected: posting from the phone.** The tokens would have to live in IndexedDB, and a workout finished
+offline would only post when the app is next opened.
