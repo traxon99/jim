@@ -12,7 +12,7 @@ import {
   rankLeaderboard,
 } from "@jim/core";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const METRICS: readonly { id: LeaderboardMetric; label: string }[] = [
   { id: "e1rm", label: "e1RM" },
@@ -103,8 +103,13 @@ export function LeaderboardBoard({
   const [metric, setMetric] = useState<LeaderboardMetric>("e1rm");
   const machineKey = machine ? JSON.stringify(machine) : "";
 
+  // Only the latest request may set state, so a slow answer for the previous lift can't land late.
+  const latest = useRef(0);
+
   const refresh = useCallback(async () => {
+    const request = ++latest.current;
     const result = await fetchLeaderboard(slug, machineKey ? JSON.parse(machineKey) : null);
+    if (request !== latest.current) return;
     setLoad(
       result.ok ? { status: "ready", ...result.value } : { status: "error", error: result.error },
     );
