@@ -66,7 +66,10 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME && key !== PAGES_CACHE)
+            // The page's own photo cache (lib/photos/cache.ts) is not ours to delete.
+            .filter(
+              (key) => key !== CACHE_NAME && key !== PAGES_CACHE && !key.startsWith("jim-photos-"),
+            )
             .map((key) => caches.delete(key)),
         ),
       )

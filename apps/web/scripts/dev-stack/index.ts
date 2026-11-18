@@ -12,7 +12,7 @@ import { DEV_USER, seedDevDatabase } from "./seed";
  * their env vars are unset. `--keep` skips the reset and reseed.
  */
 
-const AUTH_PORT = 54321;
+const AUTH_PORT = Number(process.env.AUTH_PORT ?? 54321);
 const APP_PORT = Number(process.env.PORT ?? 3000);
 
 const databaseUrl = await startPostgres();

@@ -1,5 +1,6 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { deletedPhotoIds, removePhotoObjects } from "@/lib/photos/server-storage";
 import { enqueueStravaPosts } from "@/lib/strava/enqueue";
 import { type ApplyResult, applyMutation } from "@/lib/sync/apply-mutation";
 import { type Mutation, SYNC_TABLES } from "@jim/core";
@@ -109,6 +110,18 @@ export async function POST(request: Request) {
         .map((mutation) => (mutation.entity as { id: string }).id);
       await enqueueStravaPosts(request.url, pushedBy, finished);
     }
+
+    // A deleted progress photo's bytes live in Storage, not Postgres (#835).
+    if (pushedBy) {
+      await removePhotoObjects(
+        pushedBy,
+        deletedPhotoIds(
+          mutations,
+          results.map((result) => result.status),
+        ),
+      );
+    }
+
     return NextResponse.json({ results });
   } catch (error) {
     if (error instanceof UnauthenticatedError) {

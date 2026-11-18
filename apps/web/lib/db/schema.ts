@@ -11,6 +11,7 @@ import type {
   personalRecords,
   programRoutines,
   programs,
+  progressPhotos,
   routineExercises,
   routines,
   sessionExercises,
@@ -72,6 +73,32 @@ export type InjuryRow = typeof injuries.$inferSelect;
 export type PainCheckinRow = typeof painCheckins.$inferSelect;
 export type SickDayRow = typeof sickDays.$inferSelect;
 export type ExercisePreferenceRow = typeof exercisePreferences.$inferSelect;
+export type ProgressPhotoRow = typeof progressPhotos.$inferSelect;
+
+/**
+ * A photo's bytes waiting to reach Storage (issue #835). Blobs don't belong in
+ * the mutation outbox, so they queue here by photo id and are drained on the
+ * same foreground triggers as sync. `thumbDone`/`originalDone` record which
+ * object already landed, so a retry after a partial failure resumes instead
+ * of uploading twice. Removed once both objects are stored.
+ */
+export interface PhotoUploadRow {
+  photoId: string;
+  thumb: Blob;
+  original: Blob;
+  thumbDone: boolean;
+  originalDone: boolean;
+  /** Failed attempts since the last success; a photo past the cap reads as a sync error. */
+  failures: number;
+  createdAt: Date;
+}
+
+/** A photo's thumbnail, cached on this phone so the grid works offline. */
+export interface PhotoThumbRow {
+  id: string;
+  blob: Blob;
+  cachedAt: Date;
+}
 
 export interface SyncTableRowMap {
   routines: RoutineRow;
@@ -91,6 +118,7 @@ export interface SyncTableRowMap {
   painCheckins: PainCheckinRow;
   sickDays: SickDayRow;
   exercisePreferences: ExercisePreferenceRow;
+  progressPhotos: ProgressPhotoRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -181,6 +209,9 @@ export class JimDatabase extends Dexie {
   painCheckins!: EntityTable<PainCheckinRow, "id">;
   sickDays!: EntityTable<SickDayRow, "id">;
   exercisePreferences!: EntityTable<ExercisePreferenceRow, "id">;
+  progressPhotos!: EntityTable<ProgressPhotoRow, "id">;
+  photoUploads!: EntityTable<PhotoUploadRow, "photoId">;
+  photoThumbs!: EntityTable<PhotoThumbRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -223,6 +254,13 @@ export class JimDatabase extends Dexie {
     // Exercise preferences (issue #795).
     this.version(7).stores({
       exercisePreferences: "id, exerciseSlug",
+    });
+    // Progress photos (issue #835): the synced metadata, the blob upload
+    // queue, and the thumbnail cache. The queue and cache are device-local.
+    this.version(8).stores({
+      progressPhotos: "id, takenOn, updatedAt, deletedAt",
+      photoUploads: "photoId, createdAt",
+      photoThumbs: "id",
     });
   }
 }

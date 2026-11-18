@@ -148,6 +148,11 @@ sick_days          id, user_id, day, note?
                    -- a local day marked sick (#779); readers treat any live row as sick
 exercise_preferences id, user_id, exercise_slug, preference (like|dislike)
                    -- by slug so it survives a clone (#795); None tombstones; newest live row wins
+progress_photos    id, user_id, taken_on (local day), taken_at, pose?(front|side|back|other),
+                   note?, session_id?, body_measurement_id?, width, height,
+                   thumb_path, original_path, uploaded_at?
+                   -- metadata only (#835); the bytes are in Storage (below). uploaded_at is set
+                   -- once both objects are stored. Private: no friend, share, MCP or /v1 reader
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 
@@ -169,6 +174,26 @@ tab's Explore view extends the same idea to whole routines and programs (`packag
 `explore` module, e.g. Maddy's Workout Split): adding one copies its routines, warm-ups and
 weekly schedule into the user's rows. Strength exercises those templates need that
 free-exercise-db lacks are seeded as global rows with `curated-*` slugs.
+
+### Storage buckets
+
+Supabase Storage holds image bytes, never Postgres. Buckets are created in a Drizzle migration,
+with their policies, so a fresh environment gets them from `db:migrate`. The migration role is the
+only thing that creates a bucket; the app never does.
+
+| Bucket | Public | Contents | Policies on `storage.objects` |
+|---|---|---|---|
+| `progress-photos` (#835) | No | `<user_id>/<photo_id>/thumb.jpg` (400 px) and `original.jpg` (≤ 2048 px), JPEG only, ≤ 10 MB | `select`, `insert` and `delete` only when the first path segment equals `auth.uid()`. No `update`, so an object is written once. |
+
+Reads use short-lived signed URLs (`createSignedUrl`), made by the signed-in user, never a public
+URL and never the service role. The phone processes a photo before upload (decode, EXIF dropped by
+re-encoding through a canvas, two sizes) and queues the blobs in Dexie's `photoUploads`, drained on
+the same foreground triggers as sync (ADR-002). The metadata row's `uploaded_at` is written only
+after both objects are stored. Deleting tombstones the row, and the push route then removes both
+objects as the user. The `users` cascade removes metadata when an account is deleted; Storage has no
+such cascade, so `pnpm --filter @jim/web admin delete-user` removes the user's prefix first. Local
+tests stub `storage.buckets`, `storage.objects` and `storage.foldername()` in
+`packages/db/test/bootstrap-supabase-stubs.sql`.
 
 `personal_records` is a derived cache, recomputable from `sets` alone. If it ever disagrees with
 `sets`, `sets` wins and the cache is rebuilt.

@@ -40,6 +40,7 @@ export async function buildJsonExport(database: JimDatabase = db): Promise<strin
     painCheckins,
     sickDays,
     exercisePreferences,
+    progressPhotos,
     settings,
   ] = await Promise.all([
     database.sessions.toArray(),
@@ -59,6 +60,7 @@ export async function buildJsonExport(database: JimDatabase = db): Promise<strin
     database.painCheckins.toArray(),
     database.sickDays.toArray(),
     database.exercisePreferences.toArray(),
+    database.progressPhotos.toArray(),
     database.settings.get("me"),
   ]);
   return jsonExportFromTables({
@@ -79,6 +81,7 @@ export async function buildJsonExport(database: JimDatabase = db): Promise<strin
     painCheckins,
     sickDays,
     exercisePreferences,
+    progressPhotos,
     settings,
   });
 }

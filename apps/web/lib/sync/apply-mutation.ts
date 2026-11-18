@@ -12,6 +12,7 @@ import {
   personalRecords,
   programRoutines,
   programs,
+  progressPhotos,
   routineExercises,
   routines,
   sessionExercises,
@@ -251,6 +252,24 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
   exercisePreferences: {
     table: exercisePreferences,
     updatable: ["preference"],
+  },
+  // Metadata only (issue #835). The bytes live in Storage; uploadedAt is the
+  // client's note that both objects landed.
+  progressPhotos: {
+    table: progressPhotos,
+    updatable: [
+      "takenOn",
+      "takenAt",
+      "pose",
+      "note",
+      "sessionId",
+      "bodyMeasurementId",
+      "width",
+      "height",
+      "thumbPath",
+      "originalPath",
+      "uploadedAt",
+    ],
   },
 };
 

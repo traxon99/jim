@@ -1,4 +1,5 @@
 import { type JimDatabase, db } from "../db/schema";
+import { drainPhotoUploads } from "../photos/upload-queue";
 import { drainOutbox } from "../sync/engine";
 
 /**
@@ -9,10 +10,14 @@ export async function flushOutboxBeforeSignOut(
   database: JimDatabase = db,
   fetchImpl: typeof fetch = fetch,
 ): Promise<number> {
+  if ((await database.photoUploads.count()) > 0) {
+    await drainPhotoUploads(database).catch(() => {});
+  }
   if ((await database.outbox.count()) > 0) {
     await drainOutbox(database, fetchImpl);
   }
-  return database.outbox.count();
+  // Photos still waiting to upload would be lost with the local database too (issue #835).
+  return (await database.outbox.count()) + (await database.photoUploads.count());
 }
 
 /**
@@ -27,8 +32,8 @@ export async function clearLocalData(database: JimDatabase = db): Promise<void> 
 
 /**
  * Deletes the service worker's cached pages (public/sw.template.js
- * PAGES_CACHE). They're the signed-in user's HTML, kept for offline launches
- * (#661), so they mustn't outlive the session (#289).
+ * PAGES_CACHE) and the cached progress photos. They're the signed-in user's,
+ * so they mustn't outlive the session (#661, #289).
  */
 export async function clearCachedPages(
   cacheStorage: Pick<CacheStorage, "keys" | "delete"> | undefined = globalThis.caches,
@@ -36,7 +41,10 @@ export async function clearCachedPages(
   if (!cacheStorage) return;
   const keys = await cacheStorage.keys();
   await Promise.all(
-    keys.filter((key) => key.startsWith("jim-pages-")).map((key) => cacheStorage.delete(key)),
+    keys
+      // The cached progress photos are the signed-in user's too (issue #835).
+      .filter((key) => key.startsWith("jim-pages-") || key.startsWith("jim-photos-"))
+      .map((key) => cacheStorage.delete(key)),
   );
 }
 

@@ -10,6 +10,7 @@ import type {
   PersonalRecordRow,
   ProgramRoutineRow,
   ProgramRow,
+  ProgressPhotoRow,
   RoutineExerciseRow,
   RoutineRow,
   SessionExerciseRow,
@@ -62,6 +63,8 @@ export interface ExportTables extends HistoryTables {
   sickDays?: readonly SickDayRow[];
   /** Exercise Like/Dislike, by slug (issue #795). */
   exercisePreferences?: readonly ExercisePreferenceRow[];
+  /** Progress photo metadata (issue #835); the images come from the Export photos zip. */
+  progressPhotos?: readonly ProgressPhotoRow[];
   settings: SettingsRow | undefined;
 }
 
@@ -208,6 +211,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     painCheckins = [],
     sickDays = [],
     exercisePreferences = [],
+    progressPhotos = [],
     settings,
   } = tables;
   const exerciseName = new Map(history.exercises.map((exercise) => [exercise.id, exercise.name]));
@@ -247,13 +251,14 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     painCheckins: live(painCheckins),
     sickDays: live(sickDays),
     exercisePreferences: live(exercisePreferences),
+    progressPhotos: live(progressPhotos),
   };
   return JSON.stringify(data, null, 2);
 }
 
 /** `jim-export-2026-09-28.csv`, or `jim-bodyweight-2026-09-28.csv` with a name. */
 export function exportFileName(
-  extension: "csv" | "json",
+  extension: "csv" | "json" | "zip",
   now: Date = new Date(),
   name = "export",
 ): string {
@@ -269,7 +274,11 @@ export function exportFileName(
  * Files" is the download); elsewhere a plain download link.
  */
 export async function saveFile(contents: string, fileName: string, type: string): Promise<void> {
-  const file = new File([contents], fileName, { type });
+  await saveFileObject(new File([contents], fileName, { type }));
+}
+
+/** `saveFile` for a file that's already built, like the photos zip (issue #835). */
+export async function saveFileObject(file: File): Promise<void> {
   if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ files: [file] });

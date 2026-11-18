@@ -8,6 +8,7 @@ import {
   exportFileName,
   saveFile,
 } from "@/lib/data-transfer/export";
+import { saveFileObject } from "@/lib/data-transfer/export-build";
 import {
   type ImportPreview,
   type ImportResult,
@@ -15,6 +16,7 @@ import {
   previewWorkoutImport,
 } from "@/lib/data-transfer/import";
 import { db } from "@/lib/db/schema";
+import { PhotoExportOfflineError, buildPhotosExport } from "@/lib/photos/export";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
 import { type WeightUnit, WorkoutCsvError, exerciseDisplayName } from "@jim/core";
@@ -50,7 +52,14 @@ export function DataSection({ userId }: { userId: string }) {
   );
 
   const fileInput = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<"csv" | "json" | "reading" | "importing" | null>(null);
+  const photoCount = useLiveQuery(
+    async () => (await db.progressPhotos.toArray()).filter((photo) => !photo.deletedAt).length,
+    [],
+  );
+  const [busy, setBusy] = useState<"csv" | "json" | "photos" | "reading" | "importing" | null>(
+    null,
+  );
+  const [photoProgress, setPhotoProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
@@ -72,6 +81,29 @@ export function DataSection({ userId }: { userId: string }) {
       setError("Couldn't create the export. Try again.");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function handlePhotosExport() {
+    setBusy("photos");
+    setError(null);
+    setPhotoProgress(null);
+    try {
+      const zip = await buildPhotosExport({
+        onProgress: (done, total) => setPhotoProgress(`${done} of ${total}`),
+      });
+      await saveFileObject(
+        new File([zip], exportFileName("zip", new Date(), "photos"), { type: "application/zip" }),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof PhotoExportOfflineError
+          ? caught.message
+          : "Couldn't export your photos. Try again.",
+      );
+    } finally {
+      setBusy(null);
+      setPhotoProgress(null);
     }
   }
 
@@ -140,6 +172,20 @@ export function DataSection({ userId }: { userId: string }) {
           {busy === "json" ? "Exporting…" : "JSON"}
         </button>
       </div>
+
+      {photoCount != null && photoCount > 0 && (
+        <button
+          type="button"
+          onClick={() => void handlePhotosExport()}
+          disabled={busy !== null}
+          className={secondaryButton}
+        >
+          <Download className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+          {busy === "photos"
+            ? `Exporting photos${photoProgress ? ` ${photoProgress}` : "…"}`
+            : "Export photos"}
+        </button>
+      )}
 
       {!preview && (
         <>

@@ -15,6 +15,7 @@ import {
   personalRecords,
   programRoutines,
   programs,
+  progressPhotos,
   routineExercises,
   routines,
   sessionExercises,
@@ -51,6 +52,7 @@ export async function loadExportTables(): Promise<ExportTables> {
     const checkinRows = await tx.select().from(painCheckins);
     const sickDayRows = await tx.select().from(sickDays);
     const preferenceRows = await tx.select().from(exercisePreferences);
+    const photoRows = await tx.select().from(progressPhotos);
     // The exercises the history names, plus every custom one the user owns.
     const exerciseIds = [
       ...new Set([
@@ -85,6 +87,7 @@ export async function loadExportTables(): Promise<ExportTables> {
       painCheckins: checkinRows,
       sickDays: sickDayRows,
       exercisePreferences: preferenceRows,
+      progressPhotos: photoRows,
     };
   });
 }
