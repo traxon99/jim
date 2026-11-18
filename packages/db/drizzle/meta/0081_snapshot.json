@@ -109,12 +109,8 @@
           "name": "admin_audit_actor_id_users_id_fk",
           "tableFrom": "admin_audit",
           "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -122,12 +118,8 @@
           "name": "admin_audit_target_user_id_users_id_fk",
           "tableFrom": "admin_audit",
           "tableTo": "users",
-          "columnsFrom": [
-            "target_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["target_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -190,12 +182,8 @@
           "name": "app_opens_user_id_users_id_fk",
           "tableFrom": "app_opens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -203,10 +191,7 @@
       "compositePrimaryKeys": {
         "app_opens_user_id_day_pk": {
           "name": "app_opens_user_id_day_pk",
-          "columns": [
-            "user_id",
-            "day"
-          ]
+          "columns": ["user_id", "day"]
         }
       },
       "uniqueConstraints": {},
@@ -215,27 +200,21 @@
           "name": "app_opens_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"app_opens\".\"user_id\" = (select auth.uid())"
         },
         "app_opens_insert_own": {
           "name": "app_opens_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"app_opens\".\"user_id\" = (select auth.uid())"
         },
         "app_opens_update_own": {
           "name": "app_opens_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"app_opens\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"app_opens\".\"user_id\" = (select auth.uid())"
         },
@@ -243,9 +222,7 @@
           "name": "app_opens_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"app_opens\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -367,12 +344,8 @@
           "name": "body_measurements_user_id_users_id_fk",
           "tableFrom": "body_measurements",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -384,27 +357,21 @@
           "name": "body_measurements_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"body_measurements\".\"user_id\" = (select auth.uid())"
         },
         "body_measurements_insert_own": {
           "name": "body_measurements_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"body_measurements\".\"user_id\" = (select auth.uid())"
         },
         "body_measurements_update_own": {
           "name": "body_measurements_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"body_measurements\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"body_measurements\".\"user_id\" = (select auth.uid())"
         },
@@ -412,9 +379,7 @@
           "name": "body_measurements_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"body_measurements\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -495,12 +460,8 @@
           "name": "comment_reactions_comment_id_comments_id_fk",
           "tableFrom": "comment_reactions",
           "tableTo": "comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["comment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -508,12 +469,8 @@
           "name": "comment_reactions_user_id_users_id_fk",
           "tableFrom": "comment_reactions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -525,9 +482,7 @@
           "name": "comment_reactions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"comment_reactions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -647,12 +602,8 @@
           "name": "comments_user_id_users_id_fk",
           "tableFrom": "comments",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -660,12 +611,8 @@
           "name": "comments_session_id_sessions_id_fk",
           "tableFrom": "comments",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -673,12 +620,8 @@
           "name": "comments_post_id_posts_id_fk",
           "tableFrom": "comments",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -690,9 +633,7 @@
           "name": "comments_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"comments\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -734,12 +675,8 @@
           "name": "dismissed_friend_suggestions_user_id_users_id_fk",
           "tableFrom": "dismissed_friend_suggestions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -747,12 +684,8 @@
           "name": "dismissed_friend_suggestions_suggested_user_id_users_id_fk",
           "tableFrom": "dismissed_friend_suggestions",
           "tableTo": "users",
-          "columnsFrom": [
-            "suggested_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["suggested_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -760,10 +693,7 @@
       "compositePrimaryKeys": {
         "dismissed_friend_suggestions_user_id_suggested_user_id_pk": {
           "name": "dismissed_friend_suggestions_user_id_suggested_user_id_pk",
-          "columns": [
-            "user_id",
-            "suggested_user_id"
-          ]
+          "columns": ["user_id", "suggested_user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -772,9 +702,7 @@
           "name": "dismissed_friend_suggestions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dismissed_friend_suggestions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -915,12 +843,8 @@
           "name": "dpr_block_lifts_user_id_users_id_fk",
           "tableFrom": "dpr_block_lifts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -928,12 +852,8 @@
           "name": "dpr_block_lifts_block_id_dpr_blocks_id_fk",
           "tableFrom": "dpr_block_lifts",
           "tableTo": "dpr_blocks",
-          "columnsFrom": [
-            "block_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["block_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -941,12 +861,8 @@
           "name": "dpr_block_lifts_exercise_id_exercises_id_fk",
           "tableFrom": "dpr_block_lifts",
           "tableTo": "exercises",
-          "columnsFrom": [
-            "exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -958,27 +874,21 @@
           "name": "dpr_block_lifts_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dpr_block_lifts\".\"user_id\" = (select auth.uid())"
         },
         "dpr_block_lifts_insert_own": {
           "name": "dpr_block_lifts_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"dpr_block_lifts\".\"user_id\" = (select auth.uid())"
         },
         "dpr_block_lifts_update_own": {
           "name": "dpr_block_lifts_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dpr_block_lifts\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"dpr_block_lifts\".\"user_id\" = (select auth.uid())"
         },
@@ -986,9 +896,7 @@
           "name": "dpr_block_lifts_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dpr_block_lifts\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -1143,12 +1051,8 @@
           "name": "dpr_blocks_user_id_users_id_fk",
           "tableFrom": "dpr_blocks",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1156,12 +1060,8 @@
           "name": "dpr_blocks_program_id_programs_id_fk",
           "tableFrom": "dpr_blocks",
           "tableTo": "programs",
-          "columnsFrom": [
-            "program_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["program_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1173,27 +1073,21 @@
           "name": "dpr_blocks_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dpr_blocks\".\"user_id\" = (select auth.uid())"
         },
         "dpr_blocks_insert_own": {
           "name": "dpr_blocks_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"dpr_blocks\".\"user_id\" = (select auth.uid())"
         },
         "dpr_blocks_update_own": {
           "name": "dpr_blocks_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dpr_blocks\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"dpr_blocks\".\"user_id\" = (select auth.uid())"
         },
@@ -1201,9 +1095,7 @@
           "name": "dpr_blocks_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"dpr_blocks\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -1339,12 +1231,8 @@
           "name": "exercise_preferences_user_id_users_id_fk",
           "tableFrom": "exercise_preferences",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1356,27 +1244,21 @@
           "name": "exercise_preferences_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"exercise_preferences\".\"user_id\" = (select auth.uid())"
         },
         "exercise_preferences_insert_own": {
           "name": "exercise_preferences_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"exercise_preferences\".\"user_id\" = (select auth.uid())"
         },
         "exercise_preferences_update_own": {
           "name": "exercise_preferences_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"exercise_preferences\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"exercise_preferences\".\"user_id\" = (select auth.uid())"
         },
@@ -1384,9 +1266,7 @@
           "name": "exercise_preferences_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"exercise_preferences\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -1627,12 +1507,8 @@
           "name": "exercises_owner_id_users_id_fk",
           "tableFrom": "exercises",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1640,12 +1516,8 @@
           "name": "exercises_gym_id_gyms_id_fk",
           "tableFrom": "exercises",
           "tableTo": "gyms",
-          "columnsFrom": [
-            "gym_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gym_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1657,27 +1529,21 @@
           "name": "exercises_select_own_or_global",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"exercises\".\"owner_id\" IS NULL OR \"exercises\".\"owner_id\" = (select auth.uid())"
         },
         "exercises_insert_own": {
           "name": "exercises_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"exercises\".\"owner_id\" = (select auth.uid())"
         },
         "exercises_update_own": {
           "name": "exercises_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"exercises\".\"owner_id\" = (select auth.uid())",
           "withCheck": "\"exercises\".\"owner_id\" = (select auth.uid())"
         },
@@ -1685,9 +1551,7 @@
           "name": "exercises_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"exercises\".\"owner_id\" = (select auth.uid())"
         }
       },
@@ -1747,12 +1611,8 @@
           "name": "feedback_submissions_user_id_users_id_fk",
           "tableFrom": "feedback_submissions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1764,18 +1624,14 @@
           "name": "feedback_submissions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"feedback_submissions\".\"user_id\" = (select auth.uid())"
         },
         "feedback_submissions_insert_own": {
           "name": "feedback_submissions_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"feedback_submissions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -1870,12 +1726,8 @@
           "name": "friendships_requester_id_users_id_fk",
           "tableFrom": "friendships",
           "tableTo": "users",
-          "columnsFrom": [
-            "requester_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1883,12 +1735,8 @@
           "name": "friendships_addressee_id_users_id_fk",
           "tableFrom": "friendships",
           "tableTo": "users",
-          "columnsFrom": [
-            "addressee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["addressee_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1900,9 +1748,7 @@
           "name": "friendships_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "(select auth.uid()) IN (\"friendships\".\"requester_id\", \"friendships\".\"addressee_id\")"
         }
       },
@@ -2053,12 +1899,8 @@
           "name": "gyms_user_id_users_id_fk",
           "tableFrom": "gyms",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2070,27 +1912,21 @@
           "name": "gyms_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"gyms\".\"user_id\" = (select auth.uid())"
         },
         "gyms_insert_own": {
           "name": "gyms_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"gyms\".\"user_id\" = (select auth.uid())"
         },
         "gyms_update_own": {
           "name": "gyms_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"gyms\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"gyms\".\"user_id\" = (select auth.uid())"
         },
@@ -2098,9 +1934,7 @@
           "name": "gyms_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"gyms\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -2239,12 +2073,8 @@
           "name": "injuries_user_id_users_id_fk",
           "tableFrom": "injuries",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2256,27 +2086,21 @@
           "name": "injuries_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"injuries\".\"user_id\" = (select auth.uid())"
         },
         "injuries_insert_own": {
           "name": "injuries_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"injuries\".\"user_id\" = (select auth.uid())"
         },
         "injuries_update_own": {
           "name": "injuries_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"injuries\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"injuries\".\"user_id\" = (select auth.uid())"
         },
@@ -2284,9 +2108,7 @@
           "name": "injuries_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"injuries\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -2453,12 +2275,8 @@
           "name": "pain_checkins_user_id_users_id_fk",
           "tableFrom": "pain_checkins",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2466,12 +2284,8 @@
           "name": "pain_checkins_injury_id_injuries_id_fk",
           "tableFrom": "pain_checkins",
           "tableTo": "injuries",
-          "columnsFrom": [
-            "injury_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["injury_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2483,27 +2297,21 @@
           "name": "pain_checkins_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"pain_checkins\".\"user_id\" = (select auth.uid())"
         },
         "pain_checkins_insert_own": {
           "name": "pain_checkins_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"pain_checkins\".\"user_id\" = (select auth.uid())"
         },
         "pain_checkins_update_own": {
           "name": "pain_checkins_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"pain_checkins\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"pain_checkins\".\"user_id\" = (select auth.uid())"
         },
@@ -2511,9 +2319,7 @@
           "name": "pain_checkins_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"pain_checkins\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -2630,12 +2436,8 @@
           "name": "personal_access_tokens_user_id_users_id_fk",
           "tableFrom": "personal_access_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2647,27 +2449,21 @@
           "name": "personal_access_tokens_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"personal_access_tokens\".\"user_id\" = (select auth.uid())"
         },
         "personal_access_tokens_insert_own": {
           "name": "personal_access_tokens_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"personal_access_tokens\".\"user_id\" = (select auth.uid())"
         },
         "personal_access_tokens_update_own": {
           "name": "personal_access_tokens_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"personal_access_tokens\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"personal_access_tokens\".\"user_id\" = (select auth.uid())"
         },
@@ -2675,9 +2471,7 @@
           "name": "personal_access_tokens_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"personal_access_tokens\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -2823,12 +2617,8 @@
           "name": "personal_records_user_id_users_id_fk",
           "tableFrom": "personal_records",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2836,12 +2626,8 @@
           "name": "personal_records_exercise_id_exercises_id_fk",
           "tableFrom": "personal_records",
           "tableTo": "exercises",
-          "columnsFrom": [
-            "exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2849,12 +2635,8 @@
           "name": "personal_records_set_id_sets_id_fk",
           "tableFrom": "personal_records",
           "tableTo": "sets",
-          "columnsFrom": [
-            "set_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["set_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2866,27 +2648,21 @@
           "name": "personal_records_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"personal_records\".\"user_id\" = (select auth.uid())"
         },
         "personal_records_insert_own": {
           "name": "personal_records_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"personal_records\".\"user_id\" = (select auth.uid())"
         },
         "personal_records_update_own": {
           "name": "personal_records_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"personal_records\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"personal_records\".\"user_id\" = (select auth.uid())"
         },
@@ -2894,9 +2670,7 @@
           "name": "personal_records_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"personal_records\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -2977,12 +2751,8 @@
           "name": "post_reactions_post_id_posts_id_fk",
           "tableFrom": "post_reactions",
           "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["post_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2990,12 +2760,8 @@
           "name": "post_reactions_user_id_users_id_fk",
           "tableFrom": "post_reactions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3007,9 +2773,7 @@
           "name": "post_reactions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"post_reactions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -3100,12 +2864,8 @@
           "name": "posts_user_id_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3113,12 +2873,8 @@
           "name": "posts_session_id_sessions_id_fk",
           "tableFrom": "posts",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3130,9 +2886,7 @@
           "name": "posts_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"posts\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -3267,12 +3021,8 @@
           "name": "program_routines_user_id_users_id_fk",
           "tableFrom": "program_routines",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3280,12 +3030,8 @@
           "name": "program_routines_program_id_programs_id_fk",
           "tableFrom": "program_routines",
           "tableTo": "programs",
-          "columnsFrom": [
-            "program_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["program_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3293,12 +3039,8 @@
           "name": "program_routines_routine_id_routines_id_fk",
           "tableFrom": "program_routines",
           "tableTo": "routines",
-          "columnsFrom": [
-            "routine_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["routine_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3310,27 +3052,21 @@
           "name": "program_routines_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"program_routines\".\"user_id\" = (select auth.uid())"
         },
         "program_routines_insert_own": {
           "name": "program_routines_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"program_routines\".\"user_id\" = (select auth.uid())"
         },
         "program_routines_update_own": {
           "name": "program_routines_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"program_routines\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"program_routines\".\"user_id\" = (select auth.uid())"
         },
@@ -3338,9 +3074,7 @@
           "name": "program_routines_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"program_routines\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -3488,12 +3222,8 @@
           "name": "programs_user_id_users_id_fk",
           "tableFrom": "programs",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3505,27 +3235,21 @@
           "name": "programs_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"programs\".\"user_id\" = (select auth.uid())"
         },
         "programs_insert_own": {
           "name": "programs_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"programs\".\"user_id\" = (select auth.uid())"
         },
         "programs_update_own": {
           "name": "programs_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"programs\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"programs\".\"user_id\" = (select auth.uid())"
         },
@@ -3533,9 +3257,7 @@
           "name": "programs_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"programs\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -3613,12 +3335,8 @@
           "name": "push_subscriptions_user_id_users_id_fk",
           "tableFrom": "push_subscriptions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3630,27 +3348,21 @@
           "name": "push_subscriptions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"push_subscriptions\".\"user_id\" = (select auth.uid())"
         },
         "push_subscriptions_insert_own": {
           "name": "push_subscriptions_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"push_subscriptions\".\"user_id\" = (select auth.uid())"
         },
         "push_subscriptions_update_own": {
           "name": "push_subscriptions_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"push_subscriptions\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"push_subscriptions\".\"user_id\" = (select auth.uid())"
         },
@@ -3658,9 +3370,7 @@
           "name": "push_subscriptions_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"push_subscriptions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -3743,12 +3453,8 @@
           "name": "rest_timer_pushes_user_id_users_id_fk",
           "tableFrom": "rest_timer_pushes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3760,27 +3466,21 @@
           "name": "rest_timer_pushes_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"rest_timer_pushes\".\"user_id\" = (select auth.uid())"
         },
         "rest_timer_pushes_insert_own": {
           "name": "rest_timer_pushes_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"rest_timer_pushes\".\"user_id\" = (select auth.uid())"
         },
         "rest_timer_pushes_update_own": {
           "name": "rest_timer_pushes_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"rest_timer_pushes\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"rest_timer_pushes\".\"user_id\" = (select auth.uid())"
         },
@@ -3788,9 +3488,7 @@
           "name": "rest_timer_pushes_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"rest_timer_pushes\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -3973,12 +3671,8 @@
           "name": "routine_exercises_user_id_users_id_fk",
           "tableFrom": "routine_exercises",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3986,12 +3680,8 @@
           "name": "routine_exercises_routine_id_routines_id_fk",
           "tableFrom": "routine_exercises",
           "tableTo": "routines",
-          "columnsFrom": [
-            "routine_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["routine_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3999,12 +3689,8 @@
           "name": "routine_exercises_exercise_id_exercises_id_fk",
           "tableFrom": "routine_exercises",
           "tableTo": "exercises",
-          "columnsFrom": [
-            "exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4016,27 +3702,21 @@
           "name": "routine_exercises_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"routine_exercises\".\"user_id\" = (select auth.uid())"
         },
         "routine_exercises_insert_own": {
           "name": "routine_exercises_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"routine_exercises\".\"user_id\" = (select auth.uid())"
         },
         "routine_exercises_update_own": {
           "name": "routine_exercises_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"routine_exercises\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"routine_exercises\".\"user_id\" = (select auth.uid())"
         },
@@ -4044,9 +3724,7 @@
           "name": "routine_exercises_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"routine_exercises\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -4228,12 +3906,8 @@
           "name": "routines_user_id_users_id_fk",
           "tableFrom": "routines",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4241,12 +3915,8 @@
           "name": "routines_warmup_routine_id_routines_id_fk",
           "tableFrom": "routines",
           "tableTo": "routines",
-          "columnsFrom": [
-            "warmup_routine_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warmup_routine_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4258,27 +3928,21 @@
           "name": "routines_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"routines\".\"user_id\" = (select auth.uid())"
         },
         "routines_insert_own": {
           "name": "routines_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"routines\".\"user_id\" = (select auth.uid())"
         },
         "routines_update_own": {
           "name": "routines_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"routines\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"routines\".\"user_id\" = (select auth.uid())"
         },
@@ -4286,9 +3950,7 @@
           "name": "routines_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"routines\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -4408,12 +4070,8 @@
           "name": "scheduled_workouts_user_id_users_id_fk",
           "tableFrom": "scheduled_workouts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4421,12 +4079,8 @@
           "name": "scheduled_workouts_routine_id_routines_id_fk",
           "tableFrom": "scheduled_workouts",
           "tableTo": "routines",
-          "columnsFrom": [
-            "routine_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["routine_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4438,27 +4092,21 @@
           "name": "scheduled_workouts_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"scheduled_workouts\".\"user_id\" = (select auth.uid())"
         },
         "scheduled_workouts_insert_own": {
           "name": "scheduled_workouts_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"scheduled_workouts\".\"user_id\" = (select auth.uid())"
         },
         "scheduled_workouts_update_own": {
           "name": "scheduled_workouts_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"scheduled_workouts\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"scheduled_workouts\".\"user_id\" = (select auth.uid())"
         },
@@ -4466,9 +4114,7 @@
           "name": "scheduled_workouts_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"scheduled_workouts\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -4639,12 +4285,8 @@
           "name": "session_exercises_user_id_users_id_fk",
           "tableFrom": "session_exercises",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4652,12 +4294,8 @@
           "name": "session_exercises_session_id_sessions_id_fk",
           "tableFrom": "session_exercises",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4665,12 +4303,8 @@
           "name": "session_exercises_exercise_id_exercises_id_fk",
           "tableFrom": "session_exercises",
           "tableTo": "exercises",
-          "columnsFrom": [
-            "exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4682,27 +4316,21 @@
           "name": "session_exercises_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"session_exercises\".\"user_id\" = (select auth.uid())"
         },
         "session_exercises_insert_own": {
           "name": "session_exercises_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"session_exercises\".\"user_id\" = (select auth.uid())"
         },
         "session_exercises_update_own": {
           "name": "session_exercises_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"session_exercises\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"session_exercises\".\"user_id\" = (select auth.uid())"
         },
@@ -4710,9 +4338,7 @@
           "name": "session_exercises_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"session_exercises\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -4883,12 +4509,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4896,12 +4518,8 @@
           "name": "sessions_routine_id_routines_id_fk",
           "tableFrom": "sessions",
           "tableTo": "routines",
-          "columnsFrom": [
-            "routine_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["routine_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4909,12 +4527,8 @@
           "name": "sessions_gym_id_gyms_id_fk",
           "tableFrom": "sessions",
           "tableTo": "gyms",
-          "columnsFrom": [
-            "gym_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["gym_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4926,27 +4540,21 @@
           "name": "sessions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sessions\".\"user_id\" = (select auth.uid())"
         },
         "sessions_insert_own": {
           "name": "sessions_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"sessions\".\"user_id\" = (select auth.uid())"
         },
         "sessions_update_own": {
           "name": "sessions_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sessions\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"sessions\".\"user_id\" = (select auth.uid())"
         },
@@ -4954,9 +4562,7 @@
           "name": "sessions_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sessions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -5154,12 +4760,8 @@
           "name": "sets_user_id_users_id_fk",
           "tableFrom": "sets",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5167,12 +4769,8 @@
           "name": "sets_session_exercise_id_session_exercises_id_fk",
           "tableFrom": "sets",
           "tableTo": "session_exercises",
-          "columnsFrom": [
-            "session_exercise_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_exercise_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5180,12 +4778,8 @@
           "name": "sets_supersedes_id_fkey",
           "tableFrom": "sets",
           "tableTo": "sets",
-          "columnsFrom": [
-            "supersedes_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["supersedes_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5197,18 +4791,14 @@
           "name": "sets_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sets\".\"user_id\" = (select auth.uid())"
         },
         "sets_insert_own": {
           "name": "sets_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"sets\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -5287,12 +4877,8 @@
           "name": "share_links_user_id_users_id_fk",
           "tableFrom": "share_links",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5304,27 +4890,21 @@
           "name": "share_links_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"share_links\".\"user_id\" = (select auth.uid())"
         },
         "share_links_insert_own": {
           "name": "share_links_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"share_links\".\"user_id\" = (select auth.uid())"
         },
         "share_links_delete_own": {
           "name": "share_links_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"share_links\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -5459,12 +5039,8 @@
           "name": "sick_days_user_id_users_id_fk",
           "tableFrom": "sick_days",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5476,27 +5052,21 @@
           "name": "sick_days_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sick_days\".\"user_id\" = (select auth.uid())"
         },
         "sick_days_insert_own": {
           "name": "sick_days_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"sick_days\".\"user_id\" = (select auth.uid())"
         },
         "sick_days_update_own": {
           "name": "sick_days_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sick_days\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"sick_days\".\"user_id\" = (select auth.uid())"
         },
@@ -5504,9 +5074,7 @@
           "name": "sick_days_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sick_days\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -5585,12 +5153,8 @@
           "name": "strava_activities_session_id_sessions_id_fk",
           "tableFrom": "strava_activities",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5598,12 +5162,8 @@
           "name": "strava_activities_user_id_users_id_fk",
           "tableFrom": "strava_activities",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5686,12 +5246,8 @@
           "name": "strava_connections_user_id_users_id_fk",
           "tableFrom": "strava_connections",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5754,12 +5310,8 @@
           "name": "sync_mutations_user_id_users_id_fk",
           "tableFrom": "sync_mutations",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5771,27 +5323,21 @@
           "name": "sync_mutations_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sync_mutations\".\"user_id\" = (select auth.uid())"
         },
         "sync_mutations_insert_own": {
           "name": "sync_mutations_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"sync_mutations\".\"user_id\" = (select auth.uid())"
         },
         "sync_mutations_update_own": {
           "name": "sync_mutations_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sync_mutations\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"sync_mutations\".\"user_id\" = (select auth.uid())"
         },
@@ -5799,9 +5345,7 @@
           "name": "sync_mutations_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"sync_mutations\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -5945,12 +5489,8 @@
           "name": "telemetry_events_user_id_users_id_fk",
           "tableFrom": "telemetry_events",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6359,12 +5899,8 @@
           "tableFrom": "users",
           "tableTo": "users",
           "schemaTo": "auth",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6376,27 +5912,21 @@
           "name": "users_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"users\".\"id\" = (select auth.uid())"
         },
         "users_insert_own": {
           "name": "users_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"users\".\"id\" = (select auth.uid())"
         },
         "users_update_own": {
           "name": "users_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"users\".\"id\" = (select auth.uid())",
           "withCheck": "\"users\".\"id\" = (select auth.uid())"
         }
@@ -6452,12 +5982,8 @@
           "name": "workout_idle_pushes_user_id_users_id_fk",
           "tableFrom": "workout_idle_pushes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6469,27 +5995,21 @@
           "name": "workout_idle_pushes_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"workout_idle_pushes\".\"user_id\" = (select auth.uid())"
         },
         "workout_idle_pushes_insert_own": {
           "name": "workout_idle_pushes_insert_own",
           "as": "PERMISSIVE",
           "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "withCheck": "\"workout_idle_pushes\".\"user_id\" = (select auth.uid())"
         },
         "workout_idle_pushes_update_own": {
           "name": "workout_idle_pushes_update_own",
           "as": "PERMISSIVE",
           "for": "UPDATE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"workout_idle_pushes\".\"user_id\" = (select auth.uid())",
           "withCheck": "\"workout_idle_pushes\".\"user_id\" = (select auth.uid())"
         },
@@ -6497,9 +6017,7 @@
           "name": "workout_idle_pushes_delete_own",
           "as": "PERMISSIVE",
           "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"workout_idle_pushes\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -6580,12 +6098,8 @@
           "name": "workout_reactions_session_id_sessions_id_fk",
           "tableFrom": "workout_reactions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -6593,12 +6107,8 @@
           "name": "workout_reactions_user_id_users_id_fk",
           "tableFrom": "workout_reactions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -6610,9 +6120,7 @@
           "name": "workout_reactions_select_own",
           "as": "PERMISSIVE",
           "for": "SELECT",
-          "to": [
-            "authenticated"
-          ],
+          "to": ["authenticated"],
           "using": "\"workout_reactions\".\"user_id\" = (select auth.uid())"
         }
       },
@@ -6624,139 +6132,77 @@
     "public.accent_color": {
       "name": "accent_color",
       "schema": "public",
-      "values": [
-        "zinc",
-        "blue",
-        "green",
-        "purple",
-        "orange",
-        "rose",
-        "pink"
-      ]
+      "values": ["zinc", "blue", "green", "purple", "orange", "rose", "pink"]
     },
     "public.account_role": {
       "name": "account_role",
       "schema": "public",
-      "values": [
-        "user",
-        "coach",
-        "admin"
-      ]
+      "values": ["user", "coach", "admin"]
     },
     "public.card_style": {
       "name": "card_style",
       "schema": "public",
-      "values": [
-        "plain",
-        "glass"
-      ]
+      "values": ["plain", "glass"]
     },
     "public.color_scheme": {
       "name": "color_scheme",
       "schema": "public",
-      "values": [
-        "system",
-        "light",
-        "dark"
-      ]
+      "values": ["system", "light", "dark"]
     },
     "public.dpr_aggressiveness": {
       "name": "dpr_aggressiveness",
       "schema": "public",
-      "values": [
-        "conservative",
-        "moderate",
-        "aggressive"
-      ]
+      "values": ["conservative", "moderate", "aggressive"]
     },
     "public.dpr_block_status": {
       "name": "dpr_block_status",
       "schema": "public",
-      "values": [
-        "active",
-        "deload",
-        "completed"
-      ]
+      "values": ["active", "deload", "completed"]
     },
     "public.dpr_experience": {
       "name": "dpr_experience",
       "schema": "public",
-      "values": [
-        "novice",
-        "intermediate",
-        "advanced"
-      ]
+      "values": ["novice", "intermediate", "advanced"]
     },
     "public.exercise_category": {
       "name": "exercise_category",
       "schema": "public",
-      "values": [
-        "strength",
-        "warmup",
-        "cardio"
-      ]
+      "values": ["strength", "warmup", "cardio"]
     },
     "public.exercise_preference": {
       "name": "exercise_preference",
       "schema": "public",
-      "values": [
-        "like",
-        "dislike"
-      ]
+      "values": ["like", "dislike"]
     },
     "public.font_family": {
       "name": "font_family",
       "schema": "public",
-      "values": [
-        "sans",
-        "serif",
-        "mono"
-      ]
+      "values": ["sans", "serif", "mono"]
     },
     "public.force": {
       "name": "force",
       "schema": "public",
-      "values": [
-        "push",
-        "pull",
-        "static"
-      ]
+      "values": ["push", "pull", "static"]
     },
     "public.friendship_status": {
       "name": "friendship_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "accepted"
-      ]
+      "values": ["pending", "accepted"]
     },
     "public.level": {
       "name": "level",
       "schema": "public",
-      "values": [
-        "beginner",
-        "intermediate",
-        "expert"
-      ]
+      "values": ["beginner", "intermediate", "expert"]
     },
     "public.measurement_unit": {
       "name": "measurement_unit",
       "schema": "public",
-      "values": [
-        "lb",
-        "kg",
-        "in",
-        "cm",
-        "pct"
-      ]
+      "values": ["lb", "kg", "in", "cm", "pct"]
     },
     "public.mechanic": {
       "name": "mechanic",
       "schema": "public",
-      "values": [
-        "compound",
-        "isolation"
-      ]
+      "values": ["compound", "isolation"]
     },
     "public.muscle": {
       "name": "muscle",
@@ -6784,63 +6230,32 @@
     "public.post_kind": {
       "name": "post_kind",
       "schema": "public",
-      "values": [
-        "workout",
-        "record",
-        "achievement"
-      ]
+      "values": ["workout", "record", "achievement"]
     },
     "public.pr_kind": {
       "name": "pr_kind",
       "schema": "public",
-      "values": [
-        "1rm",
-        "volume",
-        "weight",
-        "reps_at_weight"
-      ]
+      "values": ["1rm", "volume", "weight", "reps_at_weight"]
     },
     "public.program_mode": {
       "name": "program_mode",
       "schema": "public",
-      "values": [
-        "sequence",
-        "weekly"
-      ]
+      "values": ["sequence", "weekly"]
     },
     "public.pulley_type": {
       "name": "pulley_type",
       "schema": "public",
-      "values": [
-        "single",
-        "double"
-      ]
+      "values": ["single", "double"]
     },
     "public.reaction_kind": {
       "name": "reaction_kind",
       "schema": "public",
-      "values": [
-        "heart",
-        "strong",
-        "fire",
-        "clap",
-        "party",
-        "grind"
-      ]
+      "values": ["heart", "strong", "fire", "clap", "party", "grind"]
     },
     "public.routine_icon_color": {
       "name": "routine_icon_color",
       "schema": "public",
-      "values": [
-        "red",
-        "orange",
-        "amber",
-        "green",
-        "teal",
-        "blue",
-        "indigo",
-        "pink"
-      ]
+      "values": ["red", "orange", "amber", "green", "teal", "blue", "indigo", "pink"]
     },
     "public.routine_icon_shape": {
       "name": "routine_icon_shape",
@@ -6860,45 +6275,27 @@
     "public.routine_kind": {
       "name": "routine_kind",
       "schema": "public",
-      "values": [
-        "strength",
-        "warmup"
-      ]
+      "values": ["strength", "warmup"]
     },
     "public.session_intensity": {
       "name": "session_intensity",
       "schema": "public",
-      "values": [
-        "light",
-        "maintain",
-        "push"
-      ]
+      "values": ["light", "maintain", "push"]
     },
     "public.set_kind": {
       "name": "set_kind",
       "schema": "public",
-      "values": [
-        "warmup",
-        "working",
-        "drop",
-        "failure"
-      ]
+      "values": ["warmup", "working", "drop", "failure"]
     },
     "public.sex": {
       "name": "sex",
       "schema": "public",
-      "values": [
-        "male",
-        "female"
-      ]
+      "values": ["male", "female"]
     },
     "public.share_kind": {
       "name": "share_kind",
       "schema": "public",
-      "values": [
-        "routine",
-        "program"
-      ]
+      "values": ["routine", "program"]
     },
     "public.tracking_type": {
       "name": "tracking_type",
@@ -6915,10 +6312,7 @@
     "public.units": {
       "name": "units",
       "schema": "public",
-      "values": [
-        "lb",
-        "kg"
-      ]
+      "values": ["lb", "kg"]
     }
   },
   "schemas": {},
