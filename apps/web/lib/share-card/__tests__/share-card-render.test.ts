@@ -94,6 +94,18 @@ describe("ShareCardSvg", () => {
     }
   }
 
+  it("keeps a crowded workout card's list above the footer", () => {
+    // Nine exercises, a record and bodyweight on: five tiles and "+3 more".
+    for (const size of SHARE_CARD_SIZES) {
+      const markup = renderToStaticMarkup(
+        createElement(ShareCardSvg, { model: models.workout as ShareCardModel, size }),
+      );
+      const more = /<text[^>]*\sy="([\d.]+)"[^>]*>\+\d+ more</.exec(markup);
+      expect(more).not.toBeNull();
+      expect(Number(more?.[1])).toBeLessThan(SHARE_CARD_DIMENSIONS[size].height - 124);
+    }
+  });
+
   it("embeds the card font when given", () => {
     const css = '@font-face{font-family:"JimCard";src:url(data:font/woff2;base64,AAAA)}';
     const markup = renderToStaticMarkup(
