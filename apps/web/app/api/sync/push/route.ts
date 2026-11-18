@@ -1,5 +1,6 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { enqueueStravaPosts } from "@/lib/strava/enqueue";
 import { type ApplyResult, applyMutation } from "@/lib/sync/apply-mutation";
 import { type Mutation, SYNC_TABLES } from "@jim/core";
 import { syncMutations } from "@jim/db";
@@ -58,8 +59,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `Mutation ${oversized.id} is too large` }, { status: 413 });
   }
 
+  let pushedBy: string | undefined;
   try {
     const results = await withUserDb(async (tx, userId) => {
+      pushedBy = userId;
       const out: { id: string; status: ApplyResult }[] = [];
       // Sequential, not Promise.all: mutations for the same entity must
       // apply in outbox order, and each runs in its own SAVEPOINT anyway.
@@ -85,6 +88,27 @@ export async function POST(request: Request) {
       return out;
     });
 
+    // Finished workouts may go to Strava (issue #836). After the commit, and
+    // never able to fail the sync: the server decides from its own rows.
+    if (pushedBy) {
+      const finished = mutations
+        .filter((mutation, index) => {
+          const entity = mutation.entity as {
+            id?: unknown;
+            endedAt?: unknown;
+            deletedAt?: unknown;
+          };
+          return (
+            mutation.table === "sessions" &&
+            results[index]?.status === "applied" &&
+            typeof entity.id === "string" &&
+            Boolean(entity.endedAt) &&
+            !entity.deletedAt
+          );
+        })
+        .map((mutation) => (mutation.entity as { id: string }).id);
+      await enqueueStravaPosts(request.url, pushedBy, finished);
+    }
     return NextResponse.json({ results });
   } catch (error) {
     if (error instanceof UnauthenticatedError) {

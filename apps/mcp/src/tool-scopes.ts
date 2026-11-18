@@ -31,6 +31,7 @@ export const READ_TOOLS = new Set([
   "get_settings",
   "list_friend_activity",
   "list_comments",
+  "get_strava_status",
   // Admin only (#811): listed for admins alone.
   "admin_overview",
   "admin_failures",
@@ -78,6 +79,7 @@ export const WRITE_TOOLS = new Set([
   "react_to_comment",
   "react_to_workout",
   "delete_comment",
+  "post_workout_to_strava",
   // Admin only (#811): listed for admins alone.
   "admin_update_user_settings",
   "admin_update_user_profile",

@@ -8,6 +8,7 @@ import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
 import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
 import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
+import { StravaPostRow } from "@/components/workout/strava-post-row";
 import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
 import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
@@ -233,6 +234,8 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         draft={workoutPostDraft(session, summary, settings.units)}
         className="min-h-11 w-full max-w-xs rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
       />
+
+      <StravaPostRow session={session} mode="finish" />
 
       <div className="flex gap-3">
         <ShareWorkoutButton

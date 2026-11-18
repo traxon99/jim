@@ -5,7 +5,12 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
  * other way. They send no Origin header, so they pass anyway; the exemption
  * keeps that true if a caller ever starts sending one.
  */
-const CSRF_EXEMPT_PATHS = ["/api/push/rest-timer/fire", "/api/push/workout-idle/fire"];
+const CSRF_EXEMPT_PATHS = [
+  "/api/push/rest-timer/fire",
+  "/api/push/workout-idle/fire",
+  "/api/strava/webhook",
+  "/api/strava/post",
+];
 
 /**
  * True when a cookie-authenticated API request looks forged: a mutating /api/*

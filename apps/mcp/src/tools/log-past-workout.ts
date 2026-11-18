@@ -19,6 +19,7 @@ import { MCP_DEVICE_ID } from "./create-routine.js";
 import { findRoutine } from "./find-routine.js";
 import { findGym } from "./gyms.js";
 import { resolveExercise } from "./resolve-exercise.js";
+import { queueLoggedWorkoutForStrava } from "./strava.js";
 
 type SetKind = typeof sets.$inferInsert.kind & string;
 
@@ -220,7 +221,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
   const totalSets = input.exercises.reduce((sum, item) => sum + item.sets.length, 0);
   if (totalSets === 0) throw new Error("A logged workout needs at least one set.");
 
-  return withUserWrite(context, input.dryRun ?? false, async (tx) => {
+  const result = await withUserWrite(context, input.dryRun ?? false, async (tx) => {
     // An id or the routine's exact name, like every other routine tool (#514).
     const routine = input.routineId ? await findRoutine(tx, input.routineId) : null;
     const routineName = routine?.name ?? null;
@@ -361,4 +362,7 @@ export async function logPastWorkout(context: UserContext, input: LogPastWorkout
       exercises: loggedExercises,
     };
   });
+  // Finished workouts go to Strava like any other (issue #836).
+  if (!result.dryRun) await queueLoggedWorkoutForStrava(context, result.id);
+  return result;
 }
