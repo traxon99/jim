@@ -208,7 +208,9 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                   </span>
                 )}
                 {row.tempo && showsTempo(settings) && (
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">Tempo {row.tempo}</span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Tempo {row.tempo}
+                  </span>
                 )}
               </li>
             ))}
