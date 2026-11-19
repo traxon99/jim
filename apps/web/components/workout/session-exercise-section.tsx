@@ -231,10 +231,10 @@ export function SessionExerciseSection({
   // front. They ride on top of the working sets, as does a row switched to
   // a warm-up from its set-type menu: a 3×10 still plans three working sets.
   const warmupCount = item.warmupSets ?? 0;
-  // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
-  // 10×1), so its sets win over last time's.
   // The tempo this workout started with (issue #845), behind its Advanced switch.
   const tempo = showsTempo(settings) ? parseTempo(item.tempo) : null;
+  // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
+  // 10×1), so its sets win over last time's.
   const workingTarget =
     (rule?.decision.targetSets ??
       volumeSets ??
@@ -874,11 +874,11 @@ export function SessionExerciseSection({
       )}
       {rule && <p className={sizes.meta}>{ruleWhyLine(rule, settings.units)}</p>}
 
-      {tempo && <p className={sizes.meta}>Tempo {formatTempo(tempo)}</p>}
-
       {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (
         <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>
       )}
+
+      {tempo && <p className={sizes.meta}>Tempo {formatTempo(tempo)}</p>}
 
       {suggestedWeights && hasHistory && !suggestionsOpen && (
         <button

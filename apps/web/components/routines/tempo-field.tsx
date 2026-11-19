@@ -57,7 +57,9 @@ export function TempoField({
     setPhases(next);
   }
 
-  const saved = parseTempo(value);
+  // Follows what's typed, so the time per rep updates before saving.
+  const typed = tempoFromInputs(...phases);
+  const preview = typed === "invalid" ? null : parseTempo(typed);
   const hasInput = phases.some((phase) => phase.trim() !== "");
   const fields = [
     { label: "Down", name: "Lowering seconds", inputMode: "numeric" as const },
@@ -80,9 +82,9 @@ export function TempoField({
     >
       <legend className="flex w-full items-baseline gap-2 text-xs font-medium">
         Tempo
-        {saved && !invalid && (
+        {preview && (
           <span className="font-normal text-zinc-500 tabular-nums dark:text-zinc-400">
-            {formatSeconds(tempoSecondsPerRep(saved))} s per rep
+            {formatSeconds(tempoSecondsPerRep(preview))} s per rep
           </span>
         )}
       </legend>
@@ -111,6 +113,7 @@ export function TempoField({
           <button
             type="button"
             onClick={() => commit(["", "", ""])}
+            aria-label="Clear tempo"
             className="min-h-11 px-2 text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
           >
             Clear
@@ -119,7 +122,7 @@ export function TempoField({
       </div>
       {invalid && (
         <p id={`${id}-error`} role="alert" className="text-xs text-red-600 dark:text-red-400">
-          Seconds from 0 to 20 for each; only Up can be X.
+          0 to 20 seconds each, at least one above 0. Only Up can be X.
         </p>
       )}
     </fieldset>
