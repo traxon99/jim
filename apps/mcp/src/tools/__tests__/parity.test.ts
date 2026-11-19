@@ -312,6 +312,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       showRestStats: true,
       // The working set timer (issue #634) starts off.
       showSetTimer: false,
+      // Tempo (issue #845) starts off.
+      showTempo: false,
       showInjuryRules: true,
       // Injury switches (issue #731) start on.
       injuriesAffectPrp: true,
@@ -337,6 +339,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
     const timer = await updateSettings(context, { showSetTimer: true });
     expect(timer.changed).toEqual(["showSetTimer"]);
     expect(timer.settings.showSetTimer).toBe(true);
+    const tempo = await updateSettings(context, { showTempo: true });
+    expect(tempo.changed).toEqual(["showTempo"]);
+    expect(tempo.settings.showTempo).toBe(true);
     // Notification switches (issue #668) start on and change one at a time.
     expect(await getSettings(context)).toMatchObject({
       pushRestTimer: true,

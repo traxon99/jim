@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   showSetTypes: true,
   showRestStats: true,
   showSetTimer: false,
+  showTempo: false,
   showInjuryRules: true,
   injuriesAffectPrp: true,
   showInjuryHints: true,

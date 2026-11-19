@@ -19,6 +19,8 @@ export interface SummaryExerciseRow {
   bestSet: string;
   /** Distinct PR kinds hit by any set of the exercise, in first-hit order. */
   prKinds: PrKind[];
+  /** The tempo the workout used (issue #845), "3-1-1", or null. */
+  tempo: string | null;
 }
 
 function isBetter(candidate: SessionDetailSet, best: SessionDetailSet): boolean {
@@ -73,6 +75,7 @@ export function buildSummaryExerciseRows(
       setCount: counted.length,
       bestSet: formatSet(best, distanceUnit),
       prKinds,
+      tempo: group.tempo,
     });
   }
   return rows;

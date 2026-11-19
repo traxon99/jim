@@ -193,6 +193,13 @@ const routineExerciseSchema = z.object({
     .describe("Starting weight, in the user's units"),
   supersetGroup: z.number().int().optional(),
   notes: z.string().optional(),
+  tempo: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      'Tempo (issue #845): seconds lowering-pause-lifting, e.g. "3-1-1"; the lift can be X (explosive), e.g. "2-0-X". 0–20 each. Omit, null or "" for none. Saved whether or not the user has the Tempo switch on',
+    ),
   progression: progressionRuleSchema
     .nullable()
     .optional()
@@ -1327,6 +1334,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional()
           .describe(
             "Working set timer (off by default): Start set / End set during a workout times each set, shown in summaries and history",
+          ),
+        showTempo: z
+          .boolean()
+          .optional()
+          .describe(
+            "Tempo (off by default): the routine editor's tempo field and the tempo line during workouts and in history. Tempos set with create_routine/update_routine are kept either way",
           ),
         showInjuryRules: z
           .boolean()

@@ -16,7 +16,7 @@ import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-draft
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRestStats, showsSetTimer } from "@/lib/settings/features";
+import { showsRestStats, showsSetTimer, showsTempo } from "@/lib/settings/features";
 import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
@@ -206,6 +206,9 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                       </span>
                     ))}
                   </span>
+                )}
+                {row.tempo && showsTempo(settings) && (
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">Tempo {row.tempo}</span>
                 )}
               </li>
             ))}

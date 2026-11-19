@@ -5,3 +5,4 @@ export * from "./icon";
 export * from "./search";
 export * from "./session-changes";
 export * from "./one-off";
+export * from "./tempo";

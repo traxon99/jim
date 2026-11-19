@@ -139,6 +139,7 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
       "targetDurationSeconds",
       "targetWeight",
       "progressionRule",
+      "tempo",
       "notes",
     ],
   },
@@ -169,6 +170,7 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
       "warmupSets",
       "addedSets",
       "skippedSetIndices",
+      "tempo",
     ],
   },
   personalRecords: {

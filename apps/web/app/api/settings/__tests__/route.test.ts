@@ -61,6 +61,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showSetTypes: true,
       showRestStats: true,
       showSetTimer: false,
+      showTempo: false,
       showInjuryRules: true,
       injuriesAffectPrp: true,
       showInjuryHints: true,
@@ -140,6 +141,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ showSetTypes: "yes" })).status).toBe(400);
     expect((await patch({ showRestStats: 1 })).status).toBe(400);
     expect((await patch({ showSetTimer: "on" })).status).toBe(400);
+    expect((await patch({ showTempo: "on" })).status).toBe(400);
     expect((await patch({ showInjuryRules: "on" })).status).toBe(400);
     expect((await patch({ injuriesAffectPrp: "off" })).status).toBe(400);
     expect((await patch({ showInjuryHints: 1 })).status).toBe(400);
@@ -226,6 +228,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showSetTypes: false,
       showRestStats: false,
       showSetTimer: true,
+      showTempo: true,
       autoEndWorkoutMinutes: null,
       pushWorkoutReminders: false,
       pushWhatsNew: false,
@@ -261,6 +264,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.showSetTypes).toBe(false);
     expect(again.showRestStats).toBe(false);
     expect(again.showSetTimer).toBe(true);
+    expect(again.showTempo).toBe(true);
     expect(again.autoEndWorkoutMinutes).toBeNull();
     expect(again.pushRestTimer).toBe(true);
     expect(again.pushWorkoutReminders).toBe(false);

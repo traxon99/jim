@@ -260,6 +260,12 @@ from the install gate and runs there) the same restrictions just feel broken, so
   does or why ("Liked lifts come first…", "Smart workouts use this…"). Keep text that carries data
   (a number, a date, a name) or that the user has to act on (an error, a confirmation of something
   that can't be undone). If a control needs a sentence to make sense, change the control.
+- **Say each fact once, most of all during a workout.** The workout screen is the tightest space
+  in the app, and every line pushes the set table down. Show a value in one form only: "Tempo
+  3-1-1", not "Tempo 3-1-1 · 3 s down, 1 s pause, 1 s up". Don't repeat what the label, the column
+  header or a nearby line already says, and don't spell out a unit or term a lifter already
+  knows. Before adding a line to an exercise section, check whether an existing line can hold the
+  value, and drop words before you add a line (#660).
 - Tap targets are at least 44×44 (`min-h-11 min-w-11`), and primary workout controls go in the
   bottom third of the screen.
 

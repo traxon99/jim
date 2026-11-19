@@ -27,7 +27,10 @@ import { bootQueryMiddleware } from "../boot/dexie-boot-middleware";
 // straight from the Drizzle schema (type-only import: nothing server-side
 // ships to the browser) rather than being hand-duplicated and drifting.
 export type RoutineRow = typeof routines.$inferSelect;
-export type RoutineExerciseRow = typeof routineExercises.$inferSelect;
+type RoutineExerciseSelect = typeof routineExercises.$inferSelect;
+/** Tempo (issue #845) is optional: rows cached before the column existed don't carry it. */
+export type RoutineExerciseRow = Omit<RoutineExerciseSelect, "tempo"> &
+  Partial<Pick<RoutineExerciseSelect, "tempo">>;
 type SessionSelect = typeof sessions.$inferSelect;
 /**
  * The session's gym (issue #454) and Strava choice (issue #836) are optional
@@ -39,10 +42,11 @@ export type SessionRow = Omit<SessionSelect, SessionOptionalFields> &
   Partial<Pick<SessionSelect, SessionOptionalFields>>;
 type SessionExerciseSelect = typeof sessionExercises.$inferSelect;
 /**
- * The set plan's edits (issue #803) are optional here, like an exercise's
- * machine details: rows cached before the columns existed don't carry them.
+ * The set plan's edits (issue #803) and the tempo (issue #845) are optional
+ * here, like an exercise's machine details: rows cached before the columns
+ * existed don't carry them.
  */
-type SessionExercisePlanFields = "addedSets" | "skippedSetIndices";
+type SessionExercisePlanFields = "addedSets" | "skippedSetIndices" | "tempo";
 export type SessionExerciseRow = Omit<SessionExerciseSelect, SessionExercisePlanFields> &
   Partial<Pick<SessionExerciseSelect, SessionExercisePlanFields>>;
 export type SetRow = typeof sets.$inferSelect;
@@ -169,6 +173,7 @@ export type SettingsRow = Pick<
   | "showSetTypes"
   | "showRestStats"
   | "showSetTimer"
+  | "showTempo"
   | "showInjuryRules"
   | "injuriesAffectPrp"
   | "showInjuryHints"

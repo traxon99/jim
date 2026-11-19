@@ -1,4 +1,4 @@
-import { parseProgressionRule } from "@jim/core";
+import { formatTempo, parseProgressionRule, parseTempo } from "@jim/core";
 import { exercises, routineExercises } from "@jim/db";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import type { UserContext } from "../context.js";
@@ -67,6 +67,8 @@ export async function getRoutine(context: UserContext, input: GetRoutineInput) {
         if (item.notes != null) entry.notes = item.notes;
         const progression = parseProgressionRule(item.progressionRule);
         if (progression) entry.progression = progression;
+        const tempo = parseTempo(item.tempo);
+        if (tempo) entry.tempo = formatTempo(tempo);
         return entry;
       }),
     };

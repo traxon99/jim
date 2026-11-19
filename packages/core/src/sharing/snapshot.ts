@@ -6,6 +6,7 @@ import {
   type RoutineIconColor,
   type RoutineIconShape,
 } from "../routines/icon";
+import { formatTempo, parseTempo } from "../routines/tempo";
 import { LB_PER_KG } from "../units";
 
 // Routine and program share links (issue #254). Sharing freezes a routine or
@@ -92,6 +93,8 @@ export interface SharedRoutineItem {
   notes: string | null;
   /** Its increments are in the snapshot's `units` too. */
   progressionRule: ProgressionRule | null;
+  /** Tempo (issue #845), canonical "3-1-1". Absent from snapshots made before it. */
+  tempo?: string | null;
 }
 
 export interface SharedRoutine {
@@ -173,6 +176,7 @@ export interface ShareSourceRoutineItem {
   targetWeight: string | number | null;
   notes: string | null;
   progressionRule?: unknown;
+  tempo?: string | null;
   deletedAt: Date | null;
 }
 
@@ -279,6 +283,7 @@ class SnapshotBuilder {
         targetWeight: weight != null && Number.isFinite(weight) ? weight : null,
         notes: blankToNull(item.notes),
         progressionRule: parseProgressionRule(item.progressionRule),
+        tempo: canonicalTempo(item.tempo),
       });
     }
 
@@ -437,7 +442,13 @@ function parseItem(value: unknown, exerciseCount: number): SharedRoutineItem {
     notes: maybeText(raw.notes, SHARE_LIMITS.notes),
     progressionRule:
       raw.progressionRule == null ? null : (parseProgressionRule(raw.progressionRule) ?? fail()),
+    tempo: raw.tempo == null ? null : (canonicalTempo(String(raw.tempo)) ?? fail()),
   };
+}
+
+function canonicalTempo(value: string | null | undefined): string | null {
+  const tempo = parseTempo(value);
+  return tempo ? formatTempo(tempo) : null;
 }
 
 function parseRoutine(value: unknown, exerciseCount: number, routineCount: number): SharedRoutine {

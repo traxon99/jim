@@ -254,6 +254,9 @@ export const users = pgTable(
     // Working set timer (issue #634): a Start set / End set timer that times
     // each set. Unlike the switches above it's off until turned on.
     showSetTimer: boolean("show_set_timer").notNull().default(false),
+    // Tempo (issue #845): a tempo per routine exercise, shown during workouts.
+    // Off until turned on, like the set timer.
+    showTempo: boolean("show_tempo").notNull().default(false),
     // Exercise rules on Profile → Injuries (issue #724). Rules already set
     // still apply with it off; it only hides the editor.
     showInjuryRules: boolean("show_injury_rules").notNull().default(true),
@@ -495,6 +498,9 @@ export const routineExercises = pgTable(
     // null = DPR or plain "last time" prefill. Parse with
     // `parseProgressionRule` — rows from older clients may lack it.
     progressionRule: jsonb("progression_rule").$type<ProgressionRule>(),
+    // Tempo (issue #845), "3-1-1": lowering, pause at the bottom, lifting.
+    // @jim/core's formatTempo form; read it with parseTempo. Null = none.
+    tempo: text("tempo"),
     notes: text("notes"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
@@ -713,6 +719,9 @@ export const sessionExercises = pgTable(
     // planned rows swiped away, by set index. Saved so a reload keeps them.
     addedSets: integer("added_sets"),
     skippedSetIndices: integer("skipped_set_indices").array(),
+    // The routine exercise's tempo when this workout started (issue #845),
+    // so later routine edits don't rewrite history. Null = none.
+    tempo: text("tempo"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deviceId: text("device_id").notNull().default(""),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),

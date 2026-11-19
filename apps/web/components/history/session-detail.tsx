@@ -17,7 +17,7 @@ import { exerciseCardHref } from "@/lib/navigation/exercise-card";
 import { deleteSession } from "@/lib/sessions/finalize-session";
 import { setNumberLabels } from "@/lib/sessions/set-kinds";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRestStats, showsRpe, showsSetTimer } from "@/lib/settings/features";
+import { showsRestStats, showsRpe, showsSetTimer, showsTempo } from "@/lib/settings/features";
 import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { useStravaActivities, useStravaConnection } from "@/lib/strava/use-strava";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
@@ -277,6 +277,9 @@ export function SessionDetail({ id }: { id: string }) {
                 >
                   {group.exerciseName}
                 </Link>
+                {group.tempo && showsTempo(settings) && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-500">Tempo {group.tempo}</p>
+                )}
                 {group.notes && (
                   <p className="text-xs text-zinc-500 dark:text-zinc-500">{group.notes}</p>
                 )}

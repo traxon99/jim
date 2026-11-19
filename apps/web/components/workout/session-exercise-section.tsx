@@ -49,6 +49,7 @@ import {
   showsRpe,
   showsSetTypes,
   showsStrengthHints,
+  showsTempo,
 } from "@/lib/settings/features";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -61,9 +62,11 @@ import {
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   exerciseDisplayName,
+  formatTempo,
   isVisiblePrKind,
   nearestLoadableWeight,
   normalizeDecimalInput,
+  parseTempo,
   plannedSetRowCount,
   prefillWeightForSet,
   remainingPlannedSetCount,
@@ -228,6 +231,8 @@ export function SessionExerciseSection({
   // front. They ride on top of the working sets, as does a row switched to
   // a warm-up from its set-type menu: a 3×10 still plans three working sets.
   const warmupCount = item.warmupSets ?? 0;
+  // The tempo this workout started with (issue #845), behind its Advanced switch.
+  const tempo = showsTempo(settings) ? parseTempo(item.tempo) : null;
   // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
   // 10×1), so its sets win over last time's.
   const workingTarget =
@@ -872,6 +877,8 @@ export function SessionExerciseSection({
       {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (
         <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>
       )}
+
+      {tempo && <p className={sizes.meta}>Tempo {formatTempo(tempo)}</p>}
 
       {suggestedWeights && hasHistory && !suggestionsOpen && (
         <button

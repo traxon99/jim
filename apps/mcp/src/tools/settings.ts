@@ -26,6 +26,7 @@ function toSettings(row: UserRow) {
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
+    showTempo: row.showTempo,
     showInjuryRules: row.showInjuryRules,
     injuriesAffectPrp: row.injuriesAffectPrp,
     showInjuryHints: row.showInjuryHints,

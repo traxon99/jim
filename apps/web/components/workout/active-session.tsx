@@ -458,6 +458,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       warmupSets: null,
       addedSets: null,
       skippedSetIndices: null,
+      // The tempo was set for the lift being replaced (issue #845).
+      tempo: null,
       updatedAt: new Date(),
       deviceId,
     });

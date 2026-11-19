@@ -17,6 +17,7 @@ type FeatureKey =
   | "showSetTypes"
   | "showRestStats"
   | "showSetTimer"
+  | "showTempo"
   | "showInjuryRules";
 
 type InjuryKey = "injuriesAffectPrp" | "showInjuryHints";
@@ -44,6 +45,12 @@ const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: fa
     key: "showSetTimer",
     label: "Working set timer",
     detail: "Start set and End set buttons that time each set",
+    defaultOn: false,
+  },
+  {
+    key: "showTempo",
+    label: "Tempo",
+    detail: "A lifting tempo per exercise in routines, shown during workouts",
     defaultOn: false,
   },
 ];

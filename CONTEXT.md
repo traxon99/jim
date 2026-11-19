@@ -15,6 +15,15 @@ A set the lifter could not get another rep on: marked as a failure set, or logge
 tracks it like a working set and reads it as where the lifter's limit is; it is never a miss.
 _Avoid_: Failed set, miss
 
+## Tempo
+
+**Tempo**:
+The seconds for the three phases of one rep (issue #845), in order: lowering (eccentric), pause at
+the bottom (isometric), lifting (concentric). Written as three numbers joined by hyphens ("3-1-1").
+Only the lift can be X, explosive. There is no pause at the top. Set per exercise in a routine,
+and each workout keeps a copy of the tempo it started with. PRP never reads it.
+_Avoid_: cadence, rep speed
+
 ## Exercise preference
 
 **Exercise preference**:

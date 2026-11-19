@@ -100,6 +100,7 @@ export const ADMIN_SETTINGS_GROUPS: SettingsGroup[] = [
       { key: "showSetTypes", label: "Set types", kind: "toggle" },
       { key: "showRestStats", label: "Rest stats", kind: "toggle" },
       { key: "showSetTimer", label: "Set timer", kind: "toggle" },
+      { key: "showTempo", label: "Tempo", kind: "toggle" },
       { key: "showInjuryRules", label: "Injury exercise rules", kind: "toggle" },
       { key: "injuriesAffectPrp", label: "Injuries adjust PRP", kind: "toggle" },
       { key: "showInjuryHints", label: "Injury suggestions", kind: "toggle" },

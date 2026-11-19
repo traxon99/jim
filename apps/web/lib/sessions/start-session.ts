@@ -104,6 +104,9 @@ export async function startSessionFromRoutine(
       stickyNote: null,
       restSeconds: null,
       warmupSets: null,
+      // The routine's tempo when the workout started (issue #845), so a later
+      // routine edit doesn't rewrite this workout's history.
+      tempo: item.tempo ?? null,
       updatedAt: now,
       deviceId,
       deletedAt: null,

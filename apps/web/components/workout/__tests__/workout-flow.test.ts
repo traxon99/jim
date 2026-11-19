@@ -85,6 +85,28 @@ describe("starting a session (against Dexie)", () => {
       .toArray();
     expect(sessionExercises.map((se) => se.exerciseId).sort()).toEqual([BENCH_ID, SQUAT_ID].sort());
   });
+
+  it("copies each routine exercise's tempo onto the workout, so later edits keep history (issue #845)", async () => {
+    const items = [
+      routineExercise({ id: "ri1", exerciseId: BENCH_ID, position: 0, tempo: "3-1-1" }),
+      routineExercise({ id: "ri2", exerciseId: SQUAT_ID, position: 1 }),
+    ];
+
+    const sessionId = await startSessionFromRoutine(
+      USER_ID,
+      { id: ROUTINE_ID, name: "Push day" },
+      items,
+      testDb,
+    );
+
+    const sessionExercises = await testDb.sessionExercises
+      .where("sessionId")
+      .equals(sessionId)
+      .toArray();
+    const tempoByExercise = new Map(sessionExercises.map((se) => [se.exerciseId, se.tempo]));
+    expect(tempoByExercise.get(BENCH_ID)).toBe("3-1-1");
+    expect(tempoByExercise.get(SQUAT_ID)).toBeNull();
+  });
 });
 
 describe("logging sets and detecting PRs (against Dexie)", () => {
