@@ -1,8 +1,11 @@
 import {
   type SessionSetTableSizes,
+  UNLOG_GRACE_MS,
+  canUnlogSet,
   parseSetDraftNumber,
   parseSetDraftRpe,
   sessionSetTableSizes,
+  unloggedSetDraft,
 } from "@/components/workout/session-set-ui";
 import { describe, expect, it } from "vitest";
 
@@ -51,5 +54,34 @@ describe("parseSetDraftRpe", () => {
   it("clamps RPE to the allowed range", () => {
     expect(parseSetDraftRpe("11")).toBe(10);
     expect(parseSetDraftRpe("6.2")).toBe(6.2);
+  });
+});
+
+describe("unlogging a set (issue #645)", () => {
+  it("ignores a ✓ tap within the grace period after logging", () => {
+    const loggedAt = new Date("2026-11-19T10:00:00Z");
+    expect(canUnlogSet(loggedAt, new Date(loggedAt.getTime() + 200))).toBe(false);
+    expect(canUnlogSet(loggedAt, new Date(loggedAt.getTime() + UNLOG_GRACE_MS))).toBe(true);
+  });
+
+  it("puts the logged values back in the row, formatted like a logged set", () => {
+    expect(unloggedSetDraft({ weight: "102.50", reps: 8, rpe: "8.0", kind: "failure" })).toEqual({
+      weight: "102.5",
+      reps: "8",
+      rpe: "8",
+      kind: "failure",
+    });
+    expect(unloggedSetDraft({ weight: null, reps: null, rpe: null, kind: "warmup" })).toEqual({
+      weight: "",
+      reps: "",
+      rpe: "",
+      kind: "warmup",
+    });
+  });
+
+  it("brings an old drop set back as a working set", () => {
+    expect(unloggedSetDraft({ weight: "50", reps: 10, rpe: null, kind: "drop" }).kind).toBe(
+      "working",
+    );
   });
 });

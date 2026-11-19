@@ -27,7 +27,7 @@ export function useUndoable<T>() {
     return value;
   }, [pending]);
 
-  return { label: pending?.label ?? null, offer, take };
+  return { label: pending?.label ?? null, value: pending?.value ?? null, offer, take };
 }
 
 export function UndoBar({ label, onUndo }: { label: string; onUndo: () => void }) {

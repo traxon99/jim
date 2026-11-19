@@ -27,8 +27,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * unless they picked every deploy (scripts/send-release-push.ts,
  * `shouldSendReleasePush`).
  */
-export const LATEST_RELEASE_NOTE =
-  "Progress photos: add them under Profile → Body, then compare two to four side by side with your bodyweight.";
+export const LATEST_RELEASE_NOTE = "Tap a logged set's checkmark to unlog it and fix its numbers.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

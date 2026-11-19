@@ -1,4 +1,5 @@
-import type { SetKind } from "@/lib/sessions/set-kinds";
+import { SET_KINDS, type SetKind } from "@/lib/sessions/set-kinds";
+import { formatSetValue } from "@/lib/workout/set-field-edit";
 import { clampRpe } from "@jim/core";
 
 /** In-progress values for one planned set row before it's logged. */
@@ -18,6 +19,36 @@ export function parseSetDraftNumber(value: string): number | null {
 export function parseSetDraftRpe(value: string): number | null {
   const n = parseSetDraftNumber(value);
   return n == null ? null : clampRpe(n);
+}
+
+/**
+ * How long after a set is logged a tap on its ✓ is ignored (issue #645).
+ * The ✓ stays where Log was (issue #318), so without this the second tap of
+ * a quick double tap would unlog the set it just logged.
+ */
+export const UNLOG_GRACE_MS = 1000;
+
+export function canUnlogSet(completedAt: Date, now: Date): boolean {
+  return now.getTime() - new Date(completedAt).getTime() >= UNLOG_GRACE_MS;
+}
+
+/**
+ * The planned row an unlogged set goes back to (issue #645): its logged
+ * values typed in, ready to fix and log again. A set kind that's no longer
+ * offered (an old "drop" set) comes back as a working set.
+ */
+export function unloggedSetDraft(set: {
+  weight: string | number | null;
+  reps: number | null;
+  rpe: string | number | null;
+  kind: string;
+}): SessionSetDraftValues {
+  return {
+    weight: formatSetValue(set.weight),
+    reps: set.reps == null ? "" : String(set.reps),
+    rpe: formatSetValue(set.rpe),
+    kind: (SET_KINDS as readonly string[]).includes(set.kind) ? (set.kind as SetKind) : "working",
+  };
 }
 
 /**
