@@ -42,7 +42,7 @@ import {
   restoreSet,
   updateSetKind,
 } from "@/lib/sessions/set-actions";
-import { type SetKind, deletedWarmupIndices, setNumberLabels } from "@/lib/sessions/set-kinds";
+import { type SetKind, setNumberLabels } from "@/lib/sessions/set-kinds";
 import { loadEarlierStickyNotes } from "@/lib/sessions/sticky-note";
 import {
   showsInjuryHints,
@@ -83,6 +83,7 @@ import {
   parseSetDraftNumber,
   parseSetDraftRpe,
   sessionSetTableSizes,
+  unloggedSetDraft,
 } from "./session-set-ui";
 
 interface Props {
@@ -234,14 +235,6 @@ export function SessionExerciseSection({
       volumeSets ??
       Math.max(target?.targetSets ?? 0, previousSets.working.length, 1)) + addedSets;
 
-  // A warm-up set deleted from the log (issue #438) stays deleted: its
-  // tombstone is synced, so the index isn't planned again as a fresh warm-up
-  // row, here or after a sync reloads this screen.
-  const deletedWarmups = useMemo(
-    () => deletedWarmupIndices(resolveCurrentRows(rawSets ?? [])),
-    [rawSets],
-  );
-
   const loggedByIndex = useMemo(() => new Map(sets.map((set) => [set.setIndex, set])), [sets]);
   const loggedIndices = useMemo(() => new Set(loggedByIndex.keys()), [loggedByIndex]);
   const restSeconds =
@@ -293,9 +286,7 @@ export function SessionExerciseSection({
     kindAt,
   );
   const allIndices = Array.from({ length: plannedTotal }, (_, index) => index);
-  const plannedIndices = allIndices.filter(
-    (index) => !loggedIndices.has(index) && !deletedWarmups.has(index),
-  );
+  const plannedIndices = allIndices.filter((index) => !loggedIndices.has(index));
   const visiblePlannedIndices = plannedIndices.filter((index) => !skippedIndices.has(index));
 
   // "Last time" for a row is last time's set of the same kind at the same
@@ -369,7 +360,7 @@ export function SessionExerciseSection({
       if (kindAt(earlier) === "warmup") continue;
       const logged = loggedByIndex.get(earlier);
       if (logged) return logged.weight == null ? "" : String(Number(logged.weight));
-      if (skippedIndices.has(earlier) || deletedWarmups.has(earlier)) continue;
+      if (skippedIndices.has(earlier)) continue;
       return draftFor(earlier).weight || suggestedWeightFor(earlier);
     }
     return "";
@@ -481,6 +472,7 @@ export function SessionExerciseSection({
       rpe: parseSetDraftRpe(draft.rpe),
       workSeconds: workSeconds?.() ?? null,
     });
+    dropUndoFor(index);
     setJustLoggedId(set.id);
     if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
       setPrsBySetId((map) => new Map(map).set(set.id, prs));
@@ -511,11 +503,18 @@ export function SessionExerciseSection({
       rpe: lastSet.rpe == null ? null : Number(lastSet.rpe),
       workSeconds: workSeconds?.() ?? null,
     });
+    dropUndoFor(nextIndex);
     setJustLoggedId(set.id);
     if (prs.some((pr) => isVisiblePrKind(pr.kind))) {
       setPrsBySetId((map) => new Map(map).set(set.id, prs));
     }
     onSetLogged(restSeconds, remainingAfterLogging(nextIndex));
+  }
+
+  // Once a row is logged again, undoing its delete or unlog would bring back
+  // a second set in the same row, so that Undo goes.
+  function dropUndoFor(index: number) {
+    if (undoableDelete.value?.setIndex === index) undoableDelete.take();
   }
 
   async function handleEdit(
@@ -529,14 +528,48 @@ export function SessionExerciseSection({
     await updateSetKind(original, kind);
   }
 
+  // A deleted warm-up stays deleted (issue #438): its row is skipped on the
+  // workout's exercise, so it isn't planned again as a fresh warm-up row,
+  // here or on another device. A deleted working set's row comes back.
   async function handleDelete(original: SetRowEntity) {
-    undoableDelete.offer("Set deleted", await deleteSet(original));
+    const tombstone = await deleteSet(original);
+    if (original.kind === "warmup") {
+      await savePlan((row) => ({
+        skippedSetIndices: [...new Set([...(row.skippedSetIndices ?? []), original.setIndex])],
+      }));
+    }
+    undoableDelete.offer("Set deleted", tombstone);
+  }
+
+  // Tapping a logged set's ✓ unlogs it (issue #645): the same tombstone as a
+  // delete, but its row comes back as a planned row holding what was logged.
+  async function handleUnlog(original: SetRowEntity) {
+    const tombstone = await deleteSet(original);
+    await unskipIndex(original.setIndex);
+    setDraftOverrides((current) =>
+      new Map(current).set(original.setIndex, unloggedSetDraft(original)),
+    );
+    if (justLoggedId === original.id) setJustLoggedId(null);
+    undoableDelete.offer("Set unlogged", tombstone);
+  }
+
+  async function unskipIndex(index: number) {
+    const row = (await db.sessionExercises.get(item.id)) ?? item;
+    if (!row.skippedSetIndices?.includes(index)) return;
+    await saveItem({ skippedSetIndices: row.skippedSetIndices.filter((i) => i !== index) });
   }
 
   async function handleUndoDelete() {
     const tombstone = undoableDelete.take();
     if (!tombstone) return;
     const restored = await restoreSet(tombstone);
+    await unskipIndex(tombstone.setIndex);
+    setDraftOverrides((current) => {
+      if (!current.has(tombstone.setIndex)) return current;
+      const next = new Map(current);
+      next.delete(tombstone.setIndex);
+      return next;
+    });
     // The restored row has a new id; keep the PR badge of the set it brings back.
     const prs = tombstone.supersedesId ? prsBySetId.get(tombstone.supersedesId) : undefined;
     if (prs) setPrsBySetId((map) => new Map(map).set(restored.id, prs));
@@ -885,6 +918,7 @@ export function SessionExerciseSection({
         onEdit={(set, patch) => void handleEdit(set, patch)}
         onChangeLoggedKind={(set, kind) => void handleChangeKind(set, kind)}
         onDelete={(set) => void handleDelete(set)}
+        onUnlog={(set) => void handleUnlog(set)}
         onSkip={skipPlannedRow}
         onFillPrevious={fillFromPrevious}
         renderInputs={(index) => {

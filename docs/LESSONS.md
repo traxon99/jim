@@ -141,7 +141,9 @@ Answer each one that your diff touches. If you can't verify one from here, say s
       RPE, and how ramped sets build), not only the engine's reason, which describes last time.
       Boxes PRP fills keep its call's dashed outline until something is typed (#712).
 - [ ] Sets are append-only and sync is foreground-driven (`docs/DECISIONS.md`). Don't edit rows in
-      place. A planned row must not reappear over a synced tombstone (#438).
+      place. A deleted set's row must not be planned again (#438): record it on the workout's
+      exercise (`skippedSetIndices`), not by reading the tombstone, so an unlog can bring its row
+      back (#645).
 - [ ] A plan edit the lifter makes on purpose (an added set, a swiped-away row) is saved on the
       workout's exercise row, never held only in component state, so a reload keeps it (#803).
 

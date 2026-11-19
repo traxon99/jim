@@ -7,6 +7,7 @@ import { type SetField, formatSetValue, setFieldEditPatch } from "@/lib/workout/
 import { normalizeDecimalInput } from "@jim/core";
 import { useEffect, useRef, useState } from "react";
 import { PrBadge } from "./pr-badge";
+import { canUnlogSet } from "./session-set-ui";
 import { SetKindMenu } from "./set-kind-menu";
 import { SwipeDeleteReveal, useSwipeToDelete } from "./use-swipe-to-delete";
 
@@ -28,6 +29,8 @@ interface Props {
   onEdit: (patch: { weight: number | null; reps: number | null; rpe: number | null }) => void;
   onChangeKind: (kind: SetKind) => void;
   onDelete: () => void;
+  /** Tapping the ✓ takes the set back to a planned row (issue #645). */
+  onUnlog: () => void;
 }
 
 const SIZES = {
@@ -55,9 +58,10 @@ const SIZES = {
   // (issue #646).
   longValue: "text-base",
   // The Log ✓ stays put once the set is logged (issue #318), in a quieter
-  // "done" state and not a button: a second tap in the same spot does
-  // nothing, rather than landing on a delete button.
-  doneMark: "flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
+  // "done" state. Tapping it unlogs the set (issue #645), never deletes it,
+  // and only once the set has been logged a moment (`canUnlogSet`), so a
+  // double tap on Log can't undo itself.
+  doneMark: "press flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
   icon: "h-4 w-4",
   // The just-logged ripple's clip: the whole row's pill, hung off the right
   // edge of the last cell (the only cell it can be positioned from).
@@ -166,6 +170,7 @@ export function SetRow({
   onEdit,
   onChangeKind,
   onDelete,
+  onUnlog,
 }: Props) {
   const sizes = SIZES;
   const [editingField, setEditingField] = useState<SetField | null>(null);
@@ -265,9 +270,16 @@ export function SetRow({
       )}
       <td className={sizes.actionCell}>
         <div className={sizes.actionGroup}>
-          <span role="img" aria-label="Logged" className={sizes.doneMark}>
+          <button
+            type="button"
+            onClick={() => {
+              if (canUnlogSet(set.completedAt, new Date())) onUnlog();
+            }}
+            aria-label={`Unlog ${label === "W" ? "warm-up set" : `set ${label}`}`}
+            className={sizes.doneMark}
+          >
             <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
-          </span>
+          </button>
         </div>
         {ripple && (
           <span aria-hidden="true" className={sizes.rippleClip} style={{ width: ripple.width }}>
