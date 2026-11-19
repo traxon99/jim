@@ -12,6 +12,7 @@ import {
   showsSetTimer,
   showsSetTypes,
   showsStrengthHints,
+  showsTempo,
 } from "../features";
 
 describe("showsRpe", () => {
@@ -140,5 +141,25 @@ describe("needsSetup", () => {
 
   it("ignores a row cached before the field existed", () => {
     expect(needsSetup({} as { onboardedAt: Date | null })).toBe(false);
+  });
+});
+
+describe("showsTempo", () => {
+  it("is off by default", () => {
+    expect(showsTempo(DEFAULT_SETTINGS)).toBe(false);
+  });
+
+  it("follows its own switch in Advanced mode", () => {
+    expect(showsTempo({ advancedFeatures: true, showTempo: true })).toBe(true);
+    expect(showsTempo({ advancedFeatures: true, showTempo: false })).toBe(false);
+  });
+
+  it("is hidden in Simple mode", () => {
+    expect(showsTempo({ advancedFeatures: false, showTempo: true })).toBe(false);
+  });
+
+  it("treats a row cached before the setting existed as off", () => {
+    const { showTempo: _, ...old } = DEFAULT_SETTINGS;
+    expect(showsTempo(old as typeof DEFAULT_SETTINGS)).toBe(false);
   });
 });

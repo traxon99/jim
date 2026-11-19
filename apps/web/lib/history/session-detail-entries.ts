@@ -2,9 +2,11 @@ import type { ExerciseRow, PersonalRecordRow, SessionExerciseRow, SetRow } from 
 import {
   type PrKind,
   exerciseDisplayName,
+  formatTempo,
   isCardioExercise,
   isVisiblePr,
   isWarmupExercise,
+  parseTempo,
   repsAtWeightExerciseIds,
   resolveCurrentRows,
 } from "@jim/core";
@@ -36,6 +38,8 @@ export interface SessionDetailExercise {
   /** A cardio exercise: distance and time rather than weight and reps. */
   isCardio: boolean;
   notes: string | null;
+  /** The tempo the workout used (issue #845), canonical "3-1-1", or null. */
+  tempo: string | null;
   sets: SessionDetailSet[];
 }
 
@@ -45,6 +49,11 @@ export interface SessionDetailExercise {
  * exercise in routine order, each set tagged with whichever visible PR kinds
  * it achieved (only e1RM, issue #389).
  */
+function canonicalTempo(value: string | null | undefined): string | null {
+  const tempo = parseTempo(value);
+  return tempo ? formatTempo(tempo) : null;
+}
+
 export function buildSessionDetailExercises(
   sessionId: string,
   sessionExercises: readonly SessionExerciseRow[],
@@ -99,6 +108,7 @@ export function buildSessionDetailExercises(
       isWarmup: warmupExerciseIds.has(sessionExercise.exerciseId),
       isCardio: cardioExerciseIds.has(sessionExercise.exerciseId),
       notes: sessionExercise.notes,
+      tempo: canonicalTempo(sessionExercise.tempo),
       sets: (setsBySessionExercise.get(sessionExercise.id) ?? [])
         .sort((a, b) => a.setIndex - b.setIndex)
         .map((set) => ({

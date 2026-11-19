@@ -45,6 +45,7 @@ export interface SettingsPayload {
   showSetTypes: boolean;
   showRestStats: boolean;
   showSetTimer: boolean;
+  showTempo: boolean;
   showInjuryRules: boolean;
   injuriesAffectPrp: boolean;
   showInjuryHints: boolean;
@@ -88,6 +89,7 @@ export function toSettingsPayload(row: typeof users.$inferSelect): SettingsPaylo
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
+    showTempo: row.showTempo,
     showInjuryRules: row.showInjuryRules,
     injuriesAffectPrp: row.injuriesAffectPrp,
     showInjuryHints: row.showInjuryHints,
@@ -178,6 +180,9 @@ export function isValidSettingsPatch(body: unknown): body is Partial<SettingsPay
     return false;
   }
   if ("showSetTimer" in candidate && typeof candidate.showSetTimer !== "boolean") {
+    return false;
+  }
+  if ("showTempo" in candidate && typeof candidate.showTempo !== "boolean") {
     return false;
   }
   if ("showInjuryRules" in candidate && typeof candidate.showInjuryRules !== "boolean") {
@@ -312,6 +317,7 @@ export function toSettingsColumns(
   if (body.showSetTypes !== undefined) patch.showSetTypes = body.showSetTypes;
   if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
   if (body.showSetTimer !== undefined) patch.showSetTimer = body.showSetTimer;
+  if (body.showTempo !== undefined) patch.showTempo = body.showTempo;
   if (body.showInjuryRules !== undefined) patch.showInjuryRules = body.showInjuryRules;
   if (body.injuriesAffectPrp !== undefined) patch.injuriesAffectPrp = body.injuriesAffectPrp;
   if (body.showInjuryHints !== undefined) patch.showInjuryHints = body.showInjuryHints;

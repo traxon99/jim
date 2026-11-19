@@ -49,6 +49,7 @@ import {
   showsRpe,
   showsSetTypes,
   showsStrengthHints,
+  showsTempo,
 } from "@/lib/settings/features";
 import { STRENGTH_TIER_LABELS } from "@/lib/strength-standards/labels";
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
@@ -61,9 +62,11 @@ import {
   STRENGTH_STANDARD_TIERS,
   WARMUP_RAMP_SET_COUNT,
   exerciseDisplayName,
+  formatTempo,
   isVisiblePrKind,
   nearestLoadableWeight,
   normalizeDecimalInput,
+  parseTempo,
   plannedSetRowCount,
   prefillWeightForSet,
   remainingPlannedSetCount,
@@ -230,6 +233,8 @@ export function SessionExerciseSection({
   const warmupCount = item.warmupSets ?? 0;
   // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
   // 10×1), so its sets win over last time's.
+  // The tempo this workout started with (issue #845), behind its Advanced switch.
+  const tempo = showsTempo(settings) ? parseTempo(item.tempo) : null;
   const workingTarget =
     (rule?.decision.targetSets ??
       volumeSets ??
@@ -868,6 +873,8 @@ export function SessionExerciseSection({
         </div>
       )}
       {rule && <p className={sizes.meta}>{ruleWhyLine(rule, settings.units)}</p>}
+
+      {tempo && <p className={sizes.meta}>Tempo {formatTempo(tempo)}</p>}
 
       {volumeSets !== null && target?.targetSets != null && volumeSets !== target.targetSets && (
         <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>

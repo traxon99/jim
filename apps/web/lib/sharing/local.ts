@@ -159,6 +159,7 @@ export async function addSharedSnapshot(
         targetWeight: weight === null ? null : String(weight),
         notes: item.notes,
         progressionRule: convertShareRule(item.progressionRule, snapshot.units, settings.units),
+        tempo: item.tempo ?? null,
         deletedAt: null,
         ...stamp,
       };

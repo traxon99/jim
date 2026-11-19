@@ -87,6 +87,16 @@ export function showsSetTimer(
 }
 
 /**
+ * Whether tempo (issue #845) shows: the routine editor's tempo field and the
+ * tempo line in workouts and history. Off by default; tempos already saved
+ * are kept while it's off. A settings row cached before it existed counts as
+ * off.
+ */
+export function showsTempo(settings: Pick<SettingsRow, "advancedFeatures" | "showTempo">): boolean {
+  return settings.advancedFeatures !== false && settings.showTempo === true;
+}
+
+/**
  * Whether to open the setup walkthrough on launch (issue #464): only for a
  * settings row the server sent with `onboardedAt` null, i.e. a new account.
  * No cached row yet (first fetch still in flight), or one cached before the

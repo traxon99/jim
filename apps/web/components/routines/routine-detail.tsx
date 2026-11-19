@@ -23,7 +23,7 @@ import { useGyms } from "@/lib/gyms/use-gyms";
 import { useHasOpenInjury } from "@/lib/injuries/use-injuries";
 import { routineItemSummary } from "@/lib/routines/summary";
 import { startSessionFromRoutineId } from "@/lib/sessions/start-session";
-import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { DEFAULT_SETTINGS, showsTempo } from "@/lib/settings";
 import { buildRoutineSnapshot } from "@/lib/sharing/local";
 import {
   addExerciseItems,
@@ -478,6 +478,7 @@ export function RoutineDetail({
                   cardio={exercisesById.get(item.exerciseId)?.cardio ?? false}
                   units={settings.units}
                   dprFocused={dprContext?.lifts.has(item.exerciseId) ?? false}
+                  showTempo={showsTempo(settings)}
                   onUpdate={(patch) => handleUpdateItem(item, patch)}
                 />
               ))}

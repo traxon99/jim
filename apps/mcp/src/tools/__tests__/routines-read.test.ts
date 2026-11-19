@@ -37,6 +37,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("list_routines / get_routine (#3
           targetRestSeconds: 180,
           targetWeight: 100,
           notes: "Belt on top sets",
+          tempo: "31x",
         },
         { exercise: "plank", targetSets: 3, targetDurationSeconds: 45, supersetGroup: 1 },
       ],
@@ -95,14 +96,38 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("list_routines / get_routine (#3
       targetRestSeconds: 180,
       targetWeight: 100,
       notes: "Belt on top sets",
+      // Saved in canonical form (issue #845).
+      tempo: "3-1-X",
     });
     expect(byId.exercises[1]).not.toHaveProperty("targetRepsLow");
+    expect(byId.exercises[1]).not.toHaveProperty("tempo");
   });
 
   it("get_routine output round-trips through update_routine unchanged", async () => {
     const before = await getRoutine(context, { routine: legsId });
     await updateRoutine(context, { routineId: legsId, exercises: before.exercises });
     expect(await getRoutine(context, { routine: legsId })).toEqual(before);
+  });
+
+  it("update_routine clears a tempo and rejects one that isn't a tempo (issue #845)", async () => {
+    await expect(
+      updateRoutine(context, {
+        routineId: pushId,
+        exercises: [{ exercise: "bench press", tempo: "3-1-1-0" }],
+      }),
+    ).rejects.toThrow(/isn't a tempo for Bench Press/);
+    await updateRoutine(context, {
+      routineId: pushId,
+      exercises: [{ exercise: "bench press", tempo: "2-0-1" }],
+    });
+    expect((await getRoutine(context, { routine: pushId })).exercises[0]?.tempo).toBe("2-0-1");
+    await updateRoutine(context, {
+      routineId: pushId,
+      exercises: [{ exercise: "bench press", tempo: null }],
+    });
+    expect((await getRoutine(context, { routine: pushId })).exercises[0]).not.toHaveProperty(
+      "tempo",
+    );
   });
 
   it("get_routine can't see deleted routines or another user's", async () => {

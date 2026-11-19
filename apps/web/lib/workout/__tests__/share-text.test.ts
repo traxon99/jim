@@ -28,6 +28,7 @@ function exercise(overrides: Partial<SessionDetailExercise> = {}): SessionDetail
     isWarmup: false,
     isCardio: false,
     notes: null,
+    tempo: null,
     sets: [set()],
     ...overrides,
   };

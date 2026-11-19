@@ -3,7 +3,7 @@ import { routineExercises, routines } from "@jim/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUserWrite } from "../context.js";
-import { MCP_DEVICE_ID } from "./create-routine.js";
+import { MCP_DEVICE_ID, routineTempo } from "./create-routine.js";
 import type { CreateRoutineExerciseInput } from "./create-routine.js";
 import { findRoutine, findWarmupRoutine } from "./find-routine.js";
 import { progressionRuleChecker } from "./progression-rules.js";
@@ -96,6 +96,7 @@ export async function updateRoutine(context: UserContext, input: UpdateRoutineIn
           targetDurationSeconds: item.targetDurationSeconds ?? null,
           targetWeight: item.targetWeight == null ? null : String(item.targetWeight),
           progressionRule,
+          tempo: routineTempo(item.tempo, exercise.name),
           notes: item.notes ?? null,
           updatedAt: now,
           deviceId: MCP_DEVICE_ID,

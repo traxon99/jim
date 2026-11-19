@@ -32,6 +32,7 @@ function group(id: string, name: string, sets: SessionDetailSet[]): SessionDetai
     isWarmup: false,
     isCardio: false,
     notes: null,
+    tempo: null,
     sets,
   };
 }
