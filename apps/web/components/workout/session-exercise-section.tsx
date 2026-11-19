@@ -544,12 +544,13 @@ export function SessionExerciseSection({
   // Tapping a logged set's ✓ unlogs it (issue #645): the same tombstone as a
   // delete, but its row comes back as a planned row holding what was logged.
   async function handleUnlog(original: SetRowEntity) {
-    const tombstone = await deleteSet(original);
-    await unskipIndex(original.setIndex);
+    // Drafted first, so the row never shows empty placeholders in between.
     setDraftOverrides((current) =>
       new Map(current).set(original.setIndex, unloggedSetDraft(original)),
     );
     if (justLoggedId === original.id) setJustLoggedId(null);
+    const tombstone = await deleteSet(original);
+    await unskipIndex(original.setIndex);
     undoableDelete.offer("Set unlogged", tombstone);
   }
 
@@ -595,13 +596,15 @@ export function SessionExerciseSection({
     });
   }
 
-  // "+ Add Set" brings back the first planned row swiped away, if any,
-  // else plans one more working set past the program's.
+  // "+ Add Set" brings back the first working row swiped away, if any,
+  // else plans one more working set past the program's. A skipped warm-up
+  // (a deleted one, issue #438) isn't what it adds.
   function addSet() {
     void savePlan((row) => {
       const skipped = row.skippedSetIndices ?? [];
-      if (skipped.length === 0) return { addedSets: (row.addedSets ?? 0) + 1 };
-      const first = Math.min(...skipped);
+      const working = skipped.filter((index) => kindAt(index) !== "warmup");
+      if (working.length === 0) return { addedSets: (row.addedSets ?? 0) + 1 };
+      const first = Math.min(...working);
       return { skippedSetIndices: skipped.filter((index) => index !== first) };
     });
   }
