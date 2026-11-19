@@ -35,6 +35,7 @@ interface Props {
   ) => void;
   onChangeLoggedKind: (set: SetRowEntity, kind: SetKind) => void;
   onDelete: (set: SetRowEntity) => void;
+  onUnlog: (set: SetRowEntity) => void;
   onSkip: (index: number) => void;
   onFillPrevious: (index: number) => void;
   renderInputs: (index: number) => { weight: ReactNode; reps: ReactNode; rpe: ReactNode };
@@ -64,6 +65,7 @@ export function SessionSetTable({
   onEdit,
   onChangeLoggedKind,
   onDelete,
+  onUnlog,
   onSkip,
   onFillPrevious,
   renderInputs,
@@ -113,6 +115,7 @@ export function SessionSetTable({
         onEdit={(patch) => void onEdit(set, patch)}
         onChangeKind={(kind) => void onChangeLoggedKind(set, kind)}
         onDelete={() => void onDelete(set)}
+        onUnlog={() => void onUnlog(set)}
       />
     );
   }
