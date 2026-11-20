@@ -49,6 +49,7 @@ export const WRITE_TOOLS = new Set([
   "create_one_off_workout",
   "save_one_off_as_routine",
   "update_routine",
+  "set_tempo",
   "schedule_workout",
   "log_past_workout",
   "upsert_exercise",

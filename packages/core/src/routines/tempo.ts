@@ -102,3 +102,24 @@ export function tempoPhaseAt(tempo: Tempo, elapsedSeconds: number): TempoCuePhas
   }
   return "down";
 }
+
+/**
+ * What a list of lifts' tempos add up to (issue #850), for a routine's or
+ * program's Tempo row and the All lifts inputs: "none" when no lift has one,
+ * "same" when every lift has the same one, "mixed" otherwise (including only
+ * some lifts set). Values that aren't a tempo count as none.
+ */
+export type SharedTempo = { kind: "none" } | { kind: "same"; tempo: string } | { kind: "mixed" };
+
+export function sharedTempo(tempos: readonly (string | null | undefined)[]): SharedTempo {
+  const canonical = tempos.map((value) => {
+    const tempo = parseTempo(value);
+    return tempo ? formatTempo(tempo) : null;
+  });
+  if (canonical.every((tempo) => tempo === null)) return { kind: "none" };
+  const [first] = canonical;
+  if (first != null && canonical.every((tempo) => tempo === first)) {
+    return { kind: "same", tempo: first };
+  }
+  return { kind: "mixed" };
+}

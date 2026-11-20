@@ -9,7 +9,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { normalizeDecimalInput, parseProgressionRule } from "@jim/core";
 import { useEffect, useRef, useState } from "react";
 import { ProgressionRuleEditor } from "./progression-rule-editor";
-import { TempoField } from "./tempo-field";
 
 interface Props {
   item: RoutineExerciseRowEntity;
@@ -25,8 +24,6 @@ interface Props {
   supersetLabel?: string | null;
   /** DPR is focusing on this lift, which rules out a custom progression rule (issue #255). */
   dprFocused?: boolean;
-  /** Show the tempo field (issue #845): Settings → Advanced → Tempo is on. */
-  showTempo?: boolean;
   /** The ⋯ menu's items — superset options and Remove (issue #269). */
   actions: readonly ExerciseAction[];
   onUpdate: (patch: Partial<RoutineExerciseRowEntity>) => void;
@@ -90,7 +87,6 @@ export function RoutineExerciseRow({
   units,
   supersetLabel = null,
   dprFocused = false,
-  showTempo = false,
   actions,
   onUpdate: writeUpdate,
 }: Props) {
@@ -322,10 +318,6 @@ export function RoutineExerciseRow({
           </>
         )}
       </div>
-
-      {showTempo && !warmup && !cardio && (
-        <TempoField value={item.tempo} onCommit={(tempo) => onUpdate({ tempo })} />
-      )}
 
       {!warmup && !cardio && (
         <ProgressionRuleEditor

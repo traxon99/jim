@@ -18,7 +18,7 @@ export interface ProgramEntryInput {
   weekday?: number;
 }
 
-async function findProgram(tx: DbOrTx, key: string): Promise<ProgramRow> {
+export async function findProgram(tx: DbOrTx, key: string): Promise<ProgramRow> {
   const live = isNull(programs.deletedAt);
   const trimmed = key.trim();
   let candidates = UUID_RE.test(trimmed)
