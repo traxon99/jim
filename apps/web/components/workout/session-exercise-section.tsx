@@ -92,6 +92,7 @@ import { RestDialog, StickyNoteDialog, formatRest } from "./exercise-settings-di
 import { SessionSetTable } from "./session-set-table";
 import {
   type SessionSetDraftValues,
+  lastTimeLine,
   parseSetDraftNumber,
   parseSetDraftRpe,
   sessionSetTableSizes,
@@ -422,16 +423,6 @@ export function SessionExerciseSection({
       const next = new Map(current);
       next.set(index, { ...(current.get(index) ?? defaultDraft(index)), ...patch });
       return next;
-    });
-  }
-
-  // Tapping a Prev value copies last time's set into that row (issue #323).
-  function fillFromPrevious(index: number) {
-    const prior = previousFor(index);
-    if (!prior) return;
-    updateDraft(index, {
-      weight: prior.weight == null ? "" : String(prior.weight),
-      reps: prior.reps == null ? "" : String(prior.reps),
     });
   }
 
@@ -791,15 +782,13 @@ export function SessionExerciseSection({
   return (
     // `relative` is the containing block RpeInfoMenu centers its menu in (#412).
     <section
-      className={`${
+      className={`surface ${
         large
-          ? "relative flex flex-col gap-4 rounded-xl border p-4"
-          : "relative flex flex-col gap-3 rounded-lg border p-3"
+          ? "relative flex flex-col gap-4 rounded-3xl border p-4"
+          : "relative flex flex-col gap-3 rounded-3xl border p-4"
       } ${
         // A lift PRP is calling gets its call's dashed outline (issue #712).
-        dpr
-          ? `border-dashed ${dprBadge(dpr.decision.call).borderClassName}`
-          : "border-zinc-200 dark:border-zinc-800"
+        dpr ? `border-dashed ${dprBadge(dpr.decision.call).borderClassName}` : "border-transparent"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -838,6 +827,11 @@ export function SessionExerciseSection({
         </h2>
         <ExerciseActionsMenu actions={[...ownActions, ...actions]} large={large} />
       </div>
+      {lastTimeLine(previousSets.working) && (
+        <p className={`${sizes.meta} -mt-4 tabular-nums`}>
+          Last {lastTimeLine(previousSets.working)}
+        </p>
+      )}
 
       {stickyNote && (
         <button
@@ -956,7 +950,7 @@ export function SessionExerciseSection({
         justLoggedId={justLoggedId}
         prSetIds={new Set(prsBySetId.keys())}
         sizes={sizes}
-        previousFor={previousFor}
+        weightLabel={settings.units}
         kindFor={(index) => draftFor(index).kind}
         onChangeKind={(index, kind) => updateDraft(index, { kind })}
         onEdit={(set, patch) => void handleEdit(set, patch)}
@@ -964,7 +958,8 @@ export function SessionExerciseSection({
         onDelete={(set) => void handleDelete(set)}
         onUnlog={(set) => void handleUnlog(set)}
         onSkip={skipPlannedRow}
-        onFillPrevious={fillFromPrevious}
+        nextRpe={nextDraft.rpe}
+        onPickRpe={(index, rpe) => updateDraft(index, { rpe })}
         renderInputs={(index) => {
           const draft = draftFor(index);
           return {

@@ -12,28 +12,27 @@ const PAD_BOTTOM = 6;
 
 const TICK_MS = 10_000;
 
-const STATUS_STYLE: Record<PaceStatus, { label: string; tone: string; pill: string }> = {
+const STATUS_STYLE: Record<PaceStatus, { label: string; tone: string }> = {
   "on-pace": {
     label: "On pace",
     tone: "text-emerald-600 dark:text-emerald-400",
-    pill: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   },
   behind: {
     label: "Behind pace",
     tone: "text-amber-600 dark:text-amber-400",
-    pill: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
   },
   ahead: {
     label: "Ahead of plan",
     tone: "text-sky-600 dark:text-sky-400",
-    pill: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
   },
   done: {
     label: "All sets done",
     tone: "text-emerald-600 dark:text-emerald-400",
-    pill: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   },
 };
+
+/** Past this many planned sets the bar is one continuous fill, not segments. */
+const MAX_SEGMENTS = 30;
 
 function formatMinutes(seconds: number): string {
   const minutes = Math.round(Math.abs(seconds) / 60);
@@ -153,48 +152,52 @@ export function PaceTracker({
   const summaryId = `${gradientId}-summary`;
 
   return (
-    <section
-      aria-label="Workout pace"
-      className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800"
-    >
+    // A slim bar, one segment per planned set (#854); tapping it opens the
+    // chart below.
+    <section aria-label="Workout pace" className="flex flex-col gap-2">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         aria-controls={summaryId}
-        className="flex items-start justify-between gap-2 text-left"
+        className="flex min-h-11 flex-col justify-center gap-1.5 text-left"
       >
-        <div className="flex flex-col gap-1">
-          <span
-            className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${style.pill}`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+        <span className={`flex h-1.5 w-full gap-0.5 ${style.tone}`} aria-hidden="true">
+          {pace.setsPlanned <= MAX_SEGMENTS ? (
+            Array.from({ length: pace.setsPlanned }, (_, i) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: one fixed segment per planned set
+                key={i}
+                className={`flex-1 rounded-full ${
+                  i < pace.setsDone ? "bg-current" : "bg-zinc-200 dark:bg-zinc-800"
+                }`}
+              />
+            ))
+          ) : (
+            <span className="flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+              <span
+                className="block h-full rounded-full bg-current"
+                style={{ width: `${Math.min(100, (pace.setsDone / pace.setsPlanned) * 100)}%` }}
+              />
+            </span>
+          )}
+        </span>
+        <span className="flex items-center justify-between gap-2 text-sm tabular-nums">
+          <span className={`font-semibold ${style.tone}`}>
             {style.label}
             {pace.status !== "done" && (
-              <span className="font-medium tabular-nums opacity-80">
-                {formatDelta(pace.deltaSeconds)}
-              </span>
+              <span className="ml-1 font-medium opacity-80">{formatDelta(pace.deltaSeconds)}</span>
             )}
           </span>
-          {!expanded && (
-            <p className="tabular-nums text-xs text-zinc-500 dark:text-zinc-500">
-              {pace.setsDone}/{pace.setsPlanned} sets · {formatMinutes(elapsedSeconds)} in
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 items-start gap-1.5">
-          <div className="text-right">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-              {pace.status === "done" ? "Wrapped at" : "Est. finish"}
-            </p>
-            <p className="text-sm font-semibold tabular-nums">{finishLabel}</p>
-          </div>
-          <ChevronDown
-            className={`mt-0.5 h-4 w-4 shrink-0 text-zinc-400 transition-transform dark:text-zinc-500 ${expanded ? "rotate-180" : ""}`}
-            strokeWidth={1.75}
-            aria-hidden="true"
-          />
-        </div>
+          <span className="flex items-center gap-1 text-zinc-500 dark:text-zinc-500">
+            {pace.status === "done" ? "Wrapped" : "Done"} ~{finishLabel}
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </span>
+        </span>
       </button>
 
       <div id={summaryId} hidden={!expanded} className={style.tone}>

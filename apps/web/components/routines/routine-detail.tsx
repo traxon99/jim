@@ -2,7 +2,7 @@
 
 import { ExercisePicker } from "@/components/exercise-picker";
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
-import { Flame, Pencil, Play } from "@/components/icons/solar";
+import { Flame, Pencil, Play, Plus } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { ShareLinkButton } from "@/components/sharing/share-link-button";
@@ -56,7 +56,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { RoutineExerciseRow as RoutineExerciseRowItem } from "./routine-exercise-row";
-import { RoutineIcon } from "./routine-icon";
+import { RoutineIconTile } from "./routine-icon";
 import { TempoRow } from "./tempo-row";
 
 export function RoutineDetail({
@@ -298,8 +298,8 @@ export function RoutineDetail({
       </div>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <RoutineIcon shape={routine.iconShape} color={routine.iconColor} className="h-5 w-5" />
+          <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight">
+            <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} size="lg" />
             {routine.name}
           </h1>
           {(isWarmupKind || routine.folder) && (
@@ -325,7 +325,7 @@ export function RoutineDetail({
               // Drop ?edit=1 so a reload opens the preview, not the editor.
               if (startEditing) router.replace(`/routines/${id}`, { scroll: false });
             }}
-            className="min-h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+            className="press min-h-11 shrink-0 rounded-full bg-accent px-5 text-base font-semibold text-accent-foreground"
           >
             Done
           </button>
@@ -466,7 +466,7 @@ export function RoutineDetail({
             items={items.map((item) => item.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ul className="flex flex-col gap-2">
+            <ul className="surface flex flex-col divide-y divide-zinc-200/80 rounded-3xl dark:divide-zinc-800">
               {items.map((item, index) => (
                 <RoutineExerciseRowItem
                   key={item.id}
@@ -508,8 +508,9 @@ export function RoutineDetail({
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="rounded-lg border border-zinc-300 px-4 py-3 text-base font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
+            className="surface press flex min-h-12 items-center gap-2 rounded-3xl px-4 text-base font-semibold text-accent"
           >
+            <Plus className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
             Add exercise
           </button>
 

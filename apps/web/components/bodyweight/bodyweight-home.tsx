@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  LogEntryForm,
   MEASUREMENT_INPUT_CLASS,
   MeasurementHistory,
   RangePicker,
@@ -13,8 +12,15 @@ import { useUndoable } from "@/components/undo-bar";
 import type { BodyMeasurementRow } from "@/lib/db/schema";
 
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
-import { ClipboardPaste, HeartPulse, Upload } from "@/components/icons/solar";
-import { PAGE_BODY, PageHeader } from "@/components/page-header";
+import { ExerciseActionsMenu } from "@/components/exercise-actions-menu";
+import {
+  CalendarDays,
+  ClipboardPaste,
+  File as FileIcon,
+  HeartPulse,
+  Upload,
+} from "@/components/icons/solar";
+import { FLOATING_BUTTON, PAGE_BODY, PageHeader } from "@/components/page-header";
 import {
   type WeightImportPreview,
   bodyweightSeries,
@@ -29,7 +35,7 @@ import {
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { runSyncCycle } from "@/lib/sync/engine";
-import { type WeightUnit, WorkoutCsvError } from "@jim/core";
+import { type WeightUnit, WorkoutCsvError, normalizeDecimalInput } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useRef, useState } from "react";
 
@@ -90,8 +96,19 @@ export function BodyweightHome({ userId }: { userId: string }) {
   const rowById = useMemo(() => new Map((rows ?? []).map((row) => [row.id, row])), [rows]);
   const undoableDelete = useUndoable<BodyMeasurementRow>();
 
+  // − / + step a tenth from what's typed, else from the last weigh-in (#854).
+  function nudgeWeight(direction: 1 | -1) {
+    const base = Number(
+      (value.trim() === "" ? String(latest?.value ?? "") : value).replace(",", "."),
+    );
+    if (!Number.isFinite(base) || base <= 0) return;
+    setValue(String(Math.max(0.1, Math.round((base + direction * 0.1) * 10) / 10)));
+  }
+
   async function handleLog() {
-    const weight = Number(value.replace(",", "."));
+    // Left blank, Log repeats the last weigh-in, the number shown in the box.
+    const typed = value.trim() === "" && latest ? String(latest.value) : value;
+    const weight = Number(typed.replace(",", "."));
     if (!Number.isFinite(weight) || weight <= 0) {
       setLogError("Enter your weight as a positive number");
       return;
@@ -176,17 +193,52 @@ export function BodyweightHome({ userId }: { userId: string }) {
 
   return (
     <main className="flex flex-1 flex-col">
-      <PageHeader title="Bodyweight" back={{ href: "/profile", label: "Profile" }} />
+      <PageHeader
+        title="Bodyweight"
+        back={{ href: "/profile", label: "Profile" }}
+        actions={
+          <ExerciseActionsMenu
+            label="Import weigh-ins"
+            icon={Upload}
+            triggerClassName={FLOATING_BUTTON}
+            actions={[
+              {
+                label: "Strong or CSV",
+                icon: FileIcon,
+                onSelect: () => fileInput.current?.click(),
+              },
+              {
+                label: "Apple Health",
+                icon: HeartPulse,
+                onSelect: () => healthInput.current?.click(),
+              },
+              {
+                label: "Paste from notes",
+                icon: ClipboardPaste,
+                onSelect: () => {
+                  setPasted("");
+                  setImportError(null);
+                  setImported(null);
+                },
+              },
+            ]}
+          />
+        }
+      />
       <div className={PAGE_BODY}>
-        <section className="flex flex-col gap-3">
-          {latest ? (
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-semibold tabular-nums">
-                {formatMeasurement(latest.value)}
+        {latest && (
+          <section className="surface flex flex-col gap-3 rounded-3xl p-4">
+            <div className="flex flex-col gap-1">
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-5xl leading-none font-bold tracking-tight tabular-nums">
+                  {formatMeasurement(latest.value)}
+                </span>
+                <span className="text-xl font-semibold text-zinc-500 dark:text-zinc-500">
+                  {units}
+                </span>
               </span>
-              <span className="text-sm text-zinc-500 dark:text-zinc-500">{units}</span>
               {first && first !== latest && (
-                <span className="ml-auto text-sm tabular-nums text-zinc-600 dark:text-zinc-400">
+                <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
                   {formatMeasurementChange(latest.value - first.value)} {units} since{" "}
                   {first.measuredAt.toLocaleDateString(undefined, {
                     month: "short",
@@ -195,37 +247,77 @@ export function BodyweightHome({ userId }: { userId: string }) {
                 </span>
               )}
             </div>
-          ) : (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Log your weight to start tracking it over time, or import your history from Strong.
-            </p>
-          )}
+            <BodyweightChart points={visible} unit={units} />
+            <RangePicker ranges={RANGES} value={range} onChange={setRange} />
+          </section>
+        )}
 
-          {series.length > 0 && (
-            <>
-              <RangePicker ranges={RANGES} value={range} onChange={setRange} />
-              <BodyweightChart points={visible} unit={units} />
-            </>
+        <section aria-label="Log a weigh-in" className="flex flex-col gap-2">
+          <div className="surface flex items-center gap-2 rounded-3xl p-2.5">
+            <label className="relative flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-zinc-100 px-3 text-sm font-semibold dark:bg-zinc-800">
+              <CalendarDays className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+              {date === localDateInput(new Date())
+                ? "Today"
+                : new Date(`${date}T12:00`).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+              <input
+                type="date"
+                aria-label="Date"
+                value={date}
+                max={localDateInput(new Date())}
+                onChange={(event) => setDate(event.target.value)}
+                className="absolute inset-0 opacity-0"
+              />
+            </label>
+            <div className="flex min-w-0 flex-1 items-center justify-center gap-1">
+              <button
+                type="button"
+                aria-label="Less weight"
+                onClick={() => nudgeWeight(-1)}
+                className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xl dark:bg-zinc-800"
+              >
+                −
+              </button>
+              <input
+                type="text"
+                inputMode="decimal"
+                aria-label={`Weight (${units})`}
+                value={value}
+                placeholder={latest ? formatMeasurement(latest.value) : "—"}
+                onChange={(event) => setValue(normalizeDecimalInput(event.target.value))}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void handleLog();
+                }}
+                className="w-full min-w-0 bg-transparent text-center text-2xl font-bold tabular-nums outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+              />
+              <button
+                type="button"
+                aria-label="More weight"
+                onClick={() => nudgeWeight(1)}
+                className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xl dark:bg-zinc-800"
+              >
+                +
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleLog()}
+              disabled={saving || (value.trim() === "" && !latest)}
+              className="press min-h-11 shrink-0 rounded-full bg-accent px-5 text-base font-semibold text-accent-foreground disabled:opacity-50"
+            >
+              Log
+            </button>
+          </div>
+          {logError && (
+            <p className="allow-pwa-select px-4 text-xs text-red-600 dark:text-red-500">
+              {logError}
+            </p>
           )}
         </section>
 
-        <LogEntryForm
-          heading="Log a weigh-in"
-          valueLabel={`Weight (${units})`}
-          value={value}
-          onValueChange={setValue}
-          date={date}
-          onDateChange={setDate}
-          saving={saving}
-          error={logError}
-          submitLabel="Log weight"
-          onSubmit={() => void handleLog()}
-        />
-
         <section className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-            Import
-          </h2>
           {!preview && pasted != null && (
             <div className="flex flex-col gap-2">
               <label className="flex flex-col gap-1 text-xs font-medium">
@@ -266,47 +358,13 @@ export function BodyweightHome({ userId }: { userId: string }) {
           )}
           {!preview && pasted == null && (
             <>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                Export your Weight measurement from Strong's settings as a CSV and pick it here.
-                Other CSVs with a date and a weight column work too, or paste a list from your
-                notes. From Apple Health, tap your picture → Export All Health Data and pick the
-                export.zip.
-              </p>
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                disabled={importBusy !== null}
-                className={secondaryButton}
-              >
-                <Upload className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                {importBusy === "reading" && healthProgress == null
-                  ? "Reading…"
-                  : "Import weight from Strong"}
-              </button>
-              <button
-                type="button"
-                onClick={() => healthInput.current?.click()}
-                disabled={importBusy !== null}
-                className={secondaryButton}
-              >
-                <HeartPulse className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                {healthProgress == null
-                  ? "Import from Apple Health"
-                  : `Reading Health export… ${Math.round(healthProgress * 100)}%`}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPasted("");
-                  setImportError(null);
-                  setImported(null);
-                }}
-                disabled={importBusy !== null}
-                className={secondaryButton}
-              >
-                <ClipboardPaste className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                Paste weights from notes
-              </button>
+              {importBusy === "reading" && (
+                <p className="px-4 text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {healthProgress == null
+                    ? "Reading…"
+                    : `Reading Health export… ${Math.round(healthProgress * 100)}%`}
+                </p>
+              )}
               <input
                 ref={fileInput}
                 type="file"

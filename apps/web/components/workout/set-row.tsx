@@ -15,8 +15,6 @@ interface Props {
   set: SetRowEntity;
   /** The Set column's label: the set's number, or "W" for a warm-up. */
   label: string;
-  /** The Prev column's cell (issue #323): last session's same set. */
-  previous: React.ReactNode;
   isPr: boolean;
   /** A focused lift's working set logged without RPE doesn't count for DPR (issue #212). */
   rpeNudge?: boolean;
@@ -37,7 +35,7 @@ const SIZES = {
   // Matches the entry inputs in session-exercise-section.tsx (issue #186):
   // centered, h-11 so the row keeps the height of its action buttons.
   input:
-    "h-11 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50",
+    "h-11 w-full min-w-0 rounded-xl border border-transparent bg-zinc-100 px-1 text-center text-xl font-semibold tabular-nums text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50",
   // pl-2 keeps the label off the tinted row's rounded edge (issue #391).
   indexCell: "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
   // Logged values line up under the centered entry inputs at the same size.
@@ -52,7 +50,7 @@ const SIZES = {
   actionGroup: "flex min-w-22 items-center justify-end",
   // A logged value reads as plain text but is its own tap target (issue
   // #234): tapping it swaps in an input for just that value.
-  valueButton: "min-h-11 w-full rounded-md tabular-nums",
+  valueButton: "min-h-11 w-full rounded-xl font-semibold tabular-nums",
   // Past five characters ("1002.5") a value drops a size, so a heavy or
   // fractional weight can't widen its column and push the ✓ off the card
   // (issue #646).
@@ -61,7 +59,9 @@ const SIZES = {
   // "done" state. Tapping it unlogs the set (issue #645), never deletes it,
   // and only once the set has been logged a moment (`canUnlogSet`), so a
   // double tap on Log can't undo itself.
-  doneMark: "press flex min-h-11 min-w-11 items-center justify-center rounded-md text-accent",
+  doneMark: "press flex min-h-11 min-w-11 items-center justify-center",
+  // A filled ✓ marks the set done (#854); the row itself stays plain text.
+  doneDot: "flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground",
   icon: "h-4 w-4",
   // The just-logged ripple's clip: the whole row's pill, hung off the right
   // edge of the last cell (the only cell it can be positioned from).
@@ -161,7 +161,6 @@ function EditableValue({
 export function SetRow({
   set,
   label,
-  previous,
   isPr,
   rpeNudge = false,
   showRpe = true,
@@ -225,15 +224,9 @@ export function SetRow({
   }
 
   return (
-    // A tinted row marks the set done at a glance (issue #319), like Strong's
-    // and Hevy's completed rows. Each one is its own soft, rounded pill (issue
-    // #391) rather than a solid block split by divider lines; the table's
-    // border-spacing puts the gap between them.
-    <tr
-      {...swipe.rowProps}
-      ref={rowRef}
-      className={`[&>td]:bg-accent/[0.07] [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg ${swipe.rowProps.className}`}
-    >
+    // A logged set reads as plain numbers with a filled ✓ (#854); the tint
+    // belongs to the set you're on next, so the eye lands there.
+    <tr {...swipe.rowProps} ref={rowRef} className={swipe.rowProps.className}>
       <td className={sizes.indexCell}>
         <SetKindMenu
           label={label}
@@ -243,7 +236,6 @@ export function SetRow({
           showKinds={showSetTypes}
         />
       </td>
-      {previous}
       {/* The PR badge is pinned to the cell's corner rather than sitting
           beside the weight: inline, its width widened the Weight column and
           pushed PR rows past the card's edge (issue #440). */}
@@ -278,7 +270,9 @@ export function SetRow({
             aria-label={`Unlog ${label === "W" ? "warm-up set" : `set ${label}`}`}
             className={sizes.doneMark}
           >
-            <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
+            <span className={sizes.doneDot}>
+              <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
+            </span>
           </button>
         </div>
         {ripple && (

@@ -57,25 +57,21 @@ export function unloggedSetDraft(set: {
  */
 export function sessionSetTableSizes(large: boolean) {
   return {
-    title: large ? "text-2xl font-bold" : "text-base font-semibold",
+    title: large ? "text-2xl font-bold" : "text-lg font-semibold tracking-tight",
     meta: large
       ? "text-base text-zinc-500 dark:text-zinc-500"
-      : "text-xs text-zinc-500 dark:text-zinc-500",
+      : "text-sm text-zinc-500 dark:text-zinc-500",
     // Set rows (header, logged and to-log) are the same list-view row in
     // both views: focus view puts its Log button beside the inputs too, and
     // at ~305px wide that only fits with the compact inputs.
     headerRow: "text-xs font-medium text-zinc-500 dark:text-zinc-500",
     // The rule sits on the cells: the table's separated borders (for the gap
     // between logged rows, issue #391) don't draw a row's own border.
-    headerCell: "border-b border-zinc-200 py-1 pr-2 font-medium dark:border-zinc-800",
+    headerCell: "py-1 pr-2 font-medium",
     // pl-2 lines the label up with a logged row's, which is inset from its
     // tinted edge (issue #391).
     indexCell: "py-2 pl-2 pr-2 align-middle text-xs font-medium text-zinc-500 dark:text-zinc-500",
     cell: "py-2 pr-2 align-middle",
-    // Last session's weight over ×reps for the same set (issue #323), stacked
-    // in small grey type so the column stays ~40px wide at 393px.
-    prevCell:
-      "py-2 pr-2 align-middle text-center text-xs leading-tight tabular-nums text-zinc-400 dark:text-zinc-500",
     // `relative` anchors the swipe-to-delete strip (issue #350).
     actionCell: "relative py-2 pl-1 pr-1 align-middle text-right whitespace-nowrap",
     // Values are centered and sized as large as the row allows (issue #186):
@@ -83,21 +79,22 @@ export function sessionSetTableSizes(large: boolean) {
     // beside it, so the row doesn't grow; text-xl is the largest size where a
     // five-character weight ("315.5") still fits the ~70px column on an
     // iPhone 16.
+    // Filled, borderless boxes (#854): the table reads as numbers, not a form.
     input:
-      "h-11 w-full min-w-0 rounded-md border bg-white px-1 text-center text-xl tabular-nums text-zinc-950 dark:bg-zinc-900 dark:text-zinc-50",
+      "h-11 w-full min-w-0 rounded-xl border bg-zinc-100 px-1 text-center text-xl font-semibold tabular-nums text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50",
     // Kept apart from `input` so a box PRP prefilled can swap in its call's
     // dashed outline (issue #712) without two border colors fighting.
-    inputBorder: "border-zinc-300 dark:border-zinc-700",
+    inputBorder: "border-transparent",
     // Only the next set's ✓ is the filled, primary button (issue #319); the
     // sets after it get a quiet outline, so the eye lands on what's next
     // rather than on everything left to do.
     logButton:
-      "flex min-h-11 min-w-11 items-center justify-center rounded-md bg-accent text-accent-foreground",
+      "press flex min-h-11 min-w-11 items-center justify-center rounded-full bg-accent text-accent-foreground",
     laterLogButton:
-      "flex min-h-11 min-w-11 items-center justify-center rounded-md border border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-500",
+      "press flex min-h-11 min-w-11 items-center justify-center rounded-full border border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600 dark:text-zinc-500",
     repeatButton:
-      "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-500",
-    rowIcon: "h-4 w-4",
+      "press flex min-h-11 min-w-11 items-center justify-center rounded-full text-zinc-500 dark:text-zinc-500",
+    rowIcon: "h-5 w-5",
     notesLabel: large
       ? "flex flex-col gap-1 text-base font-medium"
       : "flex flex-col gap-1 text-xs font-medium",
@@ -109,5 +106,24 @@ export function sessionSetTableSizes(large: boolean) {
 
 export type SessionSetTableSizes = Pick<
   ReturnType<typeof sessionSetTableSizes>,
-  "headerRow" | "headerCell" | "prevCell" | "indexCell" | "cell" | "actionCell"
+  "headerRow" | "headerCell" | "indexCell" | "cell" | "actionCell"
 >;
+
+/**
+ * Last time's working sets on one line under the exercise name (#854), where
+ * the table's Prev column used to be: "185 × 8, 8, 7" when the weight held,
+ * else "185 × 8, 190 × 7". Null with nothing to show.
+ */
+export function lastTimeLine(sets: readonly { weight: number | null; reps: number | null }[]) {
+  const shown = sets.filter((set) => set.weight != null || set.reps != null);
+  if (shown.length === 0) return null;
+  const weights = new Set(shown.map((set) => set.weight));
+  const reps = (set: { reps: number | null }) => (set.reps == null ? "—" : String(set.reps));
+  const weight = (set: { weight: number | null }) =>
+    set.weight == null ? "—" : formatSetValue(set.weight);
+  const first = shown[0];
+  if (first && weights.size === 1) {
+    return `${weight(first)} × ${shown.map(reps).join(", ")}`;
+  }
+  return shown.map((set) => `${weight(set)} × ${reps(set)}`).join(", ");
+}

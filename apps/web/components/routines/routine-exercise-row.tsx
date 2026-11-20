@@ -2,11 +2,14 @@
 
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
+import { ChevronDown, GripVertical, Plus } from "@/components/icons/solar";
+import { NumberStepper } from "@/components/number-stepper";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import type { RoutineExerciseRow as RoutineExerciseRowEntity } from "@/lib/db/schema";
+import { routineItemSummary } from "@/lib/routines/summary";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { normalizeDecimalInput, parseProgressionRule } from "@jim/core";
+import { parseProgressionRule } from "@jim/core";
 import { useEffect, useRef, useState } from "react";
 import { ProgressionRuleEditor } from "./progression-rule-editor";
 
@@ -126,18 +129,116 @@ export function RoutineExerciseRow({
     if (changed) writeUpdate(changed);
   }
 
-  // The starting weight for an exercise with no history yet — DPR (issue
-  // #217) replaced the weekly auto-increment that used to build on it.
-  function commitTargetWeight() {
-    onUpdate({ targetWeight: toNumericStringOrNull(targetWeight) });
-  }
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
+  const timedWarmup = warmup?.timed ?? false;
+  const summary = routineItemSummary(item, units, timedWarmup || cardio);
+  const [open, setOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const showNotes = notesOpen || notes.trim() !== "";
+
+  function stepper(
+    label: string,
+    value: string,
+    setValue: (value: string) => void,
+    commit: (value: string) => void,
+    options: { step: number; decimal?: boolean; unit?: string } = { step: 1 },
+  ) {
+    return (
+      <NumberStepper
+        label={label}
+        value={value}
+        onChange={setValue}
+        onCommit={commit}
+        step={options.step}
+        decimal={options.decimal}
+        unit={options.unit}
+      />
+    );
+  }
+
+  const fields = warmup ? (
+    <>
+      {stepper("Sets", targetSets, setTargetSets, (v) =>
+        onUpdate({ targetSets: toNumberOrNull(v) }),
+      )}
+      {warmup.timed
+        ? stepper(
+            "Hold",
+            durationSeconds,
+            setDurationSeconds,
+            (v) => onUpdate({ targetDurationSeconds: toNumberOrNull(v) }),
+            { step: 5, unit: "s" },
+          )
+        : stepper("Reps", repsLow, setRepsLow, (v) => {
+            const reps = toNumberOrNull(v);
+            onUpdate({ targetRepsLow: reps, targetRepsHigh: reps });
+          })}
+    </>
+  ) : cardio ? (
+    <>
+      {stepper("Sets", targetSets, setTargetSets, (v) =>
+        onUpdate({ targetSets: toNumberOrNull(v) }),
+      )}
+      {stepper(
+        "Rest",
+        restSeconds,
+        setRestSeconds,
+        (v) => onUpdate({ targetRestSeconds: toNumberOrNull(v) }),
+        { step: 15, unit: "s" },
+      )}
+      <div className="col-span-2">
+        {stepper(
+          "Time",
+          durationMinutes,
+          setDurationMinutes,
+          (v) => {
+            const minutes = toNumberOrNull(v);
+            onUpdate({
+              targetDurationSeconds:
+                minutes != null && minutes > 0 ? Math.round(minutes * 60) : null,
+            });
+          },
+          { step: 1, decimal: true, unit: "min" },
+        )}
+      </div>
+    </>
+  ) : (
+    <>
+      {stepper("Sets", targetSets, setTargetSets, (v) =>
+        onUpdate({ targetSets: toNumberOrNull(v) }),
+      )}
+      {stepper(
+        "Rest",
+        restSeconds,
+        setRestSeconds,
+        (v) => onUpdate({ targetRestSeconds: toNumberOrNull(v) }),
+        { step: 15, unit: "s" },
+      )}
+      {stepper("Reps low", repsLow, setRepsLow, (v) =>
+        onUpdate({ targetRepsLow: toNumberOrNull(v) }),
+      )}
+      {stepper("Reps high", repsHigh, setRepsHigh, (v) =>
+        onUpdate({ targetRepsHigh: toNumberOrNull(v) }),
+      )}
+      <div className="col-span-2">
+        {stepper(
+          "Weight",
+          targetWeight,
+          setTargetWeight,
+          (v) => onUpdate({ targetWeight: toNumericStringOrNull(v) }),
+          { step: units === "kg" ? 2.5 : 5, decimal: true, unit: units },
+        )}
+      </div>
+    </>
+  );
+
   return (
+    // One summary line per exercise (#854); tapping it opens the targets in
+    // place, each a typeable field with − / + beside it.
     <li
       ref={setNodeRef}
       style={style}
@@ -149,195 +250,94 @@ export function RoutineExerciseRow({
           editing.current = false;
         }
       }}
-      className={`flex flex-col gap-2 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900 ${
-        supersetLabel ? "border-l-4 border-l-accent" : ""
-      } ${isDragging ? "opacity-50" : ""}`}
+      className={`flex flex-col ${supersetLabel ? "border-l-4 border-l-accent" : ""} ${
+        isDragging ? "relative z-10 opacity-60" : ""
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2">
-          <button
-            type="button"
-            aria-label="Drag to reorder"
-            {...attributes}
-            {...listeners}
-            className="mt-0.5 -ml-3 flex h-11 w-11 shrink-0 touch-none items-center justify-center text-zinc-400 dark:text-zinc-600"
-          >
-            ⠿
-          </button>
-          <span className="flex flex-col pt-2">
-            <span className="flex items-center gap-2">
-              {supersetLabel && <SupersetBadge label={supersetLabel} />}
-              <ExerciseNameButton
-                exerciseId={item.exerciseId}
-                userId={userId}
-                className="text-base font-medium"
-              >
-                {exerciseName}
-              </ExerciseNameButton>
-            </span>
+      <div className="flex items-center gap-1 py-1 pr-1">
+        <button
+          type="button"
+          aria-label="Drag to reorder"
+          {...attributes}
+          {...listeners}
+          className="flex h-11 w-9 shrink-0 touch-none items-center justify-center text-zinc-400 dark:text-zinc-600"
+        >
+          <GripVertical className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+        </button>
+        <div className="flex min-w-0 flex-1 flex-col py-2">
+          <span className="flex min-w-0 items-center gap-2">
+            {supersetLabel && <SupersetBadge label={supersetLabel} />}
+            <ExerciseNameButton
+              exerciseId={item.exerciseId}
+              userId={userId}
+              className="min-w-0 truncate text-left text-base font-medium"
+            >
+              {exerciseName}
+            </ExerciseNameButton>
             {warmup && (
-              <span className="text-xs font-medium text-orange-700 dark:text-orange-400">
+              <span className="shrink-0 text-xs font-medium text-orange-700 dark:text-orange-400">
                 Warm-up
               </span>
             )}
-            {cardio && (
-              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-500">Cardio</span>
-            )}
           </span>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="flex min-h-8 items-center gap-1 text-left text-sm tabular-nums text-zinc-500 dark:text-zinc-400"
+          >
+            <span className="min-w-0 truncate">{summary ?? "Set targets"}</span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
+          </button>
         </div>
         <ExerciseActionsMenu actions={actions} />
       </div>
 
-      <div className="flex flex-wrap gap-2 pl-10">
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          Sets
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={targetSets}
-            onChange={(event) => setTargetSets(event.target.value)}
-            onBlur={() => onUpdate({ targetSets: toNumberOrNull(targetSets) })}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
-        </label>
-        {warmup ? (
-          warmup.timed ? (
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Hold (s)
+      {open && (
+        <div className="flex flex-col gap-2 pb-3 pl-10 pr-3">
+          <div className="grid grid-cols-2 gap-2">{fields}</div>
+
+          {!warmup && !cardio && (
+            <ProgressionRuleEditor
+              rule={parseProgressionRule(item.progressionRule)}
+              units={units}
+              dprFocused={dprFocused}
+              onChange={(progressionRule) => onUpdate({ progressionRule })}
+            />
+          )}
+
+          {showNotes ? (
+            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Notes
               <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={durationSeconds}
-                onChange={(event) => setDurationSeconds(event.target.value)}
-                onBlur={() => onUpdate({ targetDurationSeconds: toNumberOrNull(durationSeconds) })}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                type="text"
+                value={notes}
+                // biome-ignore lint/a11y/noAutofocus: only after tapping Add note
+                autoFocus={notesOpen && notes === ""}
+                onChange={(event) => setNotes(event.target.value)}
+                onBlur={() => onUpdate({ notes: notes.trim() || null })}
+                className="rounded-xl bg-zinc-100 px-3 py-2.5 text-base text-zinc-950 outline-none dark:bg-zinc-800/70 dark:text-zinc-50"
               />
             </label>
           ) : (
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Reps
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={repsLow}
-                onChange={(event) => setRepsLow(event.target.value)}
-                onBlur={() => {
-                  const reps = toNumberOrNull(repsLow);
-                  onUpdate({ targetRepsLow: reps, targetRepsHigh: reps });
-                }}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-          )
-        ) : cardio ? (
-          <>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Time (min)
-              <input
-                type="text"
-                inputMode="decimal"
-                min={0}
-                value={durationMinutes}
-                onChange={(event) => setDurationMinutes(normalizeDecimalInput(event.target.value))}
-                onBlur={() => {
-                  const minutes = toNumberOrNull(durationMinutes);
-                  onUpdate({
-                    targetDurationSeconds:
-                      minutes != null && minutes > 0 ? Math.round(minutes * 60) : null,
-                  });
-                }}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Rest (s)
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={restSeconds}
-                onChange={(event) => setRestSeconds(event.target.value)}
-                onBlur={() => onUpdate({ targetRestSeconds: toNumberOrNull(restSeconds) })}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-          </>
-        ) : (
-          <>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Reps low
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={repsLow}
-                onChange={(event) => setRepsLow(event.target.value)}
-                onBlur={() => onUpdate({ targetRepsLow: toNumberOrNull(repsLow) })}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Reps high
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={repsHigh}
-                onChange={(event) => setRepsHigh(event.target.value)}
-                onBlur={() => onUpdate({ targetRepsHigh: toNumberOrNull(repsHigh) })}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Rest (s)
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={restSeconds}
-                onChange={(event) => setRestSeconds(event.target.value)}
-                onBlur={() => onUpdate({ targetRestSeconds: toNumberOrNull(restSeconds) })}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Weight ({units})
-              <input
-                type="text"
-                inputMode="decimal"
-                min={0}
-                value={targetWeight}
-                onChange={(event) => setTargetWeight(normalizeDecimalInput(event.target.value))}
-                onBlur={commitTargetWeight}
-                className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-              />
-            </label>
-          </>
-        )}
-      </div>
-
-      {!warmup && !cardio && (
-        <ProgressionRuleEditor
-          rule={parseProgressionRule(item.progressionRule)}
-          units={units}
-          dprFocused={dprFocused}
-          onChange={(progressionRule) => onUpdate({ progressionRule })}
-        />
+            <button
+              type="button"
+              onClick={() => setNotesOpen(true)}
+              className="flex min-h-11 items-center gap-1 self-start text-sm font-medium text-accent"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
+              Add note
+            </button>
+          )}
+        </div>
       )}
-
-      <label className="flex flex-col gap-1 pl-10 text-xs font-medium">
-        Notes
-        <input
-          type="text"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          onBlur={() => onUpdate({ notes: notes.trim() || null })}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-        />
-      </label>
+      {!open && notes.trim() !== "" && (
+        <p className="-mt-1 pb-3 pl-10 pr-3 text-sm text-zinc-700 dark:text-zinc-300">{notes}</p>
+      )}
     </li>
   );
 }
