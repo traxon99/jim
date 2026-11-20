@@ -44,3 +44,39 @@ export function workStats(sets: readonly WorkStatsSet[]): WorkStats {
     totalWorkSeconds,
   };
 }
+
+/** Seconds to get into position after Start set before tempo cues begin (issue #846). */
+export const SET_READY_SECONDS = 10;
+
+export type SetTimerReadoutPhase = "ready" | "running" | "ended";
+
+export interface SetTimerReadout {
+  phase: SetTimerReadoutPhase;
+  /** Whole seconds of the set so far (running) or its time (ended); 0 while getting ready. */
+  elapsed: number;
+  /** Whole seconds left to get into position, rounded up; 0 once the set runs. */
+  readyRemaining: number;
+}
+
+/**
+ * What the set timer shows at `nowMs`. With tempo cues the set starts
+ * `SET_READY_SECONDS` after the tap, so a start time still ahead is the
+ * get-ready countdown; the set's own time counts from then.
+ */
+export function setTimerReadout(
+  startedAtMs: number,
+  endedAtMs: number | null,
+  nowMs: number,
+): SetTimerReadout {
+  if (endedAtMs !== null) {
+    return {
+      phase: "ended",
+      elapsed: Math.max(0, Math.floor((endedAtMs - startedAtMs) / 1000)),
+      readyRemaining: 0,
+    };
+  }
+  if (nowMs < startedAtMs) {
+    return { phase: "ready", elapsed: 0, readyRemaining: Math.ceil((startedAtMs - nowMs) / 1000) };
+  }
+  return { phase: "running", elapsed: Math.floor((nowMs - startedAtMs) / 1000), readyRemaining: 0 };
+}

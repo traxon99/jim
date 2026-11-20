@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Set a lifting tempo like 3-1-1 on routine exercises: turn on Tempo in Settings → Advanced.";
+  "Tempo cues call out Down, Pause and Up during a set: turn them on under Tempo in Settings → Advanced.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

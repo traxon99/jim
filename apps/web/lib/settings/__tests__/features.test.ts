@@ -13,6 +13,7 @@ import {
   showsSetTypes,
   showsStrengthHints,
   showsTempo,
+  showsTempoCues,
 } from "../features";
 
 describe("showsRpe", () => {
@@ -161,5 +162,30 @@ describe("showsTempo", () => {
   it("treats a row cached before the setting existed as off", () => {
     const { showTempo: _, ...old } = DEFAULT_SETTINGS;
     expect(showsTempo(old as typeof DEFAULT_SETTINGS)).toBe(false);
+  });
+});
+
+describe("showsTempoCues", () => {
+  const allOn = { advancedFeatures: true, showSetTimer: true, showTempo: true, tempoCues: true };
+
+  it("is off by default", () => {
+    expect(showsTempoCues(DEFAULT_SETTINGS)).toBe(false);
+  });
+
+  it("is on only with the set timer, tempo and cues all on", () => {
+    expect(showsTempoCues(allOn)).toBe(true);
+  });
+
+  it("needs the set timer, which enables it", () => {
+    expect(showsTempoCues({ ...allOn, showSetTimer: false })).toBe(false);
+  });
+
+  it("needs tempo and its own switch", () => {
+    expect(showsTempoCues({ ...allOn, showTempo: false })).toBe(false);
+    expect(showsTempoCues({ ...allOn, tempoCues: false })).toBe(false);
+  });
+
+  it("is hidden in Simple mode", () => {
+    expect(showsTempoCues({ ...allOn, advancedFeatures: false })).toBe(false);
   });
 });

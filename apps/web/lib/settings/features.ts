@@ -97,6 +97,18 @@ export function showsTempo(settings: Pick<SettingsRow, "advancedFeatures" | "sho
 }
 
 /**
+ * Whether tempo cues (issue #846) call out a tempo during a set. The set
+ * timer enables them: they need Start set and End set, and tempo itself, so
+ * all three switches must be on. Turning the set timer or tempo off keeps the
+ * saved cue choices for when they come back.
+ */
+export function showsTempoCues(
+  settings: Pick<SettingsRow, "advancedFeatures" | "showSetTimer" | "showTempo" | "tempoCues">,
+): boolean {
+  return showsSetTimer(settings) && showsTempo(settings) && settings.tempoCues === true;
+}
+
+/**
  * Whether to open the setup walkthrough on launch (issue #464): only for a
  * settings row the server sent with `onboardedAt` null, i.e. a new account.
  * No cached row yet (first fetch still in flight), or one cached before the

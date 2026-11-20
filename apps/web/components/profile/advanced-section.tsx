@@ -4,7 +4,7 @@ import { ChevronRight } from "@/components/icons/solar";
 import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
-import { DEFAULT_SETTINGS, patchSettings } from "@/lib/settings";
+import { DEFAULT_SETTINGS, patchSettings, showsSetTimer, showsTempo } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import { useState } from "react";
@@ -81,7 +81,13 @@ const INJURY_RULES = {
 type AdvancedPatch = Partial<
   Pick<
     SettingsRow,
-    "advancedFeatures" | FeatureKey | InjuryKey | "dprEnabled" | "dprEquipmentIncrements"
+    | "advancedFeatures"
+    | FeatureKey
+    | InjuryKey
+    | "dprEnabled"
+    | "dprEquipmentIncrements"
+    | "tempoCues"
+    | "tempoCueStyle"
   >
 >;
 
@@ -157,6 +163,14 @@ export function AdvancedSection() {
               </label>
             );
           })}
+          {/* The set timer enables tempo cues (issue #846): they need Start set and a tempo. */}
+          {showsSetTimer(settings) && showsTempo(settings) && (
+            <TempoCueSettings
+              cues={settings.tempoCues === true}
+              style={settings.tempoCueStyle ?? "voice"}
+              onChange={(patch) => void save(patch)}
+            />
+          )}
         </div>
       ) : (
         <p className="text-xs text-zinc-500 dark:text-zinc-500">
@@ -209,6 +223,60 @@ export function AdvancedSection() {
       </Link>
 
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
+    </div>
+  );
+}
+
+const CUE_STYLES = [
+  { value: "voice", label: "Voice" },
+  { value: "sounds", label: "Sounds" },
+] as const;
+
+/** Tempo cues and their style, indented under Tempo (issue #846). */
+function TempoCueSettings({
+  cues,
+  style,
+  onChange,
+}: {
+  cues: boolean;
+  style: "voice" | "sounds";
+  onChange: (patch: { tempoCues?: boolean; tempoCueStyle?: "voice" | "sounds" }) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
+      <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
+        Tempo cues
+        <input
+          type="checkbox"
+          role="switch"
+          aria-checked={cues}
+          checked={cues}
+          onChange={(event) => onChange({ tempoCues: event.target.checked })}
+          className={SWITCH_CLASS}
+        />
+      </label>
+      {cues && (
+        <fieldset className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
+          <legend className="float-left">Cues</legend>
+          <div className="flex shrink-0 rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800">
+            {CUE_STYLES.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={style === option.value}
+                onClick={() => onChange({ tempoCueStyle: option.value })}
+                className={`min-h-10 rounded-md px-3 text-xs font-medium ${
+                  style === option.value
+                    ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-950 dark:text-zinc-50"
+                    : "text-zinc-600 dark:text-zinc-400"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ const COLOR_SCHEMES = new Set(["system", "light", "dark"]);
 const ACCENT_COLORS = new Set(["zinc", "blue", "green", "purple", "orange", "rose", "pink"]);
 const FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 const CARD_STYLES = new Set(["plain", "glass"]);
+const TEMPO_CUE_STYLES = new Set(["voice", "sounds"]);
 const SEXES = new Set(["male", "female"]);
 const DPR_AGGRESSIVENESS = new Set(["conservative", "moderate", "aggressive"]);
 const DPR_EXPERIENCE = new Set(["novice", "intermediate", "advanced"]);
@@ -46,6 +47,8 @@ export interface SettingsPayload {
   showRestStats: boolean;
   showSetTimer: boolean;
   showTempo: boolean;
+  tempoCues: boolean;
+  tempoCueStyle: "voice" | "sounds";
   showInjuryRules: boolean;
   injuriesAffectPrp: boolean;
   showInjuryHints: boolean;
@@ -90,6 +93,8 @@ export function toSettingsPayload(row: typeof users.$inferSelect): SettingsPaylo
     showRestStats: row.showRestStats,
     showSetTimer: row.showSetTimer,
     showTempo: row.showTempo,
+    tempoCues: row.tempoCues,
+    tempoCueStyle: row.tempoCueStyle,
     showInjuryRules: row.showInjuryRules,
     injuriesAffectPrp: row.injuriesAffectPrp,
     showInjuryHints: row.showInjuryHints,
@@ -183,6 +188,12 @@ export function isValidSettingsPatch(body: unknown): body is Partial<SettingsPay
     return false;
   }
   if ("showTempo" in candidate && typeof candidate.showTempo !== "boolean") {
+    return false;
+  }
+  if ("tempoCues" in candidate && typeof candidate.tempoCues !== "boolean") {
+    return false;
+  }
+  if ("tempoCueStyle" in candidate && !TEMPO_CUE_STYLES.has(candidate.tempoCueStyle as string)) {
     return false;
   }
   if ("showInjuryRules" in candidate && typeof candidate.showInjuryRules !== "boolean") {
@@ -318,6 +329,8 @@ export function toSettingsColumns(
   if (body.showRestStats !== undefined) patch.showRestStats = body.showRestStats;
   if (body.showSetTimer !== undefined) patch.showSetTimer = body.showSetTimer;
   if (body.showTempo !== undefined) patch.showTempo = body.showTempo;
+  if (body.tempoCues !== undefined) patch.tempoCues = body.tempoCues;
+  if (body.tempoCueStyle !== undefined) patch.tempoCueStyle = body.tempoCueStyle;
   if (body.showInjuryRules !== undefined) patch.showInjuryRules = body.showInjuryRules;
   if (body.injuriesAffectPrp !== undefined) patch.injuriesAffectPrp = body.injuriesAffectPrp;
   if (body.showInjuryHints !== undefined) patch.showInjuryHints = body.showInjuryHints;

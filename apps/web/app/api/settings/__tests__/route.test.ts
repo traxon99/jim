@@ -62,6 +62,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showRestStats: true,
       showSetTimer: false,
       showTempo: false,
+      tempoCues: false,
+      tempoCueStyle: "voice",
       showInjuryRules: true,
       injuriesAffectPrp: true,
       showInjuryHints: true,
@@ -142,6 +144,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect((await patch({ showRestStats: 1 })).status).toBe(400);
     expect((await patch({ showSetTimer: "on" })).status).toBe(400);
     expect((await patch({ showTempo: "on" })).status).toBe(400);
+    expect((await patch({ tempoCues: "on" })).status).toBe(400);
+    expect((await patch({ tempoCueStyle: "beeps" })).status).toBe(400);
     expect((await patch({ showInjuryRules: "on" })).status).toBe(400);
     expect((await patch({ injuriesAffectPrp: "off" })).status).toBe(400);
     expect((await patch({ showInjuryHints: 1 })).status).toBe(400);
@@ -229,6 +233,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showRestStats: false,
       showSetTimer: true,
       showTempo: true,
+      tempoCues: true,
+      tempoCueStyle: "sounds",
       autoEndWorkoutMinutes: null,
       pushWorkoutReminders: false,
       pushWhatsNew: false,
@@ -265,6 +271,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
     expect(again.showRestStats).toBe(false);
     expect(again.showSetTimer).toBe(true);
     expect(again.showTempo).toBe(true);
+    expect(again.tempoCues).toBe(true);
+    expect(again.tempoCueStyle).toBe("sounds");
     expect(again.autoEndWorkoutMinutes).toBeNull();
     expect(again.pushRestTimer).toBe(true);
     expect(again.pushWorkoutReminders).toBe(false);
