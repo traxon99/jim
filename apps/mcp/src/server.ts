@@ -101,6 +101,7 @@ import { searchExercisesTool } from "./tools/search-exercises.js";
 import { getSettings, updateSettings } from "./tools/settings.js";
 import { listSickDays, markSickDays, unmarkSickDays } from "./tools/sick-days.js";
 import { getStravaStatus, postWorkoutToStrava, setStravaAutoPost } from "./tools/strava.js";
+import { setTempo } from "./tools/tempo.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
@@ -505,6 +506,36 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => updateRoutine(context, { ...input, dryRun: dry_run })),
+  );
+
+  server.registerTool(
+    "set_tempo",
+    {
+      title: "Set tempo",
+      description: `Set lifting tempos for a whole routine or a whole program at once, as the phone's Tempo sheet does (issue #850): \`tempo\` puts the same tempo on every lift in scope, \`exercises\` sets single lifts (applied after \`tempo\`). Tempo is seconds lowering-pause-lifting, e.g. "3-1-1"; the lift can be X (explosive), e.g. "2-0-X"; 0–20 each; null or "" clears. Warm-up routines and warm-up or cardio exercises take no tempo. Returns every lift's resulting tempo by routine. The user sees tempos only with Settings → Advanced → Tempo on.${PREVIEW_HINT}`,
+      inputSchema: {
+        routine: z.string().optional().describe("Routine id or exact name. Pass this or program."),
+        program: z
+          .string()
+          .optional()
+          .describe("Program id or exact name: every routine in it. Pass this or routine."),
+        tempo: z.string().nullable().optional().describe("The same tempo on every lift in scope"),
+        exercises: z
+          .array(
+            z.object({
+              exercise: z.string().describe("Exercise name or id"),
+              tempo: z.string().nullable(),
+              routine: z
+                .string()
+                .optional()
+                .describe("In a program, only this routine's (id or name) lift"),
+            }),
+          )
+          .optional(),
+        dry_run: dryRunParam(false),
+      },
+    },
+    handle(({ dry_run, ...input }) => setTempo(context, { ...input, dryRun: dry_run })),
   );
 
   server.registerTool(

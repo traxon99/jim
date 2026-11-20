@@ -16,16 +16,29 @@ function formatSeconds(seconds: number): string {
 }
 
 /**
- * A routine exercise's tempo (issue #845): Down, Pause and Up in seconds, X
- * allowed on Up. Saves when focus leaves the three inputs, and only when the
- * value changed; an invalid entry shows an error and saves nothing.
+ * A tempo (issue #845): Down, Pause and Up in seconds, X allowed on Up.
+ * Saves when focus leaves the three inputs, and only when the value changed;
+ * an invalid entry shows an error and saves nothing. Used for each lift, and
+ * for All lifts, in the Tempo sheet (issue #850).
  */
 export function TempoField({
   value,
   onCommit,
+  label = "Tempo",
+  clearLabel = "Clear tempo",
+  forceClear = false,
 }: {
   value: string | null | undefined;
   onCommit: (tempo: string | null) => void;
+  /** The legend: the lift's name in the Tempo sheet. */
+  label?: string;
+  clearLabel?: string;
+  /**
+   * Show Clear even when the inputs are empty, and clear through `onCommit`
+   * whatever `value` is: All lifts reads empty while lifts differ, and still
+   * clears them all (issue #850).
+   */
+  forceClear?: boolean;
 }) {
   const id = useId();
   const [phases, setPhases] = useState(() => phasesOf(value));
@@ -69,7 +82,7 @@ export function TempoField({
 
   return (
     <fieldset
-      className="flex flex-col gap-1 pl-10"
+      className="flex min-w-0 flex-col gap-1"
       aria-describedby={invalid ? `${id}-error` : undefined}
       onFocus={() => {
         editing.current = true;
@@ -80,10 +93,10 @@ export function TempoField({
         commit(phases);
       }}
     >
-      <legend className="flex w-full items-baseline gap-2 text-xs font-medium">
-        Tempo
+      <legend className="flex w-full min-w-0 items-baseline gap-2 text-sm font-medium">
+        <span className="min-w-0 truncate">{label}</span>
         {preview && (
-          <span className="font-normal text-zinc-500 tabular-nums dark:text-zinc-400">
+          <span className="shrink-0 text-xs font-normal text-zinc-500 tabular-nums dark:text-zinc-400">
             {formatSeconds(tempoSecondsPerRep(preview))} s per rep
           </span>
         )}
@@ -101,7 +114,7 @@ export function TempoField({
               autoCapitalize="characters"
               autoComplete="off"
               maxLength={2}
-              aria-label={field.name}
+              aria-label={`${label}: ${field.name}`}
               aria-invalid={invalid || undefined}
               value={phases[index]}
               onChange={(event) => setPhase(index as 0 | 1 | 2, event.target.value)}
@@ -109,11 +122,16 @@ export function TempoField({
             />
           </label>
         ))}
-        {hasInput && (
+        {(hasInput || forceClear) && (
           <button
             type="button"
-            onClick={() => commit(["", "", ""])}
-            aria-label="Clear tempo"
+            onClick={() => {
+              if (!forceClear) return commit(["", "", ""]);
+              setInvalid(false);
+              setPhases(["", "", ""]);
+              onCommit(null);
+            }}
+            aria-label={clearLabel}
             className="min-h-11 px-2 text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
           >
             Clear

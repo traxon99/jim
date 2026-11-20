@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatTempo,
   parseTempo,
+  sharedTempo,
   tempoCueSchedule,
   tempoFromInputs,
   tempoPhaseAt,
@@ -132,5 +133,26 @@ describe("tempoPhaseAt", () => {
   it("loops for the next rep", () => {
     expect(tempoPhaseAt([3, 1, 1], 5)).toBe("down");
     expect(tempoPhaseAt([3, 1, 1], 9.7)).toBe("up");
+  });
+});
+
+describe("sharedTempo", () => {
+  it("is none when no lift has a tempo", () => {
+    expect(sharedTempo([])).toEqual({ kind: "none" });
+    expect(sharedTempo([null, undefined, ""])).toEqual({ kind: "none" });
+  });
+
+  it("is the tempo when every lift has the same one, in canonical form", () => {
+    expect(sharedTempo(["3-1-1", "311", "3-1-1"])).toEqual({ kind: "same", tempo: "3-1-1" });
+  });
+
+  it("is mixed when lifts differ or only some are set", () => {
+    expect(sharedTempo(["3-1-1", "2-0-X"])).toEqual({ kind: "mixed" });
+    expect(sharedTempo(["3-1-1", null])).toEqual({ kind: "mixed" });
+  });
+
+  it("treats a value that isn't a tempo as none", () => {
+    expect(sharedTempo(["nope", null])).toEqual({ kind: "none" });
+    expect(sharedTempo(["3-1-1", "9-9"])).toEqual({ kind: "mixed" });
   });
 });

@@ -40,11 +40,13 @@ import {
   duplicateRoutine,
   exerciseDisplayName,
   formSuperset,
+  formatTempo,
   isCardioExercise,
   isWarmupExercise,
   isWarmupRoutine,
   nextSupersetGroup,
   normalizeSupersets,
+  parseTempo,
   reorderRoutineExercises,
   supersetLabels,
   uuidv7,
@@ -55,6 +57,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { RoutineExerciseRow as RoutineExerciseRowItem } from "./routine-exercise-row";
 import { RoutineIcon } from "./routine-icon";
+import { TempoRow } from "./tempo-row";
 
 export function RoutineDetail({
   id,
@@ -415,11 +418,18 @@ export function RoutineDetail({
         </div>
       )}
 
+      {showsTempo(settings) && !isWarmupKind && (
+        <TempoRow title={routine.name} routineIds={[routine.id]} />
+      )}
+
       {!editing && (
         <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
           {items.map((item) => {
             const info = exercisesById.get(item.exerciseId);
             const label = labels.get(item.id);
+            // Each lift's tempo (issue #850), set from the Tempo row above.
+            const parsedTempo = showsTempo(settings) ? parseTempo(item.tempo) : null;
+            const tempo = parsedTempo ? formatTempo(parsedTempo) : null;
             const summary = routineItemSummary(
               item,
               settings.units,
@@ -439,6 +449,7 @@ export function RoutineDetail({
                 </span>
                 <span className="text-sm tabular-nums text-zinc-500 dark:text-zinc-500">
                   {summary ?? "No targets set"}
+                  {tempo && ` · ${tempo}`}
                 </span>
                 {item.notes && (
                   <span className="text-sm text-zinc-700 dark:text-zinc-300">{item.notes}</span>
@@ -478,7 +489,6 @@ export function RoutineDetail({
                   cardio={exercisesById.get(item.exerciseId)?.cardio ?? false}
                   units={settings.units}
                   dprFocused={dprContext?.lifts.has(item.exerciseId) ?? false}
-                  showTempo={showsTempo(settings)}
                   onUpdate={(patch) => handleUpdateItem(item, patch)}
                 />
               ))}

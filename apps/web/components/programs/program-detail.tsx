@@ -3,6 +3,7 @@
 import { Layers, Pencil } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
+import { TempoRow } from "@/components/routines/tempo-row";
 import { ShareLinkButton } from "@/components/sharing/share-link-button";
 import { mutate } from "@/lib/db/mutate";
 import { type ProgramRoutineRow, type RoutineRow, db } from "@/lib/db/schema";
@@ -10,7 +11,7 @@ import { pairWarmup } from "@/lib/programs/pair-warmup";
 import { setActiveProgram } from "@/lib/programs/set-active";
 import { useNextWorkout } from "@/lib/programs/use-next-workout";
 import { weekdaysFrom } from "@/lib/programs/weekdays";
-import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { DEFAULT_SETTINGS, showsTempo } from "@/lib/settings";
 import { buildProgramSnapshot } from "@/lib/sharing/local";
 import { getDeviceId } from "@/lib/sync/engine";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -221,6 +222,14 @@ export function ProgramDetail({ id, userId }: { id: string; userId: string }) {
         routineIds={items.flatMap((item) => (item.routineId ? [item.routineId] : []))}
         since={program.activatedAt ?? program.createdAt}
       />
+
+      {showsTempo(settings) && (
+        <TempoRow
+          title={program.name}
+          routineIds={items.flatMap((item) => (item.routineId ? [item.routineId] : []))}
+          showRoutineNames
+        />
+      )}
 
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         {weekly
