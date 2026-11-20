@@ -3,6 +3,7 @@
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import { needsRpeNudge } from "@/lib/dpr/calls";
 import type { SetKind } from "@/lib/sessions/set-kinds";
+import { RPE_MAX } from "@jim/core";
 import type { ReactNode } from "react";
 import { RpeInfoMenu } from "./rpe-info-menu";
 import type { SessionSetTableSizes } from "./session-set-ui";
@@ -45,7 +46,8 @@ interface Props {
   repeatButton: ReactNode;
 }
 
-const RPE_STEPS = ["7", "7.5", "8", "8.5", "9", "9.5", "10"] as const;
+/** One tap for RPE 7 up to the max in half steps; anything else is typed (#854). */
+const RPE_STEPS = Array.from({ length: (RPE_MAX - 7) * 2 + 1 }, (_, i) => String(7 + i / 2));
 
 /** Shared table for list and Focus view; planning and persistence stay with the session. */
 export function SessionSetTable({

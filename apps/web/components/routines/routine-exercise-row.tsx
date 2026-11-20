@@ -167,11 +167,11 @@ export function RoutineExerciseRow({
       )}
       {warmup.timed
         ? stepper(
-            "Hold",
+            "Hold (s)",
             durationSeconds,
             setDurationSeconds,
             (v) => onUpdate({ targetDurationSeconds: toNumberOrNull(v) }),
-            { step: 5, unit: "s" },
+            { step: 5 },
           )
         : stepper("Reps", repsLow, setRepsLow, (v) => {
             const reps = toNumberOrNull(v);
@@ -184,11 +184,11 @@ export function RoutineExerciseRow({
         onUpdate({ targetSets: toNumberOrNull(v) }),
       )}
       {stepper(
-        "Rest",
+        "Rest (s)",
         restSeconds,
         setRestSeconds,
         (v) => onUpdate({ targetRestSeconds: toNumberOrNull(v) }),
-        { step: 15, unit: "s" },
+        { step: 15 },
       )}
       <div className="col-span-2">
         {stepper(
@@ -212,11 +212,11 @@ export function RoutineExerciseRow({
         onUpdate({ targetSets: toNumberOrNull(v) }),
       )}
       {stepper(
-        "Rest",
+        "Rest (s)",
         restSeconds,
         setRestSeconds,
         (v) => onUpdate({ targetRestSeconds: toNumberOrNull(v) }),
-        { step: 15, unit: "s" },
+        { step: 15 },
       )}
       {stepper("Reps low", repsLow, setRepsLow, (v) =>
         onUpdate({ targetRepsLow: toNumberOrNull(v) }),

@@ -76,7 +76,7 @@ export function NumberStepper({
             onKeyDown={(event) => {
               if (event.key === "Enter") event.currentTarget.blur();
             }}
-            className="w-full min-w-0 bg-transparent text-xl font-semibold tabular-nums text-zinc-950 outline-none placeholder:text-zinc-400 dark:text-zinc-50 dark:placeholder:text-zinc-600"
+            className="w-full min-w-0 bg-transparent text-lg font-semibold tabular-nums text-zinc-950 outline-none placeholder:text-zinc-400 dark:text-zinc-50 dark:placeholder:text-zinc-600"
           />
           {unit && value !== "" && (
             <span className="shrink-0 text-sm text-zinc-500 dark:text-zinc-400">{unit}</span>

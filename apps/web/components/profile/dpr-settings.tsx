@@ -73,7 +73,7 @@ export function DprSettings({
           </summary>
           <div className="grid grid-cols-2 gap-2 pb-3 pl-[42px]">
             {(Object.keys(BUCKET_LABELS) as EquipmentBucket[]).map((bucket) => (
-              <label key={bucket} className="flex flex-col gap-1 font-medium">
+              <label key={bucket} className="flex min-w-0 flex-col gap-1 font-medium">
                 {BUCKET_LABELS[bucket]}
                 <input
                   type="text"
@@ -83,7 +83,7 @@ export function DprSettings({
                   defaultValue={overrides[bucket]?.[units] ?? DEFAULT_INCREMENTS[bucket][units]}
                   key={`${bucket}-${units}-${overrides[bucket]?.[units] ?? "default"}`}
                   onBlur={(event) => saveStep(bucket, normalizeDecimalInput(event.target.value))}
-                  className="rounded-xl bg-zinc-100 px-3 py-2 text-base text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50"
+                  className="w-full min-w-0 rounded-xl bg-zinc-100 px-3 py-2 text-base text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50"
                 />
               </label>
             ))}

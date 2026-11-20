@@ -175,7 +175,7 @@ export function SetupWizard({
                 <span
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
                     selected
-                      ? "border-green-600 bg-green-600 text-white"
+                      ? "border-accent bg-accent text-accent-foreground"
                       : "border-zinc-300 dark:border-zinc-600"
                   }`}
                 >
@@ -226,7 +226,7 @@ export function SetupWizard({
           <span
             // biome-ignore lint/suspicious/noArrayIndexKey: one fixed segment per week
             key={i}
-            className="h-1.5 flex-1 rounded-full bg-green-600/85 dark:bg-green-500/85"
+            className="h-1.5 flex-1 rounded-full bg-accent"
           />
         ))}
       </div>
@@ -239,7 +239,7 @@ export function SetupWizard({
         type="button"
         disabled={saving || focus.length === 0}
         onClick={() => void start()}
-        className="press mt-3 min-h-13 rounded-full bg-green-600 px-4 text-lg font-semibold text-white disabled:opacity-50 dark:bg-green-500 dark:text-black"
+        className="press mt-3 min-h-13 rounded-full bg-accent px-4 text-lg font-semibold text-accent-foreground disabled:opacity-50"
       >
         {saving ? "Starting…" : `Start ${weeks}-week block`}
       </button>
@@ -285,10 +285,13 @@ function Segmented<T extends string | number>({
           >
             {option.label}
             {option.dot && (
-              <span
-                aria-label="Suggested"
-                className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-500"
-              />
+              <>
+                <span className="sr-only">, suggested</span>
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1.5 right-2 h-1.5 w-1.5 rounded-full bg-green-600 dark:bg-green-500"
+                />
+              </>
             )}
           </button>
         );

@@ -205,17 +205,22 @@ export function BodyweightHome({ userId }: { userId: string }) {
               {
                 label: "Strong or CSV",
                 icon: FileIcon,
-                onSelect: () => fileInput.current?.click(),
+                onSelect: () => {
+                  if (importBusy === null) fileInput.current?.click();
+                },
               },
               {
                 label: "Apple Health",
                 icon: HeartPulse,
-                onSelect: () => healthInput.current?.click(),
+                onSelect: () => {
+                  if (importBusy === null) healthInput.current?.click();
+                },
               },
               {
                 label: "Paste from notes",
                 icon: ClipboardPaste,
                 onSelect: () => {
+                  if (importBusy !== null || preview) return;
                   setPasted("");
                   setImportError(null);
                   setImported(null);
@@ -318,6 +323,29 @@ export function BodyweightHome({ userId }: { userId: string }) {
         </section>
 
         <section className="flex flex-col gap-2">
+          {/* Always mounted, so the header menu can open them from any state. */}
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv,.txt,text/csv,text/comma-separated-values,text/plain"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void readImport(async () => previewWeightImport(await file.text()));
+            }}
+          />
+          <input
+            ref={healthInput}
+            type="file"
+            accept=".zip,.xml,application/zip,application/xml,text/xml"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) readHealthExport(file);
+            }}
+          />
           {!preview && pasted != null && (
             <div className="flex flex-col gap-2">
               <label className="flex flex-col gap-1 text-xs font-medium">
@@ -356,38 +384,12 @@ export function BodyweightHome({ userId }: { userId: string }) {
               </div>
             </div>
           )}
-          {!preview && pasted == null && (
-            <>
-              {importBusy === "reading" && (
-                <p className="px-4 text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
-                  {healthProgress == null
-                    ? "Reading…"
-                    : `Reading Health export… ${Math.round(healthProgress * 100)}%`}
-                </p>
-              )}
-              <input
-                ref={fileInput}
-                type="file"
-                accept=".csv,.txt,text/csv,text/comma-separated-values,text/plain"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void readImport(async () => previewWeightImport(await file.text()));
-                }}
-              />
-              <input
-                ref={healthInput}
-                type="file"
-                accept=".zip,.xml,application/zip,application/xml,text/xml"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) readHealthExport(file);
-                }}
-              />
-            </>
+          {!preview && pasted == null && importBusy === "reading" && (
+            <p className="px-4 text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
+              {healthProgress == null
+                ? "Reading…"
+                : `Reading Health export… ${Math.round(healthProgress * 100)}%`}
+            </p>
           )}
 
           {importError && (
