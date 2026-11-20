@@ -1,14 +1,31 @@
 "use client";
 
-import { ChevronRight } from "@/components/icons/solar";
+import {
+  Bandage,
+  ChartLine,
+  Check,
+  ChevronRight,
+  Footprints,
+  Hourglass,
+  type IconComponent,
+  Layers,
+  Lock,
+  Medal,
+  SlidersHorizontal,
+  Sparkles,
+  Timer,
+  TrendingUp,
+  Zap,
+} from "@/components/icons/solar";
 import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { db } from "@/lib/db/schema";
 import { DEFAULT_SETTINGS, patchSettings, showsSetTimer, showsTempo } from "@/lib/settings";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { DprSettings } from "./dpr-settings";
+import { IconTile, SETTINGS_GROUP, SETTINGS_ROW } from "./settings-rows";
 
 type FeatureKey =
   | "showRpe"
@@ -22,61 +39,47 @@ type FeatureKey =
 
 type InjuryKey = "injuriesAffectPrp" | "showInjuryHints";
 
-/** `defaultOn: false` for a switch that starts off, so a missing value reads as off. */
-const FEATURES: { key: FeatureKey; label: string; detail: string; defaultOn?: false }[] = [
-  { key: "showRpe", label: "RPE column", detail: "How hard each set felt, logged next to reps" },
-  { key: "showPaceTracker", label: "Pace tracker", detail: "Live pace card during a workout" },
-  {
-    key: "showStrengthHints",
-    label: "Strength-standard weights",
-    detail: "Beginner to Elite weights under the big lifts",
-  },
-  {
-    key: "showSetTypes",
-    label: "Set types",
-    detail: "Mark a set as warm-up, working or failure. Off, sets log as working",
-  },
-  {
-    key: "showRestStats",
-    label: "Rest stats",
-    detail: "Average rest against your target, and each set's rest",
-  },
-  {
-    key: "showSetTimer",
-    label: "Working set timer",
-    detail: "Start set and End set buttons that time each set",
-    defaultOn: false,
-  },
-  {
-    key: "showTempo",
-    label: "Tempo",
-    detail: "A lifting tempo per exercise in routines, shown during workouts",
-    defaultOn: false,
-  },
+interface Feature<K extends string> {
+  key: K;
+  label: string;
+  icon: IconComponent;
+  /** The icon tile's color. */
+  tile: string;
+  /** `false` for a switch that starts off, so a missing value reads as off. */
+  defaultOn?: false;
+}
+
+/**
+ * The extras behind the Advanced master switch (issue #640), grouped by where
+ * they show up (#854). Labels only: what a switch does shows on screen.
+ */
+const LOGGING: Feature<FeatureKey>[] = [
+  { key: "showRpe", label: "RPE", icon: Zap, tile: "bg-blue-500" },
+  { key: "showSetTypes", label: "Set types", icon: Layers, tile: "bg-orange-500" },
+  { key: "showTempo", label: "Tempo", icon: Hourglass, tile: "bg-pink-500", defaultOn: false },
+  { key: "showSetTimer", label: "Set timer", icon: Timer, tile: "bg-cyan-500", defaultOn: false },
+];
+const DURING: Feature<FeatureKey>[] = [
+  { key: "showPaceTracker", label: "Pace tracker", icon: Footprints, tile: "bg-green-500" },
+  { key: "showRestStats", label: "Rest stats", icon: ChartLine, tile: "bg-violet-500" },
+  { key: "showStrengthHints", label: "Strength standards", icon: Medal, tile: "bg-amber-500" },
 ];
 
 /**
  * Injury switches (issue #731). Not under the master switch: injuries are a
  * core feature, so these hold in Simple mode too. Both off is tracking only.
  */
-const INJURY_SWITCHES: { key: InjuryKey; label: string; detail: string }[] = [
-  {
-    key: "injuriesAffectPrp",
-    label: "Injuries adjust PRP",
-    detail: "Light days while injured and easing back in after. Off, PRP ignores injuries",
-  },
-  {
-    key: "showInjuryHints",
-    label: "Injury suggestions",
-    detail: "Go light, swap or skip hints on affected exercises during a workout",
-  },
+const INJURY_SWITCHES: Feature<InjuryKey>[] = [
+  { key: "injuriesAffectPrp", label: "Injuries adjust PRP", icon: Bandage, tile: "bg-red-500" },
+  { key: "showInjuryHints", label: "Injury suggestions", icon: Sparkles, tile: "bg-blue-500" },
 ];
 
-const INJURY_RULES = {
+const INJURY_RULES: Feature<"showInjuryRules"> = {
   key: "showInjuryRules",
   label: "Injury exercise rules",
-  detail: "Set how each injury treats specific exercises: a weight cap, rep range or note",
-} as const;
+  icon: SlidersHorizontal,
+  tile: "bg-teal-500",
+};
 
 type AdvancedPatch = Partial<
   Pick<
@@ -91,11 +94,42 @@ type AdvancedPatch = Partial<
   >
 >;
 
+function SwitchRow({
+  feature,
+  checked,
+  disabled = false,
+  badge,
+  onChange,
+}: {
+  feature: Feature<string>;
+  checked: boolean;
+  disabled?: boolean;
+  badge?: ReactNode;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className={SETTINGS_ROW}>
+      <IconTile icon={feature.icon} className={feature.tile} />
+      <span className="min-w-0 flex-1">{feature.label}</span>
+      {badge}
+      <input
+        type="checkbox"
+        role="switch"
+        aria-checked={checked}
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        className={SWITCH_CLASS}
+      />
+    </label>
+  );
+}
+
 /**
- * Settings → Advanced (issue #640): the Advanced features master switch
- * (off is the walkthrough's Simple mode), one switch per advanced feature,
- * the injury switches (issue #731) and PRP. Saved the moment they change,
- * like every other settings section.
+ * Settings → Advanced (issue #640): Simple or Advanced as two previews of a
+ * set row (#854), the advanced extras grouped by where they show, the injury
+ * switches (issue #731) and PRP. Saved the moment they change, like every
+ * other settings section.
  */
 export function AdvancedSection() {
   const cached = useLiveQuery(() => db.settings.get("me"), []);
@@ -109,121 +143,183 @@ export function AdvancedSection() {
     if (!result.ok) setError(result.error);
   }
 
-  return (
-    <div className="flex w-full flex-col gap-3 text-left">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-        Features
-      </h2>
-
-      <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
-        <span className="flex min-w-0 flex-col gap-0.5">
-          Advanced features
-          <span className="font-normal text-zinc-500 dark:text-zinc-500">
-            Off is Simple mode: just weight and reps
-          </span>
-        </span>
-        <input
-          type="checkbox"
-          role="switch"
-          aria-checked={advancedFeatures}
-          checked={advancedFeatures}
-          onChange={(event) => void save({ advancedFeatures: event.target.checked })}
-          className={SWITCH_CLASS}
-        />
-      </label>
-
-      {advancedFeatures ? (
-        <div className="flex flex-col gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
-          {FEATURES.map((feature) => {
-            // PRP reads its calls from RPE, so the column stays while PRP is on.
-            const lockedOn = feature.key === "showRpe" && settings.dprEnabled;
-            const value = settings[feature.key];
-            const checked =
-              lockedOn || (feature.defaultOn === false ? value === true : value !== false);
-            return (
-              <label
-                key={feature.key}
-                className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium"
-              >
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  {feature.label}
-                  <span className="font-normal text-zinc-500 dark:text-zinc-500">
-                    {lockedOn ? "Stays on while PRP is on, since PRP needs it" : feature.detail}
-                  </span>
-                </span>
-                <input
-                  type="checkbox"
-                  role="switch"
-                  aria-checked={checked}
-                  checked={checked}
-                  disabled={lockedOn}
-                  onChange={(event) => void save({ [feature.key]: event.target.checked })}
-                  className={SWITCH_CLASS}
-                />
-              </label>
-            );
-          })}
-          {/* The set timer enables tempo cues (issue #846): they need Start set and a tempo. */}
-          {showsSetTimer(settings) && showsTempo(settings) && (
-            <TempoCueSettings
-              cues={settings.tempoCues === true}
-              style={settings.tempoCueStyle ?? "voice"}
-              onChange={(patch) => void save(patch)}
-            />
-          )}
-        </div>
-      ) : (
-        <p className="text-xs text-zinc-500 dark:text-zinc-500">
-          Turn on Advanced features to pick which extras show.
-        </p>
-      )}
-
-      <h2 className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-        Injuries
-      </h2>
-      {[...INJURY_SWITCHES, ...(advancedFeatures ? [INJURY_RULES] : [])].map((feature) => {
-        const checked = settings[feature.key] !== false;
-        return (
-          <label
-            key={feature.key}
-            className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium"
-          >
-            <span className="flex min-w-0 flex-col gap-0.5">
-              {feature.label}
-              <span className="font-normal text-zinc-500 dark:text-zinc-500">{feature.detail}</span>
+  function featureRow(feature: Feature<FeatureKey>) {
+    // PRP reads its calls from RPE, so the column stays while PRP is on.
+    const lockedOn = feature.key === "showRpe" && settings.dprEnabled;
+    const value = settings[feature.key];
+    const checked = lockedOn || (feature.defaultOn === false ? value === true : value !== false);
+    return (
+      <SwitchRow
+        key={feature.key}
+        feature={feature}
+        checked={checked}
+        disabled={lockedOn}
+        badge={
+          lockedOn ? (
+            <span className="flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+              <Lock className="h-3 w-3" strokeWidth={2} aria-hidden="true" />
+              PRP
             </span>
-            <input
-              type="checkbox"
-              role="switch"
-              aria-checked={checked}
-              checked={checked}
-              onChange={(event) => void save({ [feature.key]: event.target.checked })}
-              className={SWITCH_CLASS}
-            />
-          </label>
-        );
-      })}
-      {settings.injuriesAffectPrp === false && settings.showInjuryHints === false && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-500">
-          Injuries are tracking only: you still log them and check in, and nothing else changes.
-        </p>
+          ) : undefined
+        }
+        onChange={(next) => void save({ [feature.key]: next })}
+      />
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-2 text-left">
+      <ModePicker
+        advanced={advancedFeatures}
+        onChange={(next) => void save({ advancedFeatures: next })}
+      />
+
+      {advancedFeatures && (
+        <>
+          <h2 className={`${GROUP_LABEL} mt-4`}>Logging</h2>
+          <div className={SETTINGS_GROUP}>
+            {LOGGING.map(featureRow)}
+            {/* The set timer enables tempo cues (issue #846): they need Start set and a tempo. */}
+            {showsSetTimer(settings) && showsTempo(settings) && (
+              <TempoCueSettings
+                cues={settings.tempoCues === true}
+                style={settings.tempoCueStyle ?? "voice"}
+                onChange={(patch) => void save(patch)}
+              />
+            )}
+          </div>
+          <h2 className={`${GROUP_LABEL} mt-4`}>During a workout</h2>
+          <div className={SETTINGS_GROUP}>{DURING.map(featureRow)}</div>
+        </>
       )}
 
-      <h2 className="mt-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
-        Progression
-      </h2>
-      <DprSettings settings={settings} onSave={save} />
-      <Link
-        href="/progression?from=settings"
-        data-ripple
-        className="flex min-h-11 w-full items-center justify-between rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
-      >
-        Progression
-        <ChevronRight className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-      </Link>
+      <h2 className={`${GROUP_LABEL} mt-4`}>Injuries</h2>
+      <div className={SETTINGS_GROUP}>
+        {[...INJURY_SWITCHES, ...(advancedFeatures ? [INJURY_RULES] : [])].map((feature) => (
+          <SwitchRow
+            key={feature.key}
+            feature={feature}
+            checked={settings[feature.key] !== false}
+            onChange={(next) => void save({ [feature.key]: next })}
+          />
+        ))}
+      </div>
+
+      <h2 className={`${GROUP_LABEL} mt-4`}>Progression</h2>
+      <div className={SETTINGS_GROUP}>
+        <DprSettings settings={settings} onSave={save} />
+        <Link href="/progression?from=settings" data-ripple className={SETTINGS_ROW}>
+          <IconTile icon={TrendingUp} className="bg-zinc-500" />
+          <span className="min-w-0 flex-1">Progression</span>
+          <ChevronRight
+            className="h-4 w-4 text-zinc-400 dark:text-zinc-600"
+            strokeWidth={1.75}
+            aria-hidden="true"
+          />
+        </Link>
+      </div>
 
       {error && <p className="allow-pwa-select text-xs text-red-600 dark:text-red-500">{error}</p>}
     </div>
+  );
+}
+
+const GROUP_LABEL = "px-4 text-[13px] font-semibold text-zinc-500 dark:text-zinc-500";
+
+/**
+ * Simple or Advanced as two cards (#854), each a small picture of the set
+ * row it gives you: weight, reps and ✓; or a warm-up, RPE and the pace bar.
+ */
+function ModePicker({ advanced, onChange }: { advanced: boolean; onChange: (v: boolean) => void }) {
+  const cell =
+    "flex h-6 items-center justify-center rounded-md bg-white px-1.5 text-xs font-semibold tabular-nums dark:bg-zinc-800";
+  const done = (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+      <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />
+    </span>
+  );
+  const todo = <span className="h-6 w-6 shrink-0 rounded-full bg-zinc-200 dark:bg-zinc-700" />;
+  const options = [
+    {
+      value: false,
+      label: "Simple",
+      preview: (
+        <>
+          <span className="flex items-center gap-1">
+            <span className={`${cell} flex-[1.3]`}>185</span>
+            <span className={`${cell} flex-1`}>8</span>
+            {done}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className={`${cell} flex-[1.3]`}>185</span>
+            <span className={`${cell} flex-1`}>8</span>
+            {todo}
+          </span>
+        </>
+      ),
+    },
+    {
+      value: true,
+      label: "Advanced",
+      preview: (
+        <>
+          <span className="flex items-center gap-1">
+            <span className="w-3 text-[10px] font-bold text-orange-500">W</span>
+            <span className={`${cell} flex-[1.3]`}>135</span>
+            <span className={`${cell} flex-1`}>5</span>
+            {done}
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 text-[10px] font-bold text-zinc-400">1</span>
+            <span className={`${cell} flex-[1.3]`}>185</span>
+            <span className={`${cell} flex-1`}>8</span>
+            <span className={`${cell} flex-[0.9] text-zinc-500`}>@8</span>
+            {todo}
+          </span>
+          <span className="h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+            <span className="block h-full w-1/2 rounded-full bg-green-500" />
+          </span>
+        </>
+      ),
+    },
+  ];
+  return (
+    <fieldset className="grid w-full min-w-0 grid-cols-2 gap-2.5">
+      <legend className="sr-only">Features</legend>
+      {options.map((option) => {
+        const selected = option.value === advanced;
+        return (
+          <button
+            key={option.label}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(option.value)}
+            className={`surface press flex flex-col gap-2.5 rounded-3xl border-2 p-3 text-left ${
+              selected ? "border-zinc-950 dark:border-zinc-50" : "border-transparent"
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className="flex min-h-[74px] flex-col justify-center gap-1.5 rounded-xl bg-zinc-100 p-2 dark:bg-zinc-950"
+            >
+              {option.preview}
+            </span>
+            <span className="flex items-center justify-between px-0.5 text-base font-semibold">
+              {option.label}
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] ${
+                  selected
+                    ? "border-zinc-950 bg-zinc-950 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-950"
+                    : "border-zinc-300 dark:border-zinc-600"
+                }`}
+              >
+                {selected && <Check className="h-3 w-3" strokeWidth={2.5} aria-hidden="true" />}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </fieldset>
   );
 }
 
@@ -243,8 +339,8 @@ function TempoCueSettings({
   onChange: (patch: { tempoCues?: boolean; tempoCueStyle?: "voice" | "sounds" }) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 border-l border-zinc-200 pl-3 dark:border-zinc-800">
-      <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
+    <div className="flex flex-col pl-[42px]">
+      <label className={`${SETTINGS_ROW} justify-between`}>
         Tempo cues
         <input
           type="checkbox"
@@ -256,7 +352,7 @@ function TempoCueSettings({
         />
       </label>
       {cues && (
-        <fieldset className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
+        <fieldset className={`${SETTINGS_ROW} justify-between`}>
           <legend className="float-left">Cues</legend>
           <div className="flex shrink-0 rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800">
             {CUE_STYLES.map((option) => (

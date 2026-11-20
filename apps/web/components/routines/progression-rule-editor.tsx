@@ -20,7 +20,7 @@ interface Props {
 }
 
 const FIELD =
-  "rounded-lg border border-zinc-300 bg-white px-2 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
+  "rounded-xl border border-transparent bg-zinc-100 px-3 py-2.5 text-base text-zinc-950 dark:bg-zinc-800/70 dark:text-zinc-50";
 
 function numberText(value: number | null | undefined): string {
   return value == null ? "" : String(value);
@@ -95,14 +95,14 @@ export function ProgressionRuleEditor({ rule, units, dprFocused, onChange }: Pro
 
   if (dprFocused && !rule) {
     return (
-      <p className="pl-10 text-xs text-zinc-500 dark:text-zinc-500">
+      <p className="text-xs text-zinc-500 dark:text-zinc-500">
         Progression: PRP. Remove this lift from your PRP focus to give it a custom rule.
       </p>
     );
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-2 pl-10">
+    <div className="flex min-w-0 flex-col gap-2">
       <label className="flex flex-col gap-1 text-xs font-medium">
         Progression
         <select

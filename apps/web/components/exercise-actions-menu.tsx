@@ -22,6 +22,10 @@ interface Props {
   actions: readonly ExerciseAction[];
   /** Bigger trigger for focus view. */
   large?: boolean;
+  /** The trigger's name and icon when this isn't an exercise's ⋯ (#854). */
+  label?: string;
+  icon?: IconComponent;
+  triggerClassName?: string;
 }
 
 /**
@@ -29,7 +33,13 @@ interface Props {
  * warm-ups, rest, replace, superset, preferences and Remove, each with a
  * blue icon. It sits at the right edge, so it opens leftward (docs/PWA.md).
  */
-export function ExerciseActionsMenu({ actions, large = false }: Props) {
+export function ExerciseActionsMenu({
+  actions,
+  large = false,
+  label = "Exercise options",
+  icon: TriggerIcon = MoreHorizontal,
+  triggerClassName = "flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [submenuLabel, setSubmenuLabel] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -76,10 +86,10 @@ export function ExerciseActionsMenu({ actions, large = false }: Props) {
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Exercise options"
-        className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-zinc-500 dark:text-zinc-400"
+        aria-label={label}
+        className={triggerClassName}
       >
-        <MoreHorizontal
+        <TriggerIcon
           className={large ? "h-6 w-6" : "h-5 w-5"}
           strokeWidth={1.75}
           aria-hidden="true"

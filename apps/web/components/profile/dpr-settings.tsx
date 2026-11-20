@@ -1,8 +1,10 @@
 "use client";
 
+import { ArrowUpDown } from "@/components/icons/solar";
 import { SWITCH_CLASS } from "@/components/switch-class";
 import type { SettingsRow } from "@/lib/db/schema";
 import { DEFAULT_INCREMENTS, type EquipmentBucket, normalizeDecimalInput } from "@jim/core";
+import { IconTile, SETTINGS_ROW } from "./settings-rows";
 
 const BUCKET_LABELS: Record<EquipmentBucket, string> = {
   barbell: "Barbell",
@@ -50,14 +52,10 @@ export function DprSettings({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <label className="flex min-h-11 items-center justify-between gap-3 text-xs font-medium">
-        <span className="flex flex-col gap-0.5">
-          PR Progression (PRP)
-          <span className="font-normal text-zinc-500 dark:text-zinc-500">
-            Weight calls from your reps and RPE
-          </span>
-        </span>
+    <>
+      <label className={SETTINGS_ROW}>
+        <IconTile icon={ArrowUpDown} className="bg-green-600" />
+        <span className="min-w-0 flex-1">PRP</span>
         <input
           type="checkbox"
           role="switch"
@@ -69,13 +67,13 @@ export function DprSettings({
       </label>
 
       {settings.dprEnabled && (
-        <details className="text-xs">
-          <summary className="min-h-11 cursor-pointer py-3 font-medium">
+        <details className="px-4 text-xs">
+          <summary className="flex min-h-12 cursor-pointer items-center pl-[42px] text-base">
             Weight steps ({units})
           </summary>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 pb-3 pl-[42px]">
             {(Object.keys(BUCKET_LABELS) as EquipmentBucket[]).map((bucket) => (
-              <label key={bucket} className="flex flex-col gap-1 font-medium">
+              <label key={bucket} className="flex min-w-0 flex-col gap-1 font-medium">
                 {BUCKET_LABELS[bucket]}
                 <input
                   type="text"
@@ -85,13 +83,13 @@ export function DprSettings({
                   defaultValue={overrides[bucket]?.[units] ?? DEFAULT_INCREMENTS[bucket][units]}
                   key={`${bucket}-${units}-${overrides[bucket]?.[units] ?? "default"}`}
                   onBlur={(event) => saveStep(bucket, normalizeDecimalInput(event.target.value))}
-                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  className="w-full min-w-0 rounded-xl bg-zinc-100 px-3 py-2 text-base text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50"
                 />
               </label>
             ))}
           </div>
         </details>
       )}
-    </div>
+    </>
   );
 }

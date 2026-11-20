@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Set every lift's tempo in one place: tap Tempo on a routine or a program.";
+  "A cleaner workout table with one-tap half-step RPE, plus simpler routine editing, Advanced settings, Bodyweight and PRP setup.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

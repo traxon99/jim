@@ -1,12 +1,12 @@
 "use client";
 
 import { ExercisePicker } from "@/components/exercise-picker";
-import { Bandage, Focus, LayoutList } from "@/components/icons/solar";
+import { Bandage, Focus } from "@/components/icons/solar";
 import type { ExerciseInjury } from "@/components/injuries/injury-hint";
 import { PainCheckin } from "@/components/injuries/pain-checkin";
 import { ReportInjuryCard } from "@/components/injuries/report-injury-card";
 import { LoadingText } from "@/components/loading-text";
-import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { RoutineIconById, RoutineIconTileById } from "@/components/routines/routine-icon-by-id";
 import {
   preferencesAction,
   removeExerciseAction,
@@ -84,11 +84,13 @@ import {
 import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DoneExerciseRow } from "./done-exercise-row";
 import { FocusView, type FocusViewExercise } from "./focus-view";
 import { PaceTracker } from "./pace-tracker";
 import { ReorderExercisesSheet } from "./reorder-exercises-sheet";
 import { RestTimerBar } from "./rest-timer-bar";
 import { SessionExerciseSection } from "./session-exercise-section";
+import { lastTimeLine } from "./session-set-ui";
 import { SessionSummary } from "./session-summary";
 import { SetTimerBar } from "./set-timer-bar";
 import type { LongPressStart } from "./use-long-press";
@@ -123,6 +125,8 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const [finalizing, setFinalizing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  // Finished exercises fold to one line (#854); these are the ones reopened.
+  const [openedDoneIds, setOpenedDoneIds] = useState<ReadonlySet<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = useState(0);
   // The condensed list for rearranging (issue #658): which exercise opened
   // it, and the finger still holding it when a long press did.
@@ -309,6 +313,43 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     targetByExerciseId,
     dprContext,
   ]);
+
+  // A finished exercise's working sets on one line, and which exercise was
+  // logged to last: that one stays open so its last set can still be fixed.
+  const { doneSummaryById, lastLoggedExerciseId } = useMemo(() => {
+    const live = resolveCurrentRows(rawSets ?? []).filter((set) => !set.deletedAt);
+    const bySection = new Map<string, SetRow[]>();
+    let latest: SetRow | null = null;
+    for (const set of live) {
+      if (!latest || set.completedAt > latest.completedAt) latest = set;
+      if (set.kind === "warmup") continue;
+      const list = bySection.get(set.sessionExerciseId) ?? [];
+      list.push(set);
+      bySection.set(set.sessionExerciseId, list);
+    }
+    const summaries = new Map<string, string>();
+    for (const [sectionId, list] of bySection) {
+      const line = lastTimeLine(
+        list
+          .sort((a, b) => a.setIndex - b.setIndex)
+          .map((set) => ({
+            weight: set.weight == null ? null : Number(set.weight),
+            reps: set.reps,
+          })),
+      );
+      if (line) summaries.set(sectionId, line);
+    }
+    return { doneSummaryById: summaries, lastLoggedExerciseId: latest?.sessionExerciseId ?? null };
+  }, [rawSets]);
+  const foldedDoneIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const candidate of focusCandidates) {
+      if (candidate.id === lastLoggedExerciseId || openedDoneIds.has(candidate.id)) continue;
+      if (supersetLabelById.has(candidate.id)) continue;
+      if (isFocusExerciseComplete(candidate)) ids.add(candidate.id);
+    }
+    return ids;
+  }, [focusCandidates, lastLoggedExerciseId, openedDoneIds, supersetLabelById]);
 
   // Issue #232: once every planned set is logged the lifter is at the bottom
   // of the page, so Finish is offered there too. Warm-ups don't count, same
@@ -792,35 +833,50 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       className="route-fade flex flex-1 flex-col gap-4 px-4 py-4"
       onPointerDownCapture={primeRestAlertAudio}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-xl font-semibold">
-            <RoutineIconById routineId={session.routineId} className="h-5 w-5" />
-            {session.name ?? "Workout"}
-          </h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-500">
-            Started{" "}
-            {session.startedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-          </p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <RoutineIconTileById routineId={session.routineId} />
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold tracking-tight">
+              {session.name ?? "Workout"}
+            </h1>
+            <p className="text-sm tabular-nums text-zinc-500 dark:text-zinc-500">
+              Started{" "}
+              {session.startedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </p>
+          </div>
         </div>
         {/* Issue #321: Finish is the header's only workout action (beside the
-            injury report button, #627); discarding the workout lives at the
-            bottom of the page, away from it. */}
-        <div className="flex shrink-0 gap-2">
+            injury report button, #627, and the Focus switch, #854);
+            discarding the workout lives at the bottom of the page, away from it. */}
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setReportingInjury(true)}
             aria-label="Report an injury"
-            className="flex h-11 w-11 items-center justify-center rounded-lg border border-zinc-300 dark:border-zinc-700"
+            className="press flex h-11 w-11 items-center justify-center rounded-full bg-zinc-200/70 dark:bg-zinc-800"
           >
-            <Bandage className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
+            <Bandage className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
           </button>
+          {sessionExercises.length > 0 && (
+            <button
+              type="button"
+              aria-pressed={focusMode}
+              aria-label="Focus"
+              onClick={() => handleSetFocusMode(!focusMode)}
+              className={`press flex h-11 w-11 items-center justify-center rounded-full ${
+                focusMode ? "bg-accent text-accent-foreground" : "bg-zinc-200/70 dark:bg-zinc-800"
+              }`}
+            >
+              <Focus className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          )}
           {hasLoggedSets && (
             <button
               type="button"
               onClick={() => void handleFinalize()}
               disabled={finalizing || cancelling}
-              className="min-h-11 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50"
+              className="press min-h-11 rounded-full bg-accent px-4 text-base font-semibold text-accent-foreground disabled:opacity-50"
             >
               Finish
             </button>
@@ -842,35 +898,6 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
 
       {showsPaceTracker(settings) && (
         <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
-      )}
-
-      {sessionExercises.length > 0 && (
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
-          {(
-            [
-              { value: false, label: "All exercises", Icon: LayoutList },
-              { value: true, label: "Focus", Icon: Focus },
-            ] as const
-          ).map(({ value, label, Icon }) => {
-            const selected = focusMode === value;
-            return (
-              <button
-                key={label}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => handleSetFocusMode(value)}
-                className={`flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
-                  selected
-                    ? "bg-white text-zinc-950 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
-                    : "text-zinc-500 dark:text-zinc-400"
-                }`}
-              >
-                <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
       )}
 
       {focusMode && focusedItem ? (
@@ -942,7 +969,15 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
                     Superset {startsSuperset} · rest after each round
                   </p>
                 )}
-                {renderExercise(item)}
+                {foldedDoneIds.has(item.id) ? (
+                  <DoneExerciseRow
+                    name={focusCandidates.find((c) => c.id === item.id)?.name ?? "Exercise"}
+                    summary={doneSummaryById.get(item.id) ?? null}
+                    onOpen={() => setOpenedDoneIds((ids) => new Set(ids).add(item.id))}
+                  />
+                ) : (
+                  renderExercise(item)
+                )}
               </div>
             );
           })}

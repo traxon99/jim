@@ -80,21 +80,22 @@ export function RoutineIconTile({
 }: {
   shape: RoutineIconShape;
   color: RoutineIconColor;
-  /** sm: 26px for dense rows; md: 32px for list rows and cards. */
-  size?: "sm" | "md";
+  /** sm: 26px for dense rows; md: 32px for list rows and cards; lg: 44px beside a title. */
+  size?: "sm" | "md" | "lg";
 }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center ${TILE_CLASS[color]} ${
-        size === "sm" ? "h-[26px] w-[26px] rounded-lg" : "h-8 w-8 rounded-[10px]"
-      }`}
+      className={`flex shrink-0 items-center justify-center ${TILE_CLASS[color]} ${TILE_SIZE[size]}`}
     >
-      <RoutineIcon
-        shape={shape}
-        color={color}
-        className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"}
-      />
+      <RoutineIcon shape={shape} color={color} className={ICON_SIZE[size]} />
     </span>
   );
 }
+
+const TILE_SIZE = {
+  sm: "h-[26px] w-[26px] rounded-lg",
+  md: "h-8 w-8 rounded-[10px]",
+  lg: "h-11 w-11 rounded-xl",
+} as const;
+const ICON_SIZE = { sm: "h-3.5 w-3.5", md: "h-4 w-4", lg: "h-5 w-5" } as const;

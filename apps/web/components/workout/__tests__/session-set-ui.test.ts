@@ -2,6 +2,7 @@ import {
   type SessionSetTableSizes,
   UNLOG_GRACE_MS,
   canUnlogSet,
+  lastTimeLine,
   parseSetDraftNumber,
   parseSetDraftRpe,
   sessionSetTableSizes,
@@ -12,7 +13,6 @@ import { describe, expect, it } from "vitest";
 const TABLE_KEYS: (keyof SessionSetTableSizes)[] = [
   "headerRow",
   "headerCell",
-  "prevCell",
   "indexCell",
   "cell",
   "actionCell",
@@ -31,7 +31,7 @@ describe("sessionSetTableSizes (#556)", () => {
 
   it("uses larger title typography in focus view", () => {
     expect(sessionSetTableSizes(true).title).toContain("text-2xl");
-    expect(sessionSetTableSizes(false).title).toContain("text-base");
+    expect(sessionSetTableSizes(false).title).toContain("text-lg");
   });
 });
 
@@ -83,5 +83,29 @@ describe("unlogging a set (issue #645)", () => {
     expect(unloggedSetDraft({ weight: "50", reps: 10, rpe: null, kind: "drop" }).kind).toBe(
       "working",
     );
+  });
+});
+
+describe("lastTimeLine (#854)", () => {
+  it("lists reps once when the weight held", () => {
+    expect(
+      lastTimeLine([
+        { weight: 187.5, reps: 8 },
+        { weight: 187.5, reps: 8 },
+        { weight: 187.5, reps: 7 },
+      ]),
+    ).toBe("187.5 × 8, 8, 7");
+  });
+  it("pairs each set when the weight changed", () => {
+    expect(
+      lastTimeLine([
+        { weight: 185, reps: 8 },
+        { weight: 190, reps: 7 },
+      ]),
+    ).toBe("185 × 8, 190 × 7");
+  });
+  it("is null with no sets", () => {
+    expect(lastTimeLine([])).toBeNull();
+    expect(lastTimeLine([{ weight: null, reps: null }])).toBeNull();
   });
 });

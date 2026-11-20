@@ -3,7 +3,7 @@
 import type { SetRow as SetRowEntity } from "@/lib/db/schema";
 import { needsRpeNudge } from "@/lib/dpr/calls";
 import type { SetKind } from "@/lib/sessions/set-kinds";
-import type { PreviousSet } from "@jim/core";
+import { RPE_MAX } from "@jim/core";
 import type { ReactNode } from "react";
 import { RpeInfoMenu } from "./rpe-info-menu";
 import type { SessionSetTableSizes } from "./session-set-ui";
@@ -26,7 +26,8 @@ interface Props {
   justLoggedId: string | null;
   prSetIds: ReadonlySet<string>;
   sizes: SessionSetTableSizes;
-  previousFor: (index: number) => PreviousSet | undefined;
+  /** The Weight column's heading: the user's unit ("lb" or "kg"). */
+  weightLabel: string;
   kindFor: (index: number) => SetKind;
   onChangeKind: (index: number, kind: SetKind) => void;
   onEdit: (
@@ -37,11 +38,16 @@ interface Props {
   onDelete: (set: SetRowEntity) => void;
   onUnlog: (set: SetRowEntity) => void;
   onSkip: (index: number) => void;
-  onFillPrevious: (index: number) => void;
+  /** The next set's typed RPE, for the half-step strip under its row (#854). */
+  nextRpe: string;
+  onPickRpe: (index: number, rpe: string) => void;
   renderInputs: (index: number) => { weight: ReactNode; reps: ReactNode; rpe: ReactNode };
   renderLogButton: (index: number, label: string) => ReactNode;
   repeatButton: ReactNode;
 }
+
+/** One tap for RPE 7 up to the max in half steps; anything else is typed (#854). */
+const RPE_STEPS = Array.from({ length: (RPE_MAX - 7) * 2 + 1 }, (_, i) => String(7 + i / 2));
 
 /** Shared table for list and Focus view; planning and persistence stay with the session. */
 export function SessionSetTable({
@@ -59,7 +65,7 @@ export function SessionSetTable({
   justLoggedId,
   prSetIds,
   sizes,
-  previousFor,
+  weightLabel,
   kindFor,
   onChangeKind,
   onEdit,
@@ -67,7 +73,8 @@ export function SessionSetTable({
   onDelete,
   onUnlog,
   onSkip,
-  onFillPrevious,
+  nextRpe,
+  onPickRpe,
   renderInputs,
   renderLogButton,
   repeatButton,
@@ -75,14 +82,12 @@ export function SessionSetTable({
   const tableHead = (
     <thead>
       <tr className={sizes.headerRow}>
-        <th className={`w-8 pl-2 ${sizes.headerCell}`}>Set</th>
-        <th className={`text-center ${sizes.headerCell}`}>Prev</th>
-        <th className={`text-center ${sizes.headerCell}`}>Weight</th>
-        {/* Reps and RPE are pinned narrow (issue #323) so, beside the Prev
-            column, Weight still fits "315.5" at text-xl on a ~325px table. */}
-        <th className={`w-11 text-center ${sizes.headerCell}`}>Reps</th>
+        <th className={`w-9 pl-2 ${sizes.headerCell}`}>Set</th>
+        <th className={`text-center ${sizes.headerCell}`}>{weightLabel}</th>
+        {/* Reps and RPE stay narrow so Weight fits "1002.5" (#646). */}
+        <th className={`w-14 text-center ${sizes.headerCell}`}>Reps</th>
         {showRpe && (
-          <th className={`w-12 text-center ${sizes.headerCell}`}>
+          <th className={`w-14 text-center ${sizes.headerCell}`}>
             <RpeInfoMenu titleId={`${fieldId}-rpe-label`} />
           </th>
         )}
@@ -90,23 +95,13 @@ export function SessionSetTable({
       </tr>
     </thead>
   );
-  function previousValues(index: number) {
-    const prior = previousFor(index);
-    if (!prior || (prior.weight == null && prior.reps == null)) return <span>—</span>;
-    return (
-      <span className="flex flex-col items-center">
-        <span>{prior.weight ?? "—"}</span>
-        <span>×{prior.reps ?? "—"}</span>
-      </span>
-    );
-  }
+  const columnCount = showRpe ? 5 : 4;
   function loggedRow(set: SetRowEntity, label: string) {
     return (
       <SetRow
         key={set.id}
         set={set}
         label={label}
-        previous={<td className={sizes.prevCell}>{previousValues(set.setIndex)}</td>}
         isPr={set.kind !== "warmup" && prSetIds.has(set.id)}
         rpeNudge={needsRpeNudge(hasDpr, set)}
         showRpe={showRpe}
@@ -124,8 +119,20 @@ export function SessionSetTable({
   function plannedRow(index: number, label: string, removable: boolean) {
     const inputs = renderInputs(index);
     const remove = removable ? () => onSkip(index) : undefined;
+    const isNext = index === nextIndex;
     return (
-      <SwipeToDeleteRow key={index} onDelete={remove}>
+      <SwipeToDeleteRow
+        key={index}
+        onDelete={remove}
+        className={
+          // The set to log next is the one tinted row (#854).
+          !isNext
+            ? undefined
+            : showRpe
+              ? "[&>td]:bg-accent/[0.08] [&>td:first-child]:rounded-tl-2xl [&>td:last-child]:rounded-tr-2xl"
+              : "[&>td]:bg-accent/[0.08] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl"
+        }
+      >
         {(reveal) => (
           <>
             <td className={sizes.indexCell}>
@@ -136,20 +143,6 @@ export function SessionSetTable({
                 onDelete={remove}
                 showKinds={showSetTypes}
               />
-            </td>
-            <td className={sizes.prevCell}>
-              {previousFor(index) ? (
-                <button
-                  type="button"
-                  onClick={() => onFillPrevious(index)}
-                  aria-label={`Use last time's ${label === "W" ? "warm-up set" : `set ${label}`}`}
-                  className="min-h-11 w-full"
-                >
-                  {previousValues(index)}
-                </button>
-              ) : (
-                previousValues(index)
-              )}
             </td>
             <td className={sizes.cell}>{inputs.weight}</td>
             <td className={sizes.cell}>{inputs.reps}</td>
@@ -166,23 +159,58 @@ export function SessionSetTable({
       </SwipeToDeleteRow>
     );
   }
+  // Half-step RPE under the next set (#854): one tap for 7–10 by 0.5; the
+  // RPE box above still takes anything typed.
+  function rpeStrip(index: number) {
+    return (
+      <tr key={`${index}-rpe`} className="[&>td]:bg-accent/[0.08]">
+        <td colSpan={columnCount} className="rounded-b-2xl px-2 pb-2">
+          <fieldset className="grid min-w-0 grid-cols-7 gap-1">
+            <legend className="sr-only">RPE</legend>
+            {RPE_STEPS.map((step) => {
+              const selected = nextRpe !== "" && Number(nextRpe) === Number(step);
+              return (
+                <button
+                  key={step}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onPickRpe(index, selected ? "" : step)}
+                  className={`press min-h-11 rounded-xl text-sm font-semibold tabular-nums ${
+                    selected
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+                  }`}
+                >
+                  {step}
+                </button>
+              );
+            })}
+          </fieldset>
+        </td>
+      </tr>
+    );
+  }
+  function plannedRows(index: number, label: string, removable: boolean) {
+    if (index !== nextIndex || !showRpe) return plannedRow(index, label, removable);
+    return [plannedRow(index, label, removable), rpeStrip(index)];
+  }
 
   return (
     // Clips a row sliding left to delete so it cannot widen the page (#350).
     <div className="overflow-x-clip">
-      <table className="w-full border-separate border-spacing-y-1 text-left">
+      <table className="w-full border-separate border-spacing-0 text-left">
         {tableHead}
         <tbody>
           {large ? (
             <>
               {lastSet && loggedRow(lastSet, rowLabels[sets.length - 1] ?? String(sets.length))}
-              {visiblePlannedIndices.length > 0 && plannedRow(nextIndex, nextLabel, false)}
+              {visiblePlannedIndices.length > 0 && plannedRows(nextIndex, nextLabel, false)}
             </>
           ) : (
             <>
               {sets.map((set, i) => loggedRow(set, rowLabels[i] ?? String(i + 1)))}
               {visiblePlannedIndices.map((index, i) =>
-                plannedRow(index, rowLabels[sets.length + i] ?? String(index + 1), true),
+                plannedRows(index, rowLabels[sets.length + i] ?? String(index + 1), true),
               )}
             </>
           )}
