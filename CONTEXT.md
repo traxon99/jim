@@ -24,6 +24,13 @@ Only the lift can be X, explosive. There is no pause at the top. Set per exercis
 and each workout keeps a copy of the tempo it started with. PRP never reads it.
 _Avoid_: cadence, rep speed
 
+**Tempo cue**:
+One second of a running tempo during a set (issue #846): the first second of each phase is its
+cue, said as a word ("Down", "Pause", "Up") or played as a sound, and each further second is a
+tick. 3-1-1 plays "Down · · Pause Up", then repeats until End set. Starts after a 10-second
+get-ready countdown. The set timer enables cues; muting one exercise lasts for that workout.
+_Avoid_: metronome, beep
+
 ## Exercise preference
 
 **Exercise preference**:

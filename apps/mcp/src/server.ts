@@ -30,6 +30,7 @@ import {
   programModeEnum,
   setKindEnum,
   sexEnum,
+  tempoCueStyleEnum,
   trackingTypeEnum,
   unitsEnum,
 } from "@jim/db";
@@ -1341,6 +1342,16 @@ export function createMcpServer(context: UserContext): McpServer {
           .describe(
             "Tempo (off by default): the routine editor's tempo field and the tempo line during workouts and in history. Tempos set with create_routine/update_routine are kept either way",
           ),
+        tempoCues: z
+          .boolean()
+          .optional()
+          .describe(
+            "Tempo cues (off by default, issue #846): Down / Pause / Up called out during a set after a 10 s get-ready countdown. Only takes effect while showSetTimer and showTempo are both on",
+          ),
+        tempoCueStyle: z
+          .enum(tempoCueStyleEnum.enumValues)
+          .optional()
+          .describe("How tempo cues sound: voice (spoken words) or sounds (sound effects only)"),
         showInjuryRules: z
           .boolean()
           .optional()

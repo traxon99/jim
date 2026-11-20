@@ -75,6 +75,8 @@ export const fontFamilyEnum = pgEnum("font_family", ["sans", "serif", "mono"]);
 // How the routine cards (Up next, the pre-workout sheet) are drawn: "plain" is the
 // original flat card, "glass" a frosted card over blurred routine-colored gradients.
 export const cardStyleEnum = pgEnum("card_style", ["plain", "glass"]);
+// How tempo cues sound (issue #846): spoken words or sound effects.
+export const tempoCueStyleEnum = pgEnum("tempo_cue_style", ["voice", "sounds"]);
 
 // Biological sex, used to select the correct strength-standards table (see
 // packages/core's strength-standards module) — not a broader identity field.
@@ -257,6 +259,10 @@ export const users = pgTable(
     // Tempo (issue #845): a tempo per routine exercise, shown during workouts.
     // Off until turned on, like the set timer.
     showTempo: boolean("show_tempo").notNull().default(false),
+    // Tempo cues (issue #846): Down / Pause / Up called out during a set. Off
+    // by default, and only in effect while the set timer and tempo are on.
+    tempoCues: boolean("tempo_cues").notNull().default(false),
+    tempoCueStyle: tempoCueStyleEnum("tempo_cue_style").notNull().default("voice"),
     // Exercise rules on Profile → Injuries (issue #724). Rules already set
     // still apply with it off; it only hides the editor.
     showInjuryRules: boolean("show_injury_rules").notNull().default(true),

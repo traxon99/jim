@@ -101,6 +101,16 @@ export const ADMIN_SETTINGS_GROUPS: SettingsGroup[] = [
       { key: "showRestStats", label: "Rest stats", kind: "toggle" },
       { key: "showSetTimer", label: "Set timer", kind: "toggle" },
       { key: "showTempo", label: "Tempo", kind: "toggle" },
+      { key: "tempoCues", label: "Tempo cues", kind: "toggle" },
+      {
+        key: "tempoCueStyle",
+        label: "Tempo cue style",
+        kind: "select",
+        options: [
+          { value: "voice", label: "Voice" },
+          { value: "sounds", label: "Sounds" },
+        ],
+      },
       { key: "showInjuryRules", label: "Injury exercise rules", kind: "toggle" },
       { key: "injuriesAffectPrp", label: "Injuries adjust PRP", kind: "toggle" },
       { key: "showInjuryHints", label: "Injury suggestions", kind: "toggle" },

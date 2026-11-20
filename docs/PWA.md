@@ -269,6 +269,21 @@ from the install gate and runs there) the same restrictions just feel broken, so
 - Tap targets are at least 44×44 (`min-h-11 min-w-11`), and primary workout controls go in the
   bottom third of the screen.
 
+### Sound
+
+Tempo cues (#846) are the app's only audio. What iOS allows:
+
+- **Audio starts from a tap.** An `AudioContext` and speech synthesis stay silent until a user
+  gesture resumes them, so `unlockTempoCueAudio` runs inside the Start set tap, never from an
+  effect or timer.
+- **Cues mix with music.** `navigator.audioSession.type = "ambient"` (Safari 16.4+) plays over the
+  lifter's music instead of pausing it. Ambient audio follows the ring/silent switch, so on silent
+  the cues are silent too. That's the trade for not interrupting music.
+- **Backgrounding stops it.** iOS suspends a backgrounded page's audio. Cues stop for the rest of
+  that set rather than resuming mid-rep on the wrong phase.
+- **Schedule on the audio clock.** Tones go on `AudioContext.currentTime` a second ahead, not one
+  `setTimeout` per beat, so the seconds don't drift when the main thread is busy.
+
 ### Transitions between screens
 
 A screen or overlay that just appears or disappears feels like a web page reloading, not an app

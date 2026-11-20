@@ -1,6 +1,6 @@
 "use client";
 
-import { workSecondsBetween } from "@jim/core";
+import { setTimerReadout, workSecondsBetween } from "@jim/core";
 import { useCallback, useEffect, useState } from "react";
 
 function storageKey(sessionId: string): string {
@@ -36,13 +36,20 @@ function writeStored(key: string, value: Stored | null): void {
   }
 }
 
-export type SetTimerPhase = "idle" | "running" | "ended";
+export type SetTimerPhase = "idle" | "ready" | "running" | "ended";
 
 export interface SetTimer {
   phase: SetTimerPhase;
   /** Whole seconds so far (running) or the set's time (ended). */
   elapsed: number;
-  start: () => void;
+  /** Seconds left to get into position before the set starts (issue #846); 0 otherwise. */
+  readyRemaining: number;
+  /** When the set itself starts (after any get-ready countdown), ms since epoch; null when idle. */
+  startedAtMs: number | null;
+  /** Starts a set; `readySeconds` first counts down to get into position (tempo cues, issue #846). */
+  start: (readySeconds?: number) => void;
+  /** Ends the get-ready countdown now, so the set starts on this tap. */
+  skipReady: () => void;
   end: () => void;
   clear: () => void;
   /**
@@ -68,6 +75,7 @@ export function useSetTimer(sessionId: string): SetTimer {
     setStored(readStored(storageKey(sessionId)));
   }, [sessionId]);
 
+  // Ticking covers the get-ready countdown too: both have no end yet.
   const running = stored !== null && stored.endedAt === null;
   useEffect(() => {
     if (!running) return;
@@ -91,15 +99,30 @@ export function useSetTimer(sessionId: string): SetTimer {
     [sessionId],
   );
 
-  const start = useCallback(() => {
+  const start = useCallback(
+    (readySeconds = 0) => {
+      const at = new Date();
+      setNow(at);
+      const startedAt = new Date(at.getTime() + Math.max(0, readySeconds) * 1000);
+      save({ startedAt: startedAt.toISOString(), endedAt: null });
+    },
+    [save],
+  );
+
+  const skipReady = useCallback(() => {
+    if (!stored || stored.endedAt !== null) return;
     const at = new Date();
+    if (new Date(stored.startedAt) <= at) return;
     setNow(at);
     save({ startedAt: at.toISOString(), endedAt: null });
-  }, [save]);
+  }, [save, stored]);
 
   const end = useCallback(() => {
     if (!stored || stored.endedAt !== null) return;
-    save({ ...stored, endedAt: new Date().toISOString() });
+    const at = new Date();
+    // Ending during the countdown means no set ran: back to idle.
+    if (new Date(stored.startedAt) > at) save(null);
+    else save({ ...stored, endedAt: at.toISOString() });
   }, [save, stored]);
 
   const clear = useCallback(() => save(null), [save]);
@@ -107,19 +130,30 @@ export function useSetTimer(sessionId: string): SetTimer {
   const workSeconds = useCallback(() => {
     if (!stored) return null;
     const endedAt = stored.endedAt ? new Date(stored.endedAt) : new Date();
+    // A set logged during the get-ready countdown has no time of its own.
+    if (new Date(stored.startedAt) > endedAt) return null;
     return workSecondsBetween(new Date(stored.startedAt), endedAt);
   }, [stored]);
 
-  let phase: SetTimerPhase = "idle";
-  let elapsed = 0;
-  if (stored) {
-    phase = stored.endedAt === null ? "running" : "ended";
-    const endedAt = stored.endedAt ? new Date(stored.endedAt) : now;
-    elapsed = Math.max(
-      0,
-      Math.floor((endedAt.getTime() - new Date(stored.startedAt).getTime()) / 1000),
-    );
-  }
+  const startedAtMs = stored ? new Date(stored.startedAt).getTime() : null;
+  const readout =
+    stored && startedAtMs !== null
+      ? setTimerReadout(
+          startedAtMs,
+          stored.endedAt ? new Date(stored.endedAt).getTime() : null,
+          now.getTime(),
+        )
+      : null;
 
-  return { phase, elapsed, start, end, clear, workSeconds };
+  return {
+    phase: readout?.phase ?? "idle",
+    elapsed: readout?.elapsed ?? 0,
+    readyRemaining: readout?.readyRemaining ?? 0,
+    startedAtMs,
+    start,
+    skipReady,
+    end,
+    clear,
+    workSeconds,
+  };
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatTempo, parseTempo, tempoFromInputs, tempoSecondsPerRep } from "../tempo";
+import {
+  formatTempo,
+  parseTempo,
+  tempoCueSchedule,
+  tempoFromInputs,
+  tempoPhaseAt,
+  tempoSecondsPerRep,
+} from "../tempo";
 
 describe("parseTempo", () => {
   it("reads the hyphenated form", () => {
@@ -85,5 +92,45 @@ describe("tempoFromInputs", () => {
     expect(tempoFromInputs("X", "1", "1")).toBe("invalid");
     expect(tempoFromInputs("0", "0", "0")).toBe("invalid");
     expect(tempoFromInputs("30", "1", "1")).toBe("invalid");
+  });
+});
+
+describe("tempoCueSchedule", () => {
+  it("cues the first second of each phase and ticks the rest", () => {
+    expect(tempoCueSchedule([3, 1, 1])).toEqual(["down", "tick", "tick", "pause", "up"]);
+  });
+
+  it("skips a 0-second pause", () => {
+    expect(tempoCueSchedule([2, 0, 1])).toEqual(["down", "tick", "up"]);
+  });
+
+  it("plays an X lift as one up", () => {
+    expect(tempoCueSchedule([2, 0, "X"])).toEqual(["down", "tick", "up"]);
+  });
+
+  it("ticks through long phases", () => {
+    expect(tempoCueSchedule([5, 2, 2])).toEqual([
+      "down",
+      "tick",
+      "tick",
+      "tick",
+      "tick",
+      "pause",
+      "tick",
+      "up",
+      "tick",
+    ]);
+  });
+});
+
+describe("tempoPhaseAt", () => {
+  it("names the phase each second falls in, ticks included", () => {
+    const phases = [0, 1, 2, 3, 4].map((second) => tempoPhaseAt([3, 1, 1], second));
+    expect(phases).toEqual(["down", "down", "down", "pause", "up"]);
+  });
+
+  it("loops for the next rep", () => {
+    expect(tempoPhaseAt([3, 1, 1], 5)).toBe("down");
+    expect(tempoPhaseAt([3, 1, 1], 9.7)).toBe("up");
   });
 });

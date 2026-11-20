@@ -3,7 +3,16 @@
 import { CallMark } from "@/components/dpr/call-mark";
 import { type ExerciseAction, ExerciseActionsMenu } from "@/components/exercise-actions-menu";
 import { ExerciseDetail } from "@/components/exercises/exercise-detail";
-import { Check, Diff, File, Pin, RotateCcw, Timer } from "@/components/icons/solar";
+import {
+  Check,
+  Diff,
+  File,
+  Pin,
+  RotateCcw,
+  Timer,
+  Volume2,
+  VolumeX,
+} from "@/components/icons/solar";
 import { type ExerciseInjury, InjuryHint, InjuryIcon } from "@/components/injuries/injury-hint";
 import { SupersetBadge } from "@/components/supersets/superset-badge";
 import { UndoBar, useUndoable } from "@/components/undo-bar";
@@ -118,6 +127,11 @@ interface Props {
   /** The working set timer's time for the set being logged (issue #634); absent when it's off. */
   workSeconds?: () => number | null;
   /**
+   * Tempo cues (issue #846), when they're on: whether this exercise's are
+   * muted for this workout, and the speaker button's toggle.
+   */
+  tempoCues?: { muted: boolean; onToggle: () => void } | null;
+  /**
    * The ⋯ menu's items after this section's own (note, sticky note, warm-ups,
    * rest): Replace, superset options, Preferences and Remove (#269, #271).
    */
@@ -149,6 +163,7 @@ export function SessionExerciseSection({
   supersetLabel = null,
   onSetLogged,
   workSeconds,
+  tempoCues = null,
   actions,
   onNameLongPress,
   injury = null,
@@ -878,7 +893,26 @@ export function SessionExerciseSection({
         <p className={sizes.meta}>{dprVolumeLine(volumeSets, target.targetSets)}</p>
       )}
 
-      {tempo && <p className={sizes.meta}>Tempo {formatTempo(tempo)}</p>}
+      {tempo && (
+        <p className={`${sizes.meta} flex items-center gap-1`}>
+          Tempo {formatTempo(tempo)}
+          {tempoCues && (
+            <button
+              type="button"
+              onClick={tempoCues.onToggle}
+              aria-pressed={!tempoCues.muted}
+              aria-label={tempoCues.muted ? "Tempo cues muted" : "Tempo cues on"}
+              className="-my-3 flex min-h-11 min-w-11 items-center justify-center text-zinc-700 dark:text-zinc-300"
+            >
+              {tempoCues.muted ? (
+                <VolumeX size={16} className="text-zinc-400 dark:text-zinc-500" />
+              ) : (
+                <Volume2 size={16} />
+              )}
+            </button>
+          )}
+        </p>
+      )}
 
       {suggestedWeights && hasHistory && !suggestionsOpen && (
         <button

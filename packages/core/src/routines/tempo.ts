@@ -66,3 +66,39 @@ export function tempoFromInputs(
   const tempo = parseTempo(values.map((value) => (value === "" ? "0" : value)).join("-"));
   return tempo ? formatTempo(tempo) : "invalid";
 }
+
+/**
+ * One second of a running tempo (issue #846): the first second of a phase is
+ * its cue, said or played; each further second in that phase is a tick.
+ */
+export type TempoCue = "down" | "pause" | "up" | "tick";
+export type TempoCuePhase = Exclude<TempoCue, "tick">;
+
+/**
+ * One rep's cues, one per second: 3-1-1 → down, tick, tick, pause, up. A
+ * 0-second phase adds nothing and an X lift is a single "up". Loop it for
+ * the next rep.
+ */
+export function tempoCueSchedule(tempo: Tempo): TempoCue[] {
+  const cues: TempoCue[] = [];
+  const phases: [TempoCuePhase, number][] = [
+    ["down", tempo[0]],
+    ["pause", tempo[1]],
+    ["up", tempo[2] === "X" ? 1 : tempo[2]],
+  ];
+  for (const [phase, seconds] of phases) {
+    for (let second = 0; second < seconds; second++) cues.push(second === 0 ? phase : "tick");
+  }
+  return cues;
+}
+
+/** The phase a running tempo is in, `elapsedSeconds` whole seconds after it started. */
+export function tempoPhaseAt(tempo: Tempo, elapsedSeconds: number): TempoCuePhase {
+  const cues = tempoCueSchedule(tempo);
+  const second = ((Math.floor(elapsedSeconds) % cues.length) + cues.length) % cues.length;
+  for (let index = second; index >= 0; index--) {
+    const cue = cues[index];
+    if (cue && cue !== "tick") return cue;
+  }
+  return "down";
+}

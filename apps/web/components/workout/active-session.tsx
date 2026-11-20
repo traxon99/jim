@@ -40,6 +40,7 @@ import {
   showsInjuryHints,
   showsPaceTracker,
   showsSetTimer,
+  showsTempoCues,
 } from "@/lib/settings";
 import {
   addExerciseItems,
@@ -49,9 +50,13 @@ import {
 } from "@/lib/supersets/item-mutations";
 import { getDeviceId } from "@/lib/sync/engine";
 import { useWakeLock } from "@/lib/wake-lock";
+import { unlockTempoCueAudio } from "@/lib/workout/tempo-cue-player";
+import { useTempoCues } from "@/lib/workout/use-tempo-cues";
 import {
   type PaceExercise,
+  SET_READY_SECONDS,
   type SupersetChange,
+  type Tempo,
   exerciseDisplayName,
   exerciseInjuryGuidance,
   formSuperset,
@@ -66,6 +71,7 @@ import {
   nextSupersetGroup,
   normalizeSupersets,
   parseInjuryRules,
+  parseTempo,
   partitionWarmups,
   resolveCurrentRows,
   resolveFocusedExerciseIndex,
@@ -172,6 +178,20 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   const restTimer = useRestTimer(id);
   const setTimer = useSetTimer(id);
   const setTimerOn = showsSetTimer(settings);
+  // Tempo cues (issue #846): the set timer enables them. The tempo the Start
+  // set tap armed plays until the set ends; muting is per exercise, this
+  // workout only, and isn't saved.
+  const tempoCuesOn = showsTempoCues(settings);
+  const cueStyle = settings.tempoCueStyle ?? "voice";
+  const [cueArm, setCueArm] = useState<{ sessionExerciseId: string; tempo: Tempo } | null>(null);
+  const [mutedCueIds, setMutedCueIds] = useState<ReadonlySet<string>>(() => new Set());
+  const disarmCues = useCallback(() => setCueArm(null), []);
+  useTempoCues({
+    timer: setTimer,
+    tempo: tempoCuesOn ? (cueArm?.tempo ?? null) : null,
+    style: cueStyle,
+    onDisarm: disarmCues,
+  });
   const isActive = session != null && !session.endedAt && !session.deletedAt;
   useWakeLock(isActive);
 
@@ -372,6 +392,41 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     }
   }
 
+  // The exercise a Start set tap is for: the focused one, or else the first
+  // one not yet at its target (the one the lifter is presumably on).
+  function cueTempoForNextSet(): { sessionExerciseId: string; tempo: Tempo } | null {
+    if (!tempoCuesOn) return null;
+    const item = focusMode
+      ? focusedItem
+      : sessionExercises[resolveFocusedExerciseIndex(focusCandidates)];
+    if (!item || mutedCueIds.has(item.id)) return null;
+    const tempo = parseTempo(item.tempo);
+    return tempo ? { sessionExerciseId: item.id, tempo } : null;
+  }
+
+  function startSet() {
+    const arm = cueTempoForNextSet();
+    setCueArm(arm);
+    if (arm) {
+      // Inside the tap: iOS only lets a page start audio from a user gesture.
+      unlockTempoCueAudio(cueStyle);
+      setTimer.start(SET_READY_SECONDS);
+    } else {
+      setTimer.start();
+    }
+  }
+
+  function toggleCueMute(sessionExerciseId: string) {
+    const muting = !mutedCueIds.has(sessionExerciseId);
+    setMutedCueIds((current) => {
+      const next = new Set(current);
+      if (muting) next.add(sessionExerciseId);
+      else next.delete(sessionExerciseId);
+      return next;
+    });
+    if (muting && cueArm?.sessionExerciseId === sessionExerciseId) setCueArm(null);
+  }
+
   // The rest timer has the bottom bar while it runs; otherwise, with the
   // working set timer on (issue #634), the set timer has it until the
   // workout's sets are all logged.
@@ -381,13 +436,20 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         <RestTimerBar
           timer={restTimer}
           aboveTabBar={aboveTabBar}
-          onStartSet={setTimerOn ? setTimer.start : undefined}
+          onStartSet={setTimerOn ? startSet : undefined}
         />
       );
     }
     if (!setTimerOn || !isActive) return null;
     if (allSetsLogged && setTimer.phase === "idle") return null;
-    return <SetTimerBar timer={setTimer} aboveTabBar={aboveTabBar} />;
+    return (
+      <SetTimerBar
+        timer={setTimer}
+        onStart={startSet}
+        cueTempo={tempoCuesOn ? (cueArm?.tempo ?? null) : null}
+        aboveTabBar={aboveTabBar}
+      />
+    );
   }
 
   const clampedFocusedIndex = Math.min(focusedIndex, Math.max(0, sessionExercises.length - 1));
@@ -696,6 +758,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         large={large}
         supersetLabel={supersetLabelById.get(item.id) ?? null}
         workSeconds={setTimerOn ? setTimer.workSeconds : undefined}
+        tempoCues={
+          tempoCuesOn
+            ? { muted: mutedCueIds.has(item.id), onToggle: () => toggleCueMute(item.id) }
+            : null
+        }
         onSetLogged={(restSeconds, remainingPlannedSets) =>
           handleSetLogged(item.id, restSeconds, remainingPlannedSets)
         }
