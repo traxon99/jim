@@ -114,13 +114,14 @@ export async function setTempo(context: UserContext, input: SetTempoInput) {
       for (const lift of lifts) next.set(lift.id, tempo);
     }
     for (const entry of input.exercises ?? []) {
-      const inRoutine = entry.routine
-        ? lifts.filter(
-            (lift) =>
-              lift.routineId === entry.routine ||
-              lift.routineName.toLowerCase() === entry.routine?.trim().toLowerCase(),
-          )
-        : lifts;
+      let inRoutine = lifts;
+      if (entry.routine) {
+        const routine = await findRoutine(tx, entry.routine);
+        inRoutine = lifts.filter((lift) => lift.routineId === routine.id);
+        if (inRoutine.length === 0) {
+          throw new Error(`"${routine.name}" has no lifts here that take a tempo.`);
+        }
+      }
       const key = entry.exercise.trim().toLowerCase();
       let matches = inRoutine.filter(
         (lift) => lift.exerciseId === entry.exercise.trim() || lift.name.toLowerCase() === key,

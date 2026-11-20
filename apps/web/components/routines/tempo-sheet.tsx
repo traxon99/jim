@@ -82,6 +82,7 @@ export function TempoSheet({
               <TempoField
                 label="All lifts"
                 clearLabel="Clear tempo for all lifts"
+                forceClear={all.kind !== "none"}
                 value={all.kind === "same" ? all.tempo : null}
                 onCommit={(tempo) =>
                   void saveLiftTempos(

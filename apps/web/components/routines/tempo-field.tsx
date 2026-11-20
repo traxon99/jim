@@ -26,12 +26,19 @@ export function TempoField({
   onCommit,
   label = "Tempo",
   clearLabel = "Clear tempo",
+  forceClear = false,
 }: {
   value: string | null | undefined;
   onCommit: (tempo: string | null) => void;
   /** The legend: the lift's name in the Tempo sheet. */
   label?: string;
   clearLabel?: string;
+  /**
+   * Show Clear even when the inputs are empty, and clear through `onCommit`
+   * whatever `value` is: All lifts reads empty while lifts differ, and still
+   * clears them all (issue #850).
+   */
+  forceClear?: boolean;
 }) {
   const id = useId();
   const [phases, setPhases] = useState(() => phasesOf(value));
@@ -115,10 +122,15 @@ export function TempoField({
             />
           </label>
         ))}
-        {hasInput && (
+        {(hasInput || forceClear) && (
           <button
             type="button"
-            onClick={() => commit(["", "", ""])}
+            onClick={() => {
+              if (!forceClear) return commit(["", "", ""]);
+              setInvalid(false);
+              setPhases(["", "", ""]);
+              onCommit(null);
+            }}
             aria-label={clearLabel}
             className="min-h-11 px-2 text-xs font-medium text-zinc-500 underline underline-offset-4 dark:text-zinc-400"
           >

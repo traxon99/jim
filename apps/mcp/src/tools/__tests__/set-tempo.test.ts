@@ -91,5 +91,17 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("set_tempo (#850)", () => {
       }),
     ).rejects.toThrow(/isn't a lift here/);
     await expect(setTempo(context, { tempo: "3-1-1" })).rejects.toThrow(/exactly one/);
+    await expect(
+      setTempo(context, {
+        program: "Split",
+        exercises: [{ exercise: "Squat", tempo: "3-1-1", routine: "Push" }],
+      }),
+    ).rejects.toThrow(/isn't a lift here/);
+    await expect(
+      setTempo(context, {
+        program: "Split",
+        exercises: [{ exercise: "Squat", tempo: "3-1-1", routine: "Nope" }],
+      }),
+    ).rejects.toThrow(/No routine matches/);
   });
 });
