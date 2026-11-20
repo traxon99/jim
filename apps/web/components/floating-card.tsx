@@ -13,6 +13,12 @@ interface Props {
    * style is on (globals.css `.tinted-card`, issue #374).
    */
   tint?: RoutineIconColor;
+  /**
+   * "bottom" sits the card low, inset 8px from the sides and bottom like an
+   * iOS 26 sheet, so its main action lands under the thumb (#856). Default
+   * "center" floats it mid-screen (#278).
+   */
+  anchor?: "center" | "bottom";
   /** Gets `close`, which plays the exit fade before calling onClose. */
   children: (close: () => void) => ReactNode;
 }
@@ -55,7 +61,8 @@ export function lockPageScroll(): () => void {
  * card opened from a routine row was trapped under the rows after it, which
  * painted straight through the card (docs/PWA.md §4, issue #387).
  */
-export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
+export function FloatingCard({ labelledBy, onClose, tint, anchor = "center", children }: Props) {
+  const bottom = anchor === "bottom";
   // Closing plays the exit fade (globals.css .sheet-backdrop) before handing
   // control back; reduced motion skips straight to onClose, since no
   // animationend would ever fire.
@@ -111,10 +118,14 @@ export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
     <div
       data-closing={closing}
       onAnimationEnd={handleAnimationEnd}
-      className="sheet-backdrop fixed inset-0 z-20 flex items-center justify-center overscroll-none bg-black/30 px-4 backdrop-blur-sm"
+      className={`sheet-backdrop fixed inset-0 z-20 flex justify-center overscroll-none bg-black/30 backdrop-blur-sm ${
+        bottom ? "items-end px-2" : "items-center px-4"
+      }`}
       style={{
         paddingTop: "max(16px, var(--top-inset))",
-        paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+        paddingBottom: bottom
+          ? "max(8px, env(safe-area-inset-bottom))"
+          : "max(16px, env(safe-area-inset-bottom))",
       }}
     >
       <button
@@ -129,9 +140,9 @@ export function FloatingCard({ labelledBy, onClose, tint, children }: Props) {
       <section
         aria-labelledby={labelledBy}
         data-tint={tint}
-        className={`sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 ${
-          tint ? "tinted-card" : ""
-        }`}
+        className={`sheet-panel relative flex max-h-full min-h-0 w-full max-w-md flex-col overflow-hidden border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 ${
+          bottom ? "rounded-[38px] dark:bg-zinc-900" : "rounded-2xl dark:bg-zinc-950"
+        } ${tint ? "tinted-card" : ""}`}
       >
         {children(requestClose)}
       </section>

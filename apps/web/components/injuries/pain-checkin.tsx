@@ -1,10 +1,11 @@
 "use client";
 
+import { Bandage } from "@/components/icons/solar";
 import type { InjuryRow, PainCheckinRow } from "@/lib/db/schema";
 import { logPain, markHealed } from "@/lib/injuries";
 import { injuryAreaLabel, latestPainByDay, shouldAskHealed, todaysPain } from "@jim/core";
 import { useState } from "react";
-import { PainPicker } from "./pain-picker";
+import { PainScale } from "./pain-scale";
 
 function askedKey(injuryId: string): string {
   return `jim:healed-asked:${injuryId}`;
@@ -103,10 +104,19 @@ export function PainCheckin({
         const label = injuryAreaLabel(injury.area, injury.side);
         return (
           <div key={injury.id} className="flex min-w-0 flex-col gap-1.5">
-            <p className="text-sm font-semibold">{label}: pain today</p>
-            <PainPicker
+            <PainScale
               value={todaysPain(checkins, injury.id, today)}
               label={`${label} pain today`}
+              title={
+                <>
+                  <Bandage
+                    className="h-[17px] w-[17px] shrink-0 text-zinc-500"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 truncate">{label}</span>
+                </>
+              }
               onChange={(level) => {
                 setError(null);
                 logPain(injury, level, today).catch(() =>

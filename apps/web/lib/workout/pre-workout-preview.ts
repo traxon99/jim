@@ -52,3 +52,23 @@ export function buildPreWorkoutRows(
       dpr: ctx ? dprCallFor(ctx, item.exerciseId, item, intensity) : null,
     }));
 }
+
+/** Longest list the pre-workout sheet shows whole (#856). */
+export const PRE_WORKOUT_FULL_LIST = 6;
+/** Rows shown above "N more" once a list is longer than that. */
+export const PRE_WORKOUT_COLLAPSED_ROWS = 5;
+
+/**
+ * The rows the pre-workout sheet shows (#856): every row up to 6, else the
+ * first 5 and a count for the "N more" row, until the lifter expands it.
+ */
+export function visiblePreWorkoutRows<T>(
+  rows: readonly T[],
+  expanded: boolean,
+): { shown: readonly T[]; hidden: number } {
+  if (expanded || rows.length <= PRE_WORKOUT_FULL_LIST) return { shown: rows, hidden: 0 };
+  return {
+    shown: rows.slice(0, PRE_WORKOUT_COLLAPSED_ROWS),
+    hidden: rows.length - PRE_WORKOUT_COLLAPSED_ROWS,
+  };
+}

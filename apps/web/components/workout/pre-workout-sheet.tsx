@@ -3,17 +3,27 @@
 import { CallMark } from "@/components/dpr/call-mark";
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { FloatingCard } from "@/components/floating-card";
+import {
+  ArrowRight,
+  ArrowUp,
+  ChevronDown,
+  Feather,
+  type IconComponent,
+  MapPin,
+  Play,
+  X,
+} from "@/components/icons/solar";
 import { PainCheckin } from "@/components/injuries/pain-checkin";
-import { RoutineIcon } from "@/components/routines/routine-icon";
+import { SEGMENTED_TRACK, segmentClass } from "@/components/routines/plan-nav";
+import { RoutineIconTile } from "@/components/routines/routine-icon";
 import { db } from "@/lib/db/schema";
 import { type DprContext, dprBadge } from "@/lib/dpr/calls";
 import { useGyms } from "@/lib/gyms/use-gyms";
 import { useInjuries, useTodayKey } from "@/lib/injuries/use-injuries";
-import { buildPreWorkoutRows } from "@/lib/workout/pre-workout-preview";
+import { buildPreWorkoutRows, visiblePreWorkoutRows } from "@/lib/workout/pre-workout-preview";
 import {
   DEFAULT_SESSION_INTENSITY,
   SESSION_INTENSITIES,
-  SESSION_INTENSITY_DESCRIPTIONS,
   SESSION_INTENSITY_LABELS,
   type SessionIntensity,
   isInjuryOpenOn,
@@ -37,6 +47,12 @@ interface Props {
   onCancel: () => void;
 }
 
+const INTENSITY_ICONS: Record<SessionIntensity, IconComponent> = {
+  light: Feather,
+  maintain: ArrowRight,
+  push: ArrowUp,
+};
+
 function formatWeight(n: number): string {
   return String(Math.round(n * 100) / 100);
 }
@@ -48,6 +64,10 @@ function formatWeight(n: number): string {
  * before the workout starts. Without DPR it's a plain preview (issue #282).
  * Users with gyms pick where they're training, home gym first (issue #454).
  * With an injury open, it hosts today's pain check-in (issue #627).
+ *
+ * Laid out as a launch pad (#856): a bottom sheet with one-line exercise rows
+ * (five and "N more" past six), the gym as a chip, the effort pick as a
+ * segmented control and a single Start; the corner X closes it.
  */
 export function PreWorkoutSheet({
   userId,
@@ -59,6 +79,7 @@ export function PreWorkoutSheet({
   onCancel,
 }: Props) {
   const [intensity, setIntensity] = useState<SessionIntensity>(DEFAULT_SESSION_INTENSITY);
+  const [showAll, setShowAll] = useState(false);
   const gyms = useGyms();
   const injuryData = useInjuries();
   const today = useTodayKey();
@@ -91,36 +112,83 @@ export function PreWorkoutSheet({
   );
   const units = context?.settings.units;
 
+  const { shown: shownRows, hidden: hiddenRows } = visiblePreWorkoutRows(rows, showAll);
+  const gymName =
+    gymId === null ? "No gym" : (gyms?.find((gym) => gym.id === gymId)?.name ?? "No gym");
+
   return (
-    <FloatingCard labelledBy="pre-workout-title" onClose={onCancel} tint={routine?.iconColor}>
+    <FloatingCard
+      labelledBy="pre-workout-title"
+      onClose={onCancel}
+      tint={routine?.iconColor}
+      anchor="bottom"
+    >
       {(requestClose) => (
         <>
-          <div className="flex touch-none flex-col gap-1 px-4 pt-4">
-            <h2
-              id="pre-workout-title"
-              className="flex min-w-0 items-center gap-2 text-lg font-semibold"
+          <div className="flex touch-none items-start gap-3 px-[18px] pt-5">
+            {routine && (
+              <RoutineIconTile shape={routine.iconShape} color={routine.iconColor} size="lg" />
+            )}
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <h2
+                id="pre-workout-title"
+                className="truncate text-2xl leading-tight font-bold tracking-[-0.025em]"
+              >
+                {routineName}
+              </h2>
+              <div className="flex min-w-0 items-center gap-2 text-[15px] text-zinc-500 dark:text-zinc-400">
+                <span className="shrink-0 tabular-nums">
+                  {rows.length} exercise{rows.length === 1 ? "" : "s"}
+                </span>
+                {gyms && gyms.length > 0 && (
+                  <span className="relative flex h-7 min-w-0 items-center gap-1 rounded-full bg-zinc-900/[0.06] pr-2 pl-1.5 text-sm font-medium text-zinc-950 dark:bg-white/[0.1] dark:text-zinc-50">
+                    <MapPin
+                      className="h-[15px] w-[15px] shrink-0 text-zinc-500"
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 truncate">{gymName}</span>
+                    <ChevronDown
+                      className="h-3 w-3 shrink-0 text-zinc-400"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    />
+                    {/* The native picker, laid invisibly over the chip. */}
+                    <select
+                      aria-label="Gym"
+                      value={gymId ?? ""}
+                      onChange={(event) => setPickedGymId(event.target.value || null)}
+                      className="absolute inset-0 h-full w-full min-w-0 cursor-pointer opacity-0"
+                    >
+                      {gyms.map((gym) => (
+                        <option key={gym.id} value={gym.id}>
+                          {gym.name}
+                        </option>
+                      ))}
+                      <option value="">No gym</option>
+                    </select>
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={requestClose}
+              className="press mt-0.5 flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.07] text-zinc-500 dark:bg-white/[0.12] dark:text-zinc-400"
             >
-              {routine && (
-                <RoutineIcon
-                  shape={routine.iconShape}
-                  color={routine.iconColor}
-                  className="h-5 w-5"
-                />
-              )}
-              <span className="truncate">{routineName}</span>
-            </h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-500">
-              {rows.length} exercise{rows.length === 1 ? "" : "s"}
-            </p>
+              <X className="h-[17px] w-[17px]" aria-hidden="true" />
+            </button>
           </div>
 
-          <ul className="allow-pwa-select mt-2 flex min-h-0 flex-1 flex-col divide-y divide-zinc-200 overflow-y-auto overscroll-contain px-4 dark:divide-zinc-800">
-            {rows.map((row) => {
-              const badge = row.dpr ? dprBadge(row.dpr.decision.call) : null;
-              const weight = row.dpr?.decision.weight ?? null;
-              return (
-                <li key={row.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span className="flex min-w-0 flex-col">
+          <div className="mx-[18px] mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] bg-zinc-100 dark:bg-zinc-800">
+            <ul className="allow-pwa-select flex min-h-0 flex-1 flex-col divide-y divide-zinc-900/[0.08] overflow-y-auto overscroll-contain pl-3.5 dark:divide-white/[0.1]">
+              {shownRows.map((row) => {
+                const weight = row.dpr?.decision.weight ?? null;
+                return (
+                  <li
+                    key={row.id}
+                    className="flex min-h-[42px] shrink-0 items-center justify-between gap-2.5 pr-3.5 text-base"
+                  >
                     <ExerciseNameButton
                       exerciseId={row.exerciseId}
                       userId={userId}
@@ -128,94 +196,82 @@ export function PreWorkoutSheet({
                     >
                       {row.name}
                     </ExerciseNameButton>
-                    {row.plan && (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-500">{row.plan}</span>
-                    )}
-                  </span>
-                  {badge && row.dpr && weight !== null && (
-                    <span
-                      aria-label={`${badge.label}, ${formatWeight(weight)} ${units}`}
-                      className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium ${badge.className}`}
-                    >
-                      <span className="flex items-center gap-1">
-                        <CallMark call={row.dpr.decision.call} inherit />
-                        {formatWeight(weight)} {units}
+                    {row.dpr && weight !== null ? (
+                      <span
+                        aria-label={`${dprBadge(row.dpr.decision.call).label}, ${formatWeight(weight)} ${units}`}
+                        className="flex shrink-0 items-center gap-1.5 text-[15px] tabular-nums"
+                      >
+                        <CallMark call={row.dpr.decision.call} className="text-xs" />
+                        <span>
+                          <span className="font-semibold">{formatWeight(weight)}</span>{" "}
+                          <span className="text-zinc-500 dark:text-zinc-400">{units}</span>
+                        </span>
                       </span>
-                    </span>
-                  )}
+                    ) : (
+                      row.plan && (
+                        <span className="shrink-0 text-[15px] text-zinc-500 tabular-nums dark:text-zinc-400">
+                          {row.plan}
+                        </span>
+                      )
+                    )}
+                  </li>
+                );
+              })}
+              {hiddenRows > 0 && (
+                <li className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(true)}
+                    className="flex min-h-[42px] w-full items-center justify-between pr-3.5 text-left text-base text-zinc-500 dark:text-zinc-400"
+                  >
+                    {hiddenRows} more
+                    <ChevronDown className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                  </button>
                 </li>
-              );
-            })}
-          </ul>
+              )}
+            </ul>
+          </div>
 
           {injuryData && openInjuries.length > 0 && (
-            <div className="max-h-[40lvh] shrink-0 overflow-y-auto overscroll-contain border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <div className="max-h-[40lvh] shrink-0 overflow-y-auto overscroll-contain px-[18px] pt-[18px] pb-1">
               <PainCheckin injuries={openInjuries} checkins={injuryData.checkins} today={today} />
             </div>
           )}
 
-          <div className="flex touch-none flex-col gap-3 border-t border-zinc-200 px-4 pt-3 pb-4 dark:border-zinc-800">
-            {gyms && gyms.length > 0 && (
-              <label className="flex items-center gap-3 text-sm font-semibold">
-                Gym
-                <select
-                  value={gymId ?? ""}
-                  onChange={(event) => setPickedGymId(event.target.value || null)}
-                  className="min-h-11 min-w-0 flex-1 truncate rounded-lg border border-zinc-300 bg-white px-3 text-sm font-normal text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                >
-                  {gyms.map((gym) => (
-                    <option key={gym.id} value={gym.id}>
-                      {gym.name}
-                    </option>
-                  ))}
-                  <option value="">No gym</option>
-                </select>
-              </label>
-            )}
+          <div className="flex touch-none flex-col gap-5 px-[18px] pt-[18px] pb-[18px]">
             {context && (
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-sm font-semibold">
-                  How hard do you want to push today?
-                </legend>
-                <div className="grid grid-cols-3 gap-2">
-                  {SESSION_INTENSITIES.map((option) => (
+              <fieldset className={SEGMENTED_TRACK}>
+                <legend className="sr-only">How hard do you want to push today?</legend>
+                {SESSION_INTENSITIES.map((option) => {
+                  const Icon = INTENSITY_ICONS[option];
+                  const active = intensity === option;
+                  return (
                     <button
                       key={option}
                       type="button"
-                      aria-pressed={intensity === option}
+                      aria-pressed={active}
                       onClick={() => setIntensity(option)}
-                      className={`min-h-11 rounded-lg border px-2 text-sm font-medium ${
-                        intensity === option
-                          ? "border-accent bg-accent text-accent-foreground"
-                          : "border-zinc-300 dark:border-zinc-700"
-                      }`}
+                      className={`gap-1.5 ${segmentClass(active)}`}
                     >
+                      <Icon
+                        className={`h-4 w-4 shrink-0 ${active ? "" : "text-zinc-500 dark:text-zinc-400"}`}
+                        aria-hidden="true"
+                      />
                       {SESSION_INTENSITY_LABELS[option]}
                     </button>
-                  ))}
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                  {SESSION_INTENSITY_DESCRIPTIONS[intensity]}
-                </p>
+                  );
+                })}
               </fieldset>
             )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={requestClose}
-                className="min-h-11 flex-1 rounded-lg border border-zinc-300 px-4 text-base font-medium dark:border-zinc-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => onStart(context ? intensity : null, gymId)}
-                disabled={starting}
-                className="tinted-action min-h-11 flex-[2] rounded-lg bg-accent px-4 text-base font-medium text-accent-foreground disabled:opacity-50"
-              >
-                Start workout
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => onStart(context ? intensity : null, gymId)}
+              disabled={starting}
+              className="tinted-action press flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent px-4 text-[17px] font-semibold text-accent-foreground disabled:opacity-50"
+            >
+              <Play className="h-[18px] w-[18px]" fill="currentColor" aria-hidden="true" />
+              Start workout
+            </button>
           </div>
         </>
       )}
