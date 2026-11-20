@@ -157,7 +157,8 @@ export function PreWorkoutSheet({
                       aria-label="Gym"
                       value={gymId ?? ""}
                       onChange={(event) => setPickedGymId(event.target.value || null)}
-                      className="absolute inset-0 h-full w-full min-w-0 cursor-pointer opacity-0"
+                      // 44px tall hit area around the 28px chip (docs/PWA.md §7).
+                      className="absolute -inset-y-2 inset-x-0 min-w-0 cursor-pointer opacity-0"
                     >
                       {gyms.map((gym) => (
                         <option key={gym.id} value={gym.id}>
@@ -174,9 +175,11 @@ export function PreWorkoutSheet({
               type="button"
               aria-label="Close"
               onClick={requestClose}
-              className="press mt-0.5 flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-zinc-900/[0.07] text-zinc-500 dark:bg-white/[0.12] dark:text-zinc-400"
+              className="press -m-[5px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
             >
-              <X className="h-[17px] w-[17px]" aria-hidden="true" />
+              <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-zinc-900/[0.07] text-zinc-500 dark:bg-white/[0.12] dark:text-zinc-400">
+                <X className="h-[17px] w-[17px]" aria-hidden="true" />
+              </span>
             </button>
           </div>
 
