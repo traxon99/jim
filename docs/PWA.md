@@ -271,14 +271,15 @@ from the install gate and runs there) the same restrictions just feel broken, so
 
 ### Sound
 
-Tempo cues (#846) are the app's only audio. What iOS allows:
+Tempo cues (#846) and the rest alert's beep are the app's audio. What iOS allows:
 
 - **Audio starts from a tap.** An `AudioContext` and speech synthesis stay silent until a user
   gesture resumes them, so `unlockTempoCueAudio` runs inside the Start set tap, never from an
   effect or timer.
 - **Cues mix with music.** `navigator.audioSession.type = "ambient"` (Safari 16.4+) plays over the
   lifter's music instead of pausing it. Ambient audio follows the ring/silent switch, so on silent
-  the cues are silent too. That's the trade for not interrupting music.
+  the cues are silent too. That's the trade for not interrupting music. The session type is
+  page-wide, so stopping the cues restores the previous type and the rest alert is unaffected.
 - **Backgrounding stops it.** iOS suspends a backgrounded page's audio. Cues stop for the rest of
   that set rather than resuming mid-rep on the wrong phase.
 - **Schedule on the audio clock.** Tones go on `AudioContext.currentTime` a second ahead, not one

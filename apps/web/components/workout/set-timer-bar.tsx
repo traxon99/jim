@@ -1,7 +1,7 @@
 "use client";
 
 import type { SetTimer } from "@/lib/sessions/use-set-timer";
-import { type Tempo, type TempoCuePhase, tempoPhaseAt } from "@jim/core";
+import { SET_READY_SECONDS, type Tempo, type TempoCuePhase, tempoPhaseAt } from "@jim/core";
 import { useRef } from "react";
 import { formatClock } from "./rest-timer-bar";
 import { timerBarClass, timerBarStyle, usePublishFloatingTimerHeight } from "./timer-bar-chrome";
@@ -56,6 +56,9 @@ export function SetTimerBar({
   }
 
   if (timer.phase === "ready") {
+    // Held for the first second, so a double tap on Start set can't land on
+    // Skip or Cancel, which take its spot (#318).
+    const justStarted = timer.readyRemaining >= SET_READY_SECONDS;
     return (
       <div ref={ref} style={style} className={barClass}>
         <div className="flex min-w-0 items-baseline gap-2">
@@ -68,15 +71,17 @@ export function SetTimerBar({
           <button
             type="button"
             onClick={timer.clear}
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+            disabled={justStarted}
+            className="min-h-11 rounded-lg border border-zinc-300 px-3 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={timer.skipReady}
+            disabled={justStarted}
             aria-label="Skip the countdown and start the tempo"
-            className="min-h-11 rounded-lg border border-zinc-300 px-3 text-sm font-medium dark:border-zinc-700"
+            className="min-h-11 rounded-lg border border-zinc-300 px-3 text-sm font-medium disabled:opacity-50 dark:border-zinc-700"
           >
             Skip
           </button>

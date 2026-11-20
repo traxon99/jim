@@ -11,7 +11,9 @@ import { type Tempo, type TempoCue, tempoCueSchedule } from "@jim/core";
  * iOS only lets a page make sound after a tap, so `unlockTempoCueAudio` must
  * run inside the Start set tap. The audio session is "ambient": cues mix
  * with the lifter's music instead of pausing it, and like any ambient audio
- * they follow the ring/silent switch (docs/PWA.md).
+ * they follow the ring/silent switch (docs/PWA.md). The session type is
+ * page-wide, so stopping the cues puts back the type it had before, and the
+ * rest alert's beep keeps behaving as it always has.
  */
 
 export type TempoCueStyle = "voice" | "sounds";
@@ -27,6 +29,8 @@ const LOOKAHEAD_MS = 1200;
 const SCHEDULER_INTERVAL_MS = 250;
 
 let context: AudioContext | null = null;
+/** The audio session type before cues set "ambient"; undefined when cues haven't changed it. */
+let previousSessionType: string | undefined;
 
 interface NavigatorWithAudioSession {
   audioSession?: { type: string };
@@ -51,13 +55,21 @@ function speechAvailable(): boolean {
 }
 
 /** Call from the Start set tap: wakes audio and speech while iOS still counts it as user-started. */
-export function unlockTempoCueAudio(style: TempoCueStyle): void {
+/** Mixes with other apps' audio while cues play; restored by `restoreAudioSession`. */
+function enterAmbientSession(): void {
   try {
     const session = (navigator as NavigatorWithAudioSession).audioSession;
-    if (session) session.type = "ambient";
+    if (session && session.type !== "ambient") {
+      previousSessionType ??= session.type;
+      session.type = "ambient";
+    }
   } catch {
     // Older Safari: no audio session API; cues play with the default session.
   }
+}
+
+export function unlockTempoCueAudio(style: TempoCueStyle): void {
+  enterAmbientSession();
   const ctx = audioContext();
   if (ctx && ctx.state !== "running") void ctx.resume().catch(() => {});
   if (style === "voice" && speechAvailable()) {
@@ -70,6 +82,17 @@ export function unlockTempoCueAudio(style: TempoCueStyle): void {
       // No speech: cues fall back to sounds.
     }
   }
+}
+
+function restoreAudioSession(): void {
+  if (previousSessionType === undefined) return;
+  try {
+    const session = (navigator as NavigatorWithAudioSession).audioSession;
+    if (session) session.type = previousSessionType;
+  } catch {
+    // Nothing to restore.
+  }
+  previousSessionType = undefined;
 }
 
 function playTone(
@@ -141,6 +164,8 @@ export function startTempoCues(options: {
   const ctx = audioContext();
   const cues = tempoCueSchedule(options.tempo);
   if (!ctx || cues.length === 0) return () => {};
+  // Again here, not only in the tap: skipping the countdown restarts the player.
+  enterAmbientSession();
   const live = new Set<OscillatorNode>();
   const timeouts = new Set<ReturnType<typeof setTimeout>>();
   // The next second to schedule, counted from startAtMs. Skip any already past.
@@ -192,5 +217,6 @@ export function startTempoCues(options: {
         // Nothing to cancel.
       }
     }
+    restoreAudioSession();
   };
 }
