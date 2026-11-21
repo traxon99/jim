@@ -109,18 +109,10 @@ export function SessionSetTable({
   function plannedRow(index: number, label: string, removable: boolean) {
     const inputs = renderInputs(index);
     const remove = removable ? () => onSkip(index) : undefined;
-    const isNext = index === nextIndex;
+    // Untinted (#862): a tinted row is what a logged set looks like now, so
+    // the next set stands out by its solid Log ring instead.
     return (
-      <SwipeToDeleteRow
-        key={index}
-        onDelete={remove}
-        className={
-          // The set to log next is the one tinted row (#854).
-          isNext
-            ? "[&>td]:bg-accent/[0.08] [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl"
-            : undefined
-        }
-      >
+      <SwipeToDeleteRow key={index} onDelete={remove}>
         {(reveal) => (
           <>
             <td className={sizes.indexCell}>

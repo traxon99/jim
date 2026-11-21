@@ -17,6 +17,10 @@
      overrides both with a fixed color instead. */
   --accent: var(--foreground);
   --accent-foreground: var(--background);
+  /* A logged set (#862): one fixed green whatever the accent theme, so done
+     never looks like the accent-colored "log this next" button. */
+  --done: #1f9d48;
+  --done-foreground: #ffffff;
 }
 
 @theme inline {
@@ -24,6 +28,8 @@
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-done: var(--done);
+  --color-done-foreground: var(--done-foreground);
   --font-sans: var(--font-roboto);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-playfair-display);
@@ -38,6 +44,8 @@
 :root.dark {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --done: #30d158;
+  --done-foreground: #000000;
   color-scheme: dark;
 }
 

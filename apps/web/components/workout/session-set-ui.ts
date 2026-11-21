@@ -85,11 +85,11 @@ export function sessionSetTableSizes(large: boolean) {
     // Kept apart from `input` so a box PRP prefilled can swap in its call's
     // dashed outline (issue #712) without two border colors fighting.
     inputBorder: "border-transparent",
-    // Only the next set's ✓ is the filled, primary button (issue #319); the
-    // sets after it get a quiet outline, so the eye lands on what's next
-    // rather than on everything left to do.
+    // Only the next set's ✓ is a solid ring (issue #319, #862); the sets
+    // after it get a quiet dashed one, so the eye lands on what's next. It
+    // isn't filled: a filled ✓ is a logged set's.
     logButton:
-      "press flex min-h-11 min-w-11 items-center justify-center rounded-full bg-accent text-accent-foreground",
+      "press flex min-h-11 min-w-11 items-center justify-center rounded-full border-2 border-accent text-accent",
     laterLogButton:
       "press flex min-h-11 min-w-11 items-center justify-center rounded-full border border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-600 dark:text-zinc-500",
     repeatButton:
