@@ -60,14 +60,18 @@ const SIZES = {
   // and only once the set has been logged a moment (`canUnlogSet`), so a
   // double tap on Log can't undo itself.
   doneMark: "press flex min-h-11 min-w-11 items-center justify-center",
-  // A filled ✓ marks the set done (#854); the row itself stays plain text.
-  doneDot: "flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground",
-  icon: "h-4 w-4",
+  // A solid green ✓ marks the set done (#862), the same size as the Log
+  // ring it replaces, so done can't be mistaken for "log this next".
+  doneDot: "flex h-11 w-11 items-center justify-center rounded-full bg-done text-done-foreground",
+  icon: "h-5 w-5",
+  // A logged row sits on a green wash (#862). The transparent borders on the
+  // cells leave a gap between two logged rows in the separated-border table.
+  row: "[&>td]:border-y-2 [&>td]:border-transparent [&>td]:bg-done/10 [&>td]:bg-clip-padding [&>td:first-child]:rounded-l-2xl [&>td:last-child]:rounded-r-2xl",
   // The just-logged ripple's clip: the whole row's pill, hung off the right
   // edge of the last cell (the only cell it can be positioned from).
   rippleClip:
     "set-logged-ripple pointer-events-none absolute inset-y-0 right-0 overflow-hidden rounded-lg",
-  rippleWave: "absolute rounded-full bg-accent",
+  rippleWave: "absolute rounded-full bg-done",
 };
 
 // The ✓'s center sits this far in from the row's right edge: the action
@@ -224,9 +228,9 @@ export function SetRow({
   }
 
   return (
-    // A logged set reads as plain numbers with a filled ✓ (#854); the tint
-    // belongs to the set you're on next, so the eye lands there.
-    <tr {...swipe.rowProps} ref={rowRef} className={swipe.rowProps.className}>
+    // A logged set reads as plain numbers on a green row with a solid green
+    // ✓ (#862), so it can't be confused with the boxed rows still to log.
+    <tr {...swipe.rowProps} ref={rowRef} className={`${swipe.rowProps.className} ${sizes.row}`}>
       <td className={sizes.indexCell}>
         <SetKindMenu
           label={label}
@@ -271,7 +275,7 @@ export function SetRow({
             className={sizes.doneMark}
           >
             <span className={sizes.doneDot}>
-              <Check className={sizes.icon} strokeWidth={2.25} aria-hidden="true" />
+              <Check className={sizes.icon} strokeWidth={2.5} aria-hidden="true" />
             </span>
           </button>
         </div>
