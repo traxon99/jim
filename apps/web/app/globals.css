@@ -668,7 +668,7 @@ body.pwa {
 }
 
 /* A set just logged (components/workout/set-row.tsx): a soft wave of the
-   accent ripples out from the ✓ across the row, then fades into the row's
+   done green ripples out from the ✓ across the row, then fades into the row's
    steady done tint. Low opacity so it reads as a confirmation, not a flash. */
 .set-logged-ripple > span {
   opacity: 0.16;

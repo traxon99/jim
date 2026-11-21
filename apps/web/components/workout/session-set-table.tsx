@@ -110,9 +110,14 @@ export function SessionSetTable({
     const inputs = renderInputs(index);
     const remove = removable ? () => onSkip(index) : undefined;
     // Untinted (#862): a tinted row is what a logged set looks like now, so
-    // the next set stands out by its solid Log ring instead.
+    // the next set stands out by its solid Log ring instead. The transparent
+    // borders match a logged row's, so logging a set doesn't shift the card.
     return (
-      <SwipeToDeleteRow key={index} onDelete={remove}>
+      <SwipeToDeleteRow
+        key={index}
+        onDelete={remove}
+        className="[&>td]:border-y-2 [&>td]:border-transparent"
+      >
         {(reveal) => (
           <>
             <td className={sizes.indexCell}>
