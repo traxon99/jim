@@ -958,8 +958,6 @@ export function SessionExerciseSection({
         onDelete={(set) => void handleDelete(set)}
         onUnlog={(set) => void handleUnlog(set)}
         onSkip={skipPlannedRow}
-        nextRpe={nextDraft.rpe}
-        onPickRpe={(index, rpe) => updateDraft(index, { rpe })}
         renderInputs={(index) => {
           const draft = draftFor(index);
           return {
