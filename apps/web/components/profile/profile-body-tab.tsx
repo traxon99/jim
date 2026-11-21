@@ -2,7 +2,7 @@
 
 import { BodyweightChart } from "@/components/bodyweight/bodyweight-chart";
 import { ChevronRight } from "@/components/icons/solar";
-import { PainPicker } from "@/components/injuries/pain-picker";
+import { PainScale } from "@/components/injuries/pain-scale";
 import { PhotoStrip } from "@/components/photos/photo-strip";
 import {
   TRACKED_MEASUREMENT_KINDS,
@@ -121,7 +121,7 @@ export function ProfileBodyTab() {
                       Since {formatDayKey(injury.startedOn, today)}
                     </span>
                   </div>
-                  <PainPicker
+                  <PainScale
                     value={todaysPain(checkins, injury.id, today)}
                     label={`${label} pain today`}
                     onChange={(level) => void logPain(injury, level, today)}

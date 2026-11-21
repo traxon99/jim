@@ -17,7 +17,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
 import { InjuryExerciseRules } from "./exercise-rules";
 import { HealedPrompt } from "./pain-checkin";
-import { PainPicker } from "./pain-picker";
+import { PainScale } from "./pain-scale";
 import { ReportInjuryCard } from "./report-injury-card";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -135,14 +135,12 @@ function OpenInjuryCard({
         )}
       </div>
       <RecentPain injury={injury} checkins={checkins} today={today} />
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold">Pain today</p>
-        <PainPicker
-          value={todaysPain(checkins, injury.id, today)}
-          label={`${label} pain today`}
-          onChange={(level) => run(logPain(injury, level, today))}
-        />
-      </div>
+      <PainScale
+        value={todaysPain(checkins, injury.id, today)}
+        label={`${label} pain today`}
+        title="Pain today"
+        onChange={(level) => run(logPain(injury, level, today))}
+      />
       <InjuryExerciseRules injury={injury} userId={userId} units={units} editable={editRules} />
       <HealedPrompt injury={injury} checkins={checkins} today={today} />
       <SaveError error={error} />
