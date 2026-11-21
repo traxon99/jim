@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "A tidier start-workout sheet: one line per lift, a one-row pain scale you can drag, and a single Start button.";
+  "Claude can now build training reports from your data: every set in your own days, which lifts got easier at the same weight, and what explains a dip.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;
