@@ -92,4 +92,17 @@ describe("lesson guards", () => {
       );
     expect(offenders).toEqual([]);
   });
+
+  it("keeps the page still while typing: scrollers with set inputs hold their place (#858)", () => {
+    const holders = ["components/shell-scroller.tsx", "components/workout/focus-view.tsx"];
+    const missing = holders.filter(
+      (file) => !/useKeepScrollOnKeyboard\(/.test(readCode(path.join(webRoot, file))),
+    );
+    expect(missing).toEqual([]);
+    // Nothing in the workout scrolls the page itself on focus, blur or a draft change.
+    const offenders = sourceFiles(path.join(webRoot, "components/workout"), [".ts", ".tsx"])
+      .filter((file) => /\.scrollIntoView\(/.test(readCode(file)))
+      .map((file) => path.relative(repoRoot, file));
+    expect(offenders).toEqual([]);
+  });
 });

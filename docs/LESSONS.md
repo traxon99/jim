@@ -41,6 +41,10 @@ Answer each one that your diff touches. If you can't verify one from here, say s
 - [ ] A new bar pinned to the bottom of the screen? It steps aside while an input holds the
       keyboard, as the tab bar does with `useHideTabBarForKeyboard`, or iOS lifts it over the
       content above the keyboard (#729; guard test).
+- [ ] Typing never moves the page. A scroller that holds inputs (the shell's, Focus view's, or a
+      new one) calls `useKeepScrollOnKeyboard`, so opening and closing the keyboard leaves the
+      input where it was tapped. Nothing scrolls a scroller in reaction to focus, blur or a draft
+      change (#858; guard test). This bug came back several times.
 - [ ] Something that clears the tab bar? Floating chrome sits on the pill (`--tab-pill-height`);
       `--tab-bar-height` includes the sync slot and is only for padding the scroller (#729).
 - [ ] Transient sync status has a fixed-height slot sized for its tallest action, so pending, offline and error states never move the tabs or rest timer (#679).

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, ChevronLeft, ChevronRight, X } from "@/components/icons/solar";
+import { useKeepScrollOnKeyboard } from "@/lib/pwa/use-keep-scroll-on-keyboard";
 import { type FocusExerciseCandidate, isFocusExerciseComplete } from "@jim/core";
 import { type ReactNode, useEffect, useRef } from "react";
 
@@ -80,6 +81,8 @@ export function FocusView({
   // strip scrolls sideways on a long workout, so bring the current step into
   // view too (#683).
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // Typing never moves the exercise: iOS's keyboard scrolls are undone (#858).
+  useKeepScrollOnKeyboard(scrollerRef);
   const stripRef = useRef<HTMLOListElement>(null);
   const currentId = exercises[index]?.id;
   useEffect(() => {

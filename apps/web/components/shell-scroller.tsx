@@ -1,6 +1,7 @@
 "use client";
 
 import { scrollKey } from "@/lib/navigation/tabs";
+import { useKeepScrollOnKeyboard } from "@/lib/pwa/use-keep-scroll-on-keyboard";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from "react";
 
@@ -19,6 +20,8 @@ export function ShellScroller({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const positions = useRef(new Map<string, number>());
   const currentKey = useRef(scrollKey(pathname));
+  // Typing never moves the page: iOS's keyboard scrolls are undone (#858).
+  useKeepScrollOnKeyboard(ref);
 
   // Recorded as the user scrolls, not on leaving: by the time a route
   // change commits, the new content may already have clamped scrollTop.

@@ -86,6 +86,13 @@ isn't mistaken for a close), on `window` scroll, and on `visualViewport` resize.
   holds the keyboard (`useHideTabBarForKeyboard` in `lib/pwa/use-keyboard-open.ts`), as native
   iOS tab bars stay behind the keyboard. It keeps its measured height while hidden, so content
   padding doesn't jump. Any new bottom-pinned bar does the same.
+- iOS also scrolls the input's own scroller while it lifts the document, and resetting the
+  document doesn't undo that share, so the workout used to land a keyboard's height further down,
+  on another exercise, after every set typed (#858). `useKeepScrollOnKeyboard`
+  (`lib/pwa/use-keep-scroll-on-keyboard.ts`) pins the focused input to where it was tapped and
+  scrolls its scroller back whenever iOS moves it, while the keyboard is up (unless holding would
+  leave the input under the keyboard) and for a moment after it closes. A drag drops the pin.
+  `ShellScroller` and Focus view use it; any new scroller with inputs does too (guard test).
 - Don't add a per-screen fix for this. The global one covers every input.
 - If you add a new kind of keyboard-raising element, make sure `KEYBOARD_TARGET_SELECTOR` in
   `lib/pwa/keyboard-scroll.ts` matches it.
