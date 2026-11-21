@@ -266,6 +266,13 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("training-insight tools (#860)",
     expect(mystery).toMatchObject({ status: "insufficient_data", sessions: 1 });
     const pullUp = result.exercises.find((e: { exercise: string }) => e.exercise === "Pull-up");
     expect(pullUp.status).toBe("insufficient_data");
+    const squat = await call(client, "progress_decomposition", {
+      ...november,
+      exercise: "back squat",
+    });
+    expect(squat.exercises).toEqual([
+      expect.objectContaining({ exercise: "Back Squat", status: "insufficient_data", sessions: 0 }),
+    ]);
   });
 
   it("training_context puts sick days, the injury, the gym change and gaps on one timeline", async () => {

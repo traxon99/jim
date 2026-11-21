@@ -32,7 +32,7 @@ import {
   sickDays,
   users,
 } from "@jim/db";
-import { and, eq, gte, inArray, isNull, lt, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, lt, lte } from "drizzle-orm";
 import type { UserContext } from "../context.js";
 import { withUser } from "../context.js";
 import { findRoutine } from "./find-routine.js";
@@ -170,7 +170,10 @@ async function loadSets(tx: DbOrTx, start: Date, end: Date, timeZone: string) {
       gymId: place.gymId,
     });
   }
-  return loaded.sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime());
+  // Ties broken on id (UUIDv7), so get_sets' offset cursor pages a stable order.
+  return loaded.sort(
+    (a, b) => a.completedAt.getTime() - b.completedAt.getTime() || a.id.localeCompare(b.id),
+  );
 }
 
 /** Only strength exercises' sets, for trends and e1RMs; warm-up and cardio exercises aren't lifts. */
@@ -371,6 +374,15 @@ export async function progressDecompositionTool(
     const results = progressDecomposition(
       lifts.filter((set) => !exercise || set.exerciseId === exercise.id),
     );
+    if (exercise && results.length === 0) {
+      results.push({
+        exerciseId: exercise.id,
+        status: "insufficient_data",
+        sessions: 0,
+        reason: "No sets of this exercise in this range.",
+      });
+      known.set(exercise.id, exercise);
+    }
     return {
       range: rangeBlock(scope),
       formulas: E1RM_FORMULAS,
@@ -409,6 +421,8 @@ export async function trainingContext(context: UserContext, input: TrainingConte
       .where(
         and(
           isNull(sessions.deletedAt),
+          // Finished workouts only, as list_workouts counts them.
+          isNotNull(sessions.endedAt),
           gte(sessions.startedAt, scope.start),
           lt(sessions.startedAt, scope.end),
         ),
@@ -420,6 +434,7 @@ export async function trainingContext(context: UserContext, input: TrainingConte
         return {
           sessionId: row.id,
           localDate: dayKey(row.startedAt, scope.timeZone),
+          startedAt: row.startedAt.toISOString(),
           gymId: gymName ? row.gymId : null,
           gymName,
         };
@@ -535,6 +550,7 @@ export async function dataQualityFlags(context: UserContext, input: DataQualityF
         explanation: `Two sets logged ${flag.secondsApart}s apart, likely after the fact, so treat their RPE as a guess.`,
         sessionId: flag.sessionId,
         localDate: flag.localDate,
+        completedAt: flag.completedAt,
         exerciseId: flag.exerciseId,
         exercise: nameOf(flag.exerciseId),
         setIds: flag.setIds,
@@ -561,8 +577,11 @@ export async function dataQualityFlags(context: UserContext, input: DataQualityF
     // window are checked, so long-abandoned exercises don't fill the list.
     const asOf = scope.end;
     const windowStart = new Date(asOf.getTime() - PREDICTION_TUNING.windowDays * 86_400_000);
+    // The prediction itself reads up to windowDays before a lift's last set,
+    // so load twice the window to match exercise_history's figure.
+    const historyStart = new Date(asOf.getTime() - 2 * PREDICTION_TUNING.windowDays * 86_400_000);
     const staleCutoff = new Date(asOf.getTime() - staleWeeks * 7 * 86_400_000);
-    const history = (await strengthOnly(tx, await loadSets(tx, windowStart, asOf, scope.timeZone)))
+    const history = (await strengthOnly(tx, await loadSets(tx, historyStart, asOf, scope.timeZone)))
       .sets;
     const byExercise = new Map<string, typeof history>();
     for (const set of history) {
@@ -574,7 +593,7 @@ export async function dataQualityFlags(context: UserContext, input: DataQualityF
     const historyNames = await exercisesById(tx, [...byExercise.keys()]);
     for (const [exerciseId, list] of byExercise) {
       const last = list[list.length - 1];
-      if (!last || last.completedAt >= staleCutoff) continue;
+      if (!last || last.completedAt >= staleCutoff || last.completedAt < windowStart) continue;
       const prediction = predictOneRepMax(list, new Date(asOf.getTime() - 1));
       if (!prediction) continue;
       flags.push({

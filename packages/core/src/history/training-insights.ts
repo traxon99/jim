@@ -94,6 +94,8 @@ export function daysBetween(from: string, to: string): number {
 export interface RepeatedTargetSession {
   sessionId: string;
   localDate: string;
+  /** The session's first set at this target, UTC ISO. */
+  completedAt: string;
   setCount: number;
   /** Each set's RPE in order, null where none was logged. */
   rpes: (number | null)[];
@@ -176,6 +178,7 @@ export function repeatedTargetTrends(
       sessions.push({
         sessionId,
         localDate: first.localDate,
+        completedAt: first.completedAt.toISOString(),
         setCount: sessionSets.length,
         rpes: sessionSets.map((s) => s.rpe),
         averageRpe: mean(logged),
@@ -454,6 +457,8 @@ export function gymChanges(workouts: readonly ContextWorkout[]): GymChange[] {
 export interface RapidSetFlag {
   sessionId: string;
   localDate: string;
+  /** The later set's time, UTC ISO. */
+  completedAt: string;
   exerciseId: string;
   setIds: [string, string];
   secondsApart: number;
@@ -484,6 +489,7 @@ export function rapidSetFlags(
         flags.push({
           sessionId: now.sessionId,
           localDate: now.localDate,
+          completedAt: now.completedAt.toISOString(),
           exerciseId: now.exerciseId,
           setIds: [before.id, now.id],
           secondsApart: Math.round(seconds * 10) / 10,
