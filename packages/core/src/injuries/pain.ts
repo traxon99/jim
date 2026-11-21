@@ -29,6 +29,18 @@ export function painLabel(level: number): string {
   return PAIN_LABELS[Math.min(PAIN_MAX, Math.max(PAIN_MIN, Math.round(level)))] ?? "";
 }
 
+/**
+ * The pain level under a point on the single-row 0–10 scale (#856): `fraction`
+ * is how far across the row the finger is, 0 at the left edge and 1 at the
+ * right. Each level owns an equal slice; points past either edge clamp.
+ */
+export function painAtFraction(fraction: number): number {
+  if (!Number.isFinite(fraction)) return PAIN_MIN;
+  const slots = PAIN_MAX - PAIN_MIN + 1;
+  const index = Math.floor(fraction * slots);
+  return Math.min(PAIN_MAX, Math.max(PAIN_MIN, PAIN_MIN + index));
+}
+
 export function isPainLevel(value: unknown): value is number {
   return (
     typeof value === "number" && Number.isInteger(value) && value >= PAIN_MIN && value <= PAIN_MAX

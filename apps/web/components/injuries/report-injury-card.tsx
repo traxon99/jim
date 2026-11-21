@@ -16,7 +16,7 @@ import {
   isPairedArea,
 } from "@jim/core";
 import { useRef, useState } from "react";
-import { PainPicker } from "./pain-picker";
+import { PainScale } from "./pain-scale";
 
 const SIDE_LABELS: Record<InjurySide, string> = { left: "Left", right: "Right", both: "Both" };
 
@@ -162,10 +162,12 @@ export function ReportInjuryCard({
               />
             </label>
 
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold">Pain today</p>
-              <PainPicker value={painLevel} onChange={setPainLevel} label="Pain today" />
-            </div>
+            <PainScale
+              value={painLevel}
+              onChange={setPainLevel}
+              label="Pain today"
+              title="Pain today"
+            />
 
             <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold">
               <span>
