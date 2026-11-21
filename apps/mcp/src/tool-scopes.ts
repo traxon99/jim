@@ -19,6 +19,12 @@ export const READ_TOOLS = new Set([
   "dpr_status",
   "volume_report",
   "weekly_summary",
+  // Training-insight reports (#860).
+  "get_sets",
+  "repeated_target_trends",
+  "progress_decomposition",
+  "training_context",
+  "data_quality_flags",
   "search_exercises",
   "list_warmup_templates",
   "list_programs",

@@ -88,6 +88,25 @@ function zonedMidnight(year: number, month: number, day: number, timeZone: strin
 }
 
 /**
+ * The instant a YYYY-MM-DD calendar day starts in `timeZone` (issue #860),
+ * so a range of the user's local days can be turned into UTC bounds.
+ */
+export function startOfLocalDay(day: string, timeZone: string): Date {
+  const [year, month, date] = day.split("-").map(Number) as [number, number, number];
+  return zonedMidnight(year, month, date, timeZone);
+}
+
+/** The wall-clock time of day in `timeZone` at `date`, as "HH:MM" (issue #860). */
+export function localTimeOfDay(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+/**
  * `startOfWeek` on the user's own calendar rather than the runtime's: the
  * MCP server runs in UTC, so a Sunday-evening set in Los Angeles is Monday
  * there (issue #511).

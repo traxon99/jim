@@ -12,3 +12,4 @@ export * from "./personal-records-list";
 export * from "./achievements";
 export * from "./deleted-sessions";
 export * from "./strength-analysis";
+export * from "./training-insights";

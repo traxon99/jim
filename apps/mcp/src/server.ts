@@ -102,6 +102,19 @@ import { getSettings, updateSettings } from "./tools/settings.js";
 import { listSickDays, markSickDays, unmarkSickDays } from "./tools/sick-days.js";
 import { getStravaStatus, postWorkoutToStrava, setStravaAutoPost } from "./tools/strava.js";
 import { setTempo } from "./tools/tempo.js";
+import {
+  DEFAULT_GAP_DAYS,
+  DEFAULT_RAPID_SET_SECONDS,
+  DEFAULT_STALE_WEEKS,
+  GET_SETS_DEFAULT_LIMIT,
+  GET_SETS_MAX_LIMIT,
+  INSIGHT_RANGE_MAX_DAYS,
+  dataQualityFlags,
+  getSets,
+  progressDecompositionTool,
+  repeatedTargetTrendsTool,
+  trainingContext,
+} from "./tools/training-insights.js";
 import { updateRoutine } from "./tools/update-routine.js";
 import { upsertExercise } from "./tools/upsert-exercise.js";
 import { volumeReport } from "./tools/volume-report.js";
@@ -378,6 +391,108 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle((input) => weeklySummary(context, input)),
+  );
+
+  // Training-insight report tools (#860): local days, formulas stated.
+  const insightDay = (what: string) =>
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .describe(`YYYY-MM-DD, the user's local calendar day; ${what}`);
+  const insightRange = {
+    from: insightDay("first day of the range"),
+    to: insightDay(`last day of the range, inclusive (at most ${INSIGHT_RANGE_MAX_DAYS} days)`),
+  };
+  const insightExercise = z
+    .string()
+    .optional()
+    .describe("Only this exercise, by name or id; an unknown name fails with close matches");
+
+  server.registerTool(
+    "get_sets",
+    {
+      title: "Get sets",
+      description: `Read-only. Every logged set in a range of the user's local days as one flat table, oldest first: local date and time (in the user's stored time zone) plus UTC time, exercise, set type (warmup, working, drop, failure) and toFailure, weight, reps, RPE (null when not logged, never 0), rest before the set (seconds since the workout's previous set; null for the first), routine and gym. Deleted workouts and edited-away set versions are left out. Paged: up to ${GET_SETS_DEFAULT_LIMIT} rows by default; pass nextCursor back as cursor until it is null. Use this for per-set charts; use volume_report for muscle volume and repeated_target_trends for RPE at the same weight and reps.`,
+      inputSchema: {
+        ...insightRange,
+        exercise: insightExercise,
+        routine: z
+          .string()
+          .optional()
+          .describe("Only workouts of this routine, by id or exact name"),
+        gym: z.string().optional().describe("Only workouts at this gym, by id or name"),
+        setType: z.enum(setKindEnum.enumValues).optional(),
+        limit: z.number().int().positive().max(GET_SETS_MAX_LIMIT).optional(),
+        cursor: z.string().optional().describe("nextCursor from the previous page"),
+      },
+    },
+    handle((input) => getSets(context, input)),
+  );
+
+  server.registerTool(
+    "repeated_target_trends",
+    {
+      title: "Repeated target trends",
+      description:
+        "Read-only. Per exercise, weight and reps (a target; bodyweight lifts at weight 0), one entry per session in a range of local days: set count, each set's RPE and their average (with how many sets it's from), and the session's best e1RM both plain and RPE-adjusted, plus days and sick days since the target's previous session. Each target has its first and last RPE and the change; sorted with the biggest drop in RPE (got easier) first. Answers \"which lifts got easier at the same weight?\" in one call. Warm-ups left out unless includeWarmups. The e1RM formulas are in the result's `formulas`.",
+      inputSchema: {
+        ...insightRange,
+        exercise: insightExercise,
+        minSessions: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe("Only targets repeated in at least this many sessions (default 2)"),
+        includeWarmups: z.boolean().optional(),
+      },
+    },
+    handle((input) => repeatedTargetTrendsTool(context, input)),
+  );
+
+  server.registerTool(
+    "progress_decomposition",
+    {
+      title: "Progress decomposition",
+      description:
+        "Read-only. Per exercise over a range of local days, splits the change in the best e1RM from the first to the last session into a weight part (more load), a reps part (more reps) and an effort part (lower RPE at the same work), which add up to the change, and names the one that dominates. Uses the RPE-adjusted e1RM when both ends have an RPE, else the plain e1RM with no effort part (`basis`). Exercises with fewer than two sessions with weight and reps come back as insufficient_data. Formulas are in `formulas`.",
+      inputSchema: { ...insightRange, exercise: insightExercise },
+    },
+    handle((input) => progressDecompositionTool(context, input)),
+  );
+
+  server.registerTool(
+    "training_context",
+    {
+      title: "Training context",
+      description: `Read-only and private to the user. One timeline over a range of local days of what can explain a dip: sick days, injuries open in the range (area, side, opened and healed days, pain levels logged), gym changes between workouts, and gaps between workouts longer than gapDays (default ${DEFAULT_GAP_DAYS}) as layoffs. Also returns each workout's local day and gym.`,
+      inputSchema: {
+        ...insightRange,
+        gapDays: z
+          .number()
+          .int()
+          .min(1)
+          .max(60)
+          .optional()
+          .describe(`A gap longer than this many days is a layoff (default ${DEFAULT_GAP_DAYS})`),
+      },
+    },
+    handle((input) => trainingContext(context, input)),
+  );
+
+  server.registerTool(
+    "data_quality_flags",
+    {
+      title: "Data quality flags",
+      description: `Read-only. Sets and exercises in a range of local days to treat with caution, each with a type, a plain explanation and the workout or exercise it points to: rapid_sets (two sets in one workout logged under rapidSetSeconds apart, default ${DEFAULT_RAPID_SET_SECONDS}, so their RPE is a guess), missing_primary_muscle (a strength exercise volume totals leave out), and stale_predicted_1rm (a lift trained in the last six months but not in the staleWeeks, default ${DEFAULT_STALE_WEEKS}, before the range's end, so its predicted 1RM is old). Flags only; fix the data in the app or with the write tools.`,
+      inputSchema: {
+        ...insightRange,
+        rapidSetSeconds: z.number().positive().max(600).optional(),
+        staleWeeks: z.number().int().min(1).max(26).optional(),
+      },
+    },
+    handle((input) => dataQualityFlags(context, input)),
   );
 
   server.registerTool(
