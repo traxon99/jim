@@ -125,6 +125,26 @@ describe("computePace revision", () => {
     expect(pace?.projectedTotalSeconds).toBe(lastAt + remaining * 1.5);
   });
 
+  it("never projects an early finish while behind, even after starting ahead", () => {
+    const exercises = (logged: Date[]) => [
+      { targetSetCount: 14, restSeconds: 120, setCompletedAt: logged },
+    ];
+    const plan = computePace({ startedAt: start, now: start, exercises: exercises([]) });
+    const due = plan?.plan.map((p) => p.seconds) ?? [];
+    const logged = [1, 2, 3].map((i) => at((due[i] ?? 0) * 0.8));
+    const lastAt = (due[3] ?? 0) * 0.8;
+    const gap = (due[4] ?? 0) - (due[3] ?? 0);
+    const pace = computePace({
+      startedAt: start,
+      now: at(lastAt + gap + 450),
+      exercises: exercises(logged),
+    });
+    expect(pace?.status).toBe("behind");
+    expect(pace?.projectedTotalSeconds).toBeGreaterThanOrEqual(
+      (pace?.plannedTotalSeconds ?? 0) + (pace?.deltaSeconds ?? 0),
+    );
+  });
+
   it("only shifts by the drift while on pace or early in the workout", () => {
     const pace = computePace({
       startedAt: start,

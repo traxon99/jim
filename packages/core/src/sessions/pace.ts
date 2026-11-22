@@ -162,10 +162,16 @@ export function computePace(input: PaceInput): PaceSnapshot | null {
   // far rather than at the plan's, within bounds. Near the plan, the finish
   // just shifts by the drift.
   const dueLast = setsDone > 0 ? (due[setsDone - 1] ?? 0) : 0;
-  const ratio =
-    status !== "on-pace" && setsDone >= PACE_REVISE_AFTER_SETS && dueLast > 0
-      ? Math.min(REVISE_MAX_RATIO, Math.max(REVISE_MIN_RATIO, lastAt / dueLast))
-      : 1;
+  // The pace counts the time idle since the last set, and never revises
+  // against the status: behind only stretches, ahead only shrinks.
+  let ratio = 1;
+  if (status !== "on-pace" && setsDone >= PACE_REVISE_AFTER_SETS && dueLast > 0) {
+    const observed = (lastAt + overrun) / dueLast;
+    ratio =
+      status === "behind"
+        ? Math.min(REVISE_MAX_RATIO, Math.max(1, observed))
+        : Math.max(REVISE_MIN_RATIO, Math.min(1, observed));
+  }
   const projectedTotalSeconds =
     status === "done"
       ? lastAt
