@@ -1,7 +1,13 @@
 "use client";
 
 import { ChevronDown } from "@/components/icons/solar";
-import { type PaceExercise, type PacePoint, type PaceStatus, computePace } from "@jim/core";
+import {
+  type PaceCalibration,
+  type PaceExercise,
+  type PacePoint,
+  type PaceStatus,
+  computePace,
+} from "@jim/core";
 import { useEffect, useId, useState } from "react";
 
 const WIDTH = 320;
@@ -89,14 +95,17 @@ function useNow(intervalMs: number): Date {
 export function PaceTracker({
   startedAt,
   exercises,
+  calibration = null,
 }: {
   startedAt: Date;
   exercises: readonly PaceExercise[];
+  /** The plan learned from past workouts of this routine (issue #853). */
+  calibration?: PaceCalibration | null;
 }) {
   const now = useNow(TICK_MS);
   const gradientId = useId();
   const [expanded, setExpanded] = useState(false);
-  const pace = computePace({ startedAt, now, exercises });
+  const pace = computePace({ startedAt, now, exercises, calibration });
   if (!pace || pace.setsPlanned === 0) return null;
 
   const style = STATUS_STYLE[pace.status];

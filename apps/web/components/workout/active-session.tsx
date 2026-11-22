@@ -94,6 +94,7 @@ import { lastTimeLine } from "./session-set-ui";
 import { SessionSummary } from "./session-summary";
 import { SetTimerBar } from "./set-timer-bar";
 import type { LongPressStart } from "./use-long-press";
+import { usePaceCalibration } from "./use-pace-calibration";
 import { WarmupBlock } from "./warmup-block";
 import { WarmupExerciseSection } from "./warmup-exercise-section";
 
@@ -384,6 +385,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
         const target = targetByExerciseId.get(se.exerciseId);
         const volumeSets = dprVolumeSets(dprContext, se.exerciseId, target);
         return {
+          exerciseId: se.exerciseId,
           targetSetCount: plannedSetCountFor(
             se,
             volumeSets === null ? target : { targetSets: volumeSets },
@@ -400,6 +402,9 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       dprContext,
     ],
   );
+
+  const paceExerciseIds = useMemo(() => mainItems.map((se) => se.exerciseId), [mainItems]);
+  const paceCalibration = usePaceCalibration(session, paceExerciseIds);
 
   // Issue #231: no rest after the workout's final set — there's no next set
   // to rest for. Warm-ups don't count; they have their own timer. In a
@@ -897,7 +902,11 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
       )}
 
       {showsPaceTracker(settings) && (
-        <PaceTracker startedAt={session.startedAt} exercises={paceExercises} />
+        <PaceTracker
+          startedAt={session.startedAt}
+          exercises={paceExercises}
+          calibration={paceCalibration}
+        />
       )}
 
       {focusMode && focusedItem ? (
