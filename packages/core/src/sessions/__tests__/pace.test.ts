@@ -102,3 +102,56 @@ describe("computePace", () => {
     expect(pace?.projectedTotalSeconds).toBe((pace?.plannedTotalSeconds ?? 0) + 200);
   });
 });
+
+describe("computePace revision", () => {
+  it("projects the rest of the workout at the pace so far once it's well off plan", () => {
+    // Every set lands at twice its planned time: past the 1.5× cap.
+    const plan = computePace({
+      startedAt: start,
+      now: start,
+      exercises: [{ targetSetCount: 6, restSeconds: 120, setCompletedAt: [] }],
+    });
+    const due = plan?.plan.map((p) => p.seconds) ?? [];
+    const logged = [1, 2, 3].map((i) => at((due[i] ?? 0) * 2));
+    const now = at((due[3] ?? 0) * 2);
+    const pace = computePace({
+      startedAt: start,
+      now,
+      exercises: [{ targetSetCount: 6, restSeconds: 120, setCompletedAt: logged }],
+    });
+    expect(pace?.status).toBe("behind");
+    const lastAt = (due[3] ?? 0) * 2;
+    const remaining = (pace?.plannedTotalSeconds ?? 0) - (due[3] ?? 0);
+    expect(pace?.projectedTotalSeconds).toBe(lastAt + remaining * 1.5);
+  });
+
+  it("never projects an early finish while behind, even after starting ahead", () => {
+    const exercises = (logged: Date[]) => [
+      { targetSetCount: 14, restSeconds: 120, setCompletedAt: logged },
+    ];
+    const plan = computePace({ startedAt: start, now: start, exercises: exercises([]) });
+    const due = plan?.plan.map((p) => p.seconds) ?? [];
+    const logged = [1, 2, 3].map((i) => at((due[i] ?? 0) * 0.8));
+    const lastAt = (due[3] ?? 0) * 0.8;
+    const gap = (due[4] ?? 0) - (due[3] ?? 0);
+    const pace = computePace({
+      startedAt: start,
+      now: at(lastAt + gap + 450),
+      exercises: exercises(logged),
+    });
+    expect(pace?.status).toBe("behind");
+    expect(pace?.projectedTotalSeconds).toBeGreaterThanOrEqual(
+      (pace?.plannedTotalSeconds ?? 0) + (pace?.deltaSeconds ?? 0),
+    );
+  });
+
+  it("only shifts by the drift while on pace or early in the workout", () => {
+    const pace = computePace({
+      startedAt: start,
+      now: at(SETUP + WORK + 500),
+      exercises: [{ targetSetCount: 6, restSeconds: 60, setCompletedAt: [at(SETUP + WORK + 400)] }],
+    });
+    expect(pace?.status).toBe("behind");
+    expect(pace?.projectedTotalSeconds).toBe((pace?.plannedTotalSeconds ?? 0) + 400);
+  });
+});

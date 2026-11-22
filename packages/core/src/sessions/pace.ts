@@ -24,6 +24,8 @@ export const PACE_EXERCISE_TRANSITION_SECONDS = 90;
 export const PACE_DEFAULT_UNPLANNED_SETS = 3;
 
 export interface PaceExercise {
+  /** Ties the exercise to its learned time per set (issue #853), when there is one. */
+  exerciseId?: string;
   /** Routine target set count, or null when there's no target. */
   targetSetCount: number | null;
   /** Planned rest after each of this exercise's sets. */
@@ -32,12 +34,33 @@ export interface PaceExercise {
   setCompletedAt: readonly Date[];
 }
 
+/**
+ * The plan's budgets learned from past workouts (issue #853, see
+ * pace-history.ts); without one the fixed defaults above apply.
+ */
+export interface PaceCalibration {
+  setupSeconds: number;
+  transitionSeconds: number;
+  /** Time per set beyond its rest, for an exercise with no history of its own. */
+  workSecondsPerSet: number;
+  workSecondsByExerciseId: ReadonlyMap<string, number>;
+  /** How many past workouts it was learned from. */
+  sessionsUsed: number;
+}
+
 export interface PaceInput {
   startedAt: Date;
   now: Date;
   /** In session order. */
   exercises: readonly PaceExercise[];
+  calibration?: PaceCalibration | null;
 }
+
+/** Sets logged before a big drift is trusted to say how the rest will go. */
+export const PACE_REVISE_AFTER_SETS = 3;
+/** Bounds on how far a drifting pace stretches or shrinks the remaining plan. */
+const REVISE_MIN_RATIO = 0.7;
+const REVISE_MAX_RATIO = 1.5;
 
 export type PaceStatus = "on-pace" | "behind" | "ahead" | "done";
 
@@ -74,8 +97,16 @@ function secondsBetween(from: Date, to: Date): number {
 
 /** Null when there's nothing to pace yet (no exercises in the session). */
 export function computePace(input: PaceInput): PaceSnapshot | null {
-  const { startedAt, now, exercises } = input;
+  const { startedAt, now, exercises, calibration } = input;
   if (exercises.length === 0) return null;
+  const setupSeconds = calibration?.setupSeconds ?? PACE_WORKOUT_SETUP_SECONDS;
+  const transitionSeconds = calibration?.transitionSeconds ?? PACE_EXERCISE_TRANSITION_SECONDS;
+  const workFor = (exercise: PaceExercise) =>
+    (exercise.exerciseId != null
+      ? calibration?.workSecondsByExerciseId.get(exercise.exerciseId)
+      : undefined) ??
+    calibration?.workSecondsPerSet ??
+    PACE_WORK_SECONDS_PER_SET;
 
   // Planned completion time (seconds from start) of each set, in order.
   // Sets logged beyond the target extend the plan rather than reading as
@@ -88,15 +119,14 @@ export function computePace(input: PaceInput): PaceSnapshot | null {
       exercise.targetSetCount ?? PACE_DEFAULT_UNPLANNED_SETS,
       exercise.setCompletedAt.length,
     );
+    const work = workFor(exercise);
     for (let setIndex = 0; setIndex < planned; setIndex++) {
       if (setIndex === 0) {
-        clock +=
-          (previousRest ?? 0) +
-          (exerciseIndex === 0 ? PACE_WORKOUT_SETUP_SECONDS : PACE_EXERCISE_TRANSITION_SECONDS);
+        clock += (previousRest ?? 0) + (exerciseIndex === 0 ? setupSeconds : transitionSeconds);
       } else {
         clock += exercise.restSeconds;
       }
-      clock += PACE_WORK_SECONDS_PER_SET;
+      clock += work;
       due.push(clock);
     }
     if (planned > 0) previousRest = exercise.restSeconds;
@@ -127,8 +157,25 @@ export function computePace(input: PaceInput): PaceSnapshot | null {
   else if (deltaSeconds < -toleranceSeconds) status = "ahead";
   else status = "on-pace";
 
+  // A pace that's well off the plan after a few sets says the plan was off
+  // too (issue #853), so the rest of the workout is projected at the pace so
+  // far rather than at the plan's, within bounds. Near the plan, the finish
+  // just shifts by the drift.
+  const dueLast = setsDone > 0 ? (due[setsDone - 1] ?? 0) : 0;
+  // The pace counts the time idle since the last set, and never revises
+  // against the status: behind only stretches, ahead only shrinks.
+  let ratio = 1;
+  if (status !== "on-pace" && setsDone >= PACE_REVISE_AFTER_SETS && dueLast > 0) {
+    const observed = (lastAt + overrun) / dueLast;
+    ratio =
+      status === "behind"
+        ? Math.min(REVISE_MAX_RATIO, Math.max(1, observed))
+        : Math.max(REVISE_MIN_RATIO, Math.min(1, observed));
+  }
   const projectedTotalSeconds =
-    status === "done" ? lastAt : Math.max(elapsedSeconds, plannedTotalSeconds + deltaSeconds);
+    status === "done"
+      ? lastAt
+      : Math.max(elapsedSeconds, lastAt + overrun + (plannedTotalSeconds - dueLast) * ratio);
 
   return {
     status,

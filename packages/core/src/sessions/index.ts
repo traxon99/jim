@@ -5,6 +5,7 @@ export * from "./session-summary";
 export * from "./previous-performance";
 export * from "./focus-exercise";
 export * from "./pace";
+export * from "./pace-history";
 export * from "./rpe";
 export * from "./last-set";
 export * from "./rest-compliance";
