@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 
 /**
  * Issue #407: when a workout strayed from its routine (exercises added,
- * removed, replaced or reordered, supersets or rests changed), the summary
+ * removed, replaced or reordered, supersets, rests or tempos changed), the summary
  * asks whether to save that into the routine for next time. Nothing shows
  * when the workout followed the routine.
  */
@@ -29,6 +29,7 @@ export function SaveRoutineChangesCard({ session }: { session: SessionRow }) {
             ...comparison.changes.added,
             ...comparison.changes.removed,
             ...comparison.changes.restChanged,
+            ...comparison.changes.tempoChanged,
           ]
         : [],
     [comparison],

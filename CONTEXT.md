@@ -21,8 +21,9 @@ _Avoid_: Failed set, miss
 The seconds for the three phases of one rep (issue #845), in order: lowering (eccentric), pause at
 the bottom (isometric), lifting (concentric). Written as three numbers joined by hyphens ("3-1-1").
 Only the lift can be X, explosive. There is no pause at the top. Each lift in a routine has its
-own, set only from the routine's or the program's Tempo sheet (issue #850), and each workout keeps a
-copy of the tempo it started with. PRP never reads it.
+own, set from the routine's or the program's Tempo sheet (issue #850). Each workout keeps a copy of
+the tempo it started with, which the lift's ⋯ menu can change for that workout; the summary then
+offers to save it into the routine (issue #865). PRP never reads it.
 _Avoid_: cadence, rep speed
 
 **Tempo cue**:

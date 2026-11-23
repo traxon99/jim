@@ -91,12 +91,41 @@ describe("diffSessionAgainstRoutine", () => {
     expect(changes.restChanged).toEqual(["a"]);
   });
 
+  it("finds a tempo set or cleared in the workout, but not one it started with", () => {
+    const routineItems = routine("a", "b", "c", "d").map((item, i) => ({
+      ...item,
+      tempo: ["3-1-1", "2-0-X", null, "311"][i] ?? null,
+    }));
+    const sessionItems = session("a", "b", "c", "d").map((item, i) => ({
+      ...item,
+      // a: changed, b: cleared, c: set where there was none, d: same tempo
+      // written another way; and null always keeps the routine's.
+      tempo: ["4-0-1", "", "3-0-1", "3-1-1"][i] ?? null,
+    }));
+    const changes = diffSessionAgainstRoutine(routineItems, sessionItems, noWarmups);
+    expect(changes.tempoChanged).toEqual(["a", "b", "c"]);
+    expect(
+      diffSessionAgainstRoutine(
+        routineItems,
+        sessionItems.map((item) => ({ ...item, tempo: null })),
+        noWarmups,
+      ).tempoChanged,
+    ).toEqual([]);
+  });
+
   it("ignores warm-up exercises and duplicate routine rows", () => {
     const isWarmup = (id: string) => id.startsWith("w");
     const changes = diffSessionAgainstRoutine(
       [
         ...routine("w1", "a", "b"),
-        { id: "dupe", exerciseId: "a", position: 5, supersetGroup: null, targetRestSeconds: null },
+        {
+          id: "dupe",
+          exerciseId: "a",
+          position: 5,
+          supersetGroup: null,
+          targetRestSeconds: null,
+          tempo: null,
+        },
       ],
       session("a", "b"),
       isWarmup,
@@ -122,11 +151,18 @@ describe("planRoutineUpdate", () => {
     );
     expect(plan.removals).toEqual(["row-b"]);
     expect(plan.updates).toEqual([
-      { id: "row-c", position: 0, supersetGroup: null, targetRestSeconds: null },
-      { id: "row-a", position: 2, supersetGroup: null, targetRestSeconds: null },
+      { id: "row-c", position: 0, supersetGroup: null, targetRestSeconds: null, tempo: null },
+      { id: "row-a", position: 2, supersetGroup: null, targetRestSeconds: null, tempo: null },
     ]);
     expect(plan.additions).toEqual([
-      { exerciseId: "x", position: 1, supersetGroup: null, targetRestSeconds: 45, targetSets: 4 },
+      {
+        exerciseId: "x",
+        position: 1,
+        supersetGroup: null,
+        targetRestSeconds: 45,
+        targetSets: 4,
+        tempo: null,
+      },
     ]);
   });
 
@@ -137,8 +173,30 @@ describe("planRoutineUpdate", () => {
       noWarmups,
     );
     expect(plan.updates).toEqual([
-      { id: "row-a", position: 0, supersetGroup: 1, targetRestSeconds: 60 },
-      { id: "row-b", position: 1, supersetGroup: 1, targetRestSeconds: null },
+      { id: "row-a", position: 0, supersetGroup: 1, targetRestSeconds: 60, tempo: null },
+      { id: "row-b", position: 1, supersetGroup: 1, targetRestSeconds: null, tempo: null },
+    ]);
+  });
+
+  it("carries tempo changes onto kept rows and an added exercise's tempo onto its new row", () => {
+    const plan = planRoutineUpdate(
+      routine("a", "b").map((item) => ({ ...item, tempo: "3-1-1" })),
+      [...session("a", "b", "x").map((item, i) => ({ ...item, tempo: ["2-0-1", "", "4-0-x"][i] }))],
+      noWarmups,
+    );
+    expect(plan.updates).toEqual([
+      { id: "row-a", position: 0, supersetGroup: null, targetRestSeconds: null, tempo: "2-0-1" },
+      { id: "row-b", position: 1, supersetGroup: null, targetRestSeconds: null, tempo: null },
+    ]);
+    expect(plan.additions).toEqual([
+      {
+        exerciseId: "x",
+        position: 2,
+        supersetGroup: null,
+        targetRestSeconds: null,
+        targetSets: 3,
+        tempo: "4-0-X",
+      },
     ]);
   });
 
@@ -150,12 +208,19 @@ describe("planRoutineUpdate", () => {
       isWarmup,
     );
     expect(plan.updates).toEqual([
-      { id: "row-w1", position: 0, supersetGroup: 1, targetRestSeconds: null },
-      { id: "row-w2", position: 1, supersetGroup: 1, targetRestSeconds: null },
-      { id: "row-a", position: 2, supersetGroup: 2, targetRestSeconds: null },
+      { id: "row-w1", position: 0, supersetGroup: 1, targetRestSeconds: null, tempo: null },
+      { id: "row-w2", position: 1, supersetGroup: 1, targetRestSeconds: null, tempo: null },
+      { id: "row-a", position: 2, supersetGroup: 2, targetRestSeconds: null, tempo: null },
     ]);
     expect(plan.additions).toEqual([
-      { exerciseId: "x", position: 3, supersetGroup: 2, targetRestSeconds: null, targetSets: null },
+      {
+        exerciseId: "x",
+        position: 3,
+        supersetGroup: 2,
+        targetRestSeconds: null,
+        targetSets: null,
+        tempo: null,
+      },
     ]);
   });
 });

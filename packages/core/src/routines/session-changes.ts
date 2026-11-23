@@ -1,9 +1,10 @@
 import { supersetLinks } from "../supersets/supersets";
+import { formatTempo, parseTempo } from "./tempo";
 
 /**
  * Saving a workout's changes back to its routine (issue #407). When a
  * lifter adds, removes, replaces or reorders exercises, regroups supersets
- * or changes a rest from the ⋯ menu mid-workout, the app offers to carry
+ * or changes a rest or a tempo from the ⋯ menu mid-workout, the app offers to carry
  * those changes into the routine so the next workout starts from them.
  *
  * Only the main (non-warm-up) exercises are compared: a linked warm-up
@@ -18,6 +19,7 @@ export interface RoutineChangeRoutineItem {
   position: number;
   supersetGroup: number | null;
   targetRestSeconds: number | null;
+  tempo?: string | null;
 }
 
 export interface RoutineChangeSessionItem {
@@ -25,6 +27,11 @@ export interface RoutineChangeSessionItem {
   supersetGroup: number | null;
   /** The workout's ⋯ menu rest override; null keeps the routine's. */
   restSeconds: number | null;
+  /**
+   * The workout's tempo: the routine's when it started, or one set from the
+   * ⋯ menu. Null keeps the routine's; "" was cleared in the workout.
+   */
+  tempo?: string | null;
   /** Working sets logged, which becomes an added exercise's target. */
   workingSetCount: number;
 }
@@ -40,6 +47,22 @@ export interface RoutineChanges {
   supersetsChanged: boolean;
   /** Shared exercise ids whose rest was changed in the workout. */
   restChanged: string[];
+  /** Shared exercise ids whose tempo was changed in the workout. */
+  tempoChanged: string[];
+}
+
+/** A tempo as stored on a routine row: canonical "3-1-1", or null for none. */
+function canonicalTempo(value: string | null | undefined): string | null {
+  const tempo = parseTempo(value);
+  return tempo ? formatTempo(tempo) : null;
+}
+
+/** The tempo the routine row should take from the workout. */
+function sessionTempoFor(
+  item: RoutineChangeSessionItem,
+  routineTempo: string | null | undefined,
+): string | null {
+  return item.tempo == null ? canonicalTempo(routineTempo) : canonicalTempo(item.tempo);
 }
 
 export function hasRoutineChanges(changes: RoutineChanges): boolean {
@@ -48,7 +71,8 @@ export function hasRoutineChanges(changes: RoutineChanges): boolean {
     changes.removed.length > 0 ||
     changes.reordered ||
     changes.supersetsChanged ||
-    changes.restChanged.length > 0
+    changes.restChanged.length > 0 ||
+    changes.tempoChanged.length > 0
   );
 }
 
@@ -126,16 +150,26 @@ export function diffSessionAgainstRoutine(
     })
     .map((item) => item.exerciseId);
 
-  return { added, removed, reordered, supersetsChanged, restChanged };
+  const tempoChanged = sharedSession
+    .filter((item) => {
+      const routineTempo = targetRestById.get(item.exerciseId)?.tempo;
+      return (
+        item.tempo != null && sessionTempoFor(item, routineTempo) !== canonicalTempo(routineTempo)
+      );
+    })
+    .map((item) => item.exerciseId);
+
+  return { added, removed, reordered, supersetsChanged, restChanged, tempoChanged };
 }
 
 export interface RoutineUpdatePlan {
-  /** Existing routine rows whose position, superset or rest changes. */
+  /** Existing routine rows whose position, superset, rest or tempo changes. */
   updates: {
     id: string;
     position: number;
     supersetGroup: number | null;
     targetRestSeconds: number | null;
+    tempo: string | null;
   }[];
   /** New routine rows for exercises added in the workout. */
   additions: {
@@ -144,6 +178,7 @@ export interface RoutineUpdatePlan {
     supersetGroup: number | null;
     targetRestSeconds: number | null;
     targetSets: number | null;
+    tempo: string | null;
   }[];
   /** Routine row ids to remove: exercises dropped in the workout. */
   removals: string[];
@@ -153,7 +188,7 @@ export interface RoutineUpdatePlan {
  * The routine rows to write so the routine matches the workout. The
  * routine's own warm-up exercises stay first, as a session shows them;
  * the main exercises follow in the workout's order with its supersets and
- * rest changes. Kept exercises keep their targets; an added one gets the
+ * rest and tempo changes. Kept exercises keep their targets; an added one gets the
  * working sets logged today as its target.
  */
 export function planRoutineUpdate(
@@ -184,13 +219,15 @@ export function planRoutineUpdate(
     item: RoutineChangeRoutineItem,
     supersetGroup: number | null,
     targetRestSeconds: number | null,
+    tempo: string | null = canonicalTempo(item.tempo),
   ) => {
     if (
       item.position !== position ||
       item.supersetGroup !== supersetGroup ||
-      item.targetRestSeconds !== targetRestSeconds
+      item.targetRestSeconds !== targetRestSeconds ||
+      tempo !== canonicalTempo(item.tempo)
     ) {
-      updates.push({ id: item.id, position, supersetGroup, targetRestSeconds });
+      updates.push({ id: item.id, position, supersetGroup, targetRestSeconds, tempo });
     }
     position++;
   };
@@ -207,7 +244,12 @@ export function planRoutineUpdate(
     if (!linkedToPrevious) group = sessionLinks[i] ? ++nextGroup : null;
     const existing = routineByExerciseId.get(item.exerciseId);
     if (existing) {
-      pushUpdate(existing, group, item.restSeconds ?? existing.targetRestSeconds);
+      pushUpdate(
+        existing,
+        group,
+        item.restSeconds ?? existing.targetRestSeconds,
+        sessionTempoFor(item, existing.tempo),
+      );
     } else {
       additions.push({
         exerciseId: item.exerciseId,
@@ -215,6 +257,7 @@ export function planRoutineUpdate(
         supersetGroup: group,
         targetRestSeconds: item.restSeconds,
         targetSets: item.workingSetCount > 0 ? item.workingSetCount : null,
+        tempo: canonicalTempo(item.tempo),
       });
     }
   });

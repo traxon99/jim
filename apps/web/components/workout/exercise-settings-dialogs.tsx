@@ -1,10 +1,11 @@
 "use client";
 
+import { TempoField } from "@/components/routines/tempo-field";
 import { useState } from "react";
 import { ExerciseDialog } from "./exercise-dialog";
 
 /**
- * The ⋯ menu's sticky note and rest timer dialogs (issue #271), out of the
+ * The ⋯ menu's sticky note, rest timer and tempo dialogs (issue #271), out of the
  * exercise section so it stays about sets (#556). Each owns its draft, so
  * it opens on the saved value every time.
  */
@@ -148,6 +149,36 @@ export function RestDialog({
           Use the routine's rest
         </button>
       )}
+    </ExerciseDialog>
+  );
+}
+
+/**
+ * This workout's tempo for one lift: the ⋯ menu's Tempo (issue #865). The
+ * field saves as focus leaves it, so Done only closes; the workout summary
+ * then offers to keep it in the routine.
+ */
+export function TempoDialog({
+  exerciseName,
+  tempo,
+  onSave,
+  onClose,
+}: {
+  exerciseName: string;
+  tempo: string | null;
+  onSave: (tempo: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <ExerciseDialog title="Tempo" onClose={onClose}>
+      <TempoField value={tempo} onCommit={onSave} label={exerciseName} />
+      <button
+        type="button"
+        onClick={onClose}
+        className="min-h-11 self-end rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground"
+      >
+        Done
+      </button>
     </ExerciseDialog>
   );
 }
