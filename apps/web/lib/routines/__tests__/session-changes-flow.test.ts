@@ -190,6 +190,67 @@ describe("saving a workout's changes to its routine (against Dexie)", () => {
     expect(await compareSessionToRoutine(ended, testDb)).toBeNull();
   });
 
+  it("saves a tempo set or cleared mid-workout into the routine", async () => {
+    await seedRoutine();
+    const items = [
+      { ...routineExercise("bench", 0), tempo: "3-1-1" },
+      { ...routineExercise("fly", 1), tempo: "2-0-2" },
+      routineExercise("dips", 2),
+    ];
+    await testDb.routineExercises.bulkPut(items);
+    const sessionId = await startSessionFromRoutine(USER_ID, ROUTINE, items, testDb);
+    const byExercise = new Map(
+      (await testDb.sessionExercises.where("sessionId").equals(sessionId).toArray()).map((se) => [
+        se.exerciseId,
+        se,
+      ]),
+    );
+    // The ⋯ menu's Tempo: bench gets a new one, fly is cleared, dips gets its first.
+    for (const [exerciseId, tempo] of [
+      ["bench", "4-0-1"],
+      ["fly", ""],
+      ["dips", "2-0-X"],
+    ] as const) {
+      const se = byExercise.get(exerciseId);
+      if (!se) throw new Error(`${exerciseId} missing`);
+      await testDb.sessionExercises.put({ ...se, tempo });
+    }
+
+    const comparison = await compareSessionToRoutine(await finish(sessionId), testDb);
+    if (!comparison) throw new Error("expected changes");
+    expect(describeRoutineChanges(comparison.changes, (id) => id)).toEqual([
+      "Changed tempo for bench, fly, dips",
+    ]);
+    await saveSessionChangesToRoutine(USER_ID, comparison, testDb);
+    const tempos = (await testDb.routineExercises.where("routineId").equals(ROUTINE.id).toArray())
+      .sort((a, b) => a.position - b.position)
+      .map((item) => [item.exerciseId, item.tempo ?? null]);
+    expect(tempos).toEqual([
+      ["bench", "4-0-1"],
+      ["fly", null],
+      ["dips", "2-0-X"],
+    ]);
+  });
+
+  it("doesn't offer back a tempo the routine changed after the workout started", async () => {
+    await seedRoutine();
+    const items = [{ ...routineExercise("bench", 0), tempo: "3-1-1" }];
+    await testDb.routineExercises.bulkPut(items);
+    const sessionId = await startSessionFromRoutine(USER_ID, ROUTINE, items, testDb);
+    const session = await testDb.sessions.get(sessionId);
+    if (!session) throw new Error("session missing");
+    // Edited from Plan mid-workout; the workout keeps the tempo it started with.
+    await testDb.routineExercises.put({
+      ...items[0],
+      tempo: "2-0-2",
+      updatedAt: new Date(session.startedAt.getTime() + 1_000),
+    } as RoutineExerciseRow);
+    const ended = { ...session, endedAt: new Date(session.startedAt.getTime() + 60_000) };
+    await testDb.sessions.put(ended);
+    const comparison = await compareSessionToRoutine(ended, testDb);
+    expect(comparison?.changes.tempoChanged ?? []).toEqual([]);
+  });
+
   it("offers nothing for an empty workout", async () => {
     await seedRoutine();
     const sessionId = await startSessionFromRoutine(USER_ID, ROUTINE, [], testDb);

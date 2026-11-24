@@ -82,10 +82,19 @@ export async function compareSessionToRoutine(
     );
   }
 
+  // A routine row edited after the workout started (from Plan, or by
+  // Claude) gave the workout an older tempo than it has now; that isn't a
+  // change made in the workout, so its tempo isn't offered back.
+  const editedSinceStart = new Set(
+    routineItems
+      .filter((item) => item.updatedAt.getTime() > session.startedAt.getTime())
+      .map((item) => item.exerciseId),
+  );
   const sessionMain: RoutineChangeSessionItem[] = main.map((se) => ({
     exerciseId: se.exerciseId,
     supersetGroup: se.supersetGroup,
     restSeconds: se.restSeconds,
+    tempo: editedSinceStart.has(se.exerciseId) ? null : (se.tempo ?? null),
     workingSetCount: workingSetCounts.get(se.id) ?? 0,
   }));
   // A workout with no main exercises left is an abandoned plan, not a new one.
@@ -129,6 +138,7 @@ export async function saveSessionChangesToRoutine(
         position: update.position,
         supersetGroup: update.supersetGroup,
         targetRestSeconds: update.targetRestSeconds,
+        tempo: update.tempo,
         updatedAt: now,
         deviceId,
       },
@@ -151,6 +161,7 @@ export async function saveSessionChangesToRoutine(
       targetWeight: null,
       progressionRule: null,
       notes: null,
+      tempo: addition.tempo,
       updatedAt: now,
       deviceId,
       deletedAt: null,
@@ -172,5 +183,8 @@ export function describeRoutineChanges(
   if (changes.reordered) lines.push("Changed the exercise order");
   if (changes.supersetsChanged) lines.push("Changed supersets");
   if (changes.restChanged.length > 0) lines.push(`Changed rest for ${names(changes.restChanged)}`);
+  if (changes.tempoChanged.length > 0) {
+    lines.push(`Changed tempo for ${names(changes.tempoChanged)}`);
+  }
   return lines;
 }

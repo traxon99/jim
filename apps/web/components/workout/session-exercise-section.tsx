@@ -7,6 +7,7 @@ import {
   Check,
   Diff,
   File,
+  Hourglass,
   Pin,
   RotateCcw,
   Timer,
@@ -73,6 +74,7 @@ import {
   exerciseDisplayName,
   formatTempo,
   isVisiblePrKind,
+  isWarmupExercise,
   nearestLoadableWeight,
   normalizeDecimalInput,
   parseTempo,
@@ -88,7 +90,7 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { RestDialog, StickyNoteDialog, formatRest } from "./exercise-settings-dialogs";
+import { RestDialog, StickyNoteDialog, TempoDialog, formatRest } from "./exercise-settings-dialogs";
 import { SessionSetTable } from "./session-set-table";
 import {
   type SessionSetDraftValues,
@@ -198,6 +200,7 @@ export function SessionExerciseSection({
   );
   const [stickyEditing, setStickyEditing] = useState(false);
   const [restEditing, setRestEditing] = useState(false);
+  const [tempoEditing, setTempoEditing] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   // The tombstone of the set just deleted, while its Undo is offered (issue #318).
@@ -212,6 +215,7 @@ export function SessionExerciseSection({
   const addedSets = item.addedSets ?? 0;
   const closeSticky = useCallback(() => setStickyEditing(false), []);
   const closeRest = useCallback(() => setRestEditing(false), []);
+  const closeTempo = useCallback(() => setTempoEditing(false), []);
 
   // Issue #271: the newest sticky note from an earlier workout shows here
   // until this workout sets or clears its own.
@@ -247,8 +251,10 @@ export function SessionExerciseSection({
   // front. They ride on top of the working sets, as does a row switched to
   // a warm-up from its set-type menu: a 3×10 still plans three working sets.
   const warmupCount = item.warmupSets ?? 0;
-  // The tempo this workout started with (issue #845), behind its Advanced switch.
-  const tempo = showsTempo(settings) ? parseTempo(item.tempo) : null;
+  // The tempo this workout started with (issue #845), or one set from the ⋯
+  // menu, behind its Advanced switch. Warm-up exercises take none.
+  const takesTempo = showsTempo(settings) && !(exercise && isWarmupExercise(exercise));
+  const tempo = takesTempo ? parseTempo(item.tempo) : null;
   // A custom rule's rep scheme can change set counts (GZCLP's 5×3 → 6×2 →
   // 10×1), so its sets win over last time's.
   const workingTarget =
@@ -689,6 +695,15 @@ export function SessionExerciseSection({
         setRestEditing(true);
       },
     },
+    ...(takesTempo
+      ? [
+          {
+            label: tempo ? "Edit Tempo" : "Set Tempo",
+            icon: Hourglass,
+            onSelect: () => setTempoEditing(true),
+          },
+        ]
+      : []),
   ];
 
   function weightInputFor(index: number, draft: SessionSetDraftValues) {
@@ -1020,6 +1035,15 @@ export function SessionExerciseSection({
             setRestEditing(false);
           }}
           onClose={closeRest}
+        />
+      )}
+      {tempoEditing && (
+        <TempoDialog
+          exerciseName={exercise ? exerciseDisplayName(exercise) : "Tempo"}
+          tempo={item.tempo ?? null}
+          // "" rather than null: cleared in this workout, not left as the routine's.
+          onSave={(value) => void saveItem({ tempo: value ?? "" })}
+          onClose={closeTempo}
         />
       )}
       {detailOpen && (
