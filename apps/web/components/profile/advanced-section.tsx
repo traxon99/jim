@@ -91,6 +91,7 @@ type AdvancedPatch = Partial<
     | "dprEquipmentIncrements"
     | "tempoCues"
     | "tempoCueStyle"
+    | "tempoCountReps"
   >
 >;
 
@@ -184,6 +185,7 @@ export function AdvancedSection() {
               <TempoCueSettings
                 cues={settings.tempoCues === true}
                 style={settings.tempoCueStyle ?? "voice"}
+                countReps={settings.tempoCountReps === true}
                 onChange={(patch) => void save(patch)}
               />
             )}
@@ -328,15 +330,24 @@ const CUE_STYLES = [
   { value: "sounds", label: "Sounds" },
 ] as const;
 
-/** Tempo cues and their style, indented under Tempo (issue #846). */
+/**
+ * Tempo cues, their style and the spoken rep count (issue #867), indented
+ * under Tempo (issue #846).
+ */
 function TempoCueSettings({
   cues,
   style,
+  countReps,
   onChange,
 }: {
   cues: boolean;
   style: "voice" | "sounds";
-  onChange: (patch: { tempoCues?: boolean; tempoCueStyle?: "voice" | "sounds" }) => void;
+  countReps: boolean;
+  onChange: (patch: {
+    tempoCues?: boolean;
+    tempoCueStyle?: "voice" | "sounds";
+    tempoCountReps?: boolean;
+  }) => void;
 }) {
   return (
     <div className="flex flex-col pl-[42px]">
@@ -372,6 +383,19 @@ function TempoCueSettings({
             ))}
           </div>
         </fieldset>
+      )}
+      {cues && (
+        <label className={`${SETTINGS_ROW} justify-between`}>
+          Count reps
+          <input
+            type="checkbox"
+            role="switch"
+            aria-checked={countReps}
+            checked={countReps}
+            onChange={(event) => onChange({ tempoCountReps: event.target.checked })}
+            className={SWITCH_CLASS}
+          />
+        </label>
       )}
     </div>
   );

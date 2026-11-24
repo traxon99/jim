@@ -49,6 +49,7 @@ export interface SettingsPayload {
   showTempo: boolean;
   tempoCues: boolean;
   tempoCueStyle: "voice" | "sounds";
+  tempoCountReps: boolean;
   showInjuryRules: boolean;
   injuriesAffectPrp: boolean;
   showInjuryHints: boolean;
@@ -95,6 +96,7 @@ export function toSettingsPayload(row: typeof users.$inferSelect): SettingsPaylo
     showTempo: row.showTempo,
     tempoCues: row.tempoCues,
     tempoCueStyle: row.tempoCueStyle,
+    tempoCountReps: row.tempoCountReps,
     showInjuryRules: row.showInjuryRules,
     injuriesAffectPrp: row.injuriesAffectPrp,
     showInjuryHints: row.showInjuryHints,
@@ -194,6 +196,9 @@ export function isValidSettingsPatch(body: unknown): body is Partial<SettingsPay
     return false;
   }
   if ("tempoCueStyle" in candidate && !TEMPO_CUE_STYLES.has(candidate.tempoCueStyle as string)) {
+    return false;
+  }
+  if ("tempoCountReps" in candidate && typeof candidate.tempoCountReps !== "boolean") {
     return false;
   }
   if ("showInjuryRules" in candidate && typeof candidate.showInjuryRules !== "boolean") {
@@ -331,6 +336,7 @@ export function toSettingsColumns(
   if (body.showTempo !== undefined) patch.showTempo = body.showTempo;
   if (body.tempoCues !== undefined) patch.tempoCues = body.tempoCues;
   if (body.tempoCueStyle !== undefined) patch.tempoCueStyle = body.tempoCueStyle;
+  if (body.tempoCountReps !== undefined) patch.tempoCountReps = body.tempoCountReps;
   if (body.showInjuryRules !== undefined) patch.showInjuryRules = body.showInjuryRules;
   if (body.injuriesAffectPrp !== undefined) patch.injuriesAffectPrp = body.injuriesAffectPrp;
   if (body.showInjuryHints !== undefined) patch.showInjuryHints = body.showInjuryHints;

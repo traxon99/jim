@@ -28,7 +28,7 @@ export const NOTIFICATION_BADGE_URL = "/icons/badge";
  * `shouldSendReleasePush`).
  */
 export const LATEST_RELEASE_NOTE =
-  "Workout pace now learns from your past workouts of a routine, and the finish time adjusts when today runs well off plan.";
+  "Tempo can include time between reps, cues stop after the set's reps, and Count reps says each rep out loud.";
 
 /** At most one "What's new" push per this long (issue #668). */
 export const RELEASE_PUSH_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000;

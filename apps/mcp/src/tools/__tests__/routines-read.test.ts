@@ -113,7 +113,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("list_routines / get_routine (#3
     await expect(
       updateRoutine(context, {
         routineId: pushId,
-        exercises: [{ exercise: "bench press", tempo: "3-1-1-0" }],
+        exercises: [{ exercise: "bench press", tempo: "3-1-1-1-1" }],
       }),
     ).rejects.toThrow(/isn't a tempo for Bench Press/);
     await updateRoutine(context, {

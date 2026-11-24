@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "tempo_count_reps" boolean DEFAULT false NOT NULL;
