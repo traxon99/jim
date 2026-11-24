@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   showTempo: false,
   tempoCues: false,
   tempoCueStyle: "voice",
+  tempoCountReps: false,
   showInjuryRules: true,
   injuriesAffectPrp: true,
   showInjuryHints: true,

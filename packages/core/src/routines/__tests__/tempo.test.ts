@@ -7,6 +7,7 @@ import {
   tempoFromInputs,
   tempoPhaseAt,
   tempoPositionAt,
+  tempoRepFinishedAt,
   tempoSecondsPerRep,
   tempoSetCues,
 } from "../tempo";
@@ -207,5 +208,34 @@ describe("time between reps and the reps box (issue #867)", () => {
     expect(tempoPositionAt(tempo, 4, 2)).toEqual({ phase: "up", rep: 2 });
     expect(tempoPositionAt(tempo, 5, 2)).toBeNull();
     expect(tempoPositionAt(tempo, 50)).toEqual({ phase: "between", rep: 17 });
+  });
+});
+
+describe("tempoRepFinishedAt (issue #867)", () => {
+  it("counts each rep on the beat after its lift", () => {
+    // 1-0-1-2: down 0, up 1, between 2–3, next down 4.
+    const tempo = [1, 0, 1, 2] as const;
+    expect([0, 1, 2, 3, 4, 5, 6].map((beat) => tempoRepFinishedAt(tempo, beat))).toEqual([
+      null,
+      null,
+      1,
+      null,
+      null,
+      null,
+      2,
+    ]);
+  });
+
+  it("lands on the next rep's first beat with no time between", () => {
+    const tempo = [2, 0, 1] as const;
+    expect(tempoRepFinishedAt(tempo, 3)).toBe(1);
+    expect(tempoRepFinishedAt(tempo, 6)).toBe(2);
+    expect(tempoRepFinishedAt(tempo, 0)).toBeNull();
+  });
+
+  it("stops at the reps given", () => {
+    const tempo = [2, 0, 1] as const;
+    expect(tempoRepFinishedAt(tempo, 6, 2)).toBe(2);
+    expect(tempoRepFinishedAt(tempo, 9, 2)).toBeNull();
   });
 });

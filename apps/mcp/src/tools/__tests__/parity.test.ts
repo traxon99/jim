@@ -317,6 +317,8 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
       // Tempo cues (issue #846) start off, in voice.
       tempoCues: false,
       tempoCueStyle: "voice",
+      // The spoken rep count (issue #867) starts off.
+      tempoCountReps: false,
       showInjuryRules: true,
       // Injury switches (issue #731) start on.
       injuriesAffectPrp: true,
@@ -348,6 +350,9 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("MCP parity with the app (#435)"
     const cues = await updateSettings(context, { tempoCues: true, tempoCueStyle: "sounds" });
     expect(cues.changed.sort()).toEqual(["tempoCueStyle", "tempoCues"]);
     expect(cues.settings).toMatchObject({ tempoCues: true, tempoCueStyle: "sounds" });
+    const count = await updateSettings(context, { tempoCountReps: true });
+    expect(count.changed).toEqual(["tempoCountReps"]);
+    expect(count.settings.tempoCountReps).toBe(true);
     // Notification switches (issue #668) start on and change one at a time.
     expect(await getSettings(context)).toMatchObject({
       pushRestTimer: true,

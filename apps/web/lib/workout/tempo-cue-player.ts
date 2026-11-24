@@ -1,6 +1,12 @@
 "use client";
 
-import { type Tempo, type TempoCue, tempoCueSchedule, tempoSetCues } from "@jim/core";
+import {
+  type Tempo,
+  type TempoCue,
+  tempoCueSchedule,
+  tempoRepFinishedAt,
+  tempoSetCues,
+} from "@jim/core";
 
 /**
  * Tempo cues (issue #846): plays a tempo's cues, one per second, from a
@@ -69,11 +75,11 @@ function enterAmbientSession(): void {
   }
 }
 
-export function unlockTempoCueAudio(style: TempoCueStyle): void {
+export function unlockTempoCueAudio(style: TempoCueStyle, countReps = false): void {
   enterAmbientSession();
   const ctx = audioContext();
   if (ctx && ctx.state !== "running") void ctx.resume().catch(() => {});
-  if (style === "voice" && speechAvailable()) {
+  if ((style === "voice" || countReps) && speechAvailable()) {
     try {
       // A silent utterance inside the tap lets later ones play on iOS.
       const utterance = new SpeechSynthesisUtterance("");
@@ -161,12 +167,16 @@ function speak(word: string): boolean {
 /**
  * Plays `tempo`'s cues, the first one at `startAtMs` (ms since epoch, may be
  * ahead: the get-ready countdown), for `reps` reps (issue #867), or on a loop
- * when `reps` is null. Returns a function that stops everything at once.
+ * when `reps` is null. With `countReps`, each finished rep's number is
+ * spoken on the beat after its lift, in either style: in place of Reset, or
+ * before the next Down, and on one extra beat after the last rep. Returns a
+ * function that stops everything at once.
  */
 export function startTempoCues(options: {
   tempo: Tempo;
   reps: number | null;
   style: TempoCueStyle;
+  countReps: boolean;
   startAtMs: number;
 }): () => void {
   const ctx = audioContext();
@@ -182,24 +192,40 @@ export function startTempoCues(options: {
 
   const schedule = () => {
     const now = Date.now();
-    while (options.startAtMs + next * 1000 < now + LOOKAHEAD_MS && (!set || next < set.length)) {
-      const beatMs = options.startAtMs + next * 1000;
-      const cue = cues[next % cues.length] ?? "tick";
-      const delayMs = beatMs - now;
+    // A counted set gets one beat past its cues, for the last rep's number.
+    const end = set ? set.length + (options.countReps ? 1 : 0) : Number.POSITIVE_INFINITY;
+    while (options.startAtMs + next * 1000 < now + LOOKAHEAD_MS && next < end) {
+      const beat = next;
+      const delayMs = options.startAtMs + beat * 1000 - now;
       next++;
       if (delayMs < -100) continue;
-      if (cue !== "tick" && options.style === "voice") {
-        const word = WORDS[cue];
+      const cue: TempoCue | null =
+        !set || beat < set.length ? (cues[beat % cues.length] ?? "tick") : null;
+      const count = options.countReps
+        ? tempoRepFinishedAt(options.tempo, beat, options.reps)
+        : null;
+      const at = ctx.currentTime + Math.max(0, delayMs) / 1000;
+      const speakLater = (text: string, fallback: TempoCue | null) => {
         const timeout = setTimeout(
           () => {
             timeouts.delete(timeout);
-            if (!speak(word)) playSound(ctx, cue, ctx.currentTime, live);
+            if (!speak(text) && fallback) playSound(ctx, fallback, ctx.currentTime, live);
           },
           Math.max(0, delayMs),
         );
         timeouts.add(timeout);
+      };
+      const phase = cue === "tick" ? null : cue;
+      if (options.style === "voice") {
+        const words: string[] = [];
+        if (count !== null) words.push(String(count));
+        // The number takes Reset's place; a Down still follows it.
+        if (phase && !(phase === "between" && count !== null)) words.push(WORDS[phase]);
+        if (words.length > 0) speakLater(words.join(", "), phase);
+        else if (cue) playSound(ctx, cue, at, live);
       } else {
-        playSound(ctx, cue, ctx.currentTime + Math.max(0, delayMs) / 1000, live);
+        if (cue) playSound(ctx, cue, at, live);
+        if (count !== null) speakLater(String(count), null);
       }
     }
   };

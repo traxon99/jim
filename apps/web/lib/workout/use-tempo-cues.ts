@@ -18,16 +18,18 @@ export function useTempoCues(options: {
   tempo: Tempo | null;
   reps: number | null;
   style: TempoCueStyle;
+  /** Say each finished rep's number (issue #867). */
+  countReps: boolean;
   onDisarm: () => void;
 }): void {
-  const { timer, tempo, reps, style, onDisarm } = options;
+  const { timer, tempo, reps, style, countReps, onDisarm } = options;
   const live = timer.phase === "ready" || timer.phase === "running";
   const startAtMs = timer.startedAtMs;
 
   useEffect(() => {
     if (!live || !tempo || startAtMs === null) return;
-    return startTempoCues({ tempo, reps, style, startAtMs });
-  }, [live, tempo, reps, style, startAtMs]);
+    return startTempoCues({ tempo, reps, style, countReps, startAtMs });
+  }, [live, tempo, reps, style, countReps, startAtMs]);
 
   useEffect(() => {
     if (!live || !tempo) return;

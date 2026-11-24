@@ -188,6 +188,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
   // workout only, and isn't saved.
   const tempoCuesOn = showsTempoCues(settings);
   const cueStyle = settings.tempoCueStyle ?? "voice";
+  const countReps = settings.tempoCountReps === true;
   const [cueArm, setCueArm] = useState<{ sessionExerciseId: string; tempo: Tempo } | null>(null);
   const [mutedCueIds, setMutedCueIds] = useState<ReadonlySet<string>>(() => new Set());
   // Each lift's next-set reps box (issue #867): the cues run for that many
@@ -209,6 +210,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     tempo: tempoCuesOn ? (cueArm?.tempo ?? null) : null,
     reps: cueReps,
     style: cueStyle,
+    countReps,
     onDisarm: disarmCues,
   });
   const isActive = session != null && !session.endedAt && !session.deletedAt;
@@ -469,7 +471,7 @@ export function ActiveSession({ id, userId }: { id: string; userId: string }) {
     setCueArm(arm);
     if (arm) {
       // Inside the tap: iOS only lets a page start audio from a user gesture.
-      unlockTempoCueAudio(cueStyle);
+      unlockTempoCueAudio(cueStyle, countReps);
       setTimer.start(SET_READY_SECONDS);
     } else {
       setTimer.start();

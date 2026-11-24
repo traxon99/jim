@@ -263,6 +263,9 @@ export const users = pgTable(
     // by default, and only in effect while the set timer and tempo are on.
     tempoCues: boolean("tempo_cues").notNull().default(false),
     tempoCueStyle: tempoCueStyleEnum("tempo_cue_style").notNull().default("voice"),
+    // Counts each finished rep out loud with the tempo cues (issue #867),
+    // whichever cue style is picked. Off by default.
+    tempoCountReps: boolean("tempo_count_reps").notNull().default(false),
     // Exercise rules on Profile → Injuries (issue #724). Rules already set
     // still apply with it off; it only hides the editor.
     showInjuryRules: boolean("show_injury_rules").notNull().default(true),

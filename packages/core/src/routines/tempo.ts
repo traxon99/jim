@@ -126,6 +126,24 @@ export function tempoSetCues(tempo: Tempo, reps: number | null): TempoCue[] | nu
 }
 
 /**
+ * The rep a running tempo has just finished at `beat` (whole seconds after
+ * it started), or null: the beat right after a rep's lift, which is the
+ * first second between reps or the next rep's first. The optional rep count
+ * (issue #867) says this number. With `reps`, nothing past the last one.
+ */
+export function tempoRepFinishedAt(
+  tempo: Tempo,
+  beat: number,
+  reps: number | null = null,
+): number | null {
+  const perRep = tempoCueSchedule(tempo).length;
+  const sinceFirst = beat - (perRep - tempoBetweenSeconds(tempo));
+  if (sinceFirst < 0 || sinceFirst % perRep !== 0) return null;
+  const rep = sinceFirst / perRep + 1;
+  return reps !== null && rep > Math.max(1, Math.floor(reps)) ? null : rep;
+}
+
+/**
  * The phase and rep (from 1) a running tempo is in, `elapsedSeconds` whole
  * seconds after it started. With `reps`, null once those reps are done.
  */

@@ -1498,6 +1498,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .enum(tempoCueStyleEnum.enumValues)
           .optional()
           .describe("How tempo cues sound: voice (spoken words) or sounds (sound effects only)"),
+        tempoCountReps: z
+          .boolean()
+          .optional()
+          .describe(
+            "Count reps (off by default, issue #867): each finished rep is counted out loud with the tempo cues, in either cue style. Only takes effect while tempoCues does",
+          ),
         showInjuryRules: z
           .boolean()
           .optional()

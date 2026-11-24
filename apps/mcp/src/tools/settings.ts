@@ -29,6 +29,7 @@ function toSettings(row: UserRow) {
     showTempo: row.showTempo,
     tempoCues: row.tempoCues,
     tempoCueStyle: row.tempoCueStyle,
+    tempoCountReps: row.tempoCountReps,
     showInjuryRules: row.showInjuryRules,
     injuriesAffectPrp: row.injuriesAffectPrp,
     showInjuryHints: row.showInjuryHints,

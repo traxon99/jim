@@ -176,6 +176,7 @@ export type SettingsRow = Pick<
   | "showTempo"
   | "tempoCues"
   | "tempoCueStyle"
+  | "tempoCountReps"
   | "showInjuryRules"
   | "injuriesAffectPrp"
   | "showInjuryHints"
