@@ -1,14 +1,19 @@
 "use client";
 
-import { parseTempo, tempoFromInputs, tempoSecondsPerRep } from "@jim/core";
+import { parseTempo, tempoBetweenSeconds, tempoFromInputs, tempoSecondsPerRep } from "@jim/core";
 import { useEffect, useId, useRef, useState } from "react";
 
 const INPUT_CLASS =
   "w-14 min-w-0 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-center text-base font-semibold tabular-nums text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
 
-function phasesOf(value: string | null | undefined): [string, string, string] {
+type Phases = [down: string, pause: string, up: string, between: string];
+const EMPTY: Phases = ["", "", "", ""];
+
+function phasesOf(value: string | null | undefined): Phases {
   const tempo = parseTempo(value);
-  return tempo ? [String(tempo[0]), String(tempo[1]), String(tempo[2])] : ["", "", ""];
+  if (!tempo) return [...EMPTY];
+  const between = tempoBetweenSeconds(tempo);
+  return [String(tempo[0]), String(tempo[1]), String(tempo[2]), between > 0 ? String(between) : ""];
 }
 
 function formatSeconds(seconds: number): string {
@@ -16,8 +21,9 @@ function formatSeconds(seconds: number): string {
 }
 
 /**
- * A tempo (issue #845): Down, Pause and Up in seconds, X allowed on Up.
- * Saves when focus leaves the three inputs, and only when the value changed;
+ * A tempo (issue #845): Down, Pause and Up in seconds, X allowed on Up, and
+ * Between, the seconds before the next rep (issue #867). Saves when focus
+ * leaves the inputs, and only when the value changed;
  * an invalid entry shows an error and saves nothing. Used for each lift, and
  * for All lifts, in the Tempo sheet (issue #850).
  */
@@ -53,7 +59,7 @@ export function TempoField({
     setInvalid(false);
   }, [value]);
 
-  function commit(next: readonly [string, string, string]) {
+  function commit(next: Readonly<Phases>) {
     const tempo = tempoFromInputs(...next);
     if (tempo === "invalid") {
       setInvalid(true);
@@ -64,8 +70,8 @@ export function TempoField({
     if (tempo !== (value ?? null)) onCommit(tempo);
   }
 
-  function setPhase(index: 0 | 1 | 2, text: string) {
-    const next = [...phases] as [string, string, string];
+  function setPhase(index: number, text: string) {
+    const next = [...phases] as Phases;
     next[index] = text.toUpperCase();
     setPhases(next);
   }
@@ -78,6 +84,7 @@ export function TempoField({
     { label: "Down", name: "Lowering seconds", inputMode: "numeric" as const },
     { label: "Pause", name: "Pause at the bottom, seconds", inputMode: "numeric" as const },
     { label: "Up", name: "Lifting seconds, or X for explosive", inputMode: "text" as const },
+    { label: "Between", name: "Seconds between reps", inputMode: "numeric" as const },
   ];
 
   return (
@@ -117,7 +124,7 @@ export function TempoField({
               aria-label={`${label}: ${field.name}`}
               aria-invalid={invalid || undefined}
               value={phases[index]}
-              onChange={(event) => setPhase(index as 0 | 1 | 2, event.target.value)}
+              onChange={(event) => setPhase(index, event.target.value)}
               className={INPUT_CLASS}
             />
           </label>
@@ -126,9 +133,9 @@ export function TempoField({
           <button
             type="button"
             onClick={() => {
-              if (!forceClear) return commit(["", "", ""]);
+              if (!forceClear) return commit(EMPTY);
               setInvalid(false);
-              setPhases(["", "", ""]);
+              setPhases([...EMPTY]);
               onCommit(null);
             }}
             aria-label={clearLabel}
@@ -140,7 +147,7 @@ export function TempoField({
       </div>
       {invalid && (
         <p id={`${id}-error`} role="alert" className="text-xs text-red-600 dark:text-red-400">
-          0 to 20 seconds each, at least one above 0. Only Up can be X.
+          0 to 20 seconds each, with Down, Pause or Up above 0. Only Up can be X.
         </p>
       )}
     </fieldset>

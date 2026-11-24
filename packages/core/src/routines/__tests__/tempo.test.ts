@@ -6,7 +6,9 @@ import {
   tempoCueSchedule,
   tempoFromInputs,
   tempoPhaseAt,
+  tempoPositionAt,
   tempoSecondsPerRep,
+  tempoSetCues,
 } from "../tempo";
 
 describe("parseTempo", () => {
@@ -32,10 +34,29 @@ describe("parseTempo", () => {
     expect(parseTempo("3-X-1")).toBeNull();
   });
 
-  it("rejects two or four phases", () => {
+  it("rejects two or five phases", () => {
     expect(parseTempo("3-1")).toBeNull();
-    expect(parseTempo("3-1-1-0")).toBeNull();
-    expect(parseTempo("3110")).toBeNull();
+    expect(parseTempo("3-1-1-1-1")).toBeNull();
+    expect(parseTempo("31101")).toBeNull();
+  });
+
+  it("reads a fourth phase as the time between reps (issue #867)", () => {
+    expect(parseTempo("3-1-1-2")).toEqual([3, 1, 1, 2]);
+    expect(parseTempo("31X2")).toEqual([3, 1, "X", 2]);
+  });
+
+  it("drops a 0 between, so it reads like a three-phase tempo", () => {
+    expect(parseTempo("3-1-1-0")).toEqual([3, 1, 1]);
+    expect(parseTempo("3110")).toEqual([3, 1, 1]);
+  });
+
+  it("rejects X or more than 20 seconds between reps", () => {
+    expect(parseTempo("3-1-1-X")).toBeNull();
+    expect(parseTempo("3-1-1-21")).toBeNull();
+  });
+
+  it("rejects a tempo that is only time between reps", () => {
+    expect(parseTempo("0-0-0-2")).toBeNull();
   });
 
   it("rejects every phase at 0", () => {
@@ -57,7 +78,7 @@ describe("parseTempo", () => {
 
 describe("formatTempo", () => {
   it("round-trips through parseTempo in canonical form", () => {
-    for (const text of ["3-1-1", "2-0-X", "10-2-3"]) {
+    for (const text of ["3-1-1", "2-0-X", "10-2-3", "3-1-1-2", "2-0-X-5"]) {
       const tempo = parseTempo(text);
       expect(tempo && formatTempo(tempo)).toBe(text);
     }
@@ -73,6 +94,10 @@ describe("tempoSecondsPerRep", () => {
 
   it("counts an X lift as half a second", () => {
     expect(tempoSecondsPerRep([2, 0, "X"])).toBe(2.5);
+  });
+
+  it("includes the time between reps", () => {
+    expect(tempoSecondsPerRep([3, 1, 1, 2])).toBe(7);
   });
 });
 
@@ -154,5 +179,33 @@ describe("sharedTempo", () => {
   it("treats a value that isn't a tempo as none", () => {
     expect(sharedTempo(["nope", null])).toEqual({ kind: "none" });
     expect(sharedTempo(["3-1-1", "9-9"])).toEqual({ kind: "mixed" });
+  });
+});
+
+describe("time between reps and the reps box (issue #867)", () => {
+  it("saves a Between input as the fourth phase", () => {
+    expect(tempoFromInputs("3", "1", "1", "2")).toBe("3-1-1-2");
+    expect(tempoFromInputs("3", "1", "1", "0")).toBe("3-1-1");
+    expect(tempoFromInputs("", "", "", "2")).toBe("invalid");
+    expect(tempoFromInputs("3", "1", "1", "X")).toBe("invalid");
+  });
+
+  it("cues the time between after the lift", () => {
+    expect(tempoCueSchedule([2, 0, 1, 2])).toEqual(["down", "tick", "up", "between", "tick"]);
+  });
+
+  it("runs a set for the reps given, with no time between after the last", () => {
+    expect(tempoSetCues([1, 0, 1, 2], 2)).toEqual(["down", "up", "between", "tick", "down", "up"]);
+    expect(tempoSetCues([3, 1, 1], 3)).toHaveLength(15);
+    expect(tempoSetCues([3, 1, 1], null)).toBeNull();
+  });
+
+  it("tracks the phase and rep, and ends after the last rep", () => {
+    const tempo = [1, 0, 1, 1] as const;
+    expect(tempoPositionAt(tempo, 0, 2)).toEqual({ phase: "down", rep: 1 });
+    expect(tempoPositionAt(tempo, 2, 2)).toEqual({ phase: "between", rep: 1 });
+    expect(tempoPositionAt(tempo, 4, 2)).toEqual({ phase: "up", rep: 2 });
+    expect(tempoPositionAt(tempo, 5, 2)).toBeNull();
+    expect(tempoPositionAt(tempo, 50)).toEqual({ phase: "between", rep: 17 });
   });
 });

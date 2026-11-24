@@ -131,9 +131,14 @@ interface Props {
   workSeconds?: () => number | null;
   /**
    * Tempo cues (issue #846), when they're on: whether this exercise's are
-   * muted for this workout, and the speaker button's toggle.
+   * muted for this workout, the speaker button's toggle, and where to report
+   * the next set's reps box, which the cues run for (issue #867).
    */
-  tempoCues?: { muted: boolean; onToggle: () => void } | null;
+  tempoCues?: {
+    muted: boolean;
+    onToggle: () => void;
+    onNextSetReps: (sessionExerciseId: string, reps: number | null) => void;
+  } | null;
   /**
    * The ⋯ menu's items after this section's own (note, sticky note, warm-ups,
    * rest): Replace, superset options, Preferences and Remove (#269, #271).
@@ -433,6 +438,19 @@ export function SessionExerciseSection({
   }
 
   const nextDraft = draftFor(nextIndex);
+
+  // What the next set's reps box shows, typed or suggested: tempo cues run
+  // for that many reps (issue #867).
+  const nextSetRepsValue =
+    parseSetDraftNumber(nextDraft.reps) ?? parseSetDraftNumber(suggestedRepsFor(nextIndex));
+  const nextSetReps =
+    tempo && nextSetRepsValue !== null && nextSetRepsValue >= 1
+      ? Math.floor(nextSetRepsValue)
+      : null;
+  const reportNextSetReps = tempoCues?.onNextSetReps;
+  useEffect(() => {
+    reportNextSetReps?.(item.id, nextSetReps);
+  }, [reportNextSetReps, item.id, nextSetReps]);
 
   // Warm-ups show "W" and working sets are numbered from 1 after them (issue
   // #220), across logged rows followed by the planned rows still to log.

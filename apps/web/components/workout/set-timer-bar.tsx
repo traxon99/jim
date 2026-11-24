@@ -1,18 +1,24 @@
 "use client";
 
 import type { SetTimer } from "@/lib/sessions/use-set-timer";
-import { SET_READY_SECONDS, type Tempo, type TempoCuePhase, tempoPhaseAt } from "@jim/core";
+import { SET_READY_SECONDS, type Tempo, type TempoCuePhase, tempoPositionAt } from "@jim/core";
 import { useRef } from "react";
 import { formatClock } from "./rest-timer-bar";
 import { timerBarClass, timerBarStyle, usePublishFloatingTimerHeight } from "./timer-bar-chrome";
 
 const LABEL_CLASS = "text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500";
 
-const PHASE_LABELS: Record<TempoCuePhase, string> = { down: "Down", pause: "Pause", up: "Up" };
+const PHASE_LABELS: Record<TempoCuePhase, string> = {
+  down: "Down",
+  pause: "Pause",
+  up: "Up",
+  between: "Reset",
+};
 const PHASE_CLASSES: Record<TempoCuePhase, string> = {
   down: "text-blue-600 dark:text-blue-400",
   pause: "text-zinc-500 dark:text-zinc-400",
   up: "text-green-600 dark:text-green-400",
+  between: "text-zinc-500 dark:text-zinc-400",
 };
 
 /**
@@ -25,6 +31,7 @@ export function SetTimerBar({
   timer,
   onStart,
   cueTempo = null,
+  cueReps = null,
   aboveTabBar = false,
 }: {
   timer: SetTimer;
@@ -32,6 +39,8 @@ export function SetTimerBar({
   onStart: () => void;
   /** The tempo being called out, so the bar shows its current phase; null without cues. */
   cueTempo?: Tempo | null;
+  /** The reps the cues run for (issue #867): the bar shows the rep, and Working once they're done. */
+  cueReps?: number | null;
   /** Stick above the translucent tab bar, which overlays the shell's scroller. */
   aboveTabBar?: boolean;
 }) {
@@ -91,7 +100,8 @@ export function SetTimerBar({
   }
 
   if (timer.phase === "running") {
-    const phase = cueTempo ? tempoPhaseAt(cueTempo, timer.elapsed) : null;
+    const position = cueTempo ? tempoPositionAt(cueTempo, timer.elapsed, cueReps) : null;
+    const phase = position?.phase ?? null;
     return (
       <div ref={ref} style={style} className={barClass}>
         <div className="flex min-w-0 items-baseline gap-2">
@@ -101,6 +111,11 @@ export function SetTimerBar({
             </span>
           ) : (
             <span className={LABEL_CLASS}>Working</span>
+          )}
+          {position && cueReps !== null && (
+            <span className="text-base font-semibold tabular-nums">
+              {position.rep}/{cueReps}
+            </span>
           )}
           <span
             className={

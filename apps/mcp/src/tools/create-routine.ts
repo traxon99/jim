@@ -31,7 +31,7 @@ export interface CreateRoutineExerciseInput {
   notes?: string;
   /** A custom progression rule (issue #255); null or absent = none. */
   progression?: ProgressionRule | null;
-  /** Tempo (issue #845), "3-1-1" (down-pause-up, X = explosive lift); null, empty or absent = none. */
+  /** Tempo (issue #845), "3-1-1" or "3-1-1-2" (down-pause-up[-between reps], X = explosive lift); null, empty or absent = none. */
   tempo?: string | null;
 }
 
@@ -47,7 +47,7 @@ export function routineTempo(
   const parsed = parseTempo(tempo);
   if (!parsed) {
     throw new Error(
-      `"${tempo}" isn't a tempo for ${exerciseName}. Use down-pause-up seconds like "3-1-1" (0–20 each, at least one above 0); only the last can be X for an explosive lift.`,
+      `"${tempo}" isn't a tempo for ${exerciseName}. Use down-pause-up seconds like "3-1-1", optionally with seconds between reps like "3-1-1-2" (0–20 each, down, pause or up above 0); only up can be X for an explosive lift.`,
     );
   }
   return formatTempo(parsed);

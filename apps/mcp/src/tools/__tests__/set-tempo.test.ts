@@ -71,6 +71,19 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("set_tempo (#850)", () => {
     ]);
   });
 
+  it("keeps seconds between reps as a fourth phase (#867)", async () => {
+    await setTempo(context, { routine: "Legs", tempo: "3-1-1-2" });
+    expect(await temposOf(legsId)).toEqual([
+      ["Squat", "3-1-1-2"],
+      ["Rowing", null],
+    ]);
+    await setTempo(context, { routine: "Legs", tempo: "4010" });
+    expect(await temposOf(legsId)).toEqual([
+      ["Squat", "4-0-1"],
+      ["Rowing", null],
+    ]);
+  });
+
   it("previews without saving", async () => {
     const result = await setTempo(context, { routine: "Legs", tempo: null, dryRun: true });
     expect(result.routines[0]?.lifts).toEqual([{ exercise: "Squat", tempo: null }]);

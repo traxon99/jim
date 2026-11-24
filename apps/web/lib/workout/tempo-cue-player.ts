@@ -1,6 +1,6 @@
 "use client";
 
-import { type Tempo, type TempoCue, tempoCueSchedule } from "@jim/core";
+import { type Tempo, type TempoCue, tempoCueSchedule, tempoSetCues } from "@jim/core";
 
 /**
  * Tempo cues (issue #846): plays a tempo's cues, one per second, from a
@@ -22,6 +22,7 @@ const WORDS: Record<Exclude<TempoCue, "tick">, string> = {
   down: "Down",
   pause: "Pause",
   up: "Up",
+  between: "Reset",
 };
 
 /** How far ahead tones are put on the audio clock. */
@@ -117,7 +118,10 @@ function playTone(
   oscillator.stop(at + duration);
 }
 
-/** The sound effect for a cue: falling for down, a double beep for pause, rising for up, a click for a tick. */
+/**
+ * The sound effect for a cue: falling for down, a double beep for pause,
+ * rising for up, one low beep for the time between reps, a click for a tick.
+ */
 function playSound(ctx: AudioContext, cue: TempoCue, at: number, live: Set<OscillatorNode>) {
   switch (cue) {
     case "tick":
@@ -132,6 +136,9 @@ function playSound(ctx: AudioContext, cue: TempoCue, at: number, live: Set<Oscil
       break;
     case "up":
       playTone(ctx, at, 420, 900, 0.25, 0.3, live);
+      break;
+    case "between":
+      playTone(ctx, at, 330, 330, 0.18, 0.25, live);
       break;
   }
 }
@@ -152,17 +159,19 @@ function speak(word: string): boolean {
 }
 
 /**
- * Plays `tempo`'s cues on a loop, the first one at `startAtMs` (ms since
- * epoch, may be ahead: the get-ready countdown). Returns a function that
- * stops everything at once.
+ * Plays `tempo`'s cues, the first one at `startAtMs` (ms since epoch, may be
+ * ahead: the get-ready countdown), for `reps` reps (issue #867), or on a loop
+ * when `reps` is null. Returns a function that stops everything at once.
  */
 export function startTempoCues(options: {
   tempo: Tempo;
+  reps: number | null;
   style: TempoCueStyle;
   startAtMs: number;
 }): () => void {
   const ctx = audioContext();
-  const cues = tempoCueSchedule(options.tempo);
+  const set = tempoSetCues(options.tempo, options.reps);
+  const cues = set ?? tempoCueSchedule(options.tempo);
   if (!ctx || cues.length === 0) return () => {};
   // Again here, not only in the tap: skipping the countdown restarts the player.
   enterAmbientSession();
@@ -173,7 +182,7 @@ export function startTempoCues(options: {
 
   const schedule = () => {
     const now = Date.now();
-    while (options.startAtMs + next * 1000 < now + LOOKAHEAD_MS) {
+    while (options.startAtMs + next * 1000 < now + LOOKAHEAD_MS && (!set || next < set.length)) {
       const beatMs = options.startAtMs + next * 1000;
       const cue = cues[next % cues.length] ?? "tick";
       const delayMs = beatMs - now;

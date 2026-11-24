@@ -213,7 +213,7 @@ const routineExerciseSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      'Tempo (issue #845): seconds lowering-pause-lifting, e.g. "3-1-1"; the lift can be X (explosive), e.g. "2-0-X". 0–20 each. Omit, null or "" for none. Saved whether or not the user has the Tempo switch on',
+      'Tempo (issue #845): seconds lowering-pause-lifting, e.g. "3-1-1", with an optional fourth number for seconds between reps (issue #867), e.g. "3-1-1-2"; the lift can be X (explosive), e.g. "2-0-X". 0–20 each. Omit, null or "" for none. Saved whether or not the user has the Tempo switch on',
     ),
   progression: progressionRuleSchema
     .nullable()
@@ -627,7 +627,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "set_tempo",
     {
       title: "Set tempo",
-      description: `Set lifting tempos for a whole routine or a whole program at once, as the phone's Tempo sheet does (issue #850): \`tempo\` puts the same tempo on every lift in scope, \`exercises\` sets single lifts (applied after \`tempo\`). Tempo is seconds lowering-pause-lifting, e.g. "3-1-1"; the lift can be X (explosive), e.g. "2-0-X"; 0–20 each; null or "" clears. Warm-up routines and warm-up or cardio exercises take no tempo. Returns every lift's resulting tempo by routine. The user sees tempos only with Settings → Advanced → Tempo on.${PREVIEW_HINT}`,
+      description: `Set lifting tempos for a whole routine or a whole program at once, as the phone's Tempo sheet does (issue #850): \`tempo\` puts the same tempo on every lift in scope, \`exercises\` sets single lifts (applied after \`tempo\`). Tempo is seconds lowering-pause-lifting, e.g. "3-1-1", with an optional fourth number for seconds between reps, e.g. "3-1-1-2"; the lift can be X (explosive), e.g. "2-0-X"; 0–20 each; null or "" clears. Warm-up routines and warm-up or cardio exercises take no tempo. Returns every lift's resulting tempo by routine. The user sees tempos only with Settings → Advanced → Tempo on.${PREVIEW_HINT}`,
       inputSchema: {
         routine: z.string().optional().describe("Routine id or exact name. Pass this or program."),
         program: z
