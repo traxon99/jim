@@ -1,16 +1,18 @@
 "use client";
 
 import { shareWorkoutText } from "@/lib/workout/share-text";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 interface Props {
   title: string;
   text: string;
   className?: string;
+  /** An icon shown before the label. */
+  icon?: ReactNode;
 }
 
 /** "Share" button for a finished workout — used on the finalize summary and history detail. */
-export function ShareWorkoutButton({ title, text, className }: Props) {
+export function ShareWorkoutButton({ title, text, className, icon }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -22,6 +24,7 @@ export function ShareWorkoutButton({ title, text, className }: Props) {
 
   return (
     <button type="button" onClick={handleShare} data-ripple className={className}>
+      {icon}
       {copied ? "Copied!" : "Share"}
     </button>
   );
