@@ -17,6 +17,12 @@ export interface SummaryExerciseRow {
   setCount: number;
   /** "185 × 5", "× 12", "45s", "5 km · 25:00" — the exercise's best set, or "—". */
   bestSet: string;
+  /**
+   * Every counted set on one line (issue #870): "195 × 8, 8, 7", or
+   * "185 × 8, 8 · 195 × 6" when the weight changes. Timed and cardio
+   * exercises fall back to their best set.
+   */
+  setsLine: string;
   /** Distinct PR kinds hit by any set of the exercise, in first-hit order. */
   prKinds: PrKind[];
   /** The tempo the workout used (issue #845), "3-1-1", or null. */
@@ -41,6 +47,29 @@ function formatSet(set: SessionDetailSet, unit: DistanceUnit): string {
   }
   if (set.reps != null) return `× ${set.reps}`;
   return formatTimedSet(set, unit) ?? "—";
+}
+
+function formatWeight(weight: number): string {
+  return String(Math.round(weight * 100) / 100);
+}
+
+/** "195 × 8, 8, 7", consecutive sets at one weight sharing it; null for timed or cardio sets. */
+export function formatSetsLine(sets: readonly SessionDetailSet[]): string | null {
+  if (sets.length === 0 || sets.some((set) => set.reps == null || set.distance != null))
+    return null;
+  const runs: { weight: number | null; reps: number[] }[] = [];
+  for (const set of sets) {
+    const weight = set.weight != null && set.weight > 0 ? set.weight : null;
+    const last = runs[runs.length - 1];
+    if (last && last.weight === weight) last.reps.push(set.reps as number);
+    else runs.push({ weight, reps: [set.reps as number] });
+  }
+  return runs
+    .map(
+      (run) =>
+        `${run.weight == null ? "" : `${formatWeight(run.weight)} `}× ${run.reps.join(", ")}`,
+    )
+    .join(" · ");
 }
 
 /**
@@ -74,6 +103,7 @@ export function buildSummaryExerciseRows(
       exerciseName: group.exerciseName,
       setCount: counted.length,
       bestSet: formatSet(best, distanceUnit),
+      setsLine: formatSetsLine(counted) ?? formatSet(best, distanceUnit),
       prKinds,
       tempo: group.tempo,
     });

@@ -1,6 +1,6 @@
 import type { SessionDetailExercise, SessionDetailSet } from "@/lib/history/session-detail-entries";
 import { describe, expect, it } from "vitest";
-import { buildSummaryExerciseRows } from "../summary-exercises";
+import { buildSummaryExerciseRows, formatSetsLine } from "../summary-exercises";
 
 function set(
   id: string,
@@ -93,5 +93,31 @@ describe("buildSummaryExerciseRows", () => {
       "km",
     );
     expect(rows[0].bestSet).toBe("5 km · 25:00");
+  });
+});
+
+describe("formatSetsLine", () => {
+  it("shares a weight across consecutive sets and breaks where it changes", () => {
+    expect(formatSetsLine([set("a", 195, 8), set("b", 195, 8), set("c", 195, 7)])).toBe(
+      "195 × 8, 8, 7",
+    );
+    expect(formatSetsLine([set("a", 185, 8), set("b", 195, 6)])).toBe("185 × 8 · 195 × 6");
+    expect(formatSetsLine([set("a", 62.5, 10), set("b", 62.5, 9)])).toBe("62.5 × 10, 9");
+  });
+
+  it("writes bodyweight sets as reps only, and leaves timed sets to the best set", () => {
+    expect(formatSetsLine([set("a", null, 12), set("b", 0, 10)])).toBe("× 12, 10");
+    expect(formatSetsLine([set("a", null, null, { durationSeconds: 60 })])).toBeNull();
+    expect(
+      formatSetsLine([set("a", null, null, { distance: 5, durationSeconds: 1500 })]),
+    ).toBeNull();
+  });
+
+  it("feeds the summary row, with the best set as the fallback", () => {
+    const rows = buildSummaryExerciseRows([
+      group("se1", "Bench Press", [set("a", 195, 8), set("b", 195, 7)]),
+      group("se2", "Plank", [set("p", null, null, { durationSeconds: 60 })]),
+    ]);
+    expect(rows.map((row) => row.setsLine)).toEqual(["195 × 8, 7", "1:00"]);
   });
 });

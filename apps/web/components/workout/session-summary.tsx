@@ -1,26 +1,38 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { CallMark } from "@/components/dpr/call-mark";
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
-import { Send } from "@/components/icons/solar";
-import { RoutineIconById } from "@/components/routines/routine-icon-by-id";
+import { Send, Share, Star, Trophy, Upload } from "@/components/icons/solar";
+import { SECTION_LABEL } from "@/components/page-header";
+import { SEGMENTED_TRACK, segmentClass } from "@/components/routines/plan-nav";
+import { RoutineIconTileById } from "@/components/routines/routine-icon-by-id";
 import { AchievementShareButton } from "@/components/share-card/achievement-share-button";
 import { ShareImageButton } from "@/components/share-card/share-image-button";
-import { RestStatsLine, WorkStatsLine } from "@/components/workout/rest-stats-line";
+import { PostWorkoutInsights } from "@/components/workout/post-workout-insights";
 import { SaveRoutineChangesCard } from "@/components/workout/save-routine-changes-card";
 import { ShareWorkoutButton } from "@/components/workout/share-workout-button";
 import { StravaPostRow } from "@/components/workout/strava-post-row";
-import { type SessionExerciseRow, type SessionRow, type SetRow, db } from "@/lib/db/schema";
-import { achievementPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
+import {
+  type RoutineExerciseRow,
+  type SessionExerciseRow,
+  type SessionRow,
+  type SetRow,
+  db,
+} from "@/lib/db/schema";
+import { type DprCallInfo, dprCallFor, dprTargetLine } from "@/lib/dpr/calls";
+import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { achievementPostDraft, recordPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRestStats, showsSetTimer, showsTempo } from "@/lib/settings/features";
+import { showsTempo } from "@/lib/settings/features";
 import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import {
+  type PrKind,
   achievementsEarnedInSession,
   distanceUnitFor,
   isVisiblePr,
@@ -30,19 +42,90 @@ import {
 } from "@jim/core";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 interface Props {
   session: SessionRow;
   sessionExercises: SessionExerciseRow[];
 }
 
+type Tab = "summary" | "insights";
+
+const TILE =
+  "press surface flex min-h-16 flex-col items-center justify-center gap-1 text-[13px] font-semibold";
+
+/** PR kinds in the order a highlight prefers them: the e1RM first. */
+const PR_ORDER: readonly PrKind[] = ["1rm", "weight", "volume", "reps_at_weight"];
+
+interface PrHighlight {
+  exerciseId: string;
+  exerciseName: string;
+  kind: PrKind;
+  value: number;
+  /** The record it beat, or null for a first. */
+  previous: number | null;
+  /** The set that set it, "195 × 8". */
+  set: string | null;
+}
+
+function formatNumber(n: number): string {
+  return String(Math.round(n * 100) / 100);
+}
+
+/** "10.6k" past 1,000 so four stats fit one strip. */
+function compactVolume(volume: number): { value: string; unit: string } {
+  if (volume < 1000) return { value: String(Math.round(volume)), unit: "" };
+  return { value: (Math.round(volume / 100) / 10).toLocaleString(), unit: "k" };
+}
+
+function timeRange(session: SessionRow): string {
+  const day = session.startedAt.toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const time = (date: Date) => date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return session.endedAt ? `${day} · ${time(session.startedAt)}–${time(session.endedAt)}` : day;
+}
+
+function Stat({
+  value,
+  unit,
+  label,
+  gold = false,
+}: {
+  value: string;
+  unit?: string;
+  label: string;
+  gold?: boolean;
+}) {
+  return (
+    <div className="relative text-center [&+&]:before:absolute [&+&]:before:inset-y-1.5 [&+&]:before:left-0 [&+&]:before:w-px [&+&]:before:bg-zinc-900/10 dark:[&+&]:before:bg-white/10">
+      <dd
+        className={`text-[22px] leading-tight font-bold tracking-tight tabular-nums ${
+          gold ? "text-amber-600 dark:text-amber-400" : ""
+        }`}
+      >
+        {value}
+        {unit && (
+          <span className="ml-px text-[13px] font-semibold tracking-normal text-zinc-500">
+            {unit}
+          </span>
+        )}
+      </dd>
+      <dt className="mt-0.5 text-xs font-medium text-zinc-500">{label}</dt>
+    </div>
+  );
+}
+
 /**
- * "Finalize: summary of volume, duration and PRs" (STORIES.md S6) — reads
- * entirely from Dexie, so it's available the instant a session ends, with
- * no network round trip (docs/ARCHITECTURE.md §1).
+ * "Finalize: summary of volume, duration and PRs" (STORIES.md S6), reworked
+ * in issue #870: one stat strip, PRs and achievements together, one line per
+ * lift with PRP's call for next time, and an Insights tab. Reads entirely
+ * from Dexie, so it's there the instant a session ends (docs/ARCHITECTURE.md §1).
  */
 export function SessionSummary({ session, sessionExercises }: Props) {
+  const [tab, setTab] = useState<Tab>("summary");
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const sessionExerciseIds = useMemo(() => sessionExercises.map((se) => se.id), [sessionExercises]);
 
@@ -55,6 +138,14 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   );
   const rawPersonalRecords = useLiveQuery(() => db.personalRecords.toArray(), []);
   const rawExercises = useLiveQuery(() => db.exercises.toArray(), []);
+  const routineTargets = useLiveQuery(
+    () =>
+      session.routineId
+        ? db.routineExercises.where("routineId").equals(session.routineId).toArray()
+        : Promise.resolve<RoutineExerciseRow[]>([]),
+    [session.routineId],
+  );
+  const dprContext = useDprContext();
 
   const sets = useMemo(
     () => resolveCurrentRows(rawSets ?? []).filter((set) => !set.deletedAt),
@@ -62,11 +153,11 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   );
 
   const setIds = useMemo(() => new Set(sets.map((set) => set.id)), [sets]);
-  const prCount = useMemo(() => {
+  const sessionPrs = useMemo(() => {
     const repsExerciseIds = repsAtWeightExerciseIds(rawExercises ?? []);
     return (rawPersonalRecords ?? []).filter(
       (pr) => !pr.deletedAt && pr.setId && setIds.has(pr.setId) && isVisiblePr(pr, repsExerciseIds),
-    ).length;
+    );
   }, [rawPersonalRecords, rawExercises, setIds]);
 
   const summary = useMemo(
@@ -79,9 +170,9 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         })),
         session.startedAt,
         session.endedAt ?? new Date(),
-        prCount,
+        sessionPrs.length,
       ),
-    [sets, session.startedAt, session.endedAt, prCount],
+    [sets, session.startedAt, session.endedAt, sessionPrs.length],
   );
 
   const exerciseGroups = useMemo(
@@ -113,6 +204,57 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [exerciseGroups, settings.units],
   );
 
+  // One highlight per lift that set a record: its e1RM if it beat that,
+  // else its first kind, with the record it beat.
+  const prHighlights = useMemo<PrHighlight[]>(() => {
+    const result: PrHighlight[] = [];
+    for (const group of exerciseGroups) {
+      const prs = sessionPrs
+        .filter((pr) => pr.exerciseId === group.exerciseId)
+        .sort((a, b) => PR_ORDER.indexOf(a.kind) - PR_ORDER.indexOf(b.kind));
+      const pr = prs[0];
+      if (!pr) continue;
+      const before = (rawPersonalRecords ?? []).filter(
+        (other) =>
+          !other.deletedAt &&
+          other.exerciseId === pr.exerciseId &&
+          other.kind === pr.kind &&
+          other.achievedAt < pr.achievedAt &&
+          !(other.setId && setIds.has(other.setId)),
+      );
+      // A rep record is reps at one weight and PR rows carry no weight, so
+      // earlier rep records aren't comparable: show no gain for them.
+      const previous =
+        pr.kind !== "reps_at_weight" && before.length > 0
+          ? Math.max(...before.map((o) => Number(o.value)))
+          : null;
+      const set = group.sets.find((s) => s.id === pr.setId);
+      result.push({
+        exerciseId: group.exerciseId,
+        exerciseName: group.exerciseName,
+        kind: pr.kind,
+        value: Number(pr.value),
+        previous,
+        set:
+          set?.weight != null && set.reps != null
+            ? `${formatNumber(set.weight)} × ${set.reps}`
+            : null,
+      });
+    }
+    return result;
+  }, [exerciseGroups, sessionPrs, rawPersonalRecords, setIds]);
+
+  const nextCalls = useMemo(() => {
+    const calls = new Map<string, DprCallInfo>();
+    if (!dprContext) return calls;
+    for (const row of exerciseRows) {
+      const target = routineTargets?.find((t) => t.exerciseId === row.exerciseId && !t.deletedAt);
+      const info = dprCallFor(dprContext, row.exerciseId, target ?? null);
+      if (info) calls.set(row.exerciseId, info);
+    }
+    return calls;
+  }, [dprContext, exerciseRows, routineTargets]);
+
   const achievementData = useAchievements();
   const earned = useMemo(
     () =>
@@ -138,156 +280,207 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   );
 
   const minutes = Math.round(summary.durationSeconds / 60);
+  const volume = compactVolume(summary.totalVolume);
+  const units = settings.units;
+  const prLiftIds = new Set(sessionPrs.map((pr) => pr.exerciseId));
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
-      <div>
-        <h1 className="text-xl font-semibold">Workout complete</h1>
-        {session.name && (
-          <p className="mt-1 flex items-center justify-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
-            <RoutineIconById routineId={session.routineId} />
-            {session.name}
-          </p>
-        )}
-      </div>
-
-      <dl className="allow-pwa-select grid grid-cols-2 gap-x-10 gap-y-4 text-left">
-        <div>
-          <dt className="text-xs text-zinc-500 dark:text-zinc-500">Duration</dt>
-          <dd className="text-2xl font-semibold">{minutes} min</dd>
+    <main className="route-fade flex flex-1 flex-col gap-4 px-4 py-4">
+      <header className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <RoutineIconTileById routineId={session.routineId} />
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold tracking-tight">
+              {session.name ?? "Workout"}
+            </h1>
+            <p className="truncate text-sm tabular-nums text-zinc-500">{timeRange(session)}</p>
+          </div>
         </div>
-        <div>
-          <dt className="text-xs text-zinc-500 dark:text-zinc-500">Volume</dt>
-          <dd className="text-2xl font-semibold">
-            {Math.round(summary.totalVolume).toLocaleString()} {settings.units}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-zinc-500 dark:text-zinc-500">Sets</dt>
-          <dd className="text-2xl font-semibold">{summary.setCount}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-zinc-500 dark:text-zinc-500">PRs</dt>
-          <dd className="text-2xl font-semibold">{summary.prCount}</dd>
-        </div>
-      </dl>
-
-      {showsRestStats(settings) && <RestStatsLine sets={sets} className="-mt-2" />}
-      {showsSetTimer(settings) && <WorkStatsLine sets={sets} className="-mt-2" />}
-
-      <SaveRoutineChangesCard session={session} />
-
-      {exerciseRows.length > 0 && (
-        <section aria-label="Exercises" className="flex w-full max-w-sm flex-col gap-2 text-left">
-          <h2 className="text-sm font-semibold">Exercises</h2>
-          <ul className="allow-pwa-select flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-300 px-3 text-sm dark:divide-zinc-800 dark:border-zinc-700">
-            {exerciseRows.map((row) => (
-              <li key={row.sessionExerciseId} className="flex flex-col gap-1 py-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <ExerciseNameButton
-                    exerciseId={row.exerciseId}
-                    userId={session.userId}
-                    className="truncate font-medium"
-                  >
-                    {row.exerciseName}
-                  </ExerciseNameButton>
-                  <span className="shrink-0 text-zinc-600 tabular-nums dark:text-zinc-400">
-                    {row.setCount} {row.setCount === 1 ? "set" : "sets"} · {row.bestSet}
-                  </span>
-                </div>
-                {row.prKinds.length > 0 && (
-                  <span className="flex flex-wrap gap-1">
-                    {row.prKinds.map((kind) => (
-                      <span
-                        key={kind}
-                        className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400"
-                      >
-                        PR · {PR_KIND_LABELS[kind] ?? kind}
-                      </span>
-                    ))}
-                  </span>
-                )}
-                {row.tempo && showsTempo(settings) && (
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Tempo {row.tempo}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {earned.length > 0 && (
-        <section
-          aria-label="Achievements earned"
-          className="flex w-full max-w-xs flex-col gap-3 rounded-lg border border-zinc-300 p-4 dark:border-zinc-700"
-        >
-          <h2 className="text-sm font-semibold">
-            {earned.length === 1
-              ? "Achievement unlocked"
-              : `${earned.length} achievements unlocked`}
-          </h2>
-          <ul className="flex flex-col gap-2 text-left">
-            {earned.map((achievement, index) => (
-              <li key={achievement.id} className="flex items-center gap-3">
-                <AchievementBadge
-                  achievement={achievement}
-                  className="achievement-pop"
-                  style={{ animationDelay: `${index * 90}ms` }}
-                />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-sm font-medium">{achievement.title}</span>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-500">
-                    {achievement.description}
-                  </span>
-                </div>
-                <AchievementShareButton
-                  achievement={achievement}
-                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-zinc-500 dark:text-zinc-400"
-                />
-                <PostToFriendsButton
-                  draft={achievementPostDraft(achievement)}
-                  label={`Post ${achievement.title} to friends`}
-                  className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500 dark:text-zinc-400"
-                >
-                  <Send className="h-4 w-4" strokeWidth={1.75} aria-hidden="true" />
-                </PostToFriendsButton>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <PostToFriendsButton
-        draft={workoutPostDraft(session, summary, settings.units)}
-        className="min-h-11 w-full max-w-xs rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-      />
-
-      <StravaPostRow session={session} mode="finish" />
-
-      <div className="flex flex-wrap justify-center gap-3">
-        <ShareWorkoutButton
-          title={session.name ?? "Workout"}
-          text={shareText}
-          className="min-h-11 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-        />
-        <ShareImageButton
-          build={buildWorkoutCard}
-          title={session.name ?? "Workout"}
-          text={shareText}
-          routineId={session.routineId}
-          on={session.startedAt}
-          className="min-h-11 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-950 dark:border-zinc-700 dark:text-zinc-50"
-        />
         <Link
           href="/workout"
           data-ripple
-          className="min-h-11 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground"
+          className="press flex min-h-11 shrink-0 items-center rounded-full bg-accent px-5 text-base font-semibold text-accent-foreground"
         >
-          Back to workout
+          Done
         </Link>
+      </header>
+
+      <div className={SEGMENTED_TRACK.replace("grid-cols-3", "grid-cols-2")}>
+        {(["summary", "insights"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={tab === value}
+            onClick={() => setTab(value)}
+            className={segmentClass(tab === value)}
+          >
+            {value === "summary" ? "Summary" : "Insights"}
+          </button>
+        ))}
       </div>
+
+      {tab === "insights" ? (
+        <PostWorkoutInsights session={session} settings={settings} />
+      ) : (
+        <>
+          <dl className="surface allow-pwa-select grid grid-cols-4 px-1 py-3.5">
+            <Stat value={String(minutes)} unit="m" label="Time" />
+            <Stat value={volume.value} unit={volume.unit} label={`${units} lifted`} />
+            <Stat value={String(summary.setCount)} label="Sets" />
+            <Stat
+              value={String(summary.prCount)}
+              label={summary.prCount === 1 ? "PR" : "PRs"}
+              gold={summary.prCount > 0}
+            />
+          </dl>
+
+          {(prHighlights.length > 0 || earned.length > 0) && (
+            <ul
+              aria-label="Highlights"
+              className="surface allow-pwa-select divide-y divide-zinc-900/10 py-1 dark:divide-white/10"
+            >
+              {prHighlights.map((pr) => {
+                const gain = pr.previous == null ? null : pr.value - pr.previous;
+                const amount =
+                  pr.kind === "reps_at_weight"
+                    ? `${formatNumber(pr.value)} reps`
+                    : `${formatNumber(pr.value)} ${units}`;
+                return (
+                  <li key={pr.exerciseId} className="flex items-center gap-3 py-2.5 pr-1 pl-4">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400/20 text-amber-600 dark:text-amber-400">
+                      <Trophy className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">
+                        {pr.exerciseName} {PR_KIND_LABELS[pr.kind]}
+                      </p>
+                      <p className="truncate text-sm text-zinc-500 tabular-nums">
+                        {pr.set && pr.kind !== "weight" ? `${pr.set} · ` : ""}
+                        {amount}
+                        {gain != null && gain > 0 && (
+                          <span className="font-semibold text-done"> +{formatNumber(gain)}</span>
+                        )}
+                      </p>
+                    </div>
+                    <PostToFriendsButton
+                      draft={recordPostDraft(pr.exerciseName, pr, units)}
+                      label={`Post ${pr.exerciseName} record to friends`}
+                      className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500"
+                    >
+                      <Send className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                    </PostToFriendsButton>
+                  </li>
+                );
+              })}
+              {earned.map((achievement, index) => (
+                <li key={achievement.id} className="flex items-center gap-3 py-2.5 pr-1 pl-4">
+                  <AchievementBadge
+                    achievement={achievement}
+                    className="achievement-pop"
+                    style={{ animationDelay: `${index * 90}ms` }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{achievement.title}</p>
+                    <p className="truncate text-sm text-zinc-500">{achievement.description}</p>
+                  </div>
+                  <AchievementShareButton
+                    achievement={achievement}
+                    className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-zinc-500"
+                  />
+                  <PostToFriendsButton
+                    draft={achievementPostDraft(achievement)}
+                    label={`Post ${achievement.title} to friends`}
+                    className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500"
+                  >
+                    <Send className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                  </PostToFriendsButton>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {exerciseRows.length > 0 && (
+            <section aria-label="Exercises" className="flex flex-col gap-2">
+              <h2 className={`px-1 ${SECTION_LABEL}`}>Exercises</h2>
+              <ul className="surface allow-pwa-select divide-y divide-zinc-900/10 dark:divide-white/10">
+                {exerciseRows.map((row) => {
+                  const next = nextCalls.get(row.exerciseId);
+                  return (
+                    <li
+                      key={row.sessionExerciseId}
+                      className="flex min-h-14 items-center gap-3 px-4 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="flex min-w-0 items-center gap-1.5 font-semibold">
+                          <ExerciseNameButton
+                            exerciseId={row.exerciseId}
+                            userId={session.userId}
+                            className="truncate text-left"
+                          >
+                            {row.exerciseName}
+                          </ExerciseNameButton>
+                          {prLiftIds.has(row.exerciseId) && (
+                            <Star
+                              className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400"
+                              strokeWidth={1.75}
+                              aria-label="PR"
+                            />
+                          )}
+                        </p>
+                        <p className="truncate text-sm text-zinc-500 tabular-nums">
+                          {row.setsLine}
+                          {row.tempo && showsTempo(settings) && ` · ${row.tempo}`}
+                        </p>
+                        {next && (
+                          <p className="flex min-w-0 items-center gap-1.5 text-[13px] tabular-nums">
+                            <CallMark call={next.decision.call} />
+                            <span className="truncate text-zinc-600 dark:text-zinc-400">
+                              {dprTargetLine(next, units, row.setCount)?.replace(/^Target: /, "")}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          <SaveRoutineChangesCard session={session} />
+
+          <div className="grid grid-cols-3 gap-2.5">
+            <PostToFriendsButton
+              draft={workoutPostDraft(session, summary, units)}
+              label="Post to friends"
+              className={TILE}
+            >
+              <Send className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden="true" />
+              Post
+            </PostToFriendsButton>
+            <ShareImageButton
+              build={buildWorkoutCard}
+              title={session.name ?? "Workout"}
+              text={shareText}
+              routineId={session.routineId}
+              on={session.startedAt}
+              label="Share image"
+              className={TILE}
+            >
+              <Share className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden="true" />
+              Image
+            </ShareImageButton>
+            <ShareWorkoutButton
+              title={session.name ?? "Workout"}
+              text={shareText}
+              className={TILE}
+              icon={<Upload className="h-[22px] w-[22px]" strokeWidth={1.75} aria-hidden="true" />}
+            />
+          </div>
+
+          <StravaPostRow session={session} mode="finish" />
+        </>
+      )}
     </main>
   );
 }
