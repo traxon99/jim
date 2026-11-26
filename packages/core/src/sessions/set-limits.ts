@@ -1,6 +1,6 @@
 /**
  * The largest values the server's `sets` columns can hold (issue #500):
- * weight is numeric(7,2), distance numeric(8,2), reps and duration integers.
+ * weight is numeric(7,2), distance numeric(10,4), reps and duration integers.
  * A value past these overflows on every push, so the set would never sync;
  * it's refused when it's entered instead.
  */
@@ -8,7 +8,7 @@ export const SET_LIMITS = {
   weight: 99_999.99,
   reps: 9_999,
   durationSeconds: 999_999,
-  distance: 999_999.99,
+  distance: 999_999.9999,
 } as const;
 
 export interface SetValuesToCheck {

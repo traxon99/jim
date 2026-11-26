@@ -14,15 +14,18 @@ import { showsRestStats } from "@/lib/settings/features";
 import {
   PULLEY_LABELS,
   bodyMapView,
-  computeCardioBests,
+  buildCardioRecordBook,
+  cardioKindOf,
+  cardioProfile,
+  cardioRecordLabel,
+  cardioRecordOrder,
   deletedSessionExerciseIds,
   distanceUnitFor,
   estimatedOneRepMaxSeries,
   exerciseDemo,
   exerciseDisplayName,
   exerciseMuscleShading,
-  formatDistance,
-  formatDuration,
+  formatCardioRecordValue,
   formatTimedSet,
   isCardioExercise,
   isWarmupExercise,
@@ -146,7 +149,39 @@ export function ExerciseDetail({
   );
 
   const frequency = useMemo(() => warmupFrequency(resolvedSets ?? [], new Date()), [resolvedSets]);
-  const cardioBests = useMemo(() => computeCardioBests(resolvedSets ?? []), [resolvedSets]);
+  // Every record this kind of cardio keeps (issue #872): standard distances,
+  // then the longest and fastest, each with the day it was set.
+  const cardioRecords = useMemo(() => {
+    if (!exercise || !isCardioExercise(exercise) || !resolvedSets) return [];
+    const kind = cardioKindOf(exercise);
+    const profile = cardioProfile(kind);
+    const tracksDistance =
+      exercise.trackingType === "distance" || exercise.trackingType === "distance_time";
+    const book = buildCardioRecordBook(
+      resolvedSets.map((set) => ({
+        id: set.id,
+        groupId: set.sessionExerciseId,
+        completedAt: set.completedAt,
+        distance: set.distance,
+        durationSeconds: set.durationSeconds,
+      })),
+      kind,
+      distanceUnit,
+      tracksDistance,
+    );
+    return cardioRecordOrder(kind, tracksDistance).flatMap((id) => {
+      const best = book.bests.get(id);
+      if (!best) return [];
+      return [
+        {
+          id,
+          label: cardioRecordLabel(id, profile),
+          value: formatCardioRecordValue(id, best.value, distanceUnit, profile),
+          achievedAt: best.achievedAt,
+        },
+      ];
+    });
+  }, [exercise, resolvedSets, distanceUnit]);
 
   if (exercise === undefined) {
     return null;
@@ -322,49 +357,26 @@ export function ExerciseDetail({
               </section>
             )}
 
-            {isCardio &&
-              (cardioBests.distance != null ||
-                cardioBests.durationSeconds != null ||
-                cardioBests.paceSeconds != null) && (
-                <section>
-                  <h2 className="text-sm font-semibold">Records</h2>
-                  <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
-                    {[
-                      {
-                        label: "Longest distance",
-                        value:
-                          cardioBests.distance != null
-                            ? formatDistance(cardioBests.distance, distanceUnit)
-                            : "—",
-                      },
-                      {
-                        label: "Longest time",
-                        value:
-                          cardioBests.durationSeconds != null
-                            ? formatDuration(cardioBests.durationSeconds)
-                            : "—",
-                      },
-                      {
-                        label: "Fastest pace",
-                        value:
-                          cardioBests.paceSeconds != null
-                            ? `${formatDuration(cardioBests.paceSeconds)} /${distanceUnit}`
-                            : "—",
-                      },
-                    ].map((stat) => (
-                      <div
-                        key={stat.label}
-                        className="min-w-0 rounded-lg bg-zinc-100 px-2 py-2 dark:bg-zinc-900"
-                      >
-                        <dt className="text-xs text-zinc-500 dark:text-zinc-500">{stat.label}</dt>
-                        <dd className="truncate text-base font-semibold tabular-nums">
-                          {stat.value}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              )}
+            {isCardio && cardioRecords.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold">Records</h2>
+                <ul className="mt-2 divide-y divide-zinc-900/10 rounded-2xl bg-zinc-100 dark:divide-white/10 dark:bg-zinc-900">
+                  {cardioRecords.map((record) => (
+                    <li key={record.id} className="flex min-h-11 items-center gap-3 px-3 py-2">
+                      <span className="min-w-0 flex-1 truncate text-sm">{record.label}</span>
+                      <span className="text-xs text-zinc-500 tabular-nums">
+                        {record.achievedAt.toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "2-digit",
+                        })}
+                      </span>
+                      <span className="text-base font-semibold tabular-nums">{record.value}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {!isWarmup && !isCardio && oneRepMaxPoints.length > 0 && (
               <section>

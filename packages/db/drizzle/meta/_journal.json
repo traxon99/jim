@@ -603,6 +603,13 @@
       "when": 1795483393596,
       "tag": "0085_tempo_count_reps",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1795719887414,
+      "tag": "0086_cardio_distance_precision",
+      "breakpoints": true
     }
   ]
 }

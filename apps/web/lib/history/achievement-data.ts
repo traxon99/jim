@@ -14,12 +14,17 @@ import type {
 import { strengthProfileFromSettings } from "@/lib/strength-standards/profile";
 import {
   type Achievement,
+  type AchievementCardioSet,
   type AchievementSet,
   type AchievementStrengthRecord,
   type TrainingStreak,
+  cardioKindOf,
   dayKeyNoon,
   deletedSessionExerciseIds,
   deriveAchievements,
+  distanceToMeters,
+  distanceUnitFor,
+  isCardioExercise,
   isStrengthExercise,
   resolveCurrentRows,
   sickDayKeys,
@@ -32,7 +37,10 @@ import {
 export interface AchievementTables {
   sessions: readonly SessionRow[];
   sessionExercises: readonly SessionExerciseRow[];
-  exercises: readonly Pick<ExerciseRow, "id" | "slug" | "equipment" | "category">[];
+  exercises: readonly Pick<
+    ExerciseRow,
+    "id" | "slug" | "name" | "equipment" | "category" | "trackingType"
+  >[];
   sets: readonly SetRow[];
   personalRecords: readonly PersonalRecordRow[];
   programs: readonly ProgramRow[];
@@ -66,12 +74,30 @@ export function buildAchievementData(
   const sessionExerciseById = new Map(tables.sessionExercises.map((se) => [se.id, se]));
 
   const sets: AchievementSet[] = [];
+  // Cardio sets for cardio badges (issue #872), distance in meters.
+  const cardioSets: AchievementCardioSet[] = [];
+  const distanceUnit = distanceUnitFor(settings.units);
   for (const set of resolveCurrentRows(tables.sets)) {
     if (set.deletedAt || set.kind === "warmup") continue;
     const sessionExercise = sessionExerciseById.get(set.sessionExerciseId);
     if (!sessionExercise || deleted.has(sessionExercise.id)) continue;
     if (!finishedIds.has(sessionExercise.sessionId)) continue;
     const exercise = exerciseById.get(sessionExercise.exerciseId);
+    if (exercise && isCardioExercise(exercise)) {
+      const distance = set.distance == null ? null : Number(set.distance);
+      cardioSets.push({
+        sessionId: sessionExercise.sessionId,
+        groupId: sessionExercise.id,
+        completedAt: set.completedAt,
+        kind: cardioKindOf(exercise),
+        meters:
+          distance != null && Number.isFinite(distance) && distance > 0
+            ? distanceToMeters(distance, distanceUnit)
+            : null,
+        durationSeconds: set.durationSeconds,
+      });
+      continue;
+    }
     if (!exercise || !isStrengthExercise(exercise)) continue;
     sets.push({
       sessionId: sessionExercise.sessionId,
@@ -116,6 +142,7 @@ export function buildAchievementData(
     strengthProfile: strengthProfileFromSettings(settings, now),
     bodyweightOn: bodyweightOnDate(bodyweightSeries(tables.bodyMeasurements ?? [], settings.units)),
     strengthRecords,
+    cardioSets,
   });
 
   const activeProgram = tables.programs.find((program) => program.isActive && !program.deletedAt);

@@ -1,6 +1,7 @@
 "use client";
 
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { CARDIO_SPORT_ICON } from "@/components/cardio/cardio-sport";
 import { CallMark } from "@/components/dpr/call-mark";
 import { ExerciseNameButton } from "@/components/exercises/exercise-name-button";
 import { PostToFriendsButton } from "@/components/friends/post-to-friends-button";
@@ -23,7 +24,12 @@ import {
 } from "@/lib/db/schema";
 import { type DprCallInfo, dprCallFor, dprTargetLine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
-import { achievementPostDraft, recordPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
+import {
+  achievementPostDraft,
+  cardioRecordPostDraft,
+  recordPostDraft,
+  workoutPostDraft,
+} from "@/lib/friends/post-drafts";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
 import { useAchievements } from "@/lib/history/use-achievements";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
@@ -31,6 +37,7 @@ import { showsTempo } from "@/lib/settings/features";
 import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
+import { useSessionCardioRecords } from "@/lib/workout/use-session-cardio-records";
 import {
   type PrKind,
   achievementsEarnedInSession,
@@ -199,6 +206,15 @@ export function SessionSummary({ session, sessionExercises }: Props) {
     [session.name, session.startedAt, settings.units, summary, exerciseGroups],
   );
 
+  const distanceUnit = distanceUnitFor(settings.units);
+  const cardioRecords = useSessionCardioRecords(sessionExercises, rawExercises, distanceUnit);
+  // A cardio-only workout lifted nothing, so the strip shows how far it went.
+  const totalDistance = useMemo(() => {
+    if (!rawSets) return 0;
+    return resolveCurrentRows(rawSets)
+      .filter((set) => !set.deletedAt && set.completedAt)
+      .reduce((sum, set) => sum + Number(set.distance ?? 0), 0);
+  }, [rawSets]);
   const exerciseRows = useMemo(
     () => buildSummaryExerciseRows(exerciseGroups, distanceUnitFor(settings.units)),
     [exerciseGroups, settings.units],
@@ -282,6 +298,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   const minutes = Math.round(summary.durationSeconds / 60);
   const volume = compactVolume(summary.totalVolume);
   const units = settings.units;
+  const prCount = summary.prCount + (cardioRecords?.length ?? 0);
   const prLiftIds = new Set(sessionPrs.map((pr) => pr.exerciseId));
 
   return (
@@ -325,16 +342,20 @@ export function SessionSummary({ session, sessionExercises }: Props) {
         <>
           <dl className="surface allow-pwa-select grid grid-cols-4 px-1 py-3.5">
             <Stat value={String(minutes)} unit="m" label="Time" />
-            <Stat value={volume.value} unit={volume.unit} label={`${units} lifted`} />
+            {summary.totalVolume === 0 && totalDistance > 0 ? (
+              <Stat
+                value={formatNumber(Math.round(totalDistance * 10) / 10)}
+                unit={distanceUnit}
+                label="Distance"
+              />
+            ) : (
+              <Stat value={volume.value} unit={volume.unit} label={`${units} lifted`} />
+            )}
             <Stat value={String(summary.setCount)} label="Sets" />
-            <Stat
-              value={String(summary.prCount)}
-              label={summary.prCount === 1 ? "PR" : "PRs"}
-              gold={summary.prCount > 0}
-            />
+            <Stat value={String(prCount)} label={prCount === 1 ? "PR" : "PRs"} gold={prCount > 0} />
           </dl>
 
-          {(prHighlights.length > 0 || earned.length > 0) && (
+          {(prHighlights.length > 0 || earned.length > 0 || (cardioRecords?.length ?? 0) > 0) && (
             <ul
               aria-label="Highlights"
               className="surface allow-pwa-select divide-y divide-zinc-900/10 py-1 dark:divide-white/10"
@@ -365,6 +386,33 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                     <PostToFriendsButton
                       draft={recordPostDraft(pr.exerciseName, pr, units)}
                       label={`Post ${pr.exerciseName} record to friends`}
+                      className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500"
+                    >
+                      <Send className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                    </PostToFriendsButton>
+                  </li>
+                );
+              })}
+              {cardioRecords?.map((record) => {
+                const Icon = CARDIO_SPORT_ICON[record.kind];
+                return (
+                  <li key={record.key} className="flex items-center gap-3 py-2.5 pr-1 pl-4">
+                    <span className="record-medal relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-amber-900">
+                      <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{record.label}</p>
+                      <p className="truncate text-sm text-zinc-500 tabular-nums">
+                        {record.exerciseName} ·{" "}
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          {record.value}
+                        </span>
+                        {record.previous && ` · was ${record.previous}`}
+                      </p>
+                    </div>
+                    <PostToFriendsButton
+                      draft={cardioRecordPostDraft(record)}
+                      label={`Post ${record.exerciseName} ${record.label} to friends`}
                       className="min-h-11 min-w-11 shrink-0 rounded-full text-zinc-500"
                     >
                       <Send className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />

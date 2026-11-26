@@ -64,3 +64,17 @@ export function achievementPostDraft(achievement: Pick<Achievement, "title" | "d
     detail: achievement.description,
   } satisfies Shareable;
 }
+
+/** "Fastest 5K · 26:05": a cardio record (issue #872). */
+export function cardioRecordPostDraft(record: {
+  exerciseName: string;
+  label: string;
+  value: string;
+}) {
+  return {
+    kind: "record",
+    sessionId: null,
+    title: record.exerciseName,
+    detail: `${record.label} · ${record.value}`,
+  } satisfies Shareable;
+}

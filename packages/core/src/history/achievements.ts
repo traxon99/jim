@@ -1,3 +1,5 @@
+import { type DistanceUnit, distanceUnitFor } from "../cardio/format";
+import { type CardioKind, METERS_PER_UNIT } from "../cardio/kind";
 import { tierForOneRepMax } from "../strength-standards/lookup";
 import {
   STRENGTH_STANDARD_TIERS,
@@ -175,9 +177,29 @@ export interface AchievementInput {
    */
   bodyweightOn?: (date: Date) => number | null;
   strengthRecords: readonly AchievementStrengthRecord[];
+  /** Finished cardio sets (issue #872); cardio badges are skipped without them. */
+  cardioSets?: readonly AchievementCardioSet[];
 }
 
-export type AchievementCategory = "workouts" | "volume" | "plates" | "bodyweight" | "strength";
+/** One resolved, non-deleted cardio set from a finished, non-deleted workout. */
+export interface AchievementCardioSet {
+  sessionId: string;
+  /** Groups a workout's sets of one exercise, for rounds in a workout. */
+  groupId: string;
+  completedAt: Date;
+  kind: CardioKind;
+  /** Null for time-only cardio. */
+  meters: number | null;
+  durationSeconds: number | null;
+}
+
+export type AchievementCategory =
+  | "workouts"
+  | "volume"
+  | "plates"
+  | "bodyweight"
+  | "strength"
+  | "cardio";
 
 export interface Achievement {
   id: string;
@@ -190,6 +212,8 @@ export interface Achievement {
   sessionId: string | null;
   /** How close an unearned count-based milestone is. */
   progress: { current: number; target: number } | null;
+  /** The cardio kind a cardio badge belongs to (issue #872), for its color and icon. */
+  sport?: CardioKind;
 }
 
 const WORKOUT_MILESTONES = [1, 10, 25, 50, 100, 250, 500, 1000] as const;
@@ -362,6 +386,281 @@ export function deriveAchievements(input: AchievementInput): Achievement[] {
     });
   }
 
+  achievements.push(...cardioAchievements(input.cardioSets ?? [], distanceUnitFor(input.units)));
+
+  return achievements;
+}
+
+// ---------------------------------------------------------------------------
+// Cardio (issue #872)
+// ---------------------------------------------------------------------------
+
+type CardioMilestone =
+  /** One set at least this far. */
+  | { type: "single"; id: string; title: string; description: string; meters: number }
+  /** This far in total; progress counts in `per` meters (a mile, a km, a meter). */
+  | { type: "total"; id: string; title: string; description: string; meters: number; per: number }
+  /** This many seconds in total. */
+  | { type: "time"; id: string; title: string; description: string; seconds: number }
+  /** This many rounds in one workout. */
+  | { type: "rounds"; id: string; title: string; description: string; rounds: number };
+
+const MILE = 1609.344;
+
+function unitTotals(
+  kind: string,
+  verb: string,
+  unit: DistanceUnit,
+  amounts: readonly number[],
+): CardioMilestone[] {
+  return amounts.map((amount) => ({
+    type: "total" as const,
+    id: `${kind}-total-${amount}${unit}`,
+    title: `${amount.toLocaleString()} ${unit === "mi" ? "miles" : "km"} ${verb}`,
+    description: `${verb[0]?.toUpperCase()}${verb.slice(1)} ${amount.toLocaleString()} ${unit} in total`,
+    meters: amount * METERS_PER_UNIT[unit],
+    per: METERS_PER_UNIT[unit],
+  }));
+}
+
+function cardioMilestones(kind: CardioKind, unit: DistanceUnit): CardioMilestone[] {
+  switch (kind) {
+    case "run":
+      return [
+        {
+          type: "single",
+          id: "run-5k",
+          title: "First 5K",
+          description: "Run 5 km in one go",
+          meters: 5000,
+        },
+        {
+          type: "single",
+          id: "run-10k",
+          title: "First 10K",
+          description: "Run 10 km in one go",
+          meters: 10_000,
+        },
+        {
+          type: "single",
+          id: "run-half",
+          title: "Half marathon",
+          description: "Run 21.1 km in one go",
+          meters: 21_097.5,
+        },
+        {
+          type: "single",
+          id: "run-marathon",
+          title: "Marathon",
+          description: "Run 42.2 km in one go",
+          meters: 42_195,
+        },
+        ...unitTotals("run", "run", unit, [50, 100, 500, 1000]),
+      ];
+    case "walk":
+      return unitTotals("walk", "walked", unit, [50, 100, 500]);
+    case "ride":
+      return [
+        unit === "mi"
+          ? {
+              type: "single",
+              id: "ride-25mi",
+              title: "25-mile ride",
+              description: "Ride 25 miles in one go",
+              meters: 25 * MILE,
+            }
+          : {
+              type: "single",
+              id: "ride-40k",
+              title: "40 km ride",
+              description: "Ride 40 km in one go",
+              meters: 40_000,
+            },
+        {
+          type: "single",
+          id: "ride-100k",
+          title: "Metric century",
+          description: "Ride 100 km in one go",
+          meters: 100_000,
+        },
+        {
+          type: "single",
+          id: "ride-century",
+          title: "Century ride",
+          description: "Ride 100 miles in one go",
+          meters: 100 * MILE,
+        },
+        ...unitTotals("ride", "ridden", unit, [500, 1000, 5000]),
+      ];
+    case "row":
+    case "ski": {
+      const verb = kind === "row" ? "rowed" : "skied";
+      return [
+        {
+          type: "single",
+          id: `${kind}-2k`,
+          title: kind === "row" ? "First 2K row" : "First 2K ski",
+          description: "2,000 m in one go",
+          meters: 2000,
+        },
+        ...[100_000, 500_000, 1_000_000].map((meters) => ({
+          type: "total" as const,
+          id: `${kind}-total-${meters}m`,
+          title: `${meters.toLocaleString()} m ${verb}`,
+          description: `${meters.toLocaleString()} m ${verb} in total`,
+          meters,
+          per: 1,
+        })),
+      ];
+    }
+    case "swim":
+      return [
+        {
+          type: "single",
+          id: "swim-1k",
+          title: "1 km swim",
+          description: "Swim 1,000 m in one go",
+          meters: 1000,
+        },
+        {
+          type: "single",
+          id: "swim-1500",
+          title: "1,500 m swim",
+          description: "Swim 1,500 m in one go",
+          meters: 1500,
+        },
+        ...[10_000, 50_000, 100_000].map((meters) => ({
+          type: "total" as const,
+          id: `swim-total-${meters}m`,
+          title: `${meters / 1000} km swum`,
+          description: `Swim ${meters / 1000} km in total`,
+          meters,
+          per: 1000,
+        })),
+      ];
+    case "stairs":
+      return [5, 10, 25].map((hours) => ({
+        type: "time" as const,
+        id: `stairs-${hours}h`,
+        title: `${hours} hours climbed`,
+        description: `Climb for ${hours} hours in total`,
+        seconds: hours * 3600,
+      }));
+    case "boxing":
+      return [6, 12].map((rounds) => ({
+        type: "rounds" as const,
+        id: `boxing-${rounds}-rounds`,
+        title: `${rounds} rounds`,
+        description: `Box ${rounds} rounds in one workout`,
+        rounds,
+      }));
+    case "rope":
+      return [1, 5].map((hours) => ({
+        type: "time" as const,
+        id: `rope-${hours}h`,
+        title: hours === 1 ? "1 hour skipped" : `${hours} hours skipped`,
+        description: `Jump rope for ${hours} ${hours === 1 ? "hour" : "hours"} in total`,
+        seconds: hours * 3600,
+      }));
+    default:
+      return [];
+  }
+}
+
+const CARDIO_KIND_ORDER: readonly CardioKind[] = [
+  "run",
+  "walk",
+  "ride",
+  "row",
+  "ski",
+  "swim",
+  "elliptical",
+  "stairs",
+  "boxing",
+  "rope",
+  "other",
+];
+
+const CARDIO_HOURS = [10, 50, 100] as const;
+
+/**
+ * Cardio badges (issue #872): firsts at a distance, distance or time totals
+ * per kind, rounds in a workout for bag work, and hours of cardio overall.
+ * Only kinds someone has logged get badges, so a runner isn't shown a shelf
+ * of locked swim badges.
+ */
+function cardioAchievements(
+  cardioSets: readonly AchievementCardioSet[],
+  unit: DistanceUnit,
+): Achievement[] {
+  if (cardioSets.length === 0) return [];
+  const sets = byTime(cardioSets, (set) => set.completedAt);
+  const achievements: Achievement[] = [];
+  const kinds = CARDIO_KIND_ORDER.filter((kind) => sets.some((set) => set.kind === kind));
+  for (const kind of kinds) {
+    const own = sets.filter((set) => set.kind === kind);
+    for (const milestone of cardioMilestones(kind, unit)) {
+      let hit: AchievementCardioSet | null = null;
+      let current = 0;
+      let target = 0;
+      if (milestone.type === "single") {
+        hit = own.find((set) => (set.meters ?? 0) >= milestone.meters * 0.995) ?? null;
+      } else if (milestone.type === "total" || milestone.type === "time") {
+        target = milestone.type === "total" ? milestone.meters : milestone.seconds;
+        for (const set of own) {
+          current += milestone.type === "total" ? (set.meters ?? 0) : (set.durationSeconds ?? 0);
+          if (!hit && current >= target) hit = set;
+        }
+      } else {
+        const counts = new Map<string, number>();
+        for (const set of own) {
+          const count = (counts.get(set.groupId) ?? 0) + 1;
+          counts.set(set.groupId, count);
+          if (!hit && count >= milestone.rounds) hit = set;
+        }
+      }
+      let progress: Achievement["progress"] = null;
+      if (!hit && milestone.type === "total") {
+        progress = {
+          current: Math.floor(current / milestone.per),
+          target: Math.round(target / milestone.per),
+        };
+      } else if (!hit && milestone.type === "time") {
+        progress = { current: Math.floor(current / 3600), target: target / 3600 };
+      }
+      achievements.push({
+        id: `cardio-${milestone.id}`,
+        category: "cardio",
+        title: milestone.title,
+        description: milestone.description,
+        achievedAt: hit?.completedAt ?? null,
+        sessionId: hit?.sessionId ?? null,
+        progress,
+        sport: kind,
+      });
+    }
+  }
+  let seconds = 0;
+  const hourHits = new Map<number, AchievementCardioSet>();
+  for (const set of sets) {
+    seconds += set.durationSeconds ?? 0;
+    for (const hours of CARDIO_HOURS) {
+      if (seconds >= hours * 3600 && !hourHits.has(hours)) hourHits.set(hours, set);
+    }
+  }
+  for (const hours of CARDIO_HOURS) {
+    const hit = hourHits.get(hours);
+    achievements.push({
+      id: `cardio-hours-${hours}`,
+      category: "cardio",
+      title: `${hours} hours of cardio`,
+      description: `Log ${hours} hours of cardio`,
+      achievedAt: hit?.completedAt ?? null,
+      sessionId: hit?.sessionId ?? null,
+      progress: hit ? null : { current: Math.floor(seconds / 3600), target: hours },
+      sport: "other",
+    });
+  }
   return achievements;
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "sets" ALTER COLUMN "distance" SET DATA TYPE numeric(10, 4);
