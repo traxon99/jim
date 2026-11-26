@@ -21,7 +21,7 @@ import {
   type SetRow,
   db,
 } from "@/lib/db/schema";
-import { dprCallFor } from "@/lib/dpr/calls";
+import { type DprCallInfo, dprCallFor, dprTargetLine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
 import { achievementPostDraft, recordPostDraft, workoutPostDraft } from "@/lib/friends/post-drafts";
 import { buildSessionDetailExercises } from "@/lib/history/session-detail-entries";
@@ -32,7 +32,6 @@ import { type CardExtras, workoutCardInput } from "@/lib/share-card/build";
 import { buildWorkoutShareText } from "@/lib/workout/share-text";
 import { PR_KIND_LABELS, buildSummaryExerciseRows } from "@/lib/workout/summary-exercises";
 import {
-  type DprCall,
   type PrKind,
   achievementsEarnedInSession,
   distanceUnitFor,
@@ -223,7 +222,12 @@ export function SessionSummary({ session, sessionExercises }: Props) {
           other.achievedAt < pr.achievedAt &&
           !(other.setId && setIds.has(other.setId)),
       );
-      const previous = before.length > 0 ? Math.max(...before.map((o) => Number(o.value))) : null;
+      // A rep record is reps at one weight and PR rows carry no weight, so
+      // earlier rep records aren't comparable: show no gain for them.
+      const previous =
+        pr.kind !== "reps_at_weight" && before.length > 0
+          ? Math.max(...before.map((o) => Number(o.value)))
+          : null;
       const set = group.sets.find((s) => s.id === pr.setId);
       result.push({
         exerciseId: group.exerciseId,
@@ -241,13 +245,12 @@ export function SessionSummary({ session, sessionExercises }: Props) {
   }, [exerciseGroups, sessionPrs, rawPersonalRecords, setIds]);
 
   const nextCalls = useMemo(() => {
-    const calls = new Map<string, { call: DprCall; weight: number | null }>();
+    const calls = new Map<string, DprCallInfo>();
     if (!dprContext) return calls;
     for (const row of exerciseRows) {
       const target = routineTargets?.find((t) => t.exerciseId === row.exerciseId && !t.deletedAt);
       const info = dprCallFor(dprContext, row.exerciseId, target ?? null);
-      if (info)
-        calls.set(row.exerciseId, { call: info.decision.call, weight: info.decision.weight });
+      if (info) calls.set(row.exerciseId, info);
     }
     return calls;
   }, [dprContext, exerciseRows, routineTargets]);
@@ -398,10 +401,7 @@ export function SessionSummary({ session, sessionExercises }: Props) {
 
           {exerciseRows.length > 0 && (
             <section aria-label="Exercises" className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between px-1">
-                <h2 className={SECTION_LABEL}>Exercises</h2>
-                {nextCalls.size > 0 && <span className="text-[13px] text-zinc-500">Next time</span>}
-              </div>
+              <h2 className={`px-1 ${SECTION_LABEL}`}>Exercises</h2>
               <ul className="surface allow-pwa-select divide-y divide-zinc-900/10 dark:divide-white/10">
                 {exerciseRows.map((row) => {
                   const next = nextCalls.get(row.exerciseId);
@@ -431,15 +431,15 @@ export function SessionSummary({ session, sessionExercises }: Props) {
                           {row.setsLine}
                           {row.tempo && showsTempo(settings) && ` · ${row.tempo}`}
                         </p>
+                        {next && (
+                          <p className="flex min-w-0 items-center gap-1.5 text-[13px] tabular-nums">
+                            <CallMark call={next.decision.call} />
+                            <span className="truncate text-zinc-600 dark:text-zinc-400">
+                              {dprTargetLine(next, units, row.setCount)?.replace(/^Target: /, "")}
+                            </span>
+                          </p>
+                        )}
                       </div>
-                      {next && (
-                        <div className="shrink-0 text-right text-[13px] tabular-nums">
-                          <CallMark call={next.call} />
-                          {next.weight != null && (
-                            <p className="text-sm font-semibold">{formatNumber(next.weight)}</p>
-                          )}
-                        </div>
-                      )}
                     </li>
                   );
                 })}

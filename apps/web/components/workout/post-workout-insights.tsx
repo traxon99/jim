@@ -47,6 +47,8 @@ function Delta({
   const Arrow = change > 0 ? ArrowUp : ArrowDown;
   return (
     <span
+      role="img"
+      aria-label={`${change > 0 ? "Up" : "Down"} ${label}, ${good ? "better" : "worse"}`}
       className={`inline-flex h-6 items-center gap-0.5 rounded-full pr-2 pl-1.5 text-[13px] font-bold tabular-nums ${
         good ? "bg-done/15 text-done" : "bg-orange-500/15 text-orange-600 dark:text-orange-400"
       }`}
