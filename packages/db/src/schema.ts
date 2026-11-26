@@ -764,7 +764,7 @@ export const sets = pgTable(
     weight: numeric("weight", { precision: 7, scale: 2 }),
     reps: integer("reps"),
     durationSeconds: integer("duration_seconds"),
-    distance: numeric("distance", { precision: 8, scale: 2 }),
+    distance: numeric("distance", { precision: 10, scale: 4 }),
     rpe: numeric("rpe", { precision: 3, scale: 1 }),
     rir: integer("rir"),
     // Rest taken before this set (issue #233): seconds since the session's

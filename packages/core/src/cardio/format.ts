@@ -61,3 +61,27 @@ export function formatTimedSet(set: CardioSetValues, unit: DistanceUnit): string
   if (set.durationSeconds == null) return null;
   return set.durationSeconds < 60 ? `${set.durationSeconds}s` : formatDuration(set.durationSeconds);
 }
+
+/**
+ * Timer-style time entry (issue #872): digits fill from the right, so typing
+ * 2-6-0-5 reads "26:05" and 1-0-8-2-0 reads "1:08:20". A phone's number pad
+ * has no colon, so one box of digits stands in for minutes and seconds.
+ */
+export function durationDigitsText(digits: string): string {
+  const clean = digits.replace(/\D/g, "").replace(/^0+/, "").slice(0, 6);
+  if (clean === "") return "";
+  const padded = clean.padStart(3, "0");
+  const seconds = padded.slice(-2);
+  const rest = padded.slice(0, -2);
+  if (rest.length <= 2) return `${Number(rest)}:${seconds}`;
+  return `${Number(rest.slice(0, -2))}:${rest.slice(-2)}:${seconds}`;
+}
+
+/** The seconds a timer-style entry stands for, or null when empty. */
+export function durationFromDigits(digits: string): number | null {
+  const text = durationDigitsText(digits);
+  if (text === "") return null;
+  const parts = text.split(":").map(Number);
+  const seconds = parts.reduce((total, part) => total * 60 + part, 0);
+  return seconds > 0 ? seconds : null;
+}

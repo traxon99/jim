@@ -1,6 +1,7 @@
 import {
   Disc3,
   Dumbbell,
+  HeartPulse,
   type IconComponent,
   PersonStanding,
   Trophy,
@@ -43,6 +44,7 @@ const ICONS: Record<AchievementCategory, IconComponent> = {
   plates: Disc3,
   bodyweight: PersonStanding,
   strength: Trophy,
+  cardio: HeartPulse,
 };
 
 interface Props {

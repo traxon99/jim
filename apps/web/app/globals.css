@@ -1173,3 +1173,58 @@ body.pwa .allow-pwa-select {
     display: none;
   }
 }
+
+/* A cardio record banner (issue #872, components/workout/cardio-record-toast.tsx):
+   it drops in from the top with an ease-out and leaves the way it came,
+   20% faster (docs/ANIMATION.md rules 1, 12, 15). The medal is the PR
+   plate's brushed gold as a disc. */
+.record-toast-in {
+  animation: record-toast-in 240ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.record-toast-out {
+  animation: record-toast-out 190ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes record-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.95);
+  }
+}
+@keyframes record-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.95);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .record-toast-in {
+    animation: record-toast-fade 150ms ease-out both;
+  }
+  .record-toast-out {
+    animation: record-toast-fade 120ms ease-in reverse both;
+  }
+  @keyframes record-toast-fade {
+    from {
+      opacity: 0;
+    }
+  }
+}
+.record-medal {
+  background: radial-gradient(circle at 35% 30%, #fff6c8 0%, #f2c94c 38%, #c8961e 72%, #a8761a 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -2px 0 rgba(100, 64, 0, 0.35), 0 2px
+    6px rgba(168, 118, 26, 0.35);
+}
+
+/* A cardio badge (issue #872): its sport's hue as a lit disc, with a fine
+   inner ring like a medal's rim. */
+.cardio-badge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 0 rgba(0, 0, 0, 0.18), 0 2px 6px
+    rgba(0, 0, 0, 0.18);
+}
+.cardio-badge::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
