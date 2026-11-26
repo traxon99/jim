@@ -10,6 +10,7 @@
     "dev": "pnpm --filter @jim/web dev",
     "dev:stack": "pnpm --filter @jim/web dev:stack",
     "dev:shot": "pnpm --filter @jim/web dev:shot",
+    "mockup:render": "pnpm --filter @jim/web mockup:render",
     "build": "pnpm -r --filter=./packages/** --filter=./apps/** build",
     "test": "pnpm -r test",
     "lint": "biome check .",
