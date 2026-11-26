@@ -6,6 +6,7 @@
     "dev": "next dev",
     "dev:stack": "tsx scripts/dev-stack/index.ts",
     "dev:shot": "tsx scripts/dev-stack/shot.ts",
+    "mockup:render": "tsx scripts/mockup/render.mts",
     "admin": "tsx scripts/admin.ts",
     "prebuild": "node scripts/prebuild.mjs",
     "build": "next build",
