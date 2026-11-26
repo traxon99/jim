@@ -1,5 +1,12 @@
 import type { SessionDetailExercise, SessionDetailSet } from "@/lib/history/session-detail-entries";
-import { type DistanceUnit, type PrKind, formatTimedSet } from "@jim/core";
+import {
+  type DistanceUnit,
+  type PrKind,
+  cardioKindOf,
+  cardioProfile,
+  formatCardioSetFor,
+  formatTimedSet,
+} from "@jim/core";
 
 /** Short chip labels for each PR kind, shared with session detail. */
 export const PR_KIND_LABELS: Record<PrKind, string> = {
@@ -41,7 +48,11 @@ function isBetter(candidate: SessionDetailSet, best: SessionDetailSet): boolean 
   return (candidate.durationSeconds ?? 0) > (best.durationSeconds ?? 0);
 }
 
-function formatSet(set: SessionDetailSet, unit: DistanceUnit): string {
+function formatSet(set: SessionDetailSet, unit: DistanceUnit, exerciseName = ""): string {
+  // A cardio set reads in its sport's units (issue #872): a row in meters.
+  if (set.distance != null && set.reps == null && !(set.weight != null && set.weight > 0)) {
+    return formatCardioSetFor(set, unit, cardioProfile(cardioKindOf({ name: exerciseName })));
+  }
   if (set.weight != null && set.weight > 0) {
     return set.reps != null ? `${set.weight} × ${set.reps}` : `${set.weight}`;
   }
@@ -102,8 +113,8 @@ export function buildSummaryExerciseRows(
       exerciseId: group.exerciseId,
       exerciseName: group.exerciseName,
       setCount: counted.length,
-      bestSet: formatSet(best, distanceUnit),
-      setsLine: formatSetsLine(counted) ?? formatSet(best, distanceUnit),
+      bestSet: formatSet(best, distanceUnit, group.exerciseName),
+      setsLine: formatSetsLine(counted) ?? formatSet(best, distanceUnit, group.exerciseName),
       prKinds,
       tempo: group.tempo,
     });

@@ -46,7 +46,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useId, useMemo, useState } from "react";
 import { CardioRecordToast, type CardioRecordToastData } from "./cardio-record-toast";
 import { PrBadge } from "./pr-badge";
-import { sessionSetTableSizes } from "./session-set-ui";
+import { canUnlogSet, sessionSetTableSizes } from "./session-set-ui";
 
 interface Props {
   userId: string;
@@ -80,6 +80,10 @@ function toRecordSet(set: SetRow): CardioRecordSet {
  * ran at ("5K 26:41"), else the best pace, split or speed; for time-only
  * cardio, the longest set or most rounds.
  */
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 function recordToBeat(
   book: CardioRecordBook,
   kind: ReturnType<typeof cardioKindOf>,
@@ -130,8 +134,18 @@ export function CardioExerciseSection({
   // A deleted set can come back (#520), like a strength set (issue #318).
   const undoableDelete = useUndoable<SetRow>();
 
-  async function handleDelete(set: SetRow) {
-    undoableDelete.offer("Set deleted", await deleteSet(set));
+  // Tapping a logged row's ✓ unlogs it back into the entry row (#645), and
+  // only once it has been logged a moment, so a double tap on Log, which
+  // sits in the same column, can't undo itself (#318).
+  async function handleUnlog(set: SetRow) {
+    if (!canUnlogSet(set.completedAt, new Date())) return;
+    setDistance(cardioDistanceValue(set.distance, unit, profile) ?? "");
+    setTimeDigits(
+      set.durationSeconds
+        ? formatDuration(set.durationSeconds).replace(/\D/g, "").replace(/^0+/, "")
+        : "",
+    );
+    undoableDelete.offer("Set unlogged", await deleteSet(set));
   }
 
   async function handleUndoDelete() {
@@ -250,7 +264,8 @@ export function CardioExerciseSection({
       tracksDistance,
     );
     const beaten = after.bySet.get(logged.id);
-    const headline = beaten?.[0];
+    // The toast leads with the record the card ranks first (a 5K before pace).
+    const headline = beaten ? order.find((id) => beaten.includes(id)) : undefined;
     if (headline) {
       const before = book.bests.get(headline);
       const best = after.bests.get(headline);
@@ -282,7 +297,7 @@ export function CardioExerciseSection({
   const toBeatText =
     toBeat && toBeatEntry
       ? toBeat.startsWith("std:")
-        ? `${cardioRecordLabel(toBeat, profile).replace("Fastest ", "")} ${formatCardioRecordValue(toBeat, toBeatEntry.value, unit, profile)}`
+        ? `${capitalize(cardioRecordLabel(toBeat, profile).replace("Fastest ", ""))} ${formatCardioRecordValue(toBeat, toBeatEntry.value, unit, profile)}`
         : toBeat === "distance"
           ? `Longest ${formatCardioRecordValue(toBeat, toBeatEntry.value, unit, profile)}`
           : formatCardioRecordValue(toBeat, toBeatEntry.value, unit, profile)
@@ -297,7 +312,7 @@ export function CardioExerciseSection({
     columns === 4
       ? "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_3.75rem_2.75rem]"
       : columns === 3
-        ? "grid-cols-[2rem_minmax(0,1fr)_3.75rem_2.75rem]"
+        ? "grid-cols-[2rem_minmax(0,1fr)_2.75rem]"
         : "grid-cols-[2.75rem_minmax(0,1fr)_2.75rem]";
   const valueText = "text-center text-xl font-semibold tabular-nums";
   const metricText = "text-center text-[15px] font-semibold tabular-nums";
@@ -391,8 +406,8 @@ export function CardioExerciseSection({
                 <span className="flex justify-end">
                   <button
                     type="button"
-                    onClick={() => void handleDelete(set)}
-                    aria-label={`Delete ${profile.setLabel.toLowerCase()} ${i + 1}`}
+                    onClick={() => void handleUnlog(set)}
+                    aria-label={`Unlog ${profile.setLabel.toLowerCase()} ${i + 1}`}
                     className="press flex h-11 w-11 items-center justify-center rounded-full bg-done text-done-foreground"
                   >
                     <Check className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />

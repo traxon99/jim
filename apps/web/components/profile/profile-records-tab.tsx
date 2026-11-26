@@ -87,6 +87,7 @@ function OwnRecordsTab() {
                     <AchievementBadge achievement={achievement} size="md" />
                     <span className="line-clamp-2 text-center text-[10px] leading-tight text-zinc-500">
                       {achievement.title}
+                      <span className="sr-only">, locked</span>
                     </span>
                   </div>
                 )}
