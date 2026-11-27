@@ -7,15 +7,18 @@ import { type ExerciseRow, db } from "@/lib/db/schema";
 import { EXERCISE_CATEGORY_TABS, exerciseMetaLine } from "@/lib/exercises/display";
 import { useExercisePreferences } from "@/lib/exercises/use-exercise-preferences";
 import { formatLastDone } from "@/lib/routines/last-done";
+import { DEFAULT_SETTINGS, showsMuscleDetail } from "@/lib/settings";
 import {
   type ExerciseCategory,
   type ExercisePreference,
   type ExerciseSortKey,
   type ExerciseUsage,
+  MUSCLE_TREE,
   buildExerciseUsage,
   dedupeCatalogNames,
   exerciseDisplayName,
   filterExercises,
+  muscleTargetPath,
   orderByPreference,
   preferOwnedExercises,
   searchExercises,
@@ -62,6 +65,8 @@ export function useExerciseCatalog({
   // Dexie live query: re-renders whenever the local catalog changes (a pull
   // landing, a new custom exercise), with no network on the read path.
   const allExercises = useLiveQuery(() => db.exercises.toArray(), []);
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const muscleDetail = showsMuscleDetail(settings);
 
   // Every (non-deleted) sessionExercise joined with its (non-deleted)
   // session's startedAt — the same shape previous-set-lookup.ts builds —
@@ -107,21 +112,31 @@ export function useExerciseCatalog({
     const ranked = searchExercises(sorted, deferredQuery);
 
     const muscleSet = new Set<string>();
+    const nodeSet = new Set<string>();
     const equipmentSet = new Set<string>();
     for (const exercise of owned) {
       for (const m of exercise.primaryMuscles) muscleSet.add(m);
       for (const m of exercise.secondaryMuscles) muscleSet.add(m);
+      if (muscleDetail) {
+        for (const id of [
+          ...(exercise.primaryTargets ?? []),
+          ...(exercise.secondaryTargets ?? []),
+        ]) {
+          for (const node of muscleTargetPath(id)) nodeSet.add(node);
+        }
+      }
       if (exercise.equipment) equipmentSet.add(exercise.equipment);
     }
 
     return {
       results: ranked,
-      muscleOptions: [...muscleSet].sort(),
+      muscleOptions: muscleFilterOptions([...muscleSet].sort(), nodeSet),
       equipmentOptions: [...equipmentSet].sort(),
       usage: usageByExerciseId,
     };
   }, [
     allExercises,
+    muscleDetail,
     usageRows,
     userId,
     deferredQuery,
@@ -287,9 +302,9 @@ export function ExerciseCatalogControls({ catalog }: { catalog: ExerciseCatalog 
               className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
             >
               <option value="">All muscles</option>
-              {muscleOptions.map((m) => (
-                <option key={m} value={m}>
-                  {m}
+              {muscleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -389,4 +404,25 @@ export function PreferenceBadge({ preference }: { preference: ExercisePreference
       <Icon className="h-3 w-3" strokeWidth={2.4} aria-hidden="true" />
     </span>
   );
+}
+
+/**
+ * The muscle filter's options: each group, and with Muscle detail (issue
+ * #879) the muscles and heads under it that some exercise is tagged with,
+ * indented under their group in tree order.
+ */
+function muscleFilterOptions(
+  groups: readonly string[],
+  nodes: ReadonlySet<string>,
+): { value: string; label: string }[] {
+  return groups.flatMap((group) => [
+    { value: group, label: group },
+    ...MUSCLE_TREE.filter((node) => node.parent !== null && nodes.has(node.id))
+      .map((node) => ({ node, path: muscleTargetPath(node.id) }))
+      .filter(({ path }) => path[path.length - 1] === group)
+      .map(({ node, path }) => ({
+        value: node.id,
+        label: `${"\u00a0\u00a0\u00a0".repeat(path.length - 1)}${node.label}`,
+      })),
+  ]);
 }

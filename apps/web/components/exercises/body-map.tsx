@@ -223,3 +223,39 @@ export function MuscleSwatches({
     </ul>
   );
 }
+
+/**
+ * Muscle detail's swatches (issue #879): the exercise's finest tags by name
+ * ("Side delt"), each at its map shade, primary then secondary.
+ */
+export function TargetSwatches({
+  primary,
+  secondary,
+  className = "",
+}: {
+  primary: readonly { id: string; label: string }[];
+  secondary: readonly { id: string; label: string }[];
+  className?: string;
+}) {
+  const items = [
+    ...primary.map((tag) => ({ ...tag, strength: 1 })),
+    ...secondary.map((tag) => ({ ...tag, strength: 0.45 })),
+  ];
+  return (
+    <ul
+      className={`flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400 ${className}`}
+    >
+      {items.map((item) => (
+        <li key={item.id} className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="relative size-2.5 shrink-0 overflow-hidden rounded-sm bg-zinc-100 dark:bg-zinc-600"
+          >
+            <span className="absolute inset-0 bg-accent" style={{ opacity: item.strength }} />
+          </span>
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}

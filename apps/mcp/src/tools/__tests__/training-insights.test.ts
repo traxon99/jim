@@ -317,6 +317,12 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("training-insight tools (#860)",
     expect(result.flags).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ type: "missing_primary_muscle", exercise: "Mystery Press" }),
+        // Tagged with a group that has muscles, and no muscle tags (#879).
+        expect.objectContaining({
+          type: "no_muscle_tags",
+          exercise: "Bench Press",
+          groups: ["chest"],
+        }),
         expect.objectContaining({
           type: "stale_predicted_1rm",
           exercise: "Back Squat",

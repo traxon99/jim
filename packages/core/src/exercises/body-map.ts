@@ -1,4 +1,5 @@
-import { muscleTargetPath } from "./muscle-tree";
+import { muscleTreeWeights } from "../history/volume-by-muscle";
+import { muscleTargetPath, muscleTreeNode } from "./muscle-tree";
 import type { Muscle } from "./muscles";
 
 /**
@@ -100,4 +101,42 @@ export function detailSurfaceValues(
     if (value > 0) values[surface] = value;
   }
   return values;
+}
+
+/**
+ * An exercise's detail-surface shading (issue #879): primary at full
+ * strength, secondary at the same 0.45 as `exerciseMuscleShading`, so a
+ * lateral raise lights only the side delt. Surfaces outside DETAIL_SURFACES
+ * shade by group as before.
+ */
+export function exerciseSurfaceShading(exercise: {
+  primaryMuscles: readonly string[];
+  secondaryMuscles: readonly string[];
+  primaryTargets?: readonly string[];
+  secondaryTargets?: readonly string[];
+}): Record<string, number> {
+  const { nodes, other } = muscleTreeWeights(exercise, 1, 0.45);
+  const asRecord = (map: ReadonlyMap<string, number>) => Object.fromEntries(map);
+  const values = detailSurfaceValues(asRecord(nodes), asRecord(other), asRecord(nodes));
+  for (const surface of Object.keys(values)) values[surface] = Math.min(1, values[surface] ?? 0);
+  return values;
+}
+
+/**
+ * The muscles an exercise works, by the finest tag it has (issue #879):
+ * its node tags when it has them, its groups otherwise, with labels.
+ */
+export function exerciseTargetLabels(exercise: {
+  primaryMuscles: readonly string[];
+  secondaryMuscles: readonly string[];
+  primaryTargets?: readonly string[];
+  secondaryTargets?: readonly string[];
+}): { primary: { id: string; label: string }[]; secondary: { id: string; label: string }[] } {
+  const tagged =
+    (exercise.primaryTargets?.length ?? 0) + (exercise.secondaryTargets?.length ?? 0) > 0;
+  const label = (id: string) => ({ id, label: muscleTreeNode(id)?.label ?? id });
+  return {
+    primary: (tagged ? (exercise.primaryTargets ?? []) : exercise.primaryMuscles).map(label),
+    secondary: (tagged ? (exercise.secondaryTargets ?? []) : exercise.secondaryMuscles).map(label),
+  };
 }

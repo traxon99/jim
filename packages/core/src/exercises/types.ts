@@ -8,6 +8,9 @@ export interface CatalogExercise {
   isArchived: boolean;
   primaryMuscles: readonly string[];
   secondaryMuscles: readonly string[];
+  /** Muscle tree tags (issue #874); missing on rows cached before them. */
+  primaryTargets?: readonly string[];
+  secondaryTargets?: readonly string[];
   equipment: string | null;
   /**
    * Optional because rows cached locally before the column existed (issue

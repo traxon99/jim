@@ -1,11 +1,13 @@
 "use client";
 
+import { MuscleTreePicker } from "@/components/exercises/muscle-tree-picker";
 import { ChevronLeft } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { BackLink } from "@/components/page-header";
 import { mutate } from "@/lib/db/mutate";
 import { type ExerciseRow, db } from "@/lib/db/schema";
 import { sortGyms } from "@/lib/gyms";
+import { DEFAULT_SETTINGS, showsMuscleDetail } from "@/lib/settings";
 import { getDeviceId } from "@/lib/sync/engine";
 import {
   type ExerciseCategory,
@@ -20,8 +22,10 @@ import {
   exerciseCategoryOf,
   muscleTagsError,
   normalizeVideoUrl,
+  pickTarget,
   slugify,
   targetsAfterGroupEdit,
+  targetsToSave,
   uuidv7,
   withoutPrimary,
 } from "@jim/core";
@@ -96,6 +100,9 @@ export function ExerciseForm({
   const [primaryMuscles, setPrimaryMuscles] = useState<Muscle[]>([]);
   const [secondaryMuscles, setSecondaryMuscles] = useState<Muscle[]>([]);
   const [muscleError, setMuscleError] = useState<string | null>(null);
+  // Muscle detail (issue #879): the tree picker's picks, at any depth.
+  const [primaryTargets, setPrimaryTargets] = useState<string[]>([]);
+  const [secondaryTargets, setSecondaryTargets] = useState<string[]>([]);
   const [instructionsText, setInstructionsText] = useState("");
   const [videoUrlText, setVideoUrlText] = useState("");
   const [machineBrand, setMachineBrand] = useState("");
@@ -105,6 +112,8 @@ export function ExerciseForm({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const gymRows = useLiveQuery(() => db.gyms.toArray(), []);
+  const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
+  const muscleDetail = showsMuscleDetail(settings);
   const gyms = sortGyms(gymRows ?? []);
 
   // Populate the form once the existing row loads (edit mode). Seed it once,
@@ -119,6 +128,12 @@ export function ExerciseForm({
     setTrackingType(existing.trackingType);
     setPrimaryMuscles([...existing.primaryMuscles]);
     setSecondaryMuscles([...existing.secondaryMuscles]);
+    const tagged =
+      (existing.primaryTargets?.length ?? 0) + (existing.secondaryTargets?.length ?? 0) > 0;
+    setPrimaryTargets([...(tagged ? (existing.primaryTargets ?? []) : existing.primaryMuscles)]);
+    setSecondaryTargets([
+      ...(tagged ? (existing.secondaryTargets ?? []) : existing.secondaryMuscles),
+    ]);
     setInstructionsText(existing.instructions.join("\n"));
     setVideoUrlText(existing.videoUrl ?? "");
     setMachineBrand(existing.machineBrand ?? "");
@@ -174,13 +189,35 @@ export function ExerciseForm({
     setPrimaryMuscles(primaryMuscles.filter((m) => m !== muscle));
   }
 
+  function pickPrimary(id: string) {
+    const next = pickTarget(primaryTargets, secondaryTargets, id);
+    setPrimaryTargets(next.picked);
+    setSecondaryTargets(next.other);
+    setMuscleError(null);
+  }
+
+  function pickSecondary(id: string) {
+    const next = pickTarget(secondaryTargets, primaryTargets, id);
+    setSecondaryTargets(next.picked);
+    setPrimaryTargets(next.other);
+  }
+
+  /** The muscle tags to save: the tree picker's when it shows, the groups otherwise. */
+  function muscleTags() {
+    if (muscleDetail) return targetsToSave(primaryTargets, secondaryTargets);
+    return {
+      primaryMuscles,
+      secondaryMuscles: withoutPrimary(secondaryMuscles, primaryMuscles),
+    };
+  }
+
   // A failed save frees the button and says so instead of sticking on
   // "Saving…" (issue #517); on success the page navigates away.
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim()) return;
     // An untagged strength exercise counts toward no muscle's volume (#643).
-    const tagsError = muscleTagsError(category, primaryMuscles);
+    const tagsError = muscleTagsError(category, muscleTags().primaryMuscles);
     setMuscleError(tagsError);
     if (tagsError) return;
     setSaving(true);
@@ -218,8 +255,9 @@ export function ExerciseForm({
         slug: slugify(name),
         name,
         aliases: [],
-        primaryMuscles,
-        secondaryMuscles: withoutPrimary(secondaryMuscles, primaryMuscles),
+        primaryTargets: [],
+        secondaryTargets: [],
+        ...muscleTags(),
         equipment: equipment.trim() || null,
         mechanic: null,
         force: null,
@@ -244,13 +282,14 @@ export function ExerciseForm({
           equipment: equipment.trim() || null,
           trackingType,
           category,
-          primaryMuscles,
-          secondaryMuscles: withoutPrimary(secondaryMuscles, primaryMuscles),
-          ...targetsAfterGroupEdit(
-            existing,
-            primaryMuscles,
-            withoutPrimary(secondaryMuscles, primaryMuscles),
-          ),
+          ...muscleTags(),
+          ...(muscleDetail
+            ? {}
+            : targetsAfterGroupEdit(
+                existing,
+                primaryMuscles,
+                withoutPrimary(secondaryMuscles, primaryMuscles),
+              )),
           instructions,
           videoUrl,
           ...machine,
@@ -470,19 +509,37 @@ export function ExerciseForm({
           </select>
         </label>
 
-        <MusclePicker
-          legend="Primary muscles"
-          hint="Each set counts as a full set for these muscles."
-          selected={primaryMuscles}
-          onToggle={togglePrimary}
-        />
-
-        <MusclePicker
-          legend="Secondary muscles"
-          hint="Muscles that help out. Each set counts as half a set for these."
-          selected={secondaryMuscles}
-          onToggle={toggleSecondary}
-        />
+        {muscleDetail ? (
+          <>
+            <MuscleTreePicker
+              legend="Primary muscles"
+              hint="Each set counts as a full set for these muscles."
+              picked={primaryTargets}
+              onPick={pickPrimary}
+            />
+            <MuscleTreePicker
+              legend="Secondary muscles"
+              hint="Muscles that help out. Each set counts as half a set for these."
+              picked={secondaryTargets}
+              onPick={pickSecondary}
+            />
+          </>
+        ) : (
+          <>
+            <MusclePicker
+              legend="Primary muscles"
+              hint="Each set counts as a full set for these muscles."
+              selected={primaryMuscles}
+              onToggle={togglePrimary}
+            />
+            <MusclePicker
+              legend="Secondary muscles"
+              hint="Muscles that help out. Each set counts as half a set for these."
+              selected={secondaryMuscles}
+              onToggle={toggleSecondary}
+            />
+          </>
+        )}
 
         <label className="flex flex-col gap-1 text-sm font-medium">
           Instructions (one step per line)
