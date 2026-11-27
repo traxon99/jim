@@ -1,7 +1,14 @@
 import "fake-indexeddb/auto";
 import { createTestDb } from "@/lib/db/schema";
 import { afterEach, describe, expect, it } from "vitest";
-import { addGymCard, cleanGymCardInput, deleteGymCard, primaryGymCard, updateGymCard } from "..";
+import {
+  GymCardGoneError,
+  addGymCard,
+  cleanGymCardInput,
+  deleteGymCard,
+  primaryGymCard,
+  updateGymCard,
+} from "..";
 import { drawGymCardSvg, gymCardSvg } from "../render";
 
 const USER = "11111111-1111-1111-1111-111111111111";
@@ -43,6 +50,29 @@ describe("gym cards on the phone (#878)", () => {
       error: "Give the card a name",
     });
     expect(cleanGymCardInput({ ...input, format: "ean13", code: "123" }).ok).toBe(false);
+  });
+
+  it("keeps a scanned code exactly, and tidies only a typed one", async () => {
+    const scanned = { ...input, code: "mbr-48", exactCode: "mbr-48" };
+    expect(cleanGymCardInput(scanned)).toMatchObject({ ok: true, card: { code: "mbr-48" } });
+    expect(cleanGymCardInput({ ...scanned, code: "mbr-49" })).toMatchObject({
+      ok: true,
+      card: { code: "MBR-49" },
+    });
+    const database = freshDb();
+    const card = await addGymCard({ ...scanned, userId: USER }, database);
+    expect(card.code).toBe("mbr-48");
+    expect(card).not.toHaveProperty("exactCode");
+  });
+
+  it("won't bring back a card deleted elsewhere", async () => {
+    const database = freshDb();
+    const card = await addGymCard({ ...input, userId: USER }, database);
+    await deleteGymCard(card, database);
+    await expect(updateGymCard(card, { ...input, name: "Back" }, database)).rejects.toBeInstanceOf(
+      GymCardGoneError,
+    );
+    expect((await database.gymCards.get(card.id))?.deletedAt).not.toBeNull();
   });
 
   it("adds, edits and deletes through the outbox", async () => {

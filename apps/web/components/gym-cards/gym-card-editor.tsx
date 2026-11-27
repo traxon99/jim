@@ -3,7 +3,14 @@
 import { lockPageScroll } from "@/components/floating-card";
 import { X } from "@/components/icons/solar";
 import type { GymCardRow, GymRow } from "@/lib/db/schema";
-import { addGymCard, cleanGymCardInput, deleteGymCard, updateGymCard } from "@/lib/gym-cards";
+import {
+  GymCardGoneError,
+  type GymCardInput,
+  addGymCard,
+  cleanGymCardInput,
+  deleteGymCard,
+  updateGymCard,
+} from "@/lib/gym-cards";
 import { useKeepScrollOnKeyboard } from "@/lib/pwa/use-keep-scroll-on-keyboard";
 import { runSyncCycle } from "@/lib/sync/engine";
 import {
@@ -22,13 +29,7 @@ import { GymCardTile, formatLabel } from "./gym-card-tile";
 const INPUT_CLASS =
   "w-full min-w-0 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50";
 
-interface Draft {
-  name: string;
-  format: GymCardFormat;
-  code: string;
-  color: string;
-  gymId: string | null;
-}
+type Draft = GymCardInput;
 
 /**
  * Adding or editing a gym card (issue #878), full screen. A new card starts
@@ -65,6 +66,7 @@ export function GymCardEditor({
           name: card.name,
           format: card.format as GymCardFormat,
           code: card.code,
+          exactCode: card.code,
           color: card.color,
           gymId: card.gymId,
         }
@@ -92,6 +94,7 @@ export function GymCardEditor({
       ...current,
       format: result.format,
       code: result.code,
+      exactCode: result.code,
       color: result.colors[0] ?? current.color,
     }));
     setStep("details");
@@ -159,7 +162,8 @@ function CardDetails({
   const [colors] = useState(() =>
     [...new Set([...sampled, draft.color, ...GYM_CARD_COLORS])].slice(0, 7),
   );
-  const cleanedCode = cleanGymCardCode(draft.format, draft.code);
+  const cleanedCode =
+    draft.code === draft.exactCode ? draft.code : cleanGymCardCode(draft.format, draft.code);
   const codeError = draft.code.trim() === "" ? null : gymCardCodeError(draft.format, cleanedCode);
   const previewCode = codeError ? "" : cleanedCode;
 
@@ -175,12 +179,16 @@ function CardDetails({
     setError(null);
     try {
       const saved = card
-        ? await updateGymCard(card, cleaned.card)
-        : await addGymCard({ userId, ...cleaned.card });
+        ? await updateGymCard(card, draft)
+        : await addGymCard({ userId, ...draft });
       void runSyncCycle();
       if (onSaved) onSaved(saved);
       else onClose();
-    } catch {
+    } catch (caught) {
+      if (caught instanceof GymCardGoneError) {
+        (onDeleted ?? onClose)();
+        return;
+      }
       setError("Couldn't save the card. Try again.");
       saveGuard.current = false;
       setSaving(false);
@@ -232,24 +240,31 @@ function CardDetails({
             color: draft.color,
           }}
         />
-        <div className="flex flex-wrap justify-center gap-3" role="radiogroup" aria-label="Color">
+        <fieldset className="flex flex-wrap justify-center gap-1">
+          <legend className="sr-only">Color</legend>
           {colors.map((color) => (
-            <button
-              key={color}
-              type="button"
-              role="radio"
-              aria-checked={draft.color === color}
-              aria-label={`Color ${color}`}
-              onClick={() => setDraft((current) => ({ ...current, color }))}
-              className={`press h-9 w-9 rounded-full ring-offset-2 ring-offset-zinc-100 dark:ring-offset-black ${
-                draft.color === color
-                  ? "ring-[2.5px] ring-zinc-900 dark:ring-zinc-100"
-                  : "ring-1 ring-black/10 dark:ring-white/20"
-              }`}
-              style={{ background: color }}
-            />
+            <label key={color} className="press grid h-11 w-11 shrink-0 place-items-center">
+              <input
+                type="radio"
+                name="gym-card-color"
+                value={color}
+                checked={draft.color === color}
+                onChange={() => setDraft((current) => ({ ...current, color }))}
+                aria-label={`Color ${color}`}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={`h-9 w-9 rounded-full ring-offset-2 ring-offset-zinc-100 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-blue-500 dark:ring-offset-black ${
+                  draft.color === color
+                    ? "ring-[2.5px] ring-zinc-900 dark:ring-zinc-100"
+                    : "ring-1 ring-black/10 dark:ring-white/20"
+                }`}
+                style={{ background: color }}
+              />
+            </label>
           ))}
-        </div>
+        </fieldset>
         <div className="surface flex flex-col gap-3 p-4">
           <label className="flex min-w-0 flex-col gap-1 text-xs font-medium">
             Name

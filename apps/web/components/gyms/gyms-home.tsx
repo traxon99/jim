@@ -259,7 +259,8 @@ export function GymsHome({ userId }: { userId: string }) {
                   </div>
                   {cardColorByGym.has(gym.id) && (
                     <span
-                      aria-hidden="true"
+                      role="img"
+                      aria-label="Has a gym card"
                       className="h-[22px] w-[34px] shrink-0 rounded-[5px]"
                       style={{ background: cardColorByGym.get(gym.id) }}
                     />

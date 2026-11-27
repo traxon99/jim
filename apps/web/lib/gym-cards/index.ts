@@ -24,6 +24,18 @@ export interface GymCardInput {
   code: string;
   color: string;
   gymId: string | null;
+  /**
+   * The code as scanned or as saved. A code still equal to it is kept exactly,
+   * since tidying would change what the door reads (a lowercase Code 39 tag
+   * is Full ASCII, not a typo); only a typed code is tidied.
+   */
+  exactCode?: string;
+}
+
+export class GymCardGoneError extends Error {
+  constructor() {
+    super("This card was deleted");
+  }
 }
 
 export type CleanedGymCard = { ok: true; card: GymCardInput } | { ok: false; error: string };
@@ -31,7 +43,10 @@ export type CleanedGymCard = { ok: true; card: GymCardInput } | { ok: false; err
 export function cleanGymCardInput(input: GymCardInput): CleanedGymCard {
   const name = input.name.trim().slice(0, GYM_CARD_NAME_MAX);
   if (!name) return { ok: false, error: "Give the card a name" };
-  const code = cleanGymCardCode(input.format, input.code);
+  const code =
+    input.exactCode !== undefined && input.code === input.exactCode
+      ? input.code
+      : cleanGymCardCode(input.format, input.code);
   const error = gymCardCodeError(input.format, code);
   if (error) return { ok: false, error };
   const color = isHexColor(input.color) ? input.color.toLowerCase() : GYM_CARD_COLORS[0];
@@ -68,8 +83,11 @@ export async function updateGymCard(
 ): Promise<GymCardRow> {
   const cleaned = cleanGymCardInput(input);
   if (!cleaned.ok) throw new Error(cleaned.error);
+  // A card deleted elsewhere (another phone, the MCP) stays deleted.
+  const stored = await database.gymCards.get(row.id);
+  if (!stored || stored.deletedAt) throw new GymCardGoneError();
   const entity: GymCardRow = {
-    ...row,
+    ...stored,
     ...cleaned.card,
     updatedAt: new Date(),
     deviceId: await getDeviceId(database),

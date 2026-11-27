@@ -6,7 +6,7 @@ import type { ScannedCode } from "@jim/core";
 import { useEffect, useRef, useState } from "react";
 
 const GLASS_BUTTON =
-  "press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/45 text-white backdrop-blur-md";
+  "press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/55 text-white";
 
 /** How often a camera frame is read for a code. */
 const SCAN_EVERY_MS = 180;
