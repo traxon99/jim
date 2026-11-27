@@ -18,7 +18,7 @@ export function buildMuscleVolumeSets(
   sessions: readonly SessionRow[],
   sessionExercises: readonly SessionExerciseRow[],
   exercises: readonly (Pick<ExerciseRow, "id" | "primaryMuscles" | "secondaryMuscles"> &
-    Partial<Pick<ExerciseRow, "category">>)[],
+    Partial<Pick<ExerciseRow, "category" | "primaryTargets" | "secondaryTargets">>)[],
   sets: readonly SetRow[],
 ): MuscleVolumeSet[] {
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
@@ -42,6 +42,8 @@ export function buildMuscleVolumeSets(
       durationSeconds: set.durationSeconds,
       primaryMuscles: exercise.primaryMuscles,
       secondaryMuscles: exercise.secondaryMuscles,
+      primaryTargets: exercise.primaryTargets ?? [],
+      secondaryTargets: exercise.secondaryTargets ?? [],
     });
   }
   return result;

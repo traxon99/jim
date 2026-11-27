@@ -1,9 +1,11 @@
 import {
   type ExerciseCategory,
   type TrainingGoal,
+  type VolumeDetail,
   WEEKLY_SET_TARGETS,
   addWeeks,
   isStrengthExercise,
+  muscleDetailByGroup,
   startOfWeek,
   weeklySetStatusByMuscle,
   weeklyVolumeByMuscle,
@@ -26,6 +28,8 @@ export interface WeeklySummaryInput {
   /** How many weeks to summarize, ending with `date`'s week. Defaults to 1. */
   weeks?: number;
   goal?: TrainingGoal;
+  /** How deep to break each muscle group down (#876); default "group". */
+  detail?: VolumeDetail;
 }
 
 export interface SummaryExercise {
@@ -33,6 +37,8 @@ export interface SummaryExercise {
   category?: ExerciseCategory | null;
   primaryMuscles: readonly string[];
   secondaryMuscles: readonly string[];
+  primaryTargets?: readonly string[];
+  secondaryTargets?: readonly string[];
 }
 
 /** The `weeks` week starts ending with `date`'s week, newest first. */
@@ -55,6 +61,7 @@ export function summarizeWeeks(
   weekStarts: readonly Date[],
   week: WeekSettings,
   goal: TrainingGoal,
+  detail: VolumeDetail = "group",
 ) {
   return weekStarts.map((start) => {
     const end = addWeeks(start, 1, week.weekStart, week.timeZone);
@@ -89,6 +96,8 @@ export function summarizeWeeks(
           durationSeconds: set.durationSeconds,
           primaryMuscles: exercise.primaryMuscles,
           secondaryMuscles: exercise.secondaryMuscles,
+          primaryTargets: exercise.primaryTargets,
+          secondaryTargets: exercise.secondaryTargets,
         };
       }),
       week.weekStart,
@@ -107,6 +116,9 @@ export function summarizeWeeks(
       goal,
       targetSets: WEEKLY_SET_TARGETS[goal],
       setStatusByMuscle: weeklySetStatusByMuscle(setsByMuscle, goal),
+      ...(muscles && detail !== "group"
+        ? { muscleDetail: muscleDetailByGroup(muscles, detail) }
+        : {}),
       exercises: [...byExercise.entries()]
         .map(([exerciseId, totals]) => ({
           exerciseId,
@@ -131,6 +143,6 @@ export async function weeklySummary(context: UserContext, input: WeeklySummaryIn
 
     const sets = await resolvedSetsInRange(tx, from, to);
     const exercises = await exercisesById(tx, [...new Set(sets.map((set) => set.exerciseId))]);
-    return summarizeWeeks(sets, exercises, weekStarts, week, goal);
+    return summarizeWeeks(sets, exercises, weekStarts, week, goal, input.detail);
   });
 }

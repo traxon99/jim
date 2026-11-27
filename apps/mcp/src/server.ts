@@ -156,6 +156,14 @@ function dryRunParam(defaultValue: boolean) {
 }
 
 const PREVIEW_HINT = " Preview with dry_run: true before committing.";
+
+/** How deep a volume report breaks each muscle group down (issue #876). */
+const DETAIL_PARAM = z
+  .enum(["group", "muscle", "head"])
+  .optional()
+  .describe(
+    'Default "group". "muscle" adds muscleDetail: each group\'s muscles (list_muscles) with sets and volume, plus an "other" row for work tagged no deeper. "head" also nests heads (e.g. front/side/rear delt). A muscle counts a set once, so muscles don\'t add up to their group',
+  );
 // Exercise preference (issue #795): what the phone's smart workout and generator do too.
 const PREFERENCE_HINT =
   " When choosing exercises, respect the user's preferences (list_exercise_preferences, or `preference` in search_exercises): favour liked ones and never pick a disliked one unless the user names it.";
@@ -365,6 +373,7 @@ export function createMcpServer(context: UserContext): McpServer {
         from: z.string().datetime({ offset: true }),
         to: z.string().datetime({ offset: true }),
         goal: z.enum(["strength", "hypertrophy"]).optional(),
+        detail: DETAIL_PARAM,
       },
     },
     handle((input) => volumeReport(context, input)),
@@ -390,6 +399,7 @@ export function createMcpServer(context: UserContext): McpServer {
           .optional()
           .describe("How many weeks to return, ending with the week of `date` (default 1)"),
         goal: z.enum(["strength", "hypertrophy"]).optional(),
+        detail: DETAIL_PARAM,
       },
     },
     handle((input) => weeklySummary(context, input)),
@@ -1497,6 +1507,12 @@ export function createMcpServer(context: UserContext): McpServer {
           .boolean()
           .optional()
           .describe("Average rest vs target and per-set rest times in summaries and history"),
+        showMuscleDetail: z
+          .boolean()
+          .optional()
+          .describe(
+            "Muscle detail: Volume by muscle opens each group into its muscles and heads (e.g. side vs rear delt), and the map shades them",
+          ),
         showSetTimer: z
           .boolean()
           .optional()

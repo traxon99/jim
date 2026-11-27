@@ -1,19 +1,23 @@
 "use client";
 
 import { BodyMap } from "@/components/exercises/body-map";
+import { ChevronRight } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
 import { buildMuscleVolumeSets } from "@/lib/history/muscle-volume-data";
-import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { DEFAULT_SETTINGS, showsMuscleDetail } from "@/lib/settings";
 import {
   type TrainingGoal,
+  type VolumeTreeRow,
   WEEKLY_SET_TARGETS,
   type WeeklyMuscleVolume,
   type WeeklySetRange,
   type WeeklySetStatus,
+  detailSurfaceValues,
   heatmapShading,
   startOfWeek,
+  volumeTreeRows,
   weeklySetStatus,
   weeklyVolumeByMuscle,
 } from "@jim/core";
@@ -36,6 +40,53 @@ export const GOALS: { value: TrainingGoal; label: string }[] = [
 
 /** The goal is a per-device view preference, so it lives in localStorage. */
 const GOAL_STORAGE_KEY = "jim:volume-goal";
+
+/** Which groups are open in Muscle detail (issue #876), also per device. */
+const OPEN_GROUPS_STORAGE_KEY = "jim:volume-open-groups";
+
+export function readOpenGroups(): Set<string> {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(OPEN_GROUPS_STORAGE_KEY) ?? "[]");
+    return new Set(Array.isArray(stored) ? stored.filter((id) => typeof id === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeOpenGroups(open: ReadonlySet<string>): void {
+  try {
+    window.localStorage.setItem(OPEN_GROUPS_STORAGE_KEY, JSON.stringify([...open]));
+  } catch {
+    // Private mode etc.: open groups still hold for this page life.
+  }
+}
+
+/** Muscle detail for one week's bars: its tree counts and which groups are open. */
+export interface WeekDetail {
+  week: WeeklyMuscleVolume;
+  open: ReadonlySet<string>;
+  onToggle: (group: string) => void;
+}
+
+/** A group's muscles (and their heads, flattened one level in), for the metric shown. */
+function detailRows(
+  detail: WeekDetail,
+  group: string,
+  metric: Metric,
+): { row: VolumeTreeRow; depth: 1 | 2 }[] {
+  const value = (row: VolumeTreeRow) => (metric === "sets" ? row.sets : row.volume);
+  const byValue = (a: VolumeTreeRow, b: VolumeTreeRow) =>
+    a.id === "other" ? 1 : b.id === "other" ? -1 : value(b) - value(a);
+  const result: { row: VolumeTreeRow; depth: 1 | 2 }[] = [];
+  for (const row of volumeTreeRows(detail.week, group, 2).sort(byValue)) {
+    if (value(row) <= 0) continue;
+    result.push({ row, depth: 1 });
+    for (const head of [...(row.children ?? [])].sort(byValue)) {
+      if (value(head) > 0) result.push({ row: head, depth: 2 });
+    }
+  }
+  return result;
+}
 
 export function readStoredGoal(): TrainingGoal {
   try {
@@ -111,12 +162,15 @@ export function WeekVolumeBars({
   max,
   units,
   goal,
+  detail,
 }: {
   entries: readonly [string, number][];
   metric: Metric;
   max: number;
   units: string;
   goal: TrainingGoal;
+  /** Muscle detail (issue #876): groups open into their muscles and heads. */
+  detail?: WeekDetail;
 }) {
   if (entries.length === 0) {
     return <p className="text-sm text-zinc-500 dark:text-zinc-500">No sets logged this week.</p>;
@@ -126,14 +180,13 @@ export function WeekVolumeBars({
   const percent = (value: number) => (max > 0 ? Math.min(100, (value / max) * 100) : 0);
 
   return (
-    <ul className="flex flex-col gap-1.5">
+    <ul className={`flex flex-col ${detail ? "" : "gap-1.5"}`}>
       {entries.map(([muscle, value]) => {
         const status = range ? weeklySetStatus(value, goal) : null;
-        return (
-          <li key={muscle} className="flex min-w-0 items-center gap-2">
-            <span className="w-24 shrink-0 truncate text-xs capitalize text-zinc-600 dark:text-zinc-400">
-              {muscle}
-            </span>
+        const children = detail ? detailRows(detail, muscle, metric) : [];
+        const open = children.length > 0 && detail?.open.has(muscle) === true;
+        const bar = (
+          <>
             <div className="relative h-2 min-w-0 flex-1 rounded-full bg-zinc-100 dark:bg-zinc-800">
               {range && (
                 // The goal's target range, drawn as a band on the track.
@@ -159,6 +212,76 @@ export function WeekVolumeBars({
               {formatValue(value, metric, units)}
               {status && <span className="sr-only">, {STATUS_LABEL[status]}</span>}
             </span>
+          </>
+        );
+        if (!detail) {
+          return (
+            <li key={muscle} className="flex min-w-0 items-center gap-2">
+              <span className="w-24 shrink-0 truncate text-xs capitalize text-zinc-600 dark:text-zinc-400">
+                {muscle}
+              </span>
+              {bar}
+            </li>
+          );
+        }
+        return (
+          <li key={muscle} className="flex min-w-0 flex-col">
+            {children.length > 0 ? (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => detail.onToggle(muscle)}
+                className="-mx-2 flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-2 text-left active:bg-zinc-100 dark:active:bg-zinc-900"
+              >
+                <span className="flex w-32 shrink-0 items-center gap-0.5 text-xs capitalize text-zinc-700 dark:text-zinc-300">
+                  <span className="truncate">{muscle}</span>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className={`h-3.5 w-3.5 shrink-0 text-zinc-400 transition-transform duration-200 ease-in-out motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+                  />
+                </span>
+                {bar}
+              </button>
+            ) : (
+              <div className="flex min-h-11 min-w-0 items-center gap-2">
+                <span className="w-32 shrink-0 truncate text-xs capitalize text-zinc-600 dark:text-zinc-400">
+                  {muscle}
+                </span>
+                {bar}
+              </div>
+            )}
+            {open && (
+              <ul className="page-fade flex flex-col gap-1.5 pb-2">
+                {children.map(({ row, depth }) => {
+                  const childValue = metric === "sets" ? row.sets : row.volume;
+                  return (
+                    <li
+                      key={`${depth}-${row.id}-${row.label}`}
+                      className="flex min-w-0 items-center gap-2"
+                    >
+                      <span
+                        className={`w-32 shrink-0 truncate text-xs ${
+                          row.id === "other"
+                            ? "text-zinc-400 dark:text-zinc-600"
+                            : "text-zinc-500 dark:text-zinc-500"
+                        } ${depth === 2 ? "pl-5" : "pl-2.5"}`}
+                      >
+                        {row.label}
+                      </span>
+                      <div className="relative h-1.5 min-w-0 flex-1 rounded-full bg-zinc-100 dark:bg-zinc-800">
+                        <div
+                          className="h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500"
+                          style={{ width: `${percent(childValue)}%` }}
+                        />
+                      </div>
+                      <span className="w-16 shrink-0 text-right text-xs tabular-nums text-zinc-500 dark:text-zinc-500">
+                        {formatValue(childValue, metric, units)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </li>
         );
       })}
@@ -209,11 +332,14 @@ function LatestWeekMap({
   metric,
   max,
   current,
+  detail,
 }: {
   week: WeeklyMuscleVolume | undefined;
   metric: Metric;
   max: number;
   current: number;
+  /** Muscle detail (issue #876): shade front/side/rear delts and abs vs obliques apart. */
+  detail: boolean;
 }) {
   if (!week) return null;
   const values = valuesFor(week, metric);
@@ -228,6 +354,24 @@ function LatestWeekMap({
       </h2>
       <BodyMap
         shading={heatmapShading(values, max)}
+        surfaceShading={
+          detail
+            ? heatmapShading(
+                metric === "sets"
+                  ? detailSurfaceValues(
+                      week.setsByTarget,
+                      week.otherSetsByTarget,
+                      week.setsByMuscle,
+                    )
+                  : detailSurfaceValues(
+                      week.volumeByTarget,
+                      week.otherVolumeByTarget,
+                      week.volumeByMuscle,
+                    ),
+                max,
+              )
+            : undefined
+        }
         label={
           trained.length > 0
             ? `Muscles trained: ${trained.join(", ")}. Darker means more ${metric}.`
@@ -253,6 +397,17 @@ export function MuscleVolume() {
   // Read after mount so the server render and first client render match.
   const [goal, setGoal] = useState<TrainingGoal>("hypertrophy");
   useEffect(() => setGoal(readStoredGoal()), []);
+  const detail = showsMuscleDetail(settings);
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => setOpenGroups(readOpenGroups()), []);
+  const toggleGroup = (group: string) => {
+    setOpenGroups((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(group)) next.add(group);
+      writeOpenGroups(next);
+      return next;
+    });
+  };
   const chooseGoal = (next: TrainingGoal) => {
     setGoal(next);
     writeStoredGoal(next);
@@ -364,7 +519,13 @@ export function MuscleVolume() {
                 Bars share one scale across weeks.
               </p>
             </div>
-            <LatestWeekMap week={weeks[0]} metric={metric} max={max} current={currentWeekStart} />
+            <LatestWeekMap
+              week={weeks[0]}
+              metric={metric}
+              max={max}
+              current={currentWeekStart}
+              detail={detail}
+            />
             {weeks.map((week) => {
               const current = week.weekStart.getTime() === currentWeekStart;
               const entries = rowsFor(week, metric, trainedMuscles);
@@ -384,6 +545,7 @@ export function MuscleVolume() {
                     max={max}
                     units={settings.units}
                     goal={goal}
+                    detail={detail ? { week, open: openGroups, onToggle: toggleGroup } : undefined}
                   />
                 </section>
               );

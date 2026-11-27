@@ -60,7 +60,7 @@ async function figure(file, view) {
     // the person's right on the front, their left on the back.
     const viewerLeft = meanX(m.d) < diagram.centerX;
     const side = view === "front" ? (viewerLeft ? "right" : "left") : viewerLeft ? "left" : "right";
-    return { muscle, side, d: round(m.d) };
+    return { muscle, surface: m.group, side, d: round(m.d) };
   });
   return {
     viewBox: diagram.viewBox,
@@ -86,6 +86,11 @@ import type { Muscle } from "@jim/core";
 
 export interface ArtRegion {
   muscle: Muscle;
+  /**
+   * MuscleMap's own group (SHOULDERS_REAR, OBLIQUES…), finer than Jim's for
+   * a few muscles, so Muscle detail (issue #876) can shade those apart.
+   */
+  surface: string;
   /** The body's own side, not the viewer's. */
   side: "left" | "right";
   d: string;

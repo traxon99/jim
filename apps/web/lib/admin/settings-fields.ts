@@ -99,6 +99,7 @@ export const ADMIN_SETTINGS_GROUPS: SettingsGroup[] = [
       { key: "showStrengthHints", label: "Strength hints", kind: "toggle" },
       { key: "showSetTypes", label: "Set types", kind: "toggle" },
       { key: "showRestStats", label: "Rest stats", kind: "toggle" },
+      { key: "showMuscleDetail", label: "Muscle detail", kind: "toggle" },
       { key: "showSetTimer", label: "Set timer", kind: "toggle" },
       { key: "showTempo", label: "Tempo", kind: "toggle" },
       { key: "tempoCues", label: "Tempo cues", kind: "toggle" },

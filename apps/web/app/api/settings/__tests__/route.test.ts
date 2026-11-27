@@ -60,6 +60,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
       showStrengthHints: true,
       showSetTypes: true,
       showRestStats: true,
+      showMuscleDetail: true,
       showSetTimer: false,
       showTempo: false,
       tempoCues: false,
@@ -142,6 +143,7 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("GET/PATCH /api/settings", () =>
   it("rejects a non-boolean advanced features toggle or a bad onboarding date", async () => {
     expect((await patch({ advancedFeatures: "yes" })).status).toBe(400);
     expect((await patch({ showSetTypes: "yes" })).status).toBe(400);
+    expect((await patch({ showMuscleDetail: "on" })).status).toBe(400);
     expect((await patch({ showRestStats: 1 })).status).toBe(400);
     expect((await patch({ showSetTimer: "on" })).status).toBe(400);
     expect((await patch({ showTempo: "on" })).status).toBe(400);

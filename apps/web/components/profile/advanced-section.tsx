@@ -11,6 +11,7 @@ import {
   Layers,
   Lock,
   Medal,
+  PersonStanding,
   SlidersHorizontal,
   Sparkles,
   Timer,
@@ -33,6 +34,7 @@ type FeatureKey =
   | "showStrengthHints"
   | "showSetTypes"
   | "showRestStats"
+  | "showMuscleDetail"
   | "showSetTimer"
   | "showTempo"
   | "showInjuryRules";
@@ -63,6 +65,9 @@ const DURING: Feature<FeatureKey>[] = [
   { key: "showPaceTracker", label: "Pace tracker", icon: Footprints, tile: "bg-green-500" },
   { key: "showRestStats", label: "Rest stats", icon: ChartLine, tile: "bg-violet-500" },
   { key: "showStrengthHints", label: "Strength standards", icon: Medal, tile: "bg-amber-500" },
+];
+const STATS: Feature<FeatureKey>[] = [
+  { key: "showMuscleDetail", label: "Muscle detail", icon: PersonStanding, tile: "bg-rose-500" },
 ];
 
 /**
@@ -192,6 +197,8 @@ export function AdvancedSection() {
           </div>
           <h2 className={`${GROUP_LABEL} mt-4`}>During a workout</h2>
           <div className={SETTINGS_GROUP}>{DURING.map(featureRow)}</div>
+          <h2 className={`${GROUP_LABEL} mt-4`}>Stats</h2>
+          <div className={SETTINGS_GROUP}>{STATS.map(featureRow)}</div>
         </>
       )}
 

@@ -25,6 +25,7 @@ function toSettings(row: UserRow) {
     showStrengthHints: row.showStrengthHints,
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
+    showMuscleDetail: row.showMuscleDetail,
     showSetTimer: row.showSetTimer,
     showTempo: row.showTempo,
     tempoCues: row.tempoCues,

@@ -1,3 +1,4 @@
+import { muscleTargetPath } from "./muscle-tree";
 import type { Muscle } from "./muscles";
 
 /**
@@ -61,4 +62,42 @@ export function bodyMapView(shading: MuscleShading): BodyMapView {
   if (lower === shaded.length) return "lower";
   if (lower === 0) return "upper";
   return "full";
+}
+
+/**
+ * MuscleMap surfaces that are finer than Jim's groups, and the muscle tree
+ * nodes each one stands for (issue #876). Every other surface shades as its
+ * group does.
+ */
+export const DETAIL_SURFACES: Readonly<Record<string, readonly string[]>> = {
+  SHOULDERS_FRONT: ["front_delt"],
+  SHOULDERS_SIDE: ["side_delt"],
+  SHOULDERS_REAR: ["rear_delt"],
+  CORE: ["rectus_abdominis", "transversus_abdominis"],
+  OBLIQUES: ["external_obliques", "internal_obliques"],
+  // Drawn as the outer hip; the hip abductors are these two glutes now.
+  ABDUCTORS: ["gluteus_medius", "gluteus_minimus"],
+};
+
+/**
+ * One week's value for each detail surface: the most any of its nodes got,
+ * plus the "Other" of every node above them, since work tagged only as
+ * "shoulders" could have been any part of them. Never more than the group.
+ * `byMuscle` keeps old rows still tagged with a retired group (abductors)
+ * on the map.
+ */
+export function detailSurfaceValues(
+  byTarget: Readonly<Record<string, number>>,
+  otherByTarget: Readonly<Record<string, number>>,
+  byMuscle: Readonly<Record<string, number>>,
+): Record<string, number> {
+  const values: Record<string, number> = {};
+  for (const [surface, nodes] of Object.entries(DETAIL_SURFACES)) {
+    let value = Math.max(0, ...nodes.map((node) => byTarget[node] ?? 0));
+    const ancestors = new Set(nodes.flatMap((node) => muscleTargetPath(node).slice(1)));
+    for (const ancestor of ancestors) value += otherByTarget[ancestor] ?? 0;
+    if (surface === "ABDUCTORS") value = Math.max(value, byMuscle.abductors ?? 0);
+    if (value > 0) values[surface] = value;
+  }
+  return values;
 }

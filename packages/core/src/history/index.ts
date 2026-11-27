@@ -6,6 +6,7 @@ export * from "./estimated-one-rep-max-series";
 export * from "./predicted-one-rep-max";
 export * from "./volume-by-muscle";
 export * from "./volume-targets";
+export * from "./volume-tree";
 export * from "./training-calendar";
 export * from "./calendar-month";
 export * from "./personal-records-list";

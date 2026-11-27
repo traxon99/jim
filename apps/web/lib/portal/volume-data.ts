@@ -16,6 +16,8 @@ export interface PortalVolumeSet {
   durationSeconds?: number | null;
   primaryMuscles: string[];
   secondaryMuscles: string[];
+  primaryTargets?: string[];
+  secondaryTargets?: string[];
 }
 
 /** What the desktop Volume section (issue #470) shows. */
@@ -33,6 +35,8 @@ export function serializeVolumeSets(sets: readonly MuscleVolumeSet[]): PortalVol
     durationSeconds: set.durationSeconds,
     primaryMuscles: [...set.primaryMuscles],
     secondaryMuscles: [...set.secondaryMuscles],
+    ...(set.primaryTargets?.length ? { primaryTargets: [...set.primaryTargets] } : {}),
+    ...(set.secondaryTargets?.length ? { secondaryTargets: [...set.secondaryTargets] } : {}),
   }));
 }
 
@@ -74,6 +78,10 @@ export function volumeWeeksInRange(
         weekStart: new Date(cursor),
         volumeByMuscle: {},
         setsByMuscle: {},
+        setsByTarget: {},
+        volumeByTarget: {},
+        otherSetsByTarget: {},
+        otherVolumeByTarget: {},
       },
     );
     // setDate, not minus 7 days of ms, so a DST change keeps local midnight.

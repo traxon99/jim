@@ -45,6 +45,7 @@ export interface SettingsPayload {
   showStrengthHints: boolean;
   showSetTypes: boolean;
   showRestStats: boolean;
+  showMuscleDetail: boolean;
   showSetTimer: boolean;
   showTempo: boolean;
   tempoCues: boolean;
@@ -92,6 +93,7 @@ export function toSettingsPayload(row: typeof users.$inferSelect): SettingsPaylo
     showStrengthHints: row.showStrengthHints,
     showSetTypes: row.showSetTypes,
     showRestStats: row.showRestStats,
+    showMuscleDetail: row.showMuscleDetail,
     showSetTimer: row.showSetTimer,
     showTempo: row.showTempo,
     tempoCues: row.tempoCues,
@@ -202,6 +204,9 @@ export function isValidSettingsPatch(body: unknown): body is Partial<SettingsPay
     return false;
   }
   if ("showInjuryRules" in candidate && typeof candidate.showInjuryRules !== "boolean") {
+    return false;
+  }
+  if ("showMuscleDetail" in candidate && typeof candidate.showMuscleDetail !== "boolean") {
     return false;
   }
   if ("injuriesAffectPrp" in candidate && typeof candidate.injuriesAffectPrp !== "boolean") {
@@ -338,6 +343,7 @@ export function toSettingsColumns(
   if (body.tempoCueStyle !== undefined) patch.tempoCueStyle = body.tempoCueStyle;
   if (body.tempoCountReps !== undefined) patch.tempoCountReps = body.tempoCountReps;
   if (body.showInjuryRules !== undefined) patch.showInjuryRules = body.showInjuryRules;
+  if (body.showMuscleDetail !== undefined) patch.showMuscleDetail = body.showMuscleDetail;
   if (body.injuriesAffectPrp !== undefined) patch.injuriesAffectPrp = body.injuriesAffectPrp;
   if (body.showInjuryHints !== undefined) patch.showInjuryHints = body.showInjuryHints;
   if (body.pushRestTimer !== undefined) patch.pushRestTimer = body.pushRestTimer;
