@@ -14,6 +14,7 @@ export * from "./injuries";
 export * from "./one-rep-max";
 export * from "./places";
 export * from "./progress-photos";
+export * from "./gym-cards";
 export * from "./programs";
 export * from "./progression";
 export * from "./routines";

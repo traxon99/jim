@@ -1,5 +1,7 @@
 "use client";
 
+import { useGymCardOverlays } from "@/components/gym-cards/gym-card-overlays";
+import { GymCardsShelf } from "@/components/gym-cards/gym-cards-shelf";
 import { MapPin, Pencil, Star } from "@/components/icons/solar";
 import { PAGE_BODY, PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db/schema";
@@ -75,6 +77,15 @@ function GymFields({ draft, onChange }: { draft: Draft; onChange: (draft: Draft)
 export function GymsHome({ userId }: { userId: string }) {
   const rows = useLiveQuery(() => db.gyms.toArray(), []);
   const gyms = useMemo(() => sortGyms(rows ?? []), [rows]);
+  // Gym cards (issue #878): the shelf above the list, and each gym's card color.
+  const gymCards = useGymCardOverlays(userId);
+  const cardColorByGym = useMemo(() => {
+    const colors = new Map<string, string>();
+    for (const card of gymCards.cards ?? []) {
+      if (card.gymId && !colors.has(card.gymId)) colors.set(card.gymId, card.color);
+    }
+    return colors;
+  }, [gymCards.cards]);
 
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [addError, setAddError] = useState<string | null>(null);
@@ -149,6 +160,14 @@ export function GymsHome({ userId }: { userId: string }) {
     <main className="flex flex-1 flex-col">
       <PageHeader title="Gyms" back={{ href: "/profile/settings", label: "Settings" }} />
       <div className={PAGE_BODY}>
+        {gymCards.cards && (
+          <GymCardsShelf
+            cards={gymCards.cards}
+            onOpen={gymCards.open}
+            onAdd={() => gymCards.add(gyms.find((gym) => gym.isDefault)?.id ?? null)}
+          />
+        )}
+        {gymCards.overlays}
         <section className="flex flex-col gap-2">
           <h2 className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
             Your gyms
@@ -238,6 +257,14 @@ export function GymsHome({ userId }: { userId: string }) {
                       <span className="text-xs text-zinc-500 dark:text-zinc-500">Home gym</span>
                     )}
                   </div>
+                  {cardColorByGym.has(gym.id) && (
+                    <span
+                      role="img"
+                      aria-label="Has a gym card"
+                      className="h-[22px] w-[34px] shrink-0 rounded-[5px]"
+                      style={{ background: cardColorByGym.get(gym.id) }}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => startEdit(gym)}

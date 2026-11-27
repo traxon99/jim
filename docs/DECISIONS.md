@@ -744,3 +744,43 @@ signed-URL story.
 
 **Rejected: public bucket with unguessable names.** A leaked URL would stay valid forever; "no other
 user can fetch it even with a guessed URL" needs the policy, not obscurity.
+
+## ADR-026 — Gym card codes are door credentials, sealed on the server
+
+**Status:** Accepted · 2026-11-27
+
+**Context.** Lifters want their gym's membership card or key tag on the phone (issue #878): scan
+it once, show it at the door. The code on it is a credential: whoever has the number can often
+check in as its owner. It is the first secret a user hands Jim that someone else could use.
+
+**Decision.**
+
+- **Synced, sealed.** `gym_cards` is an ordinary own-row, last-write-wins synced table (ADR-005),
+  so a new phone keeps its cards. The push route seals `code` with AES-256-GCM under a key derived
+  from `GYM_CARD_KEY` (the card id bound in as associated data) before the row reaches Postgres,
+  and the pull route opens it for the signed-in owner. Database backups, the Supabase table editor
+  and anything else that reads the table only see `gc1.…` ciphertext. Without the key a push of a
+  card fails and stays queued on the phone, rather than storing the code in the clear. A row that
+  won't open is left out of the pull, so the phone keeps its own copy.
+- **Plain on the phone.** In IndexedDB the code is plain, like every other row: the phone's own
+  passcode and data protection guard it. Encrypting it locally would need an unlock at the
+  turnstile, the wrong trade for a card shown in a queue.
+- **Never shared.** No friend function, post, share, admin screen or tool, telemetry or `/v1`
+  endpoint reads the table. The MCP lists cards (name, format, color, gym) and deletes them, but
+  no tool reads or sets the code: an assistant has no use for a door credential. This is a
+  deliberate exception to the MCP parity rule. A guard test (`gym-card-privacy.test.ts`) fails CI
+  if any of that changes. The user's own exports include the code.
+- **Drawn once, offline.** The scanner keeps the symbology and the exact text. bwip-js draws it
+  again as SVG when the card is saved, and the SVG is stored on the phone, so the door view needs
+  no encoder, network or camera. Scanning uses the browser's BarcodeDetector where it exists
+  (Android) and zxing-wasm elsewhere (every iPhone, where WebKit ships it switched off), with the
+  WASM binary served from this origin.
+
+**Rejected: device-only cards.** Simplest for privacy, but a reinstall or a new phone loses them.
+
+**Rejected: Wallet passes first.** Apple Wallet only takes QR, PDF417, Aztec and Code 128 (not the
+common Code 39 key tag) and needs a paid developer account and server-side signing. Kept as a later
+option.
+
+**Not possible: NFC, RFID and magnetic stripes.** A web app can't read most fobs (Web NFC is
+Android-only and NDEF-only) and no browser can emulate a card.

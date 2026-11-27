@@ -11,6 +11,6 @@ export const config = {
      * Every path except static assets and the PWA files that must load
      * before/without auth: manifest, icons, splash screens, service worker.
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon|apple-icon|icons|splash|sw.js).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon|apple-icon|icons|splash|sw.js|vendor).*)",
   ],
 };

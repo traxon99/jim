@@ -29,6 +29,7 @@ export const SYNC_DATE_FIELDS: Record<SyncTable, readonly string[]> = {
   exercisePreferences: ["createdAt", "updatedAt", "deletedAt"],
   // takenOn is a calendar day (YYYY-MM-DD), not a timestamp.
   progressPhotos: ["takenAt", "uploadedAt", "updatedAt", "deletedAt"],
+  gymCards: ["createdAt", "updatedAt", "deletedAt"],
 };
 
 /** Converts a row's known date fields from ISO strings (JSON's wire format) to Date objects. Leaves null/undefined alone. */

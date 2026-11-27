@@ -2,6 +2,7 @@
 
 import type { ExportTables } from "@/lib/data-transfer/export-build";
 import { withUserDb } from "@/lib/db/user-scoped";
+import { openPulledGymCards } from "@/lib/gym-cards/seal";
 import { readSettingsRow } from "@/lib/portal/load-portal-data";
 import {
   bodyMeasurements,
@@ -9,6 +10,7 @@ import {
   dprBlocks,
   exercisePreferences,
   exercises,
+  gymCards,
   gyms,
   injuries,
   painCheckins,
@@ -53,6 +55,8 @@ export async function loadExportTables(): Promise<ExportTables> {
     const sickDayRows = await tx.select().from(sickDays);
     const preferenceRows = await tx.select().from(exercisePreferences);
     const photoRows = await tx.select().from(progressPhotos);
+    // Gym card codes are stored sealed (issue #878); the owner's export opens them.
+    const gymCardRows = openPulledGymCards(await tx.select().from(gymCards));
     // The exercises the history names, plus every custom one the user owns.
     const exerciseIds = [
       ...new Set([
@@ -88,6 +92,7 @@ export async function loadExportTables(): Promise<ExportTables> {
       sickDays: sickDayRows,
       exercisePreferences: preferenceRows,
       progressPhotos: photoRows,
+      gymCards: gymCardRows,
     };
   });
 }

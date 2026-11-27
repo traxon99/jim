@@ -922,6 +922,43 @@ export const gyms = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// gym_cards — the membership card or key tag a gym scans at the door (issue
+// #878, ADR-026), kept so the phone can show it instead. `format` is
+// @jim/core's GymCardFormat and `code` the text as scanned. `code` is a door
+// credential: the push route seals it (AES-256-GCM under GYM_CARD_KEY) before
+// it reaches this table and the pull route opens it for the owner alone, so
+// the column only ever holds ciphertext. Never read by a friend function,
+// post, share, admin screen or /v1; the MCP lists cards without it.
+// ---------------------------------------------------------------------------
+
+export const gymCards = pgTable(
+  "gym_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // A tombstoned gym leaves gymId pointing at it; readers treat it as none.
+    gymId: uuid("gym_id").references(() => gyms.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    format: text("format").notNull(),
+    code: text("code").notNull(),
+    color: text("color").notNull(),
+    position: integer("position").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deviceId: text("device_id").notNull().default(""),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    serverSeq: bigint("server_seq", { mode: "number" }).notNull().default(nextSyncSeq),
+  },
+  (table) => [
+    ...ownRowPolicies("gym_cards", table.userId),
+    index("gym_cards_server_seq").on(table.serverSeq),
+    index("gym_cards_user_seq").on(table.userId, table.serverSeq),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // injuries — a hurt area the user trains around (issue #627, CONTEXT.md),
 // open from `startedOn` until the user marks it healed. `area` is one of
 // @jim/core's INJURY_AREAS (a muscle or a joint); `side` is left, right or

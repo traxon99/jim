@@ -54,6 +54,17 @@ day, like a layoff. A sick day can also hold a workout (#781): the workout count
 the day still shows as sick. Private to the user, like injuries.
 _Avoid_: Illness, off day, rest day (a rest day is part of a program)
 
+## Gym cards
+
+**Gym card**:
+The membership card or key tag a gym scans at its door (issue #878), kept in Jim so the phone can
+show it instead. Added by scanning it with the camera, reading a photo or screenshot, or typing the
+number; Jim keeps the code exactly as scanned, in its symbology (Code 39, QR, …), and draws it again
+in that symbology on a white panel. Optionally tied to a gym; the home gym's card opens from Lift.
+The code is a door credential: sealed on the server, never shown to friends, admins, Claude or /v1
+(ADR-026). NFC and RFID fobs and magnetic stripes can't be kept.
+_Avoid_: Pass, ticket, membership (a membership is the deal with the gym, not the card), gym tag
+
 ## Injuries
 
 **Injury**:

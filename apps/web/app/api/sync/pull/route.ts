@@ -1,5 +1,6 @@
 import { unauthenticated } from "@/lib/api/route-helpers";
 import { UnauthenticatedError, withUserDb } from "@/lib/db/user-scoped";
+import { openPulledGymCards } from "@/lib/gym-cards/seal";
 import { APP_VERSION_HEADER } from "@/lib/sync/app-version-header";
 import type { SyncTable } from "@jim/core";
 import {
@@ -10,6 +11,7 @@ import {
   dprBlocks,
   exercisePreferences,
   exercises,
+  gymCards,
   gyms,
   injuries,
   painCheckins,
@@ -53,6 +55,7 @@ const PULL_TABLES: Record<SyncTable | "scheduledWorkouts", PgTable & { serverSeq
   sickDays: sickDays,
   exercisePreferences: exercisePreferences,
   progressPhotos: progressPhotos,
+  gymCards: gymCards,
   scheduledWorkouts: scheduledWorkouts,
 };
 
@@ -138,6 +141,11 @@ export async function GET(request: Request) {
           changes[name] = rows;
           for (const row of rows) cursor = Math.max(cursor, seqOf(row));
         }
+        // Gym card codes are stored sealed (issue #878, ADR-026): open them
+        // for their owner, after the cursor has counted every row.
+        changes.gymCards = openPulledGymCards(
+          (changes.gymCards ?? []) as (typeof gymCards.$inferSelect)[],
+        );
 
         // Force refresh (issue #808): the latest admin requests for this
         // account, which each device compares with the last one it acted on.
