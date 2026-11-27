@@ -14,6 +14,7 @@ export const MUSCLES = [
   "forearms",
   "glutes",
   "hamstrings",
+  "hip flexors",
   "lats",
   "lower back",
   "middle back",

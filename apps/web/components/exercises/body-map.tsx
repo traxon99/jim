@@ -31,11 +31,30 @@ const FRONT_NECK =
   "M478,214 C484,240 489,264 494,292 L530,292 C535,264 540,240 546,214 C532,224 492,224 478,214 Z";
 const BACK_NECK = "M478,206 L546,206 C544,226 542,242 540,256 L484,256 C482,242 480,226 478,206 Z";
 
-const regions = (art: ArtFigure, neck: string): Region[] => [
+/**
+ * MuscleMap has no hip flexors (#874); these sit in the bare hip crease
+ * between the abs, the top of the quads and the adductors, where iliopsoas
+ * surfaces. The viewer's left is the body's right on the front.
+ */
+const FRONT_HIP_FLEXORS: Region[] = [
+  {
+    muscle: "hip flexors",
+    side: "right",
+    d: "M448,712 C466,722 487,734 502,742 L497,774 C486,760 468,746 452,734 Z",
+  },
+  {
+    muscle: "hip flexors",
+    side: "left",
+    d: "M576,712 C558,722 537,734 522,742 L527,774 C538,760 556,746 572,734 Z",
+  },
+];
+
+const regions = (art: ArtFigure, neck: string, extra: Region[] = []): Region[] => [
   { muscle: "neck", side: null, d: neck },
   ...art.regions,
+  ...extra,
 ];
-const FRONT = regions(FRONT_ART, FRONT_NECK);
+const FRONT = regions(FRONT_ART, FRONT_NECK, FRONT_HIP_FLEXORS);
 const BACK = regions(BACK_ART, BACK_NECK);
 
 /** Every muscle the map can shade, for the test that keeps it in step with MUSCLES. */

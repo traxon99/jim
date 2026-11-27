@@ -21,6 +21,7 @@ import {
   muscleTagsError,
   normalizeVideoUrl,
   slugify,
+  targetsAfterGroupEdit,
   uuidv7,
   withoutPrimary,
 } from "@jim/core";
@@ -245,6 +246,11 @@ export function ExerciseForm({
           category,
           primaryMuscles,
           secondaryMuscles: withoutPrimary(secondaryMuscles, primaryMuscles),
+          ...targetsAfterGroupEdit(
+            existing,
+            primaryMuscles,
+            withoutPrimary(secondaryMuscles, primaryMuscles),
+          ),
           instructions,
           videoUrl,
           ...machine,

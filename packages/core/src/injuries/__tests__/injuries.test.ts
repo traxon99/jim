@@ -50,7 +50,7 @@ const localKey = (date: Date) => {
 
 describe("injury areas", () => {
   it("offers every muscle and the five joints", () => {
-    expect(INJURY_AREAS).toHaveLength(17 + 5);
+    expect(INJURY_AREAS).toHaveLength(18 + 5);
     expect(INJURY_AREAS).toContain("knee");
     expect(INJURY_AREAS).toContain("lower back");
   });

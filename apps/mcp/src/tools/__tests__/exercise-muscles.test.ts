@@ -88,3 +88,78 @@ describe.skipIf(!process.env.TEST_DATABASE_URL)("exercise muscle tags (#643)", (
     ).resolves.toMatchObject({ action: "updated" });
   });
 });
+
+describe.skipIf(!process.env.TEST_DATABASE_URL)("muscle tree tags", () => {
+  let admin: postgres.Sql;
+  let context: UserContext;
+
+  beforeAll(async () => {
+    admin = await resetTestDb();
+    context = testContext(USER_A);
+  });
+
+  afterAll(async () => {
+    await admin.end();
+    await context.db.$client.end();
+  });
+
+  it("derives the groups from node tags and finds the exercise by any node above them", async () => {
+    const { id } = await upsertExercise(context, {
+      name: "Chest Supported Row",
+      trackingType: "weight_reps",
+      primaryTargets: ["latissimus_dorsi", "middle_traps", "rhomboids"],
+      secondaryTargets: ["rear_delt", "biceps_brachii"],
+    });
+    const expected = {
+      id,
+      primaryMuscles: ["lats", "middle back", "traps"],
+      secondaryMuscles: ["biceps", "shoulders"],
+      primaryTargets: ["latissimus_dorsi", "middle_traps", "rhomboids"],
+      secondaryTargets: ["rear_delt", "biceps_brachii"],
+    };
+    for (const muscle of ["rear_delt", "deltoid", "shoulders", "trapezius"]) {
+      const found = await searchExercisesTool(context, {
+        query: "chest supported row",
+        muscles: [muscle],
+      });
+      expect(found[0]).toMatchObject(expected);
+    }
+    expect(
+      await searchExercisesTool(context, { query: "chest supported row", muscles: ["front_delt"] }),
+    ).toEqual([]);
+  });
+
+  it("refuses bad node tags and mixing them with group tags", async () => {
+    await expect(
+      upsertExercise(context, {
+        name: "Fly",
+        trackingType: "weight_reps",
+        primaryTargets: ["pectoralis_major", "upper_chest"],
+      }),
+    ).rejects.toThrow(/already inside/);
+    await expect(
+      upsertExercise(context, {
+        name: "Fly",
+        trackingType: "weight_reps",
+        primaryTargets: ["upper_chest"],
+        primaryMuscles: ["chest"],
+      }),
+    ).rejects.toThrow(/not both/);
+  });
+
+  it("clears node tags when only the groups change", async () => {
+    const { id } = await upsertExercise(context, {
+      name: "Lateral Raise",
+      trackingType: "weight_reps",
+      primaryTargets: ["side_delt"],
+    });
+    await upsertExercise(context, { id, name: "Cable Lateral Raise" });
+    let [found] = await searchExercisesTool(context, { query: "cable lateral raise" });
+    expect(found).toMatchObject({ primaryTargets: ["side_delt"] });
+
+    await upsertExercise(context, { id, primaryMuscles: ["shoulders", "traps"] });
+    [found] = await searchExercisesTool(context, { query: "cable lateral raise" });
+    expect(found).toMatchObject({ primaryMuscles: ["shoulders", "traps"] });
+    expect(found).not.toHaveProperty("primaryTargets");
+  });
+});
