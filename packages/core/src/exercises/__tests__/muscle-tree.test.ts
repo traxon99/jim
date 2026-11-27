@@ -7,7 +7,9 @@ import {
   muscleTargetChildren,
   muscleTargetPath,
   muscleTargetsError,
+  pickTarget,
   targetWeights,
+  targetsToSave,
 } from "../muscle-tree";
 import { MUSCLES } from "../muscles";
 
@@ -71,5 +73,41 @@ describe("muscle tree (#874)", () => {
     expect(
       muscleTargetsError({ primaryTargets: ["side_delt", "shoulders"], secondaryTargets: [] }),
     ).toMatch(/inside/);
+  });
+});
+
+describe("tree muscle picker (#879)", () => {
+  it("picks a group, then swaps it for a muscle inside it", () => {
+    let lists = pickTarget([], [], "shoulders");
+    expect(lists.picked).toEqual(["shoulders"]);
+    lists = pickTarget(lists.picked, [], "side_delt");
+    expect(lists.picked).toEqual(["side_delt"]);
+    lists = pickTarget(lists.picked, [], "rear_delt");
+    expect(lists.picked).toEqual(["side_delt", "rear_delt"]);
+  });
+
+  it("falls back to the group when its last muscle is dropped, and clears it from the group", () => {
+    expect(pickTarget(["side_delt"], [], "side_delt").picked).toEqual(["shoulders"]);
+    expect(pickTarget(["side_delt", "chest"], [], "shoulders").picked).toEqual(["chest"]);
+  });
+
+  it("takes a pick and what's inside it out of the other list only", () => {
+    const lists = pickTarget(["front_delt"], ["side_delt", "deltoid", "triceps"], "deltoid");
+    expect(lists).toEqual({ picked: ["deltoid"], other: ["triceps"] });
+  });
+
+  it("saves plain groups without node tags, and node tags with derived groups", () => {
+    expect(targetsToSave(["chest"], ["triceps"])).toEqual({
+      primaryMuscles: ["chest"],
+      secondaryMuscles: ["triceps"],
+      primaryTargets: [],
+      secondaryTargets: [],
+    });
+    expect(targetsToSave(["side_delt"], ["upper_traps"])).toEqual({
+      primaryMuscles: ["shoulders"],
+      secondaryMuscles: ["traps"],
+      primaryTargets: ["side_delt"],
+      secondaryTargets: ["upper_traps"],
+    });
   });
 });

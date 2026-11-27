@@ -64,11 +64,18 @@ function childIds(id: string): readonly string[] {
 }
 
 /**
- * The weight a set counts toward each tree node below its groups, and the
- * "other" remainder of each node that has children none of which it reached.
- * An exercise without node tags reaches its groups only.
+ * The weight an exercise counts toward each tree node, and the "other"
+ * remainder of each node that has children none of which it reached. An
+ * exercise without node tags reaches its groups only.
  */
-function treeWeights(set: MuscleVolumeSet): {
+export function muscleTreeWeights(
+  set: Pick<
+    MuscleVolumeSet,
+    "primaryMuscles" | "secondaryMuscles" | "primaryTargets" | "secondaryTargets"
+  >,
+  primaryWeight = PRIMARY_MUSCLE_VOLUME_WEIGHT,
+  secondaryWeight = SECONDARY_MUSCLE_VOLUME_WEIGHT,
+): {
   nodes: Map<string, number>;
   other: Map<string, number>;
 } {
@@ -77,8 +84,8 @@ function treeWeights(set: MuscleVolumeSet): {
     hasTargets
       ? { primaryTargets: set.primaryTargets ?? [], secondaryTargets: set.secondaryTargets ?? [] }
       : { primaryTargets: set.primaryMuscles, secondaryTargets: set.secondaryMuscles },
-    PRIMARY_MUSCLE_VOLUME_WEIGHT,
-    SECONDARY_MUSCLE_VOLUME_WEIGHT,
+    primaryWeight,
+    secondaryWeight,
   );
   const other = new Map<string, number>();
   for (const [id, weight] of weights) {
@@ -128,7 +135,7 @@ export function weeklyVolumeByMuscle(
       for (const muscle of set.secondaryMuscles) {
         setsByMuscle[muscle] = (setsByMuscle[muscle] ?? 0) + SECONDARY_MUSCLE_VOLUME_WEIGHT;
       }
-      const tree = treeWeights(set);
+      const tree = muscleTreeWeights(set);
       // Groups live in setsByMuscle, as they always have; the tree maps hold
       // only what sits below them.
       const below = new Map([...tree.nodes].filter(([id]) => !GROUP_IDS.has(id)));

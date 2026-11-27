@@ -299,3 +299,63 @@ export function targetsAfterGroupEdit(
   }
   return { primaryTargets: [], secondaryTargets: [] };
 }
+
+/** Whether `id` is `ancestor` or sits anywhere beneath it. */
+export function isWithinTarget(id: string, ancestor: string): boolean {
+  return muscleTargetPath(id).includes(ancestor);
+}
+
+/**
+ * The tree muscle picker's tap (issue #879) on `id` in one list (`picked`),
+ * with `other` the other list (primary vs secondary):
+ * - a group already in use clears everything under it from this list;
+ * - a picked muscle or head is dropped, and when nothing else in its group is
+ *   left the group itself stays tagged, so the group doesn't vanish mid-edit;
+ * - anything else is picked, replacing its own ancestors and descendants in
+ *   this list, and leaves the other list (with what sits inside it there).
+ */
+export function pickTarget(
+  picked: readonly string[],
+  other: readonly string[],
+  id: string,
+): { picked: string[]; other: string[] } {
+  const group = groupOfTarget(id);
+  if (!group) return { picked: [...picked], other: [...other] };
+  const isGroup = group === id;
+  if (isGroup && picked.some((node) => isWithinTarget(node, id))) {
+    return { picked: picked.filter((node) => !isWithinTarget(node, id)), other: [...other] };
+  }
+  if (!isGroup && picked.includes(id)) {
+    const rest = picked.filter((node) => node !== id);
+    const groupLeft = rest.some((node) => isWithinTarget(node, group));
+    return { picked: groupLeft ? rest : [...rest, group], other: [...other] };
+  }
+  return {
+    picked: [
+      ...picked.filter((node) => !isWithinTarget(node, id) && !isWithinTarget(id, node)),
+      id,
+    ],
+    other: other.filter((node) => !isWithinTarget(node, id)),
+  };
+}
+
+/**
+ * What the tree picker's two lists save as (issue #879): node tags with the
+ * groups derived from them, or plain group tags with no node tags when
+ * nothing deeper than a group was picked.
+ */
+export function targetsToSave(
+  primary: readonly string[],
+  secondary: readonly string[],
+): {
+  primaryMuscles: Muscle[];
+  secondaryMuscles: Muscle[];
+  primaryTargets: string[];
+  secondaryTargets: string[];
+} {
+  const groupsOnly = [...primary, ...secondary].every((id) => groupOfTarget(id) === id);
+  const groups = groupTagsFromTargets({ primaryTargets: primary, secondaryTargets: secondary });
+  return groupsOnly
+    ? { ...groups, primaryTargets: [], secondaryTargets: [] }
+    : { ...groups, primaryTargets: [...primary], secondaryTargets: [...secondary] };
+}

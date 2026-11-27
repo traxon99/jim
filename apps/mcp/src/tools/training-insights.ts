@@ -12,6 +12,7 @@ import {
   isValidTimeZone,
   latestPainByDay,
   localTimeOfDay,
+  muscleTargetChildren,
   predictOneRepMax,
   progressDecomposition,
   rapidSetFlags,
@@ -569,6 +570,26 @@ export async function dataQualityFlags(context: UserContext, input: DataQualityF
         sessionIds: [
           ...new Set(loaded.filter((s) => s.exerciseId === exercise.id).map((s) => s.sessionId)),
         ],
+      });
+    }
+
+    // Muscle tree (#879): a strength exercise tagged only with groups that
+    // have muscles counts as "other" in every muscle-level breakdown.
+    for (const exercise of known.values()) {
+      if (!isStrengthExercise(exercise) || exercise.primaryMuscles.length === 0) continue;
+      if (exercise.primaryTargets.length + exercise.secondaryTargets.length > 0) continue;
+      const splittable = [...exercise.primaryMuscles, ...exercise.secondaryMuscles].filter(
+        (group) => muscleTargetChildren(group).length > 0,
+      );
+      if (splittable.length === 0) continue;
+      flags.push({
+        type: "no_muscle_tags",
+        severity: "info",
+        explanation:
+          'Tagged only with muscle groups, so at detail muscle or head (volume_report, weekly_summary) its sets show as "other". Tag its muscles (list_muscles) with upsert_exercise\'s primaryTargets/secondaryTargets, or in the app with Muscle detail on.',
+        exerciseId: exercise.id,
+        exercise: exercise.name,
+        groups: splittable,
       });
     }
 

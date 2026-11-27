@@ -1,6 +1,11 @@
 "use client";
 
-import { BodyMap, MuscleSwatches, muscleSummary } from "@/components/exercises/body-map";
+import {
+  BodyMap,
+  MuscleSwatches,
+  TargetSwatches,
+  muscleSummary,
+} from "@/components/exercises/body-map";
 import { ExercisePreferenceControl } from "@/components/exercises/exercise-preference-control";
 import { FloatingCard } from "@/components/floating-card";
 import { LiftLeaderboard } from "@/components/friends/lift-leaderboard";
@@ -10,7 +15,7 @@ import { RestStatsLine, SetRestTag } from "@/components/workout/rest-stats-line"
 import { db } from "@/lib/db/schema";
 import { useToday } from "@/lib/pwa/use-today";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { showsRestStats } from "@/lib/settings/features";
+import { showsMuscleDetail, showsRestStats } from "@/lib/settings/features";
 import {
   PULLEY_LABELS,
   bodyMapView,
@@ -25,6 +30,8 @@ import {
   exerciseDemo,
   exerciseDisplayName,
   exerciseMuscleShading,
+  exerciseSurfaceShading,
+  exerciseTargetLabels,
   formatCardioRecordValue,
   formatTimedSet,
   isCardioExercise,
@@ -67,6 +74,7 @@ export function ExerciseDetail({
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
   const settings = useLiveQuery(() => db.settings.get("me"), []) ?? DEFAULT_SETTINGS;
   const showRest = showsRestStats(settings);
+  const muscleDetail = showsMuscleDetail(settings);
   // The machine's gym (issue #451); a deleted gym reads as none.
   const gym = useLiveQuery(async () => {
     const gymId = exercise?.gymId;
@@ -216,6 +224,7 @@ export function ExerciseDetail({
   );
   const hasMuscles = exercise.primaryMuscles.length + exercise.secondaryMuscles.length > 0;
   const shading = exerciseMuscleShading(exercise);
+  const targetLabels = exerciseTargetLabels(exercise);
   // Rows synced before the column existed have no videoUrl at all.
   const demo = exerciseDemo({ name: exercise.name, videoUrl: exercise.videoUrl ?? null });
   const machine = machineName(exercise);
@@ -267,14 +276,30 @@ export function ExerciseDetail({
                 <BodyMap
                   shading={shading}
                   view={bodyMapView(shading)}
-                  label={muscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles)}
+                  label={
+                    muscleDetail
+                      ? muscleSummary(
+                          targetLabels.primary.map((tag) => tag.label),
+                          targetLabels.secondary.map((tag) => tag.label),
+                        )
+                      : muscleSummary(exercise.primaryMuscles, exercise.secondaryMuscles)
+                  }
+                  surfaceShading={muscleDetail ? exerciseSurfaceShading(exercise) : undefined}
                   className="mt-2"
                 />
-                <MuscleSwatches
-                  primary={exercise.primaryMuscles}
-                  secondary={exercise.secondaryMuscles}
-                  className="mt-2 justify-center"
-                />
+                {muscleDetail ? (
+                  <TargetSwatches
+                    primary={targetLabels.primary}
+                    secondary={targetLabels.secondary}
+                    className="mt-2 justify-center"
+                  />
+                ) : (
+                  <MuscleSwatches
+                    primary={exercise.primaryMuscles}
+                    secondary={exercise.secondaryMuscles}
+                    className="mt-2 justify-center"
+                  />
+                )}
               </section>
             )}
 

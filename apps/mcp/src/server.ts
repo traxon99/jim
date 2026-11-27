@@ -498,7 +498,7 @@ export function createMcpServer(context: UserContext): McpServer {
     "data_quality_flags",
     {
       title: "Data quality flags",
-      description: `Read-only. Sets and exercises in a range of local days to treat with caution, each with a type, a plain explanation and the workout or exercise it points to: rapid_sets (two sets in one workout logged under rapidSetSeconds apart, default ${DEFAULT_RAPID_SET_SECONDS}, so their RPE is a guess), missing_primary_muscle (a strength exercise volume totals leave out), and stale_predicted_1rm (a lift trained in the last six months but not in the staleWeeks, default ${DEFAULT_STALE_WEEKS}, before the range's end, so its predicted 1RM is old). Flags only; fix the data in the app or with the write tools.`,
+      description: `Read-only. Sets and exercises in a range of local days to treat with caution, each with a type, a plain explanation and the workout or exercise it points to: rapid_sets (two sets in one workout logged under rapidSetSeconds apart, default ${DEFAULT_RAPID_SET_SECONDS}, so their RPE is a guess), missing_primary_muscle (a strength exercise volume totals leave out), no_muscle_tags (info: tagged only with muscle groups, so it shows as "other" in muscle-level volume), and stale_predicted_1rm (a lift trained in the last six months but not in the staleWeeks, default ${DEFAULT_STALE_WEEKS}, before the range's end, so its predicted 1RM is old). Flags only; fix the data in the app or with the write tools.`,
       inputSchema: {
         ...insightRange,
         rapidSetSeconds: z.number().positive().max(600).optional(),
