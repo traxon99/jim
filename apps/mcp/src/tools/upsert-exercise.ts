@@ -2,8 +2,11 @@ import {
   type PulleyType,
   applyExerciseEdit,
   cleanMachineText,
+  groupTagsFromTargets,
   muscleTagsError,
+  muscleTargetsError,
   slugify,
+  targetsAfterGroupEdit,
   uuidv7,
   withoutPrimary,
 } from "@jim/core";
@@ -27,6 +30,13 @@ export interface UpsertExerciseInput {
   aliases?: string[];
   primaryMuscles?: string[];
   secondaryMuscles?: string[];
+  /**
+   * Muscle tree tags (list_muscles), at any depth. When either is given the
+   * group muscles are derived from them, so primaryMuscles/secondaryMuscles
+   * can't be given too.
+   */
+  primaryTargets?: string[];
+  secondaryTargets?: string[];
   equipment?: string;
   mechanic?: ExerciseRow["mechanic"];
   force?: ExerciseRow["force"];
@@ -58,7 +68,29 @@ async function machineEdits(tx: DbOrTx, input: UpsertExerciseInput): Promise<Par
   };
 }
 
-export async function upsertExercise(context: UserContext, input: UpsertExerciseInput) {
+/**
+ * Turns node tags into the group tags they stand for, so the rest of the
+ * upsert sees plain group edits plus the node tags to save with them.
+ */
+function resolveTargets(input: UpsertExerciseInput): UpsertExerciseInput {
+  if (input.primaryTargets === undefined && input.secondaryTargets === undefined) return input;
+  if (input.primaryMuscles !== undefined || input.secondaryMuscles !== undefined) {
+    throw new MuscleTagsError(
+      "Give either primaryTargets/secondaryTargets or primaryMuscles/secondaryMuscles, not both: the groups are derived from the targets.",
+    );
+  }
+  const targets = {
+    primaryTargets: input.primaryTargets ?? [],
+    secondaryTargets: input.secondaryTargets ?? [],
+  };
+  const error = muscleTargetsError(targets);
+  if (error) throw new MuscleTagsError(error);
+  return { ...input, ...targets, ...groupTagsFromTargets(targets) };
+}
+
+export async function upsertExercise(context: UserContext, rawInput: UpsertExerciseInput) {
+  const input = resolveTargets(rawInput);
+  const targetsGiven = input.primaryTargets !== undefined;
   return withUserWrite(context, input.dryRun ?? false, async (tx) => {
     const now = new Date();
 
@@ -81,6 +113,8 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
           input.secondaryMuscles ?? [],
           primaryMuscles,
         ) as ExerciseRow["secondaryMuscles"],
+        primaryTargets: input.primaryTargets ?? [],
+        secondaryTargets: input.secondaryTargets ?? [],
         equipment: input.equipment ?? null,
         mechanic: input.mechanic ?? null,
         force: input.force ?? null,
@@ -120,6 +154,16 @@ export async function upsertExercise(context: UserContext, input: UpsertExercise
           primaryMuscles,
         ) as ExerciseRow["secondaryMuscles"],
       }),
+      // Node tags given are saved as-is; a group-only edit that changes the
+      // groups drops the node tags, which would otherwise contradict them.
+      ...(targetsGiven
+        ? { primaryTargets: input.primaryTargets, secondaryTargets: input.secondaryTargets }
+        : musclesEdited &&
+          targetsAfterGroupEdit(
+            current,
+            primaryMuscles,
+            withoutPrimary(input.secondaryMuscles ?? current.secondaryMuscles, primaryMuscles),
+          )),
       ...(input.equipment !== undefined && { equipment: input.equipment }),
       ...(input.mechanic !== undefined && { mechanic: input.mechanic }),
       ...(input.force !== undefined && { force: input.force }),

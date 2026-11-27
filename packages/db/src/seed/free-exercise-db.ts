@@ -4,6 +4,7 @@ import { EXERCISE_ALIASES } from "./aliases";
 import { cardioSeedRows, curatedSeedRows } from "./curated";
 import { parseForce, parseLevel, parseMechanic } from "./enum-values";
 import { normalizeMuscles } from "./muscles";
+import { withTargets } from "./targets";
 import { classifyTrackingType } from "./tracking-type";
 import { classifyCategory, warmupSeedRows } from "./warmups";
 
@@ -49,16 +50,50 @@ function normalizeExercise(raw: RawExercise): SeedExercise {
   };
 }
 
-export async function fetchCatalogSeed(): Promise<SeedExercise[]> {
+/** The group tags a seed row had before Jim's muscle tree re-tagged it. */
+export interface RetaggedSeed {
+  row: SeedExercise;
+  upstreamPrimary: readonly string[];
+  upstreamSecondary: readonly string[];
+}
+
+/**
+ * The catalog plus, for every re-tagged strength row, the group tags
+ * upstream gave it: a user's copy of a seed row still carrying exactly those
+ * is safe to move onto the new tags (seedCatalog's backfill).
+ */
+export async function fetchCatalogSeedWithOrigins(): Promise<{
+  rows: SeedExercise[];
+  retagged: RetaggedSeed[];
+}> {
   const response = await fetch(DATASET_URL);
   if (!response.ok) {
     throw new Error(`Failed to fetch free-exercise-db dataset: ${response.status}`);
   }
   const raw = (await response.json()) as RawExercise[];
-  return [
-    ...raw.map(normalizeExercise),
+  const retagged: RetaggedSeed[] = [];
+  // Strength rows get Jim's muscle tree tags (targets.ts), which also
+  // re-derive their group tags. Warm-ups and cardio don't count toward
+  // volume, so they keep upstream's group tags and no node tags.
+  const retag = (row: SeedExercise): SeedExercise => {
+    if (row.category !== "strength") return row;
+    const tagged = withTargets(row);
+    retagged.push({
+      row: tagged,
+      upstreamPrimary: row.primaryMuscles ?? [],
+      upstreamSecondary: row.secondaryMuscles ?? [],
+    });
+    return tagged;
+  };
+  const rows = [
+    ...raw.map(normalizeExercise).map(retag),
     ...warmupSeedRows(),
-    ...curatedSeedRows(),
+    ...curatedSeedRows().map(retag),
     ...cardioSeedRows(),
   ];
+  return { rows, retagged };
+}
+
+export async function fetchCatalogSeed(): Promise<SeedExercise[]> {
+  return (await fetchCatalogSeedWithOrigins()).rows;
 }

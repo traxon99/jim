@@ -610,6 +610,13 @@
       "when": 1795719887414,
       "tag": "0086_cardio_distance_precision",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1795736816244,
+      "tag": "0087_muscle_tree",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,7 @@ export const READ_TOOLS = new Set([
   "training_context",
   "data_quality_flags",
   "search_exercises",
+  "list_muscles",
   "list_warmup_templates",
   "list_programs",
   "list_scheduled_workouts",

@@ -56,9 +56,16 @@ type ExerciseSelect = typeof exercises.$inferSelect;
 /**
  * Machine details (issue #450) are optional here: rows cached before those
  * columns existed don't carry them until they next sync, and every reader
- * treats a missing value as unset.
+ * treats a missing value as unset. The muscle tree tags (issue #874) are
+ * optional for the same reason; missing reads as none.
  */
-type ExerciseMachineFields = "machineBrand" | "machineModel" | "pulleyType" | "gymId";
+type ExerciseMachineFields =
+  | "machineBrand"
+  | "machineModel"
+  | "pulleyType"
+  | "gymId"
+  | "primaryTargets"
+  | "secondaryTargets";
 export type ExerciseRow = Omit<ExerciseSelect, ExerciseMachineFields> &
   Partial<Pick<ExerciseSelect, ExerciseMachineFields>>;
 export type ProgramRow = typeof programs.$inferSelect;

@@ -194,6 +194,8 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
       "aliases",
       "primaryMuscles",
       "secondaryMuscles",
+      "primaryTargets",
+      "secondaryTargets",
       "equipment",
       "mechanic",
       "force",

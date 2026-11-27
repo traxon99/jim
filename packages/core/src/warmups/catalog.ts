@@ -310,8 +310,8 @@ export const WARMUP_EXERCISES: readonly WarmupCatalogEntry[] = [
     name: "Kneeling Hip Flexor Stretch",
     trackingType: "time",
     equipment: "body only",
-    primaryMuscles: ["quadriceps"],
-    secondaryMuscles: ["glutes", "abdominals"],
+    primaryMuscles: ["hip flexors"],
+    secondaryMuscles: ["quadriceps", "glutes", "abdominals"],
     instructions: [
       "Kneel on one knee with the other foot flat in front of you.",
       "Squeeze the glute of the kneeling leg and shift your hips forward.",

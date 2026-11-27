@@ -2,6 +2,7 @@ import {
   ACCOUNT_ROLES,
   type InjuryExerciseRule,
   MUSCLES,
+  MUSCLE_TARGETS,
   POST_KINDS,
   PULLEY_TYPES,
   type ProgressionRule,
@@ -88,6 +89,11 @@ export const sexEnum = pgEnum("sex", ["male", "female"]);
 // import the same list without pulling this package's Postgres client code
 // into a browser bundle.
 export const muscleEnum = pgEnum("muscle", [...MUSCLES]);
+
+// Every node of the muscle tree (issue #874): groups, muscles and heads.
+// Exercises are tagged with these; their group tags above are derived from
+// them (core's groupTagsFromTargets).
+export const muscleTargetEnum = pgEnum("muscle_target", MUSCLE_TARGETS as [string, ...string[]]);
 
 export const mechanicEnum = pgEnum("mechanic", ["compound", "isolation"]);
 export const forceEnum = pgEnum("force", ["push", "pull", "static"]);
@@ -360,6 +366,16 @@ export const exercises = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::muscle[]`),
+    // The muscle tree tags (issue #874), at any depth. Empty means the
+    // exercise is tagged at group level only, by the two columns above.
+    primaryTargets: muscleTargetEnum("primary_targets")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::muscle_target[]`),
+    secondaryTargets: muscleTargetEnum("secondary_targets")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::muscle_target[]`),
     equipment: text("equipment"),
     mechanic: mechanicEnum("mechanic"),
     force: forceEnum("force"),

@@ -26,6 +26,7 @@ import {
   levelEnum,
   mechanicEnum,
   muscleEnum,
+  muscleTargetEnum,
   prKindEnum,
   programModeEnum,
   setKindEnum,
@@ -89,6 +90,7 @@ import {
   reportInjury,
   setInjuryExerciseRule,
 } from "./tools/injuries.js";
+import { listMuscles } from "./tools/list-muscles.js";
 import { listRoutines } from "./tools/list-routines.js";
 import { listWorkouts } from "./tools/list-workouts.js";
 import { DEFAULT_DURATION_MINUTES, logPastWorkout } from "./tools/log-past-workout.js";
@@ -500,7 +502,7 @@ export function createMcpServer(context: UserContext): McpServer {
     {
       title: "Search exercises",
       description:
-        "Search the exercise catalog by name/alias or machine make/model, muscle group, and/or equipment. Results include machine make/model, pulley type, gym and the user's preference (like or dislike) when set.",
+        "Search the exercise catalog by name/alias or machine make/model, muscle, and/or equipment. A muscle is a group or any muscle or head id from list_muscles, and matches exercises tagged with it or anything beneath it. Results include muscle tree tags (primaryTargets, secondaryTargets), machine make/model, pulley type, gym and the user's preference (like or dislike) when set.",
       inputSchema: {
         query: z.string().optional(),
         muscles: z.array(z.string()).optional(),
@@ -508,6 +510,17 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle((input) => searchExercisesTool(context, input)),
+  );
+
+  server.registerTool(
+    "list_muscles",
+    {
+      title: "List muscles",
+      description:
+        "Read-only. The muscle tree: each muscle group, the anatomical muscles in it, and the heads of a muscle where training can bias one part over another (e.g. shoulders > deltoid > rear delt). Exercises are tagged with these ids at any depth (primaryTargets, secondaryTargets); their group muscles are derived from those tags.",
+      inputSchema: {},
+    },
+    handle(async () => listMuscles()),
   );
 
   server.registerTool(
@@ -725,13 +738,21 @@ export function createMcpServer(context: UserContext): McpServer {
     "upsert_exercise",
     {
       title: "Upsert exercise",
-      description: `Create a custom exercise, or edit one (editing a global catalog exercise clones it into your own copy, ADR-008). A strength exercise needs at least one primary muscle; list helpers as secondary muscles (each counts half a set), not primary.${PREVIEW_HINT}`,
+      description: `Create a custom exercise, or edit one (editing a global catalog exercise clones it into your own copy, ADR-008). A strength exercise needs at least one primary muscle; list helpers as secondary muscles (each counts half a set), not primary. For finer tags, give primaryTargets/secondaryTargets (ids from list_muscles, at any depth) instead of primaryMuscles/secondaryMuscles: the groups are derived from them. Editing only the group muscles clears the finer tags.${PREVIEW_HINT}`,
       inputSchema: {
         id: z.string().optional().describe("Omit to create a new exercise"),
         name: z.string().optional(),
         aliases: z.array(z.string()).optional(),
         primaryMuscles: z.array(z.enum(muscleEnum.enumValues)).optional(),
         secondaryMuscles: z.array(z.enum(muscleEnum.enumValues)).optional(),
+        primaryTargets: z
+          .array(z.enum(muscleTargetEnum.enumValues))
+          .optional()
+          .describe("Muscle tree ids (list_muscles) this exercise mainly trains"),
+        secondaryTargets: z
+          .array(z.enum(muscleTargetEnum.enumValues))
+          .optional()
+          .describe("Muscle tree ids it helps with (each counts half a set)"),
         equipment: z.string().optional(),
         mechanic: z.enum(mechanicEnum.enumValues).optional(),
         force: z.enum(forceEnum.enumValues).optional(),
