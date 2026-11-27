@@ -4,6 +4,7 @@ import type {
   DprBlockRow,
   ExercisePreferenceRow,
   ExerciseRow,
+  GymCardRow,
   GymRow,
   InjuryRow,
   PainCheckinRow,
@@ -65,6 +66,8 @@ export interface ExportTables extends HistoryTables {
   exercisePreferences?: readonly ExercisePreferenceRow[];
   /** Progress photo metadata (issue #835); the images come from the Export photos zip. */
   progressPhotos?: readonly ProgressPhotoRow[];
+  /** Gym cards with their codes (issue #878); a door credential, but the user's own. */
+  gymCards?: readonly GymCardRow[];
   settings: SettingsRow | undefined;
 }
 
@@ -212,6 +215,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     sickDays = [],
     exercisePreferences = [],
     progressPhotos = [],
+    gymCards = [],
     settings,
   } = tables;
   const exerciseName = new Map(history.exercises.map((exercise) => [exercise.id, exercise.name]));
@@ -252,6 +256,7 @@ export function jsonExportFromTables(tables: ExportTables, now: Date = new Date(
     sickDays: live(sickDays),
     exercisePreferences: live(exercisePreferences),
     progressPhotos: live(progressPhotos),
+    gymCards: live(gymCards),
   };
   return JSON.stringify(data, null, 2);
 }

@@ -153,6 +153,11 @@ progress_photos    id, user_id, taken_on (local day), taken_at, pose?(front|side
                    thumb_path, original_path, uploaded_at?
                    -- metadata only (#835); the bytes are in Storage (below). uploaded_at is set
                    -- once both objects are stored. Private: no friend, share, MCP or /v1 reader
+gym_cards          id, user_id, gym_id?, name, format, code, color, position
+                   -- a membership card or key tag shown at the door (#878). code is sealed
+                   -- (AES-256-GCM, GYM_CARD_KEY) by the push route and opened by the pull route
+                   -- for its owner; Postgres only holds ciphertext. The MCP lists cards without
+                   -- it; no friend, share, admin or /v1 reader (ADR-026)
 
 sync_mutations     id (mutation_id), user_id, applied_at         -- idempotency ledger
 

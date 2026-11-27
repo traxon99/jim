@@ -31,6 +31,8 @@ const env: NodeJS.ProcessEnv = {
   NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${AUTH_PORT}`,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "dev-stack-anon-key",
   DATABASE_URL: databaseUrl,
+  // Seals gym card codes (ADR-026); a throwaway key for the throwaway database.
+  GYM_CARD_KEY: "dev-stack-gym-card-key-not-secret",
 };
 const next = spawn("pnpm", ["exec", "next", "dev", "--port", String(APP_PORT)], {
   cwd: path.resolve(import.meta.dirname, "../.."),

@@ -1,4 +1,11 @@
-import { type Mutation, SYNC_DATE_FIELDS, type SyncTable, normalizeDates } from "@jim/core";
+import {
+  type Mutation,
+  SYNC_DATE_FIELDS,
+  type SyncTable,
+  isGymCardFormat,
+  isHexColor,
+  normalizeDates,
+} from "@jim/core";
 import {
   type DbOrTx,
   bodyMeasurements,
@@ -6,6 +13,7 @@ import {
   dprBlocks,
   exercisePreferences,
   exercises,
+  gymCards,
   gyms,
   injuries,
   painCheckins,
@@ -23,6 +31,7 @@ import {
 } from "@jim/db";
 import { type SQL, sql } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
+import { GymCardKeyMissingError, gymCardSecret, sealGymCardCode } from "../gym-cards/seal";
 import { excluded } from "./excluded";
 
 /**
@@ -275,7 +284,31 @@ export const LWW_TABLES: Record<Exclude<SyncTable, "sets">, LwwTable> = {
       "uploadedAt",
     ],
   },
+  // The code arrives in the clear and is sealed in sealGymCard before the
+  // write (issue #878, ADR-026).
+  gymCards: {
+    table: gymCards,
+    updatable: ["gymId", "name", "format", "code", "color", "position"],
+  },
 };
+
+/**
+ * Seals a gym card's code for storage and rejects a row the app couldn't
+ * have written. Throws when the deploy has no GYM_CARD_KEY: the mutation
+ * then fails and stays queued on the phone, rather than storing a credential
+ * in the clear.
+ */
+function sealGymCard(row: Record<string, unknown>): Record<string, unknown> {
+  if (!isGymCardFormat(row.format) || !isHexColor(row.color)) {
+    throw new Error("gym card with an unknown format or color");
+  }
+  if (typeof row.code !== "string" || typeof row.id !== "string") {
+    throw new Error("gym card without a code");
+  }
+  const secret = gymCardSecret();
+  if (!secret) throw new GymCardKeyMissingError();
+  return { ...row, code: sealGymCardCode(row.code, row.id, secret) };
+}
 
 /** The update set for an LWW upsert: the table's editable columns plus the sync bookkeeping. */
 function lwwUpdateSet(table: PgTable, updatable: readonly string[]): Record<string, SQL> {
@@ -298,7 +331,8 @@ async function applyEntity(
     mutation.entity as Record<string, unknown>,
     SYNC_DATE_FIELDS[mutation.table],
   );
-  const { serverSeq: _serverSeq, ...row } = dated;
+  const { serverSeq: _serverSeq, ...unsealed } = dated;
+  const row = mutation.table === "gymCards" ? sealGymCard(unsealed) : unsealed;
 
   if (mutation.table === "sets") {
     // Append-only (ADR-003): no conflict handling, no update path at all.

@@ -80,6 +80,7 @@ import { getBodyMeasurements } from "./tools/get-body-measurements.js";
 import { getPrs } from "./tools/get-prs.js";
 import { getRoutine } from "./tools/get-routine.js";
 import { getWorkout } from "./tools/get-workout.js";
+import { deleteGymCard, listGymCards } from "./tools/gym-cards.js";
 import { createGym, deleteGym, findPlaces, listGyms, updateGym } from "./tools/gyms.js";
 import {
   clearInjuryExerciseRule,
@@ -1127,6 +1128,32 @@ export function createMcpServer(context: UserContext): McpServer {
       },
     },
     handle(({ dry_run, ...input }) => deleteGym(context, { ...input, dryRun: dry_run })),
+  );
+
+  // Gym cards (issue #878, ADR-026): listed and deleted, never read. The code
+  // is a door credential, so no tool returns or sets it.
+  server.registerTool(
+    "list_gym_cards",
+    {
+      title: "List gym cards",
+      description:
+        "Read-only. The membership cards and key tags the user keeps in the app to show at the gym door: each card's name, barcode format, color and gym. The card's code is private and never returned; cards are added by scanning them in the app.",
+      inputSchema: {},
+    },
+    handle(() => listGymCards(context)),
+  );
+  server.registerTool(
+    "delete_gym_card",
+    {
+      title: "Delete gym card",
+      description:
+        "Delete a gym card from the app. dry_run defaults to true: confirm with the user, then call again with dry_run: false.",
+      inputSchema: {
+        card: z.string().describe("Card id, or its exact name (see list_gym_cards)"),
+        dry_run: dryRunParam(true),
+      },
+    },
+    handle(({ dry_run, ...input }) => deleteGymCard(context, { ...input, dryRun: dry_run })),
   );
 
   // Injuries (issue #627): private to the user, like everything here.

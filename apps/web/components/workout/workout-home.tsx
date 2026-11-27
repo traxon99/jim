@@ -3,7 +3,8 @@
 import { BlockEndCard } from "@/components/dpr/block-end-card";
 import { DprWorkoutBadge } from "@/components/dpr/dpr-workout-badge";
 import { TryDprCard } from "@/components/dpr/try-dpr-card";
-import { Pencil, Play, Plus, TrendingUp, Zap } from "@/components/icons/solar";
+import { useGymCardOverlays } from "@/components/gym-cards/gym-card-overlays";
+import { Barcode, Pencil, Play, Plus, TrendingUp, Zap } from "@/components/icons/solar";
 import { LoadingText } from "@/components/loading-text";
 import { FLOATING_BUTTON, PAGE_BODY, PageHeader, SECTION_LABEL } from "@/components/page-header";
 import { ProgramWeekStrip, useProgramCycle } from "@/components/routines/program-week-strip";
@@ -12,6 +13,7 @@ import { SickTodayCard, useSickToday } from "@/components/sick-days/sick-day-con
 import { type RoutineExerciseRow, db } from "@/lib/db/schema";
 import { dprCallsForRoutine } from "@/lib/dpr/calls";
 import { useDprContext } from "@/lib/dpr/use-dpr-calls";
+import { primaryGymCard } from "@/lib/gym-cards";
 import { useGyms } from "@/lib/gyms/use-gyms";
 import { useHasOpenInjury } from "@/lib/injuries/use-injuries";
 import { useToday } from "@/lib/pwa/use-today";
@@ -84,6 +86,12 @@ export function WorkoutHome({ userId }: { userId: string }) {
   const rawRoutines = useLiveQuery(() => db.routines.toArray(), []);
   const dprContext = useDprContext();
   const gyms = useGyms();
+  // The gym card for the door (issue #878): the home gym's, else the first.
+  const gymCards = useGymCardOverlays(userId);
+  const doorCard = primaryGymCard(
+    gymCards.cards ?? [],
+    gyms?.find((gym) => gym.isDefault)?.id ?? null,
+  );
   const hasOpenInjury = useHasOpenInjury();
   const sickToday = useSickToday();
   const oneOffs = useOneOffs();
@@ -214,12 +222,25 @@ export function WorkoutHome({ userId }: { userId: string }) {
         title="Lift"
         eyebrow={EYEBROW_FORMAT.format(today)}
         actions={
-          // PRP Progress moved here from History's shortcuts (#783).
-          <Link href="/progression" aria-label="Progress" data-ripple className={FLOATING_BUTTON}>
-            <TrendingUp className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
-          </Link>
+          <>
+            {doorCard && (
+              <button
+                type="button"
+                onClick={() => gymCards.open(doorCard.id)}
+                aria-label={`Show ${doorCard.name}`}
+                className={FLOATING_BUTTON}
+              >
+                <Barcode className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            )}
+            {/* PRP Progress moved here from History's shortcuts (#783). */}
+            <Link href="/progression" aria-label="Progress" data-ripple className={FLOATING_BUTTON}>
+              <TrendingUp className="h-6 w-6" strokeWidth={1.75} aria-hidden="true" />
+            </Link>
+          </>
         }
       />
+      {gymCards.overlays}
       <div className={PAGE_BODY}>
         {suggestion && cycle && cycle.days.length > 0 && (
           <div className="surface px-2 pt-3 pb-2">

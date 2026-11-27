@@ -5,6 +5,7 @@ import type {
   dprBlocks,
   exercisePreferences,
   exercises,
+  gymCards,
   gyms,
   injuries,
   painCheckins,
@@ -85,6 +86,19 @@ export type PainCheckinRow = typeof painCheckins.$inferSelect;
 export type SickDayRow = typeof sickDays.$inferSelect;
 export type ExercisePreferenceRow = typeof exercisePreferences.$inferSelect;
 export type ProgressPhotoRow = typeof progressPhotos.$inferSelect;
+/** A gym card (issue #878). On the phone `code` is the code itself; only the server stores it sealed. */
+export type GymCardRow = typeof gymCards.$inferSelect;
+
+/**
+ * A gym card's code drawn as SVG (issue #878), kept on this phone so showing
+ * the card at the door needs no encoder, network or camera. `key` is the
+ * format and code it was drawn from; a card whose key changed is drawn again.
+ */
+export interface GymCardArtRow {
+  id: string;
+  key: string;
+  svg: string;
+}
 
 /**
  * A photo's bytes waiting to reach Storage (issue #835). Blobs don't belong in
@@ -130,6 +144,7 @@ export interface SyncTableRowMap {
   sickDays: SickDayRow;
   exercisePreferences: ExercisePreferenceRow;
   progressPhotos: ProgressPhotoRow;
+  gymCards: GymCardRow;
 }
 
 /** A pending outbox entry — its id (a UUIDv7) doubles as the FIFO drain order. */
@@ -228,6 +243,8 @@ export class JimDatabase extends Dexie {
   progressPhotos!: EntityTable<ProgressPhotoRow, "id">;
   photoUploads!: EntityTable<PhotoUploadRow, "photoId">;
   photoThumbs!: EntityTable<PhotoThumbRow, "id">;
+  gymCards!: EntityTable<GymCardRow, "id">;
+  gymCardArt!: EntityTable<GymCardArtRow, "id">;
   outbox!: EntityTable<OutboxEntry, "id">;
   syncMeta!: EntityTable<SyncMetaRow, "id">;
   settings!: EntityTable<SettingsRow, "id">;
@@ -277,6 +294,11 @@ export class JimDatabase extends Dexie {
       progressPhotos: "id, takenOn, updatedAt, deletedAt",
       photoUploads: "photoId, createdAt",
       photoThumbs: "id",
+    });
+    // Gym cards (issue #878) and their drawn codes, which stay on the device.
+    this.version(9).stores({
+      gymCards: "id, gymId, updatedAt, deletedAt",
+      gymCardArt: "id",
     });
   }
 }
