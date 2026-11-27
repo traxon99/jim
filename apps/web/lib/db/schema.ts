@@ -179,6 +179,7 @@ export type SettingsRow = Pick<
   | "showStrengthHints"
   | "showSetTypes"
   | "showRestStats"
+  | "showMuscleDetail"
   | "showSetTimer"
   | "showTempo"
   | "tempoCues"

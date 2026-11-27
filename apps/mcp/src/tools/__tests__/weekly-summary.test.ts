@@ -102,4 +102,34 @@ describe("weekly_summary (#409)", () => {
     const [summary] = summarizeWeeks([sundayEvening], exercises, starts, week, "strength");
     expect(summary).toMatchObject({ workingSets: 1, weekEnd: "2026-10-12T07:00:00.000Z" });
   });
+
+  it("breaks groups into muscles and heads when asked (#876)", () => {
+    const tagged = new Map<string, SummaryExercise>([
+      [
+        "raise",
+        {
+          name: "Lateral Raise",
+          primaryMuscles: ["shoulders"],
+          secondaryMuscles: [],
+          primaryTargets: ["side_delt"],
+          secondaryTargets: [],
+        },
+      ],
+      ["bench", { name: "Bench Press", primaryMuscles: ["chest"], secondaryMuscles: ["triceps"] }],
+    ]);
+    const sets = [
+      set("a", "raise", new Date(2026, 9, 5, 18).toISOString(), 10, 15),
+      set("a", "bench", new Date(2026, 9, 5, 18, 5).toISOString(), 100, 5),
+    ];
+    const at = (detail: "group" | "muscle" | "head") =>
+      summarizeWeeks(sets, tagged, weekStarts.slice(0, 1), { weekStart: 1 }, "strength", detail)[0];
+
+    expect(at("group")).not.toHaveProperty("muscleDetail");
+    expect(at("muscle")?.muscleDetail).toEqual({
+      shoulders: [{ id: "deltoid", label: "Deltoid", sets: 1, volume: 150 }],
+    });
+    expect(at("head")?.muscleDetail?.shoulders?.[0]?.children).toEqual([
+      { id: "side_delt", label: "Side delt", sets: 1, volume: 150 },
+    ]);
+  });
 });

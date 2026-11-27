@@ -259,6 +259,9 @@ export const users = pgTable(
     showStrengthHints: boolean("show_strength_hints").notNull().default(true),
     showSetTypes: boolean("show_set_types").notNull().default(true),
     showRestStats: boolean("show_rest_stats").notNull().default(true),
+    // Muscle detail (issue #876): Volume by muscle breaks groups into
+    // muscles and heads, and the map shades the finer surfaces.
+    showMuscleDetail: boolean("show_muscle_detail").notNull().default(true),
     // Working set timer (issue #634): a Start set / End set timer that times
     // each set. Unlike the switches above it's off until turned on.
     showSetTimer: boolean("show_set_timer").notNull().default(false),

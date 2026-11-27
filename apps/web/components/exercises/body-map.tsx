@@ -1,5 +1,6 @@
 import {
   type BodyMapView,
+  DETAIL_SURFACES,
   type Muscle,
   type MuscleShading,
   exerciseMuscleShading,
@@ -22,6 +23,8 @@ export type BodySide = "left" | "right" | null;
 
 interface Region {
   muscle: Muscle;
+  /** MuscleMap's surface, for Muscle detail shading; hand-drawn shapes have none. */
+  surface?: string;
   side: BodySide;
   d: string;
 }
@@ -75,6 +78,7 @@ function Figure({
   regions,
   view,
   shading,
+  surfaceShading,
   label,
   onPick,
 }: {
@@ -82,6 +86,7 @@ function Figure({
   regions: readonly Region[];
   view: BodyMapView;
   shading: MuscleShading;
+  surfaceShading?: Readonly<Record<string, number>>;
   label: string;
   onPick?: (muscle: Muscle, side: BodySide) => void;
 }) {
@@ -96,7 +101,10 @@ function Figure({
           <path key={d} d={d} className="fill-zinc-300 dark:fill-zinc-800" />
         ))}
         {regions.map((region, index) => {
-          const strength = shading[region.muscle] ?? 0;
+          const strength =
+            surfaceShading && region.surface && region.surface in DETAIL_SURFACES
+              ? (surfaceShading[region.surface] ?? 0)
+              : (shading[region.muscle] ?? 0);
           // The neutral fill stays underneath, so a faint tint always reads
           // as "a little" rather than darker than an untrained muscle.
           return (
@@ -126,6 +134,7 @@ export function BodyMap({
   view = "full",
   className = "",
   onPick,
+  surfaceShading,
 }: {
   shading: MuscleShading;
   /** Read out in place of the drawing, e.g. "Chest and triceps worked". */
@@ -135,6 +144,11 @@ export function BodyMap({
   className?: string;
   /** Makes each muscle tappable, with the side of the body it was tapped on (issue #627). */
   onPick?: (muscle: Muscle, side: BodySide) => void;
+  /**
+   * Muscle detail (issue #876): shading for the surfaces finer than a group
+   * (front/side/rear delt, abs vs obliques), keyed by DETAIL_SURFACES.
+   */
+  surfaceShading?: Readonly<Record<string, number>>;
 }) {
   return (
     <div role="img" aria-label={label} className={`flex gap-4 ${className}`}>
@@ -143,6 +157,7 @@ export function BodyMap({
         regions={FRONT}
         view={view}
         shading={shading}
+        surfaceShading={surfaceShading}
         label="Front"
         onPick={onPick}
       />
@@ -151,6 +166,7 @@ export function BodyMap({
         regions={BACK}
         view={view}
         shading={shading}
+        surfaceShading={surfaceShading}
         label="Back"
         onPick={onPick}
       />

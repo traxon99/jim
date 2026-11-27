@@ -1,8 +1,10 @@
 import {
   type TrainingGoal,
+  type VolumeDetail,
   WEEKLY_SET_TARGETS,
   groupByWeek,
   isStrengthExercise,
+  muscleDetailByGroup,
   resolveCurrentRows,
   weeklySetStatusByMuscle,
   weeklyVolumeByMuscle,
@@ -20,6 +22,8 @@ export interface VolumeReportInput {
   to: string;
   /** Which weekly set range to check muscles against (issue #395). */
   goal?: TrainingGoal;
+  /** By muscle, how deep to break each group down (#876); default "group". */
+  detail?: VolumeDetail;
 }
 
 export interface ResolvedSet {
@@ -163,6 +167,8 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
           durationSeconds: set.durationSeconds,
           primaryMuscles: exercise.primaryMuscles,
           secondaryMuscles: exercise.secondaryMuscles,
+          primaryTargets: exercise.primaryTargets,
+          secondaryTargets: exercise.secondaryTargets,
         };
       })
       .filter((set): set is NonNullable<typeof set> => set !== null);
@@ -176,6 +182,9 @@ export async function volumeReport(context: UserContext, input: VolumeReportInpu
       goal,
       targetSets: WEEKLY_SET_TARGETS[goal],
       setStatusByMuscle: weeklySetStatusByMuscle(group.setsByMuscle, goal),
+      ...(input.detail && input.detail !== "group"
+        ? { muscleDetail: muscleDetailByGroup(group, input.detail) }
+        : {}),
     }));
   });
 }

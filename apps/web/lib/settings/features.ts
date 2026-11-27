@@ -48,6 +48,16 @@ export function showsRestStats(
   return settings.advancedFeatures !== false && settings.showRestStats !== false;
 }
 
+/**
+ * Whether Volume by muscle opens groups into muscles and heads, and its map
+ * shades the finer surfaces (issue #876): its own switch, and not Simple mode.
+ */
+export function showsMuscleDetail(
+  settings: Pick<SettingsRow, "advancedFeatures" | "showMuscleDetail">,
+): boolean {
+  return settings.advancedFeatures !== false && settings.showMuscleDetail !== false;
+}
+
 /** Whether Profile → Injuries shows the exercise rules editor (issue #724); rules apply either way. */
 export function showsInjuryRules(
   settings: Pick<SettingsRow, "advancedFeatures" | "showInjuryRules">,

@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: SettingsRow = {
   showStrengthHints: true,
   showSetTypes: true,
   showRestStats: true,
+  showMuscleDetail: true,
   showSetTimer: false,
   showTempo: false,
   tempoCues: false,
